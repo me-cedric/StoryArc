@@ -1,12 +1,12 @@
 public import SwiftUI
 
-/// The two moments StoryArc taps a reader on the wrist.
+/// The three moments StoryArc taps a reader on the wrist.
 ///
 /// `native-experience` lists haptics among the system affordances the app has to use.
 /// Which is a shorter list than it sounds: a page turn is the commonest thing that
 /// happens in this app, and a comic read at speed is two hundred of them — a buzz on
-/// each one is a defect, not a feature. So the vocabulary is deliberately two words
-/// wide, and both of them are for something a reader would otherwise have to *notice*
+/// each one is a defect, not a feature. So the vocabulary is deliberately three words
+/// wide, and each is for something a reader would otherwise have to *notice*
 /// had happened.
 ///
 /// Nothing else gets one, on purpose:
@@ -17,14 +17,20 @@ public import SwiftUI
 /// - **A long press** already has the platform's own, from `contextMenu`.
 /// - **A toggle or a slider** is answered by the control moving.
 ///
+/// The one exception is a scrub over a few discrete stops, where each stop is a thing the
+/// reader has to *feel* land: the library index, one tick for each new letter.
+///
 /// Kept word for word with Android's `StoryArcFeedback`, so a reader who owns both
 /// phones is not taught two different vocabularies for one app.
-public enum StoryArcFeedback: Sendable {
+public enum StoryArcFeedback: Sendable, CaseIterable {
     /// A thing the reader finished. The end of a publication is the only one so far.
     case completion
 
     /// A request the app cannot honour — a page turn back from the first page.
     case refusal
+
+    /// One discrete step of a scrub, such as a new letter under the finger on the library index.
+    case selection
 
     /// What the system plays for this.
     ///
@@ -35,6 +41,7 @@ public enum StoryArcFeedback: Sendable {
         switch self {
         case .completion: .success
         case .refusal: .warning
+        case .selection: .selection
         }
     }
 }

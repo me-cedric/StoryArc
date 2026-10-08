@@ -75,4 +75,15 @@ struct HitRegionTests {
 
         #expect(delta >= 44 + StoryArcSpace.sm, "A chapter row added \(delta) points.")
     }
+
+    @Test("The A to Z rail is one region at least 44 wide that holds every letter")
+    func theRail() {
+        let entries = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".map { RailEntry(label: String($0), publicationID: String($0)) }
+
+        let measured = size(of: RailLetters(shown: entries))
+
+        #expect(measured.width >= 44, "The rail is \(measured.width) points wide. A finger needs 44.")
+        #expect(measured.height >= CGFloat(entries.count) * LibraryRail.entryHeight, "Every letter is drawn.")
+        #expect(IndexRail.width >= 44, "The shelf reserves the room the rail takes.")
+    }
 }

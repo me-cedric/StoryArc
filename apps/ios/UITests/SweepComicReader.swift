@@ -263,9 +263,11 @@ final class SweepComicReaderTests: XCTestCase {
         // because a chosen letter scrolls its first row to the very top — ask it for this
         // title's own initial before giving up.
         if found == nil, let initial = title.first.map({ String($0).uppercased() }) {
-            let jump = app.buttons.matching(NSPredicate(format: "label == %@", "Jump to \(initial)")).firstMatch
-            if jump.isHittable {
-                jump.tap()
+            // The index is one scrubber (24.6): tap it where the initial would sit in A to Z.
+            let rail = app.descendants(matching: .any).matching(identifier: "library.rail").firstMatch
+            if rail.isHittable, let letter = initial.unicodeScalars.first, ("A"..."Z").contains(letter) {
+                let place = (Double(letter.value - 65) + 0.5) / 27
+                rail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: place)).tap()
                 for _ in 0..<4 where found == nil {
                     found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
                     if found == nil { app.swipeUp() }

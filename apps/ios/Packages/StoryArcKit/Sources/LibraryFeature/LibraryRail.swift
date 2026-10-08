@@ -138,7 +138,21 @@ enum LibraryRail {
         return String(first).uppercased(with: locale)
     }
 
-    /// The height one rail entry draws at. ``IndexRail`` draws its `Button`s at this height,
+    /// The width of the rail's hit region. 44 points is the least Apple's guidelines allow a
+    /// target, and the rail has the whole of it from the shelf's edge.
+    ///
+    /// Stated here rather than on ``IndexRail``, which is main-actor isolated and cannot
+    /// stand as a nonisolated default argument's value or be read from a plain test.
+    static let hitWidth: CGFloat = 44
+
+    /// The padding above the first letter and below the last, inside the hit region. A
+    /// finger on it counts as the first or the last letter.
+    static let inset: CGFloat = StoryArcSpace.sm
+
+    /// How wide the capsule behind the letters draws, centred in the hit region.
+    static let capsuleWidth: CGFloat = 22 + StoryArcSpace.xs * 2
+
+    /// The height one rail entry draws at. ``IndexRail`` draws its letters at this height,
     /// so the view and ``collapsed(_:toFit:entryHeight:)`` can never disagree about how many
     /// of them fit a given space. Stated here rather than on the view, which is main-actor
     /// isolated and cannot stand as a nonisolated default argument's value.
@@ -155,9 +169,10 @@ enum LibraryRail {
     ///
     /// The subset always keeps the first and the last entry, because those are the ends of
     /// the alphabet a reader reaches for, and spaces the rest evenly between them so no one
-    /// run of letters is favoured over another. A letter this drops is still reachable: it
-    /// sits between two kept ones, and ``IndexRail`` already states in its own accessibility
-    /// label that the rail is a jump, not an exhaustive list.
+    /// run of letters is favoured over another. **A letter this drops is still reachable:**
+    /// ``IndexRail`` is one scrubber, and ``RailScrub`` reads the finger's position against
+    /// the whole alphabet rather than against the letters drawn, so every entry has a place
+    /// under the finger and the bubble names the one it is on.
     static func collapsed(
         _ entries: [RailEntry],
         toFit height: CGFloat,
@@ -177,88 +192,5 @@ enum LibraryRail {
             lastIndex = index
         }
         return kept
-    }
-}
-
-/// The index itself, down the trailing edge of the shelf.
-///
-/// `library-browsing`'s *The index without sight* scenario is the reason for every
-/// accessibility line here rather than an afterthought about them:
-///
-/// - the whole rail is one named container, so a screen reader announces *Alphabetical
-///   index* once instead of announcing twenty-seven unexplained characters,
-/// - every entry is a real `Button` with a spoken label naming the letter it moves to,
-///   because a single drawn character is not an instruction,
-/// - nothing here is the only statement of anything: the shelf's own section headings say
-///   the same thing in the content, so a reader who never meets the rail loses nothing.
-struct IndexRail: View {
-
-    /// How much of the shelf's width the rail takes.
-    ///
-    /// Stated rather than measured, because the shelf has to reserve it *before* the rail is
-    /// laid out: the rail is an `.overlay(alignment: .trailing)`, so a shelf that did not
-    /// inset itself drew its last column underneath it. Android's `RAIL_WIDTH` is the twin
-    /// and its frames are where the defect was seen.
-    ///
-    /// 22 pt of entry, `xs` of padding on each side of it, and `xs` again to the edge.
-    static let width: CGFloat = 22 + StoryArcSpace.xs * 3
-
-    @Environment(\.theme) private var theme
-
-    let entries: [RailEntry]
-    /// Where a chosen letter sends the shelf.
-    let onChoose: (RailEntry) -> Void
-
-    /// **A `GeometryReader`, because ``LibraryRail/collapsed(_:toFit:entryHeight:)`` needs the
-    /// height before it can draw.** The rail used to be the `VStack` below with no reader
-    /// around it, sized to its own entries and centred by the parent's
-    /// `.overlay(alignment: .trailing)` — which is exactly why it could run off both edges of
-    /// a short screen: nothing here ever asked how tall the space was. Photographed in
-    /// landscape on 2026-09-28, 27 entries of 22 pt wanting about 600 pt of a shelf shorter
-    /// than that.
-    var body: some View {
-        GeometryReader { geometry in
-            rail(for: LibraryRail.collapsed(entries, toFit: geometry.size.height))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
-        }
-    }
-
-    private func rail(for shown: [RailEntry]) -> some View {
-        VStack(spacing: 0) {
-            ForEach(shown) { entry in
-                Button { onChoose(entry) } label: {
-                    Text(entry.label)
-                        .textRole(.caption)
-                        .monospacedDigit()
-                        .foregroundStyle(theme.palette.textSecondary)
-                        // A fixed, small target so a shelf holding every letter still fits
-                        // one column. 22 points is the least a letter can be tapped at
-                        // reliably, and the rail is centred rather than stretched so it
-                        // clips instead of pushing the covers about.
-                        .frame(width: 22, height: LibraryRail.entryHeight)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("library.index.jump \(entry.label)", bundle: .module))
-            }
-        }
-        // **The type is capped, because the box is.** Each entry declares a 22-point frame so
-        // a shelf holding every letter fits one column. At the largest accessibility size the
-        // letters grew and the frames did not, so they overlapped into one illegible vertical
-        // smear -- photographed at `UICTContentSizeCategoryAccessibilityXXXL` on 2026-09-11.
-        //
-        // Capping is what Apple's own section index does, and it is not a loss of access:
-        // `library-browsing`'s *The index without sight* requires the rail to be reachable and
-        // operable without sight, which it is -- every entry is a button with a spoken label
-        // -- and the shelf's own section headings say the same thing in the content at full
-        // size. An illegible rail serves nobody; a small legible one beside readable headings
-        // serves everybody. Android clamps the same way, with its 24 dp `size`.
-        .dynamicTypeSize(...DynamicTypeSize.large)
-        .padding(.vertical, StoryArcSpace.sm)
-        .padding(.horizontal, StoryArcSpace.xs)
-        .background(theme.palette.surfaceOverlay, in: .capsule)
-        .padding(.trailing, StoryArcSpace.xs)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("library.index", bundle: .module))
     }
 }

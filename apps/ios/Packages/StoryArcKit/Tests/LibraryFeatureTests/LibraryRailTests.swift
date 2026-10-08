@@ -210,4 +210,122 @@ struct LibraryRailTests {
         #expect(LibraryRail.collapsed(entries, toFit: 0, entryHeight: 22) == entries)
         #expect(LibraryRail.collapsed(entries, toFit: 100, entryHeight: 0) == entries)
     }
+
+    // MARK: One scrubber
+
+    /// `close-the-audited-gaps` 24.6: the rail is one control, and a finger dragged down it
+    /// chooses the letters in order, each once.
+    private var rail: [RailEntry] { alphabet("ABCDEFGHIJKLMNOPQRSTUVWXYZ#") }
+    private var railHeight: CGFloat { 27 * 22 + 2 * LibraryRail.inset }
+
+    @Test("A finger dragged down the whole rail chooses every letter, in order, once each")
+    func aDragChoosesLettersInOrder() {
+        var scrub = RailScrub()
+        var chosen: [Int] = []
+        var y: CGFloat = 0
+        while y <= railHeight {
+            if let index = scrub.move(to: y, height: railHeight, inset: LibraryRail.inset, count: rail.count) {
+                chosen.append(index)
+            }
+            y += 1
+        }
+
+        #expect(chosen == Array(0..<rail.count))
+    }
+
+    @Test("A finger dragged back up chooses the letters in reverse")
+    func aDragUpChoosesLettersInReverse() {
+        var scrub = RailScrub()
+        var chosen: [Int] = []
+        var y = railHeight
+        while y >= 0 {
+            if let index = scrub.move(to: y, height: railHeight, inset: LibraryRail.inset, count: rail.count) {
+                chosen.append(index)
+            }
+            y -= 1
+        }
+
+        #expect(chosen == Array((0..<rail.count).reversed()))
+    }
+
+    @Test("A letter is chosen once while the finger stays on it, and again after the finger lifts")
+    func aLetterIsChosenOnArrival() {
+        var scrub = RailScrub()
+        let middle = LibraryRail.inset + 22 * 3 + 5
+
+        #expect(scrub.move(to: middle, height: railHeight, inset: LibraryRail.inset, count: rail.count) == 3)
+        #expect(scrub.move(to: middle + 4, height: railHeight, inset: LibraryRail.inset, count: rail.count) == nil)
+        scrub.end()
+        #expect(scrub.current == nil)
+        #expect(scrub.move(to: middle, height: railHeight, inset: LibraryRail.inset, count: rail.count) == 3)
+    }
+
+    @Test("A tap on a letter chooses that letter")
+    func aTapChoosesTheLetterUnderIt() {
+        for target in [0, 9, 26] {
+            // Both edges of the letter's own 22 points, so a rail that drifts off its letters fails.
+            let top = LibraryRail.inset + 22 * CGFloat(target) + 0.5
+            let bottom = LibraryRail.inset + 22 * CGFloat(target + 1) - 0.5
+
+            for y in [top, bottom] {
+                #expect(
+                    RailScrub.index(at: y, height: railHeight, inset: LibraryRail.inset, count: rail.count) == target
+                )
+            }
+        }
+    }
+
+    @Test("The padding above and below the letters counts as the first and the last")
+    func theEdgesAreTheEnds() {
+        #expect(RailScrub.index(at: -30, height: railHeight, inset: LibraryRail.inset, count: 27) == 0)
+        #expect(RailScrub.index(at: railHeight + 30, height: railHeight, inset: LibraryRail.inset, count: 27) == 26)
+    }
+
+    @Test("A rail that draws fewer letters than it holds still reaches every one of them")
+    func aThinnedRailStillReachesEveryLetter() {
+        let drawn = LibraryRail.collapsed(rail, toFit: 150, entryHeight: 22)
+        let height = CGFloat(drawn.count) * 22 + 2 * LibraryRail.inset
+        var scrub = RailScrub()
+        var chosen: [Int] = []
+        var y: CGFloat = 0
+        while y <= height {
+            if let index = scrub.move(to: y, height: height, inset: LibraryRail.inset, count: rail.count) {
+                chosen.append(index)
+            }
+            y += 0.5
+        }
+
+        #expect(drawn.count < rail.count)
+        #expect(chosen == Array(0..<rail.count))
+    }
+
+    @Test("Nothing to choose answers nothing")
+    func anEmptyRailChoosesNothing() {
+        var scrub = RailScrub()
+
+        #expect(scrub.move(to: 10, height: 100, inset: 8, count: 0) == nil)
+        #expect(RailScrub.step(from: nil, by: 1, count: 0) == nil)
+    }
+
+    @Test("VoiceOver steps to the next and the previous letter, and stops at the ends")
+    func adjustableStepsStopAtTheEnds() {
+        #expect(RailScrub.step(from: nil, by: 1, count: 27) == 0)
+        #expect(RailScrub.step(from: nil, by: -1, count: 27) == 26)
+        #expect(RailScrub.step(from: 4, by: 1, count: 27) == 5)
+        #expect(RailScrub.step(from: 4, by: -1, count: 27) == 3)
+        #expect(RailScrub.step(from: 26, by: 1, count: 27) == 26)
+        #expect(RailScrub.step(from: 0, by: -1, count: 27) == 0)
+    }
+
+    /// The parts of the rail a unit test cannot drive: the gesture, the haptic and the
+    /// accessibility. Read as text, the way `LibraryGroupingWiringTests` reads the shelf.
+    @Test("The rail is one gesture with a tick, an adjustable value and named jump actions")
+    func theRailIsWiredAsOneControl() {
+        let code = LibraryFeatureSource.code(of: "Sources/LibraryFeature/IndexRail.swift")
+
+        #expect(code.contains("DragGesture(minimumDistance: 0)"), "a tap and a drag are one gesture")
+        #expect(code.contains(".storyArcFeedback(.selection, trigger: scrub.current"), "a tick on each new letter")
+        #expect(code.contains(".accessibilityAdjustableAction"), "VoiceOver steps letter by letter")
+        #expect(code.contains(".accessibilityActions"), "each letter stays a named jump")
+    }
 }

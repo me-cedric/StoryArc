@@ -35,8 +35,18 @@ struct HapticsTests {
     /// so neither assertion above catches it on its own — the end of a publication and a page
     /// turn refused at the first page would then be indistinguishable by touch, which is the
     /// only sense either of them is for.
-    @Test("Finishing and being refused do not feel the same")
-    func theTwoMomentsDiffer() {
-        #expect(StoryArcFeedback.completion.signal != StoryArcFeedback.refusal.signal)
+    @Test("A new letter under the finger plays the system's own selection tick")
+    func selectionIsTheSystemSelection() {
+        #expect(StoryArcFeedback.selection.signal == .selection)
+    }
+
+    @Test("No two moments feel the same")
+    func theMomentsDiffer() {
+        let signals = StoryArcFeedback.allCases.map(\.signal)
+
+        #expect(signals.count == 3)
+        for (index, signal) in signals.enumerated() {
+            #expect(!signals.dropFirst(index + 1).contains(signal))
+        }
     }
 }
