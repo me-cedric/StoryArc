@@ -76,6 +76,33 @@ struct CoverFinderTests {
         #expect(opened?.query()?.contains("Ada") == true)
     }
 
+    @Test("The publication page draws the offer: the title search by the switch, the hand-off always")
+    func pagePlacesTheOffer() throws {
+        // A rule placed on no screen passes every test that never opens one. The page is a
+        // SwiftUI view a test cannot compose, so its source is read, without comment lines.
+        let file = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("Sources/LibraryFeature/CoverChoiceView.swift")
+        let text = try #require(
+            try? String(contentsOf: file, encoding: .utf8),
+            "\(file.path) could not be read. A guard that cannot find what it guards passes for ever."
+        )
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+        .joined(separator: "\n")
+        let controls = try #require(text.range(of: "private var controls: some View"))
+        let finder = try #require(text.range(of: "private var finder: some View"))
+        let drawn = String(text[controls.upperBound..<finder.lowerBound])
+        let offered = String(text[finder.upperBound...])
+
+        #expect(drawn.contains("\n            finder\n"), "The page's controls do not draw the finder.")
+        #expect(offered.contains("model.coverFinderOffer()"))
+        #expect(offered.contains("if offer.findACover {"))
+        #expect(offered.contains("if offer.webSearch {"))
+        #expect(offered.contains("CoverSearchHandoff("))
+        #expect(text.contains("CoverFinderSheet(publication: publication, model: model)"))
+    }
+
     // MARK: Adoption
 
     private func client(status: Int = 200, _ asked: FinderAsked) throws -> CoverLookupClient {

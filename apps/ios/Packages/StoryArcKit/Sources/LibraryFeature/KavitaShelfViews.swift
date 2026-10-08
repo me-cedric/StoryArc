@@ -60,8 +60,11 @@ struct KavitaCollectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         // Task 7.8: a collection holds series, so the chapters are the series' own.
-        .kavitaShelfBulkActions(server: server) {
-            await KavitaShelfBulk.chapters(of: held) { try await client.volumes(ofSeries: $0) }
+        .kavitaShelfBulkActions(server: server) { [collectionID] in
+            guard let shelf = await KavitaShelfBulk.held(held, askingAgain: {
+                try await client.collected(collectionID)
+            }) else { return nil }
+            return await KavitaShelfBulk.chapters(of: shelf) { try await client.volumes(ofSeries: $0) }
         }
         .task {
             guard series.isEmpty else { return }
@@ -172,7 +175,11 @@ struct KavitaListView: View {
         // server so the rows show the state it now holds.
         .kavitaShelfBulkActions(
             server: server,
-            load: { KavitaShelfBulk.chapters(of: held) },
+            load: { [address = server.address, listID] in
+                await KavitaShelfBulk.held(held, askingAgain: {
+                    try await KavitaClient(address: address).readingListItems(listID)
+                }).map { KavitaShelfBulk.chapters(of: $0) }
+            },
             onMarked: {
                 let client = KavitaClient(address: server.address)
                 if let fetched = try? await client.readingListItems(listID) {

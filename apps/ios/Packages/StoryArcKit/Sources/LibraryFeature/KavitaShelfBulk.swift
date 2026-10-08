@@ -68,6 +68,17 @@ enum KavitaShelfBulk {
     /// How long a whole-shelf mark can be taken back. `collections-and-reading-lists`: ten.
     static let undoSeconds = 10
 
+    /// What the view shows, or, when it shows nothing, the server's answer when asked again.
+    ///
+    /// Nil when that answer does not come. An empty view is also what a server that did not
+    /// answer leaves, and that must read as "did not answer", never as "all on this device".
+    static func held<Entry: Sendable>(
+        _ shown: [Entry], askingAgain ask: @Sendable () async throws -> [Entry]
+    ) async -> [Entry]? {
+        guard shown.isEmpty else { return shown }
+        return try? await ask()
+    }
+
     /// A reading list's entries as chapters, in the server's order, each chapter once.
     static func chapters(of items: [KavitaReadingListItem]) -> [KavitaShelfChapter] {
         var seen = Set<Int>()

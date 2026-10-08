@@ -138,6 +138,28 @@ struct KavitaShelfBulkTests {
         #expect(broken == nil, "A count over part of a collection was stated.")
     }
 
+    @Test("An empty shelf is asked again, and a server that does not answer leaves nothing to act on")
+    func emptyShelfIsAskedAgain() async throws {
+        let rows = try items()
+        let asked = Recorder<Int>()
+        struct Unanswered: Error {}
+
+        let shown = await KavitaShelfBulk.held(rows, askingAgain: {
+            asked.add(1)
+            return []
+        })
+        let answered = await KavitaShelfBulk.held([KavitaReadingListItem](), askingAgain: {
+            asked.add(1)
+            return rows
+        })
+        let silent = await KavitaShelfBulk.held([KavitaReadingListItem](), askingAgain: { throw Unanswered() })
+
+        #expect(shown?.map(\.chapterId) == [11, 12, 13])
+        #expect(answered?.map(\.chapterId) == [11, 12, 13])
+        #expect(asked.value.count == 1, "A shelf already on screen was asked for again.")
+        #expect(silent == nil, "An unanswered shelf was taken as an empty one.")
+    }
+
     // MARK: The placement
 
     private func source(_ name: String) throws -> String {
@@ -163,5 +185,10 @@ struct KavitaShelfBulkTests {
                 "The collection screen does not place the whole-shelf actions.")
         #expect(String(views[split.lowerBound...]).contains(".kavitaShelfBulkActions("),
                 "The list screen does not place the whole-shelf actions.")
+        // An empty screen is also what a server that did not answer leaves.
+        #expect(String(views[..<split.lowerBound]).contains("KavitaShelfBulk.held("),
+                "The collection screen believes an empty grid.")
+        #expect(String(views[split.lowerBound...]).contains("KavitaShelfBulk.held("),
+                "The list screen believes an empty list.")
     }
 }
