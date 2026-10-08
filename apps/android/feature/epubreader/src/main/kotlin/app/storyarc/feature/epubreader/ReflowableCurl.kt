@@ -15,8 +15,12 @@ import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ScrollAxis
 import app.storyarc.core.model.TransitionChoices
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import org.readium.r2.navigator.epub.EpubNavigatorFragment
@@ -144,9 +148,13 @@ internal class NavigatorProsePage(
     private val navigator: EpubNavigatorFragment,
 ) : ProsePage {
 
+    /** The page [raise] photographed, which [ahead] lays the neighbour over. */
+    private var leaving: Bitmap? = null
+
     override fun raise(isRightToLeft: Boolean): ProseSheet? {
         val book = navigator.view ?: return null
         val outgoing = book.raster() ?: return null
+        leaving = outgoing
         val sheet = CurlSheet(host.context, outgoing).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -158,9 +166,22 @@ internal class NavigatorProsePage(
         return sheet
     }
 
+    override fun ahead(forward: Boolean, isRightToLeft: Boolean): Bitmap? {
+        val book = navigator.view as? ViewGroup ?: return null
+        val outgoing = leaving ?: return null
+        return ProseAhead.raster(book, ProseAhead.step(forward, isRightToLeft), outgoing)
+    }
+
     @OptIn(ExperimentalReadiumApi::class)
-    override suspend fun move(forward: Boolean): Boolean = movedTo(navigator.currentLocator) {
-        if (forward) navigator.goForward(animated = false) else navigator.goBackward(animated = false)
+    override suspend fun move(forward: Boolean): Boolean {
+        val book = navigator.view as? ViewGroup
+        val before = book?.let(ProseAhead::place)
+        return movedTo(
+            navigator.currentLocator,
+            pageShifted = { book != null && ProseAhead.place(book) != before },
+        ) {
+            if (forward) navigator.goForward(animated = false) else navigator.goBackward(animated = false)
+        }
     }
 
     /**
@@ -220,24 +241,50 @@ internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean): TransitionC
     )
 
 /**
- * Calls [move], then waits until [location] reports somewhere new. False when it never does
- * within [timeoutMillis].
+ * Calls [move], then waits until the page has turned. False when it never does within
+ * [timeoutMillis].
  *
  * Readium's `goForward` answers before the page has moved -- it posts the scroll to a
  * coroutine and a JavaScript call -- and it answers true at the last page too, where nothing
- * moves at all. Its answer says nothing about whether a page turned. The location does: it
- * changes when the page does, and only then. So the curl rasters the incoming page only after
- * this, and does not roll at all where the book stood still.
+ * moves at all. Its answer says nothing about whether a page turned. Two things do: the
+ * location changes when the page does, and only then; and the view shifts, which it does
+ * before Readium has reported where it landed. On the storyarc-ci emulator the report took 130
+ * to 185 ms and the shift under a frame, so [pageShifted] ends the wait first, and the
+ * location is what answers where the shift is not one (a turn that changes nothing the view
+ * can see). So the curl rasters the incoming page only after this, and does not roll at all
+ * where the book stood still.
+ *
+ * @param pageShifted polled between frames; true once the view has moved since [move] began.
  */
 internal suspend fun <T> movedTo(
     location: Flow<T>,
     timeoutMillis: Long = MOVE_TIMEOUT_MILLIS,
+    pageShifted: () -> Boolean = { false },
     move: () -> Unit,
 ): Boolean {
     val before = location.first()
     move()
-    return withTimeoutOrNull(timeoutMillis) { location.first { it != before } } != null
+    return withTimeoutOrNull(timeoutMillis) {
+        coroutineScope {
+            val moved = CompletableDeferred<Unit>()
+            val watching = listOf(
+                launch {
+                    location.first { it != before }
+                    moved.complete(Unit)
+                },
+                launch {
+                    while (!pageShifted()) delay(SHIFT_POLL_MILLIS)
+                    moved.complete(Unit)
+                },
+            )
+            moved.await()
+            watching.forEach { it.cancel() }
+        }
+    } != null
 }
+
+/** How often the view is asked whether the page has shifted. Under one frame at 60 Hz. */
+internal const val SHIFT_POLL_MILLIS = 8L
 
 /** How long a turn may take to report a new location before it counts as no turn. */
 internal const val MOVE_TIMEOUT_MILLIS = 500L

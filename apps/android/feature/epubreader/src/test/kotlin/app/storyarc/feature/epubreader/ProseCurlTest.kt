@@ -100,6 +100,8 @@ class ProseCurlTest {
 
         override fun raise(isRightToLeft: Boolean): ProseSheet = Sheet().also { sheet = it }
 
+        override fun ahead(forward: Boolean, isRightToLeft: Boolean): Bitmap? = null
+
         override suspend fun move(forward: Boolean): Boolean {
             moves += forward
             return canMove && (forward || canGoBack)

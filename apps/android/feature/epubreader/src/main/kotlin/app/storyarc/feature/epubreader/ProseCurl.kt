@@ -95,6 +95,12 @@ internal interface ProsePage {
     /** Rasters the page as it is now and raises a sheet showing it, flat and whole. */
     fun raise(isRightToLeft: Boolean): ProseSheet?
 
+    /**
+     * The page a turn arrives at, rastered before the navigator moves, or null where the turn
+     * stays inside the resource or the book holds no neighbour. Asked once, right after [raise].
+     */
+    fun ahead(forward: Boolean, isRightToLeft: Boolean): Bitmap?
+
     /** Moves one page with no animation, and answers whether the page changed. */
     suspend fun move(forward: Boolean): Boolean
 
@@ -122,13 +128,14 @@ internal suspend fun springTo(from: Float, to: Float, onFrame: (Float) -> Unit) 
  * they started from and the sheet never shows a page that is not there.
  *
  * @param spring runs a settle; a test passes one that does not need a display.
- * @param probe told how long the arriving page took, in milliseconds. See [ProseCurlProbe].
+ * @param probe told how long the arriving page took, in milliseconds, and whether it was rastered
+ *   ahead of the navigator. See [ProseCurlProbe].
  */
 internal class ProseCurlDriver(
     private val scope: CoroutineScope,
     private val density: () -> Float,
     private val spring: suspend (Float, Float, (Float) -> Unit) -> Unit = ::springTo,
-    private val probe: (Long) -> Unit = {},
+    private val probe: (Long, Boolean) -> Unit = { _, _ -> },
 ) {
     private var sheet: ProseSheet? = null
     private var turn: ProseCurl? = null
@@ -204,11 +211,19 @@ internal class ProseCurlDriver(
         this.sheet = sheet
         this.turn = turn
         val started = System.nanoTime()
+        // At a chapter end the navigator answers late, and the page it arrives at is already
+        // drawn beside this one. Rastered now, the fold has its page from the first frame, and
+        // the raster after the move is not taken: it would swap the picture mid-turn.
+        val ahead = page.ahead(turn.isForward, turn.isRightToLeft)
+        if (ahead != null) {
+            sheet.other = ahead
+            probe((System.nanoTime() - started) / NANOS_PER_MILLI, true)
+        }
         val move = scope.async {
             val moved = page.move(turn.isForward)
-            if (moved) {
+            if (moved && ahead == null) {
                 page.arrived()?.let { sheet.other = it }
-                probe((System.nanoTime() - started) / NANOS_PER_MILLI)
+                probe((System.nanoTime() - started) / NANOS_PER_MILLI, false)
             }
             moved
         }
@@ -258,8 +273,9 @@ internal class ProseCurlDriver(
  *
  * Task 4.3b, owner answer O14: measure the stall first. iOS measured it in
  * `ProseCurlOnABookTests`; this is the Android half, for an emulator or a phone. The fold stays
- * flat until the arriving page is rastered, so this number is the stall. A release build never
- * logs it.
+ * flat until the arriving page is rastered, so this number is the stall: with `ahead=true` the
+ * raster taken before the navigator moved, with `ahead=false` the raster after it. A release
+ * build never logs it.
  */
 internal object ProseCurlProbe {
     /** The setting the comic reader's `FrameProbe` reads too, so one switch arms both. */
@@ -267,11 +283,11 @@ internal object ProseCurlProbe {
 
     const val TAG = "StoryArcProseCurl"
 
-    fun report(context: Context, millis: Long) {
+    fun report(context: Context, millis: Long, ahead: Boolean) {
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
         if (Settings.Global.getInt(context.contentResolver, ARMING_KEY, 0) != 1) return
         // A context with no display throws rather than answering null.
         val hertz = runCatching { context.display.refreshRate }.getOrNull() ?: return
-        Log.i(TAG, "arrived_ms=$millis frames=${(millis * hertz / 1000f).roundToInt()}")
+        Log.i(TAG, "arrived_ms=$millis frames=${(millis * hertz / 1000f).roundToInt()} ahead=$ahead")
     }
 }

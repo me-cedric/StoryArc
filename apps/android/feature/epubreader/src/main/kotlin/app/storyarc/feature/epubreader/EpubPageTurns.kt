@@ -155,7 +155,7 @@ internal class EpubPageTurns(
         ProseCurlDriver(
             scope = scope,
             density = { dipHost().resources.displayMetrics.density },
-            probe = { ProseCurlProbe.report(dipHost().context, it) },
+            probe = { millis, ahead -> ProseCurlProbe.report(dipHost().context, millis, ahead) },
         )
     }
 
