@@ -41,6 +41,7 @@ import app.storyarc.feature.library.UnauthorizedSourceScreen
 import app.storyarc.feature.library.promote
 import app.storyarc.feature.library.promotionOf
 import app.storyarc.feature.library.removeAfterFinishing
+import app.storyarc.feature.library.signInWasRefused
 import app.storyarc.feature.library.withdrawList
 import app.storyarc.navigation.Screen
 import kotlinx.coroutines.launch
@@ -133,7 +134,7 @@ internal fun HostedScreen(
 
         is Screen.SourceRefused -> UnauthorizedSourceScreen(
             name = screen.source.displayName,
-            isRefused = true,
+            isRefused = screen.source.signInWasRefused(),
             onBack = back,
         )
 

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
+import app.storyarc.core.model.Source
 
 /**
  * What a source shows when the credential it has stored is no longer accepted.
@@ -94,3 +95,13 @@ fun UnauthorizedSourceScreen(
         }
     }
 }
+
+/**
+ * Whether the server refused a secret this device holds, as opposed to this device holding none.
+ *
+ * Refused only where there was a secret to refuse. An imported source arrives with none
+ * (`library-portability`), and "refused the sign-in StoryArc had" would be untrue of it: it asks
+ * for the secret once, and says nobody has stored one here. iOS's `SourceBrowser` asks the same
+ * question of the same field.
+ */
+fun Source.signInWasRefused(): Boolean = credentialReference != null
