@@ -86,6 +86,8 @@ const EXCLUDED = {
     'Opens `Fixture Publication` or `The Long Field` from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have, and takes about 140 seconds. With no reflowable book it fails to open one, which says nothing about the reset. Run it on a local simulator with the corpus.',
   'AddMockKavitaTests/testAddTheMockServer':
     'Adds the mock Kavita server through the real form. It needs `node scripts/kavita-server.mjs --port 5001` running, which a runner does not start. It is capture setup: the source it adds is what the Shelves captures photograph.',
+  'SweepLibraryTests/testTheIndexIsOneScrubber':
+    'Drags the A to Z rail on a shelf long enough to show it, which needs the shared corpus that `scripts/corpus.mjs` writes and a runner does not have. The walk skips there, which would pass for nothing. `LibraryRailTests` and `HitRegionTests` hold the rail on the host.',
   'AppIconCaptureTests/testZZRestoreTheDefaultIcon':
     'Puts the alternate app icon back after the five icon captures. With no captures to clean up after, it has nothing to do.',
 }
