@@ -53,9 +53,6 @@ final class SkippedNoticeTests: XCTestCase {
         )
     }
 
-    /// Parks on an expectation rather than sleeping: `Thread.sleep` blocks the main actor and
-    /// starves the run loop, so a view that removes itself on a timer would never get the
-    /// chance to and the test would pass against the defect.
     /// `one-vocabulary-in-four-languages` 1.8. With the interface in French, each entry in the
     /// list behind the notice is one element whose label holds the file's name and the French
     /// reason together, and the notice counts in French.
@@ -146,6 +143,9 @@ final class SkippedNoticeTests: XCTestCase {
         XCTAssertEqual(wrongLanguage.count, 0, "“\(leaked)” is spoken in this language", file: file, line: line)
     }
 
+    /// Parks on an expectation rather than sleeping: `Thread.sleep` blocks the main actor and
+    /// starves the run loop, so a view that removes itself on a timer would never get the
+    /// chance to and the test would pass against the defect.
     private func wait(_ seconds: TimeInterval) {
         let waited = XCTestExpectation(description: "waited \(seconds)s")
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds) { waited.fulfill() }

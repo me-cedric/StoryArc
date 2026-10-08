@@ -56,7 +56,7 @@ struct PublicationProvenance: Equatable, Sendable {
     /// **A second way a publication is in two places, added 2026-09-05.** The library can
     /// hold it under *another source* as well: identity is stable across sources (ADR-0006),
     /// so a folder copy and a server copy share an id and differ only in `sourceID`. That is
-    /// the reading Android's `isAlsoElsewhere` had always taken, and this one had never
+    /// the reading Android's `isAlsoElsewhere` (now `alsoIn`) had always taken, and this one had never
     /// taken; each platform answered half of one requirement, and for a book downloaded from
     /// one server that also sits on a second they disagreed outright. Both are the delta's
     /// scenario, so this is the union — see ``alsoHolding(_:in:registry:)``.
