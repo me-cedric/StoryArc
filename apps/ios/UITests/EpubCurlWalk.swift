@@ -71,6 +71,27 @@ final class EpubCurlWalkTests: XCTestCase {
         shutter(app, named: "ios-epub-curl-after-chapters")
     }
 
+    /// Task 4.3b, the black-frame scan: forward to the end of the book and back to the start,
+    /// which crosses every chapter end ten times in Curl.
+    ///
+    /// Run under `scripts/record-ios-walk.mjs` with `--appearance light`, then scan the frames
+    /// for one that is mostly black (`ffmpeg ... blackframe`): on a cream page a black band at a
+    /// chapter end is the thing wave 2 saw once in three crossings.
+    func testCaptureEpubCurlBlackFrameScan() throws {
+        let app = sweepLaunch()
+        try openCurlingBook(in: app)
+        hold(2)
+        for _ in 0..<16 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+            hold(1.3)
+        }
+        for _ in 0..<16 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.5)).tap()
+            hold(1.3)
+        }
+        shutter(app, named: "ios-epub-curl-after-scan")
+    }
+
     /// Task 4.3b: a finger held down on the last page of chapter 1, in Curl.
     ///
     /// The turn after it crosses a chapter end. Held, the fold stands still, so the recording
@@ -173,19 +194,11 @@ final class EpubCurlWalkTests: XCTestCase {
     /// takes too.
     private func openTheLongField(in app: XCUIApplication, titled title: String = "The Long Field") throws {
         try showTheShelf(in: app)
-        let wanted = app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", title))
-        var cover: XCUIElement?
-        for _ in 0..<8 where cover == nil {
-            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
-            if cover == nil { app.swipeUp() }
-        }
-        try XCTSkipUnless(cover != nil, "This device's shelf never showed “The Long Field”.")
+        let cover = tappableCover(titled: title, in: app)
+        try XCTSkipUnless(cover != nil, "This device's shelf never showed “\(title)” clear of the tab bar.")
         cover?.tap()
 
-        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
-              let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+        guard let action = hittableOpenAction(in: app)
         else { throw XCTSkip("“The Long Field”'s page offered no hittable way to open it.") }
         action.tap()
 

@@ -26,14 +26,14 @@ final class GrainWalkTests: XCTestCase {
 
     /// The reflowable page with the grain on, which is the surface §5.4 draws it over.
     func testCaptureReaderGrainOn() throws {
-        let app = sweepLaunch(natural: true)
+        let app = sweepLaunch(natural: true, freshShelfSettings: true)
         try openReflowable(in: app)
         shutter(app, named: "ios-reader-grain-on")
     }
 
     /// The same page with Natural off: the twin the texture is measured against.
     func testCaptureReaderGrainOff() throws {
-        let app = sweepLaunch(natural: false)
+        let app = sweepLaunch(natural: false, freshShelfSettings: true)
         try openReflowable(in: app)
         shutter(app, named: "ios-reader-grain-off")
     }
@@ -43,17 +43,37 @@ final class GrainWalkTests: XCTestCase {
     /// The page is the Quiet preset, chosen through the theme sheet, so the pair differs in
     /// Natural alone.
     func testCaptureReaderGrainOnQuiet() throws {
-        let app = sweepLaunch(natural: true)
+        let app = sweepLaunch(natural: true, freshShelfSettings: true)
         try openReflowable(in: app)
         try chooseQuiet(in: app)
         shutter(app, named: "ios-reader-grain-on-quiet")
     }
 
     func testCaptureReaderGrainOffQuiet() throws {
-        let app = sweepLaunch(natural: false)
+        let app = sweepLaunch(natural: false, freshShelfSettings: true)
         try openReflowable(in: app)
         try chooseQuiet(in: app)
         shutter(app, named: "ios-reader-grain-off-quiet")
+    }
+
+    /// The refusal, task 0.5 and 7.6: Natural on and **Reduce Transparency on**. The grain must
+    /// vanish, so this frame measured against `ios-reader-grain-off` changes nothing.
+    func testCaptureReaderGrainRefusedByReduceTransparency() throws {
+        try setDisplaySwitch("Reduce Transparency", on: true)
+        addTeardownBlock { @MainActor in try? self.setDisplaySwitch("Reduce Transparency", on: false) }
+        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        try openReflowable(in: app)
+        shutter(app, named: "ios-reader-grain-refused")
+    }
+
+    /// The same refusal over the dark page, against `ios-reader-grain-off-quiet`.
+    func testCaptureReaderGrainRefusedByReduceTransparencyOnQuiet() throws {
+        try setDisplaySwitch("Reduce Transparency", on: true)
+        addTeardownBlock { @MainActor in try? self.setDisplaySwitch("Reduce Transparency", on: false) }
+        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        try openReflowable(in: app)
+        try chooseQuiet(in: app)
+        shutter(app, named: "ios-reader-grain-refused-quiet")
     }
 
     private func chooseQuiet(in app: XCUIApplication) throws {
@@ -98,7 +118,7 @@ final class GrainWalkTests: XCTestCase {
     /// under a filename saying Natural.
     private func openReflowable(in app: XCUIApplication) throws {
         try XCTSkipUnless(
-            openReflowable(named: "The Long Field", in: app),
+            openReflowableBook(named: "The Long Field", in: app),
             "This device's shelf never opened a reflowable book, so there is no page to grain."
         )
         // Long enough for the chrome countdown, and for the web view to have laid out: a
@@ -106,32 +126,4 @@ final class GrainWalkTests: XCTestCase {
         hold(8)
     }
 
-    /// Opens one publication by name and says whether a reflowable page arrived.
-    ///
-    /// A copy of `SweepEpubReaderTests`' own private helper rather than a call to it: that one
-    /// is `private` to its file, and the alternative — the shared search — is the relaunching
-    /// walk this file cannot use.
-    private func openReflowable(named title: String, in app: XCUIApplication) -> Bool {
-        guard (try? showTheShelf(in: app)) != nil else { return false }
-        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
-        var cover: XCUIElement?
-        for _ in 0..<8 where cover == nil {
-            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
-            if cover == nil { app.swipeUp() }
-        }
-        guard let cover else { return false }
-        cover.tap()
-        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
-              let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
-        else { return false }
-        action.tap()
-        let opened = app.webViews.firstMatch.waitForExistence(timeout: 20)
-        if !opened {
-            // A skip that photographs nothing is a skip nobody can diagnose. This is the
-            // frame that says what the reader actually did.
-            shutter(app, named: "ios-reflowable-did-not-open")
-        }
-        return opened
-    }
 }

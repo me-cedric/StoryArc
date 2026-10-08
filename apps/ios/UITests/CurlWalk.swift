@@ -183,7 +183,7 @@ final class CurlWalkTests: XCTestCase {
             thenHoldForDuration: 5
         )
         wait(for: [done], timeout: 10)
-        for (n, held) in frames.shots.enumerated() { shutter(shot: held, named: "\(name)-\(n)") }
+        for (index, held) in frames.shots.enumerated() { shutter(shot: held, named: "\(name)-\(index)") }
     }
 
     /// Task 8.5: a tap past the last page curls onto the end screen, and the last page does
@@ -315,31 +315,11 @@ final class CurlWalkTests: XCTestCase {
     /// The shelf → publication → reader path, shared with the sweep's comic walks.
     private func openPublication(named title: String, in app: XCUIApplication) throws {
         try showTheShelf(in: app)
-        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
-        var found: XCUIElement?
-        for _ in 0..<8 where found == nil {
-            found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
-            if found == nil { app.swipeUp() }
-        }
-        // A cover can settle half past the bottom edge, never hittable, and the next swipe
-        // carries it past the top. The shelf's alphabetical index puts the letter's first row
-        // at the top instead. `SweepComicReaderTests.openPublication` measured this first.
-        if found == nil, let initial = title.first.map({ String($0).uppercased() }) {
-            let jump = app.buttons.matching(NSPredicate(format: "label == %@", "Jump to \(initial)")).firstMatch
-            if jump.isHittable {
-                jump.tap()
-                for _ in 0..<4 where found == nil {
-                    found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
-                    if found == nil { app.swipeUp() }
-                }
-            }
-        }
-        try XCTSkipUnless(found != nil, "This device's shelf never showed a cover for “\(title)”.")
+        let found = tappableCover(titled: title, in: app)
+        try XCTSkipUnless(found != nil, "This device's shelf never showed a cover for “\(title)” clear of the tab bar.")
         found?.tap()
 
-        guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
-              let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+        guard let action = hittableOpenAction(in: app)
         else { throw XCTSkip("“\(title)”'s page offered no hittable way to open it.") }
         action.tap()
 
