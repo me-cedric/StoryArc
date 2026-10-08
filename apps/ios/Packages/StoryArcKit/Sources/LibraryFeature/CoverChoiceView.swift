@@ -118,6 +118,8 @@ struct DetailCoverChoice: View {
                 } icon: {
                     Image(systemName: "magnifyingglass")
                 }
+                .frame(minHeight: 44)
+                .contentShape(.rect)
             }
             .textRole(.subheadline)
             .buttonStyle(.borderless)
@@ -150,6 +152,8 @@ struct DetailCoverChoice: View {
             } icon: {
                 Image(systemName: "photo")
             }
+            .frame(minHeight: 44)
+            .contentShape(.rect)
         }
         if hasChosenCover {
             Button(role: .destructive) {
@@ -159,6 +163,8 @@ struct DetailCoverChoice: View {
                 }
             } label: {
                 Text("cover.remove", bundle: .module)
+                    .frame(minHeight: 44)
+                    .contentShape(.rect)
             }
         }
     }

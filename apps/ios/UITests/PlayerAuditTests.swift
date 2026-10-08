@@ -37,6 +37,27 @@ final class PlayerAuditTests: XCTestCase {
         try reportOnly(app, named: "Library with the compact bar")
     }
 
+    /// The hit-area finding of `close-the-audited-gaps` 23.7, held as an assertion because
+    /// `reportOnly` can only print it.
+    ///
+    /// The publication page under the bar offers the cover chooser's text buttons, which were
+    /// 18 pt tall. Each now owns 44 pt, the platform's minimum, and the audit's own measure is
+    /// the button's accessibility frame.
+    func testCoverChooserButtonsOnThePageUnderTheBarAreFortyFourPointsTall() throws {
+        let app = launch()
+        try openAnAudiobook(in: app)
+
+        for name in ["Choose a cover", "Find a cover on the web"] {
+            let small = app.buttons.matching(NSPredicate(format: "label == %@", name))
+                .allElementsBoundByIndex
+                .filter { $0.frame.height < 44 }
+            XCTAssertTrue(
+                small.isEmpty,
+                "\(name) is drawn under 44 pt tall: \(small.map { $0.frame })"
+            )
+        }
+    }
+
     /// The full player, at the default text size.
     func testFullPlayerPassesTheAudit() throws {
         let app = launch()

@@ -50,6 +50,8 @@ struct CoverSearchHandoff: View {
                 open(destination)
             } label: {
                 Text("covers.web.search", bundle: .module)
+                    .frame(minHeight: 44)
+                    .contentShape(.rect)
             }
             .textRole(.subheadline)
             .buttonStyle(.borderless)
