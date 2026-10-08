@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
@@ -97,10 +98,13 @@ fun KavitaCollectionScreen(
     title: String,
     onOpenSeries: (KavitaSeries) -> Unit,
     onBack: () -> Unit,
+    /** The app-level queue a whole-collection download goes through. Null draws no download. */
+    queue: DownloadQueue? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val client = remember(server.address) { KavitaClient(server.address) }
     var series by remember(collectionId) { mutableStateOf<List<KavitaSeries>>(emptyList()) }
+    val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(collectionId) {
         series = runCatching { client.collected(collectionId) }.getOrDefault(emptyList())
@@ -108,7 +112,20 @@ fun KavitaCollectionScreen(
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
-        topBar = { ShelfBar(title, onBack) },
+        topBar = {
+            ShelfBar(title, onBack) {
+                // Task 7.8: a collection holds series, so the chapters are the series' own.
+                KavitaShelfBulkMenu(
+                    server = server,
+                    client = client,
+                    queue = queue,
+                    snackbars = snackbar,
+                    load = { KavitaShelfBulk.chaptersOf(series) { client.volumes(it) } },
+                    onMarked = {},
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbar) },
     ) { insets ->
         LazyVerticalGrid(
             columns = rememberCoverColumns(),
@@ -139,6 +156,8 @@ fun KavitaListScreen(
     onBack: () -> Unit,
     /** Where an opened entry's first position is written. See [seedKavitaOpen]. */
     progress: ProgressStore? = null,
+    /** The app-level queue a whole-list download goes through. Null draws no download. */
+    queue: DownloadQueue? = null,
 ) {
     val palette = LocalStoryArcPalette.current
     val context = LocalContext.current
@@ -252,7 +271,25 @@ fun KavitaListScreen(
 
     Scaffold(
         containerColor = palette.surfaceCanvas,
-        topBar = { ShelfBar(title, onBack) },
+        topBar = {
+            ShelfBar(title, onBack) {
+                // Task 7.8: the list's own entries are the chapters, and a mark is read back
+                // from the server so the rows show the state it now holds.
+                KavitaShelfBulkMenu(
+                    server = server,
+                    client = client,
+                    queue = queue,
+                    snackbars = snackbar,
+                    load = { KavitaShelfBulk.chaptersOf(items) },
+                    onMarked = {
+                        scope.launch {
+                            runCatching { client.readingListItems(listId) }
+                                .onSuccess { fetched -> items = fetched.sortedBy { it.order } }
+                        }
+                    },
+                )
+            }
+        },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { insets ->
         LazyColumn(
@@ -348,8 +385,13 @@ fun KavitaListScreen(
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun ShelfBar(title: String, onBack: () -> Unit) {
+private fun ShelfBar(
+    title: String,
+    onBack: () -> Unit,
+    actions: @Composable RowScope.() -> Unit = {},
+) {
     TopAppBar(
+        actions = actions,
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
             IconButton(onClick = onBack) {

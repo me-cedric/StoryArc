@@ -389,6 +389,9 @@
     <string name="library_bulk_download">Download</string>
     <string name="library_bulk_download_none">Every one of them is already on this device.</string>
     <string name="library_bulk_download_size">%1$s will be copied into StoryArc’s own storage.</string>
+    <string name="kavita_bulk_size_at_least">At least %1$s will be copied into StoryArc’s own storage. The server did not state every size.</string>
+    <string name="kavita_bulk_size_unknown">The server did not state how large they are.</string>
+    <string name="kavita_bulk_unreachable">%1$s did not answer, so nothing was started.</string>
     <plurals name="library_selected">
         <item quantity="one">%1$,d selected</item>
         <item quantity="other">%1$,d selected</item>

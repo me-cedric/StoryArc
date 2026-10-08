@@ -262,19 +262,25 @@ internal fun BulkUndoEffect(
     LaunchedEffect(undo?.kind, undo?.ids) {
         val record = undo ?: return@LaunchedEffect
         val text = message ?: return@LaunchedEffect
-        val answer = withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
-            snackbars.showSnackbar(
-                message = text,
-                actionLabel = undoLabel,
-                duration = SnackbarDuration.Indefinite,
-            )
-        }
-        if (answer == SnackbarResult.ActionPerformed && viewModel != null) {
+        if (snackbars.offerUndo(text, undoLabel) && viewModel != null) {
             record.reverse(viewModel, publications, onMark, promoter)
         }
         onSettle()
     }
 }
 
+/**
+ * Says [message] with an undo, for ten seconds and no longer.
+ *
+ * One window for every bulk action: the library's selection, a local shelf and a server shelf
+ * all ask this, so the promise cannot come to mean two different lengths.
+ *
+ * @return whether the reader took the undo inside the window.
+ */
+internal suspend fun SnackbarHostState.offerUndo(message: String, label: String): Boolean =
+    withTimeoutOrNull(UNDO_WINDOW_MILLIS) {
+        showSnackbar(message = message, actionLabel = label, duration = SnackbarDuration.Indefinite)
+    } == SnackbarResult.ActionPerformed
+
 /** Ten seconds, which is what `collections-and-reading-lists` promises. */
-private const val UNDO_WINDOW_MILLIS = 10_000L
+internal const val UNDO_WINDOW_MILLIS = 10_000L

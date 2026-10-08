@@ -215,6 +215,7 @@ internal fun HostedScreen(
                 onOpen = host.open,
                 onBack = back,
                 progress = dependencies.progress,
+                queue = dependencies.queue,
             )
         } else {
             KavitaCollectionScreen(
@@ -230,6 +231,7 @@ internal fun HostedScreen(
                     }
                 },
                 onBack = back,
+                queue = dependencies.queue,
             )
         }
 

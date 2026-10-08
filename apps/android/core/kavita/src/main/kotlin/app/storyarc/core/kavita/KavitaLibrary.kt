@@ -120,7 +120,15 @@ data class KavitaChapter(
      * arrives with no series around it, and without this it could be listed and not opened.
      */
     val seriesId: Int = 0,
+    /**
+     * The files this chapter holds. Kavita's `ChapterDto.files`, of which this client reads
+     * only the size, so a whole-shelf download can state how much it will copy before it starts.
+     */
+    val files: List<KavitaChapterFile> = emptyList(),
 ) {
+    /** How large the chapter is, in bytes, or zero where the server stated no size. */
+    val sizeBytes: Long get() = files.sumOf { it.bytes }
+
     /**
      * The chapter's issue number, or null where Kavita is saying it has none.
      *
@@ -157,6 +165,10 @@ data class KavitaChapter(
 
     val isFinished: Boolean get() = pages > 0 && pagesRead >= pages
 }
+
+/** One file of a chapter. Zero bytes is the server saying nothing, not an empty file. */
+@Serializable
+data class KavitaChapterFile(val bytes: Long = 0)
 
 /** A volume, which is a named group of chapters. */
 @Serializable

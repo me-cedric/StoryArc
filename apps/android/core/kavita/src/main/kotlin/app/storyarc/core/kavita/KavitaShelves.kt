@@ -85,6 +85,13 @@ data class KavitaReadingListItem(
     val volumeId: Int = 0,
     /** The library this entry's chapter sits in, for the same reason. */
     val libraryId: Int = 0,
+    /**
+     * How large the entry's file is, in bytes, or zero where the server said nothing.
+     *
+     * Kavita's `ReadingListItemDto.fileSize`. A whole-shelf download adds these up to state
+     * its size before it starts, and zero is "not stated" rather than an empty file.
+     */
+    val fileSize: Long = 0,
 ) {
     /** What to call it in a list. The chapter's own title, or the series it belongs to. */
     val displayName: String

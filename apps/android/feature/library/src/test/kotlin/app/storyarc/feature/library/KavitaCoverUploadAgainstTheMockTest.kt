@@ -34,6 +34,9 @@ import org.junit.Test
  * It proves the client against the mock and nothing more. A real Kavita is the owner's
  * check, and the device checklist carries it.
  *
+ * The same mock answers the sizes task 7.8 reads: a list entry's `fileSize` and a chapter's
+ * `files[].bytes`, so a whole-shelf download can state its size before it starts.
+ *
  * Skipped, not failed, when `node` is not on the path of this run.
  */
 class KavitaCoverUploadAgainstTheMockTest {
@@ -117,5 +120,20 @@ class KavitaCoverUploadAgainstTheMockTest {
         }
 
         assertArrayEquals(picture, client.readingListCover(1))
+    }
+
+    @Test
+    fun `a list entry and a chapter state the size of their file`() = runBlocking {
+        val client = startServer()
+        assumeTrue("the mock did not print its banner in time", client != null)
+        client!!
+
+        val first = client.readingListItems(1).first()
+        // The corpus file holds 22 bytes, which is what the mock must state for it.
+        assertEquals(22L, first.fileSize)
+        assertTrue(first.pagesTotal > 0 && first.volumeId > 0 && first.libraryId > 0)
+        val chapters = client.volumes(first.seriesId).flatMap { it.chapters }
+        assertTrue(chapters.isNotEmpty())
+        assertTrue(chapters.all { it.sizeBytes == 22L })
     }
 }
