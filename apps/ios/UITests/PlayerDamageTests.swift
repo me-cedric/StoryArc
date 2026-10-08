@@ -34,7 +34,7 @@ final class PlayerDamageTests: XCTestCase {
         XCTAssertTrue(wayIn.waitForExistence(timeout: 10), "The compact bar never appeared.")
         wayIn.tap()
 
-        let finished = app.staticTexts["Finished"]
+        let finished = app.staticTexts["Playback stopped"]
         XCTAssertTrue(
             finished.waitForExistence(timeout: 25),
             "The book never reached its end in the open player. Texts on screen: "
@@ -52,6 +52,48 @@ final class PlayerDamageTests: XCTestCase {
         add(attachment)
     }
 
+    /// Task 23.6: the damaged ending, photographed as the app draws it.
+    ///
+    /// The product is expected to say *Playback stopped* and offer *Mark as finished* when the
+    /// last part failed. This walk records what the surface shows and, when the button is
+    /// there, taps it and photographs the result. It does not assert the button, so a build
+    /// that draws *Finished* with no button is photographed rather than hidden.
+    func testCaptureDamagedEndingBeforeAndAfterMarking() throws {
+        let app = launch()
+        try startTheBook("Cut Short", in: app)
+        let wayIn = app.buttons["Open the player"].firstMatch
+        XCTAssertTrue(wayIn.waitForExistence(timeout: 10), "The compact bar never appeared.")
+        wayIn.tap()
+        let ended = NSPredicate(format: "label == %@ OR label == %@", "Playback stopped", "Finished")
+        XCTAssertTrue(
+            app.staticTexts.matching(ended).firstMatch.waitForExistence(timeout: 25),
+            "The book never reached its end. Texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
+        )
+        let heading = app.staticTexts["Playback stopped"].exists ? "Playback stopped" : "Finished"
+        XCTAssertTrue(
+            app.staticTexts["1 part could not be played"].waitForExistence(timeout: 25),
+            "The damage line never appeared. Texts: \(app.staticTexts.allElementsBoundByIndex.map(\.label))"
+        )
+        let mark = app.buttons["Mark as finished"]
+        shutter(app, named: "player-damaged-before")
+        XCTContext.runActivity(named: "heading \(heading), button \(mark.exists)") { _ in }
+        guard mark.exists else { return }
+        mark.tap()
+        XCTAssertTrue(app.staticTexts["Finished"].waitForExistence(timeout: 5), "The heading did not change.")
+        shutter(app, named: "player-damaged-after")
+    }
+
+    /// Task 7.3: a six-second audiobook played to its end, in the open player.
+    func testCaptureFinishedAudiobook() throws {
+        let app = launch()
+        try startTheBook("Sea Room", in: app)
+        let wayIn = app.buttons["Open the player"].firstMatch
+        XCTAssertTrue(wayIn.waitForExistence(timeout: 10), "The compact bar never appeared.")
+        wayIn.tap()
+        XCTAssertTrue(app.staticTexts["Finished"].waitForExistence(timeout: 25), "The book never finished.")
+        shutter(app, named: "player-finished-audiobook")
+    }
+
     /// Downloads, then the library, the book, and the button that plays it. Left playing: the
     /// walk that follows has seconds, not minutes.
     ///
@@ -59,11 +101,15 @@ final class PlayerDamageTests: XCTestCase {
     /// destination appears**; `AudiobookWalk` says so at length. And the cover is asked for by
     /// its start, since a Downloads row also carries "Remove the download of Cut Short".
     private func startTheCutShortBook(in app: XCUIApplication) throws {
+        try startTheBook("Cut Short", in: app)
+    }
+
+    private func startTheBook(_ title: String, in app: XCUIApplication) throws {
         for shelf in ["Downloads", "Library"] {
             try XCTUnwrap(destination(shelf, in: app), "The shell offers no \(shelf) tab.").tap()
             _ = app.scrollViews.firstMatch.waitForExistence(timeout: 10)
         }
-        let book = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Cut Short")).firstMatch
+        let book = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         var swipes = 0
         while !book.waitForExistence(timeout: 3), swipes < 6 {
             app.scrollViews.firstMatch.swipeUp()
@@ -71,10 +117,13 @@ final class PlayerDamageTests: XCTestCase {
         }
         XCTAssertTrue(
             book.exists,
-            "No `Cut Short` on this device's library. Install the app, then run "
+            "No `\(title)` on this device's library. Install the app, then run "
                 + "`node scripts/seed-simulator.mjs --device <udid>`."
         )
         book.tap()
+        // A book held in two places opens a list of its copies first. Take the downloaded one.
+        let copy = app.buttons.matching(NSPredicate(format: "label ENDSWITH %@", "On this device")).firstMatch
+        if copy.waitForExistence(timeout: 3) { copy.tap() }
         let open = app.buttons.matching(opensAPublication).firstMatch
         XCTAssertTrue(
             open.waitForExistence(timeout: 10),

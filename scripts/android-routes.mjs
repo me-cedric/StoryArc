@@ -480,7 +480,59 @@ export const ROUTES = [
     // `truncated.m4b` is pushed as *Cut Short*, and the walk waits for it to play out.
     ['Player > finished with a damaged part', [NAMES.library, 'Cut Short', NAMES.read + '|' + NAMES.listen, '@wait', '@wait', '@wait', '@wait']],
     // audiobooks-and-playback 3.9: a book playing, for the noisy-broadcast proof.
+    // close-the-audited-gaps 23.6: the button on the finished surface of a damaged ending, and the line after it.
+    ['Player > damaged mark as finished', [NAMES.library, 'Cut Short', NAMES.read + '|' + NAMES.listen, '@wait', '@wait', '@wait', '@wait', '=Mark as finished']],
+    // cover-for-every-publication 6.2, 6.4, 3.3, 5.3, close-the-audited-gaps 7.8.
+    ['Settings > Privacy > cover lookup on', [NAMES.library, NAMES.more, NAMES.settings, NAMES.privacy, '=' + named('covers_lookup')]],
+    ['Publication page > no cover > find a cover', [NAMES.library, 'Sea Room', '=' + named('covers_find')]],
+    ['Sources > add kavita mock', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_kavita'), '@drag-sheet-up', '=' + named('kavita_address_label'), '@type http://10.0.2.2:5000', '@back', '=' + named('kavita_key_label'), '@type storyarc-test-key', '@back', '=Connect', '@wait', '@wait']],
+    // close-the-audited-gaps 7.8 and cover-for-every-publication 6.4: the mock Kavita (port 5000, key in AGENTS.md) added as a library.
+    ['Kavita > collection', [NAMES.library, NAMES.more, named('shelves_title'), '=Staff picks']],
+    ['Kavita > collection whole shelf menu', [NAMES.library, NAMES.more, named('shelves_title'), '=Staff picks', '=' + named('shelves_bulk')]],
+    ['Kavita > collection download dialog', [NAMES.library, NAMES.more, named('shelves_title'), '=Staff picks', '=' + named('shelves_bulk'), '=Download']],
+    ['Kavita > collection mark read undo', [NAMES.library, NAMES.more, named('shelves_title'), '=Staff picks', '=' + named('shelves_bulk'), '!=Mark as read']],
+    ['Kavita > list', [NAMES.library, NAMES.more, named('shelves_title'), '=Start here']],
+    ['Kavita > list send confirmation', [NAMES.library, NAMES.more, named('shelves_title'), '=Start here', '=' + named('covers_write_back')]],
+    ['Kavita > list whole shelf menu', [NAMES.library, NAMES.more, named('shelves_title'), '=Start here', '=' + named('shelves_bulk')]],
+    // close-the-audited-gaps 20.1: a book with a cover and a series, opened so the widget has something to show.
+    ['Widget > open Blue Harbour 02', [NAMES.library, 'Blue Harbour 02', NAMES.read]],
+    // audiobooks-and-playback 7.3: the first of two audiobooks in one series, played to its end (6 s).
+    ['Player > finished series audiobook', [NAMES.search, named('library_search'), '@type dawn road', '=Dawn Road #1', NAMES.read + '|' + NAMES.listen, '@wait', '@wait', '@wait', '@wait', '@wait']],
+    // audiobooks-and-playback 3.6 and 17.3: Sea Room playing, for the kill-and-resume proofs.
+    ['Player > Sea Room playing', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '@wait']],
+    ['Player > Sea Room paused', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause')]],
+    ['Publication page > Sea Room', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room']],
+    // audiobooks-and-playback 17.3: a book never finished, so Listen continues where the reader stopped.
+    ['Player > Dawn Road 2 paused', [NAMES.search, named('library_search'), '@type dawn roa', '=Dawn Road #2', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause')]],
+    ['Publication page > Dawn Road 2', [NAMES.search, named('library_search'), '@type dawn roa', '=Dawn Road #2']],
     ['Player > Chaptered playing', [NAMES.library, 'Chaptered', NAMES.read + '|' + NAMES.listen, '@wait']],
+
+    // --- library-portability 4.2 and 5.5: the transfer section, the export sheet --------------
+    // `named()` fails at import if a string is renamed. The sheet opens from the row under
+    // *Your libraries*; the passphrase fields sit behind the *Include passwords* switch.
+    ['Transfer > export sheet', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_export')]],
+    ['Transfer > export passwords on', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_export'), named('transfer_export_passwords')]],
+    // At the largest text the sheet fills the window; scrolling shows the fields and the Export button.
+    ['Transfer > export passwords on scrolled', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_export'), named('transfer_export_passwords'), '@swipe-up', '@swipe-up']],
+    // Import: the system picker lists the files pushed to /sdcard/Download (see the set's README).
+    ['Transfer > import preview', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=other-library.json']],
+    ['Transfer > import preview scrolled', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=other-library.json', '@swipe-up', '@swipe-up']],
+    ['Transfer > import sealed', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=sealed-library.json']],
+    ['Transfer > import sealed wrong passphrase', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=sealed-library.json', '=' + named('transfer_passphrase'), '@type wrong', '@back', '=' + named('transfer_import_action'), '@wait']],
+    ['Transfer > import sealed scrolled', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=sealed-library.json', '@swipe-up', '@swipe-up', '@swipe-up', '@swipe-up', '@swipe-up']],
+    ['Transfer > import sealed wrong scrolled', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=sealed-library.json', '=' + named('transfer_passphrase'), '@type wrong', '@back', '=' + named('transfer_import_action'), '@wait', '@swipe-up', '@swipe-up', '@swipe-up', '@swipe-up', '@swipe-up']],
+    ['Transfer > import conflict one', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=conflict-one.json', '=' + named('transfer_import_action'), '@wait']],
+    // At the largest text the result sheet opens half-height; scrolling it shows the sentence.
+    ['Transfer > import conflict one expanded', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=conflict-one.json', '=' + named('transfer_import_action'), '@wait', '@swipe-up', '@swipe-up']],
+    ['Transfer > import conflict many', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=conflict-many.json', '=' + named('transfer_import_action'), '@wait']],
+    ['Transfer > import conflict many shown', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=conflict-many.json', '=' + named('transfer_import_action'), '@wait', '=' + named('transfer_done_conflict_show')]],
+    ['Transfer > import refused newer', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=newer-format.json']],
+    ['Transfer > import refused not a library', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=not-a-library.json']],
+    ['Transfer > import done', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=other-library.json', '=' + named('transfer_import_action'), '@wait']],
+    ['Transfer > import done again', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_import'), '=result-sign-in.json', '=' + named('transfer_import_action'), '@wait']],
+    ['Settings > imported source no secret', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Loft Kavita']],
+    ['Settings > imported source sign in sheet', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Loft Kavita', '=Sign in again']],
+    ['Transfer > export passphrases differ', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_export'), named('transfer_export_passwords'), '=' + named('transfer_passphrase'), '@type abc', '@back', '=' + named('transfer_passphrase_again'), '@type abd', '@back']],
 
 ]
 
@@ -551,8 +603,8 @@ export function navigator(sh) {
      * transition; a screen that cannot be read after that is genuinely not there.
      */
     const dump = () => {
-        for (let attempt = 0; attempt < 3; attempt += 1) {
-            if (attempt > 0) sleep(900)
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+            if (attempt > 0) sleep(1500)
             const dumped = sh('shell', 'uiautomator', 'dump', '/sdcard/smoke.xml')
             if (!/dumped to/.test(dumped)) continue
             const xml = sh('shell', 'cat', '/sdcard/smoke.xml')
@@ -699,7 +751,8 @@ export function navigator(sh) {
                     spot = centre(tree, name, exact)
                     if (spot) break
                 }
-                if (!spot && !optional) swipe(at(0.5, SCROLL_FROM), at(0.5, SCROLL_TO))
+                // An unreadable tree is not a screen without the control: scrolling then closes a menu.
+                if (!spot && !optional && tree) swipe(at(0.5, SCROLL_FROM), at(0.5, SCROLL_TO))
             }
             if (!spot) {
                 if (optional) continue

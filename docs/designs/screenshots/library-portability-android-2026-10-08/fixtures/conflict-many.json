@@ -1,0 +1,291 @@
+{
+  "formatVersion": 1,
+  "appVersion": "0.2.0",
+  "writtenBy": "android",
+  "writtenAt": "2026-10-08T12:36:29Z",
+  "library": {
+    "sources": [
+      {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "displayName": "Fixture NAS",
+        "kind": "networkShare",
+        "lastSuccessfulSync": "2026-10-08T12:35:37Z",
+        "locator": "smb://10.0.2.2:4999/Comics",
+        "needsSignIn": false
+      },
+      {
+        "id": "11111111-1111-1111-1111-111111111111",
+        "displayName": "Comics NAS",
+        "kind": "networkShare",
+        "lastSuccessfulSync": "2026-10-08T12:35:37Z",
+        "locator": "smb://reader@nas.local/comics",
+        "needsSignIn": false
+      },
+      {
+        "id": "22222222-2222-2222-2222-222222222222",
+        "displayName": "Shelf",
+        "kind": "localFolder",
+        "lastSuccessfulSync": null,
+        "locator": "/Books/Shelf",
+        "needsSignIn": false
+      },
+      {
+        "id": "55555555-5555-5555-5555-555555555555",
+        "displayName": "Kavita",
+        "kind": "kavitaServer",
+        "lastSuccessfulSync": null,
+        "locator": "https://kavita.example/api?library=3",
+        "needsSignIn": false
+      }
+    ],
+    "certificatePins": {
+      "nas.local": [
+        "AB:CD:EF:01"
+      ],
+      "kavita.example": [
+        "12:34:56:78"
+      ],
+      "old-box.local": [
+        "9A:BC:DE:F0"
+      ]
+    },
+    "collections": [
+      {
+        "id": "33333333-3333-3333-3333-333333333333",
+        "name": "Image Comics",
+        "members": [
+          "path:/a.cbz",
+          "path:/b.cbz",
+          "path:/c.cbz",
+          "path:/d.cbz"
+        ],
+        "coverMemberId": "path:/b.cbz"
+      }
+    ],
+    "readingLists": [
+      {
+        "id": "44444444-4444-4444-4444-444444444444",
+        "name": "Crossover",
+        "entries": [
+          "path:/b.cbz",
+          "path:/a.cbz"
+        ],
+        "coverMemberId": null
+      }
+    ],
+    "pinnedShelves": [
+      "collection:33333333-3333-3333-3333-333333333333",
+      "list:44444444-4444-4444-4444-444444444444"
+    ],
+    "settings": {
+      "appearance": "system",
+      "language": null,
+      "turnPagesWithVolumeButtons": false,
+      "turnPagesByTappingTheEdges": false,
+      "linkReadingThemeToAppearance": false,
+      "lightReadingTheme": "calm",
+      "darkReadingTheme": "focus",
+      "downloadOverWifiOnly": true,
+      "maximumDownloadBytes": 4294967296,
+      "removeDownloadsAfterFinishing": true
+    },
+    "readingThemes": {
+      "entries": [
+        {
+          "scope": "fixedLayout",
+          "shelf": "Bone",
+          "settings": {
+            "theme": {
+              "preset": "paper",
+              "deviations": [],
+              "custom": null
+            },
+            "values": {
+              "typeface": "literata",
+              "fontSizePercent": 100,
+              "isBold": false,
+              "isHyphenated": false,
+              "lineHeight": 1.5,
+              "letterSpacing": 0.0,
+              "wordSpacing": 0.0,
+              "paragraphSpacing": 0.6,
+              "pageMargins": 1.0,
+              "textAlignment": "publisher"
+            },
+            "transition": "verticalScroll",
+            "scrollAxis": null,
+            "readingDirection": null,
+            "adjustments": {
+              "brightness": 0.2,
+              "contrast": 0.0,
+              "sharpness": 0.0,
+              "isInverted": false,
+              "isGreyscale": true,
+              "cropsBorders": false
+            },
+            "offsetsSpreads": true,
+            "showsPageSeparator": false,
+            "fit": "width"
+          }
+        },
+        {
+          "scope": "reflowable",
+          "shelf": null,
+          "settings": {
+            "theme": {
+              "preset": "quiet",
+              "deviations": [
+                "fontSize",
+                "lineSpacing"
+              ],
+              "custom": null
+            },
+            "values": {
+              "typeface": "literata",
+              "fontSizePercent": 115,
+              "isBold": false,
+              "isHyphenated": false,
+              "lineHeight": 1.8,
+              "letterSpacing": 0.0,
+              "wordSpacing": 0.0,
+              "paragraphSpacing": 0.5,
+              "pageMargins": 1.0,
+              "textAlignment": "publisher"
+            },
+            "transition": "fastFade",
+            "scrollAxis": null,
+            "readingDirection": null,
+            "adjustments": {
+              "brightness": 0.0,
+              "contrast": 0.0,
+              "sharpness": 0.0,
+              "isInverted": false,
+              "isGreyscale": false,
+              "cropsBorders": false
+            },
+            "offsetsSpreads": false,
+            "showsPageSeparator": false,
+            "fit": "screen"
+          }
+        },
+        {
+          "scope": "reflowable",
+          "shelf": "The Long Field",
+          "settings": {
+            "theme": {
+              "preset": "paper",
+              "deviations": [],
+              "custom": null
+            },
+            "values": {
+              "typeface": "literata",
+              "fontSizePercent": 100,
+              "isBold": false,
+              "isHyphenated": false,
+              "lineHeight": 1.5,
+              "letterSpacing": 0.0,
+              "wordSpacing": 0.0,
+              "paragraphSpacing": 0.6,
+              "pageMargins": 1.0,
+              "textAlignment": "publisher"
+            },
+            "transition": "pageCurl",
+            "scrollAxis": null,
+            "readingDirection": null,
+            "adjustments": {
+              "brightness": 0.0,
+              "contrast": 0.0,
+              "sharpness": 0.0,
+              "isInverted": false,
+              "isGreyscale": false,
+              "cropsBorders": false
+            },
+            "offsetsSpreads": false,
+            "showsPageSeparator": false,
+            "fit": "screen"
+          }
+        }
+      ],
+      "customPalette": {
+        "name": "Midnight",
+        "background": "#101014",
+        "foreground": "#E8E8F0"
+      }
+    },
+    "progress": [
+      {
+        "identity": {
+          "serverSourceId": null,
+          "serverRemoteId": null,
+          "contentDigest": "d1",
+          "normalizedPath": "/a.cbz"
+        },
+        "position": {
+          "kind": "page",
+          "index": 30,
+          "of": 40,
+          "progression": null,
+          "locator": null,
+          "part": null,
+          "partCount": null,
+          "offsetMillis": null,
+          "ofMillis": null
+        },
+        "isFinished": false,
+        "finishedAt": null,
+        "updatedAt": "2026-10-08T12:00:00Z"
+      },
+      {
+        "identity": {
+          "serverSourceId": "55555555-5555-5555-5555-555555555555",
+          "serverRemoteId": "901",
+          "contentDigest": null,
+          "normalizedPath": null
+        },
+        "position": {
+          "kind": "listening",
+          "index": null,
+          "of": null,
+          "progression": null,
+          "locator": null,
+          "part": 6,
+          "partCount": 9,
+          "offsetMillis": 100000,
+          "ofMillis": 600000
+        },
+        "isFinished": false,
+        "finishedAt": null,
+        "updatedAt": "2026-10-08T12:00:00Z"
+      },
+      {
+        "identity": {
+          "serverSourceId": null,
+          "serverRemoteId": null,
+          "contentDigest": "983877c308cfaf7185ecae0bbdcdb2f5cb14e901d1155a260997034f69b57c67",
+          "normalizedPath": null
+        },
+        "position": {
+          "kind": "reflowable",
+          "index": null,
+          "of": null,
+          "progression": 0.9,
+          "locator": "{\"href\":\"ch9\"}",
+          "part": null,
+          "partCount": null,
+          "offsetMillis": null,
+          "ofMillis": null
+        },
+        "isFinished": false,
+        "finishedAt": null,
+        "updatedAt": "2026-10-08T12:00:00Z"
+      }
+    ],
+    "covers": [
+      {
+        "key": "sha:d1",
+        "image": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/q842iQAAAABJRU5ErkJggg=="
+      }
+    ]
+  },
+  "secrets": null
+}
