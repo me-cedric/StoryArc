@@ -72,7 +72,7 @@ class SourceDiagnosisTest {
 
     @Test
     fun `the newest session of a share is the one kept`() {
-        val share = UUID.randomUUID()
+        val share = ShareKey.of("nas", 445, "Comics")
         ShareSessions.record(share, ShareTransport("SMB 2.1", isEncrypted = false))
         ShareSessions.record(share, ShareTransport("SMB 3.1.1", isEncrypted = true))
         assertEquals(ShareTransport("SMB 3.1.1", isEncrypted = true), ShareSessions.all.value[share])

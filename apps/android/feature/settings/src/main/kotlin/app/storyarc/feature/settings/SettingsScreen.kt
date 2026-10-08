@@ -36,6 +36,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.Download
 import app.storyarc.core.model.DownloadLibrary
+import app.storyarc.core.model.ShareKey
 import app.storyarc.core.model.ShareSessions
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
@@ -179,7 +180,7 @@ fun SettingsScreen(
             isPartial = isPartial(source),
             readCount = readCount(source),
             readTotal = readTotal(source),
-            transport = negotiated[source.id],
+            transport = source.locator?.let(ShareKey::ofLocator)?.let { negotiated[it] },
         )
     }
 

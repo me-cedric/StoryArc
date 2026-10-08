@@ -1,6 +1,8 @@
 package app.storyarc.core.smb
 
 import app.storyarc.core.format.RandomAccessSource
+import app.storyarc.core.model.ShareKey
+import app.storyarc.core.model.ShareSessions
 import com.hierynomus.mserref.NtStatus
 import com.hierynomus.mssmb.SMB1NotSupportedException
 import com.hierynomus.mssmb2.SMB2Dialect
@@ -206,7 +208,15 @@ internal class SmbTree private constructor(
                 val session = connection.authenticate(credentials(address))
                 val share = session.connectShare(address.share) as? DiskShare
                     ?: throw SmbError.ShareNotFound
-                return SmbTree(client, connection, session, share)
+                return SmbTree(client, connection, session, share).also {
+                    // Kept here, in the one place every client connects through, so that the add
+                    // sheet, the library scan, the reader and the health probe all leave the same
+                    // record.
+                    ShareSessions.record(
+                        ShareKey.of(address.host, address.port, address.share),
+                        it.identity().transport,
+                    )
+                }
             } catch (error: Throwable) {
                 client.close()
                 throw error

@@ -5,15 +5,12 @@ import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsError
 import app.storyarc.core.kavita.KavitaClient
 import app.storyarc.core.kavita.KavitaError
-import app.storyarc.core.model.ShareSessions
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.persistence.CredentialStore
-import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbError
-import java.util.UUID
 
 /**
  * Whether a source is actually there.
@@ -47,7 +44,7 @@ object SourceHealth {
     ): SourceConnectionState {
         SmbPage.of(source, credentials)?.let { page ->
             return try {
-                reachShare(source.id, page.address)
+                SmbClient(page.address).use { it.connect() }
                 SourceConnectionState.Connected
             } catch (refusal: SmbError) {
                 SmbSourceState.of(refusal, now, unauthorizedReason, encryptionReason)
@@ -80,17 +77,6 @@ object SourceHealth {
 
         // Neither page could be built, so the secret this source needs has gone.
         return SourceConnectionState.Unauthorized(unauthorizedReason)
-    }
-
-    /**
-     * Connects to a share, and keeps what the session negotiated.
-     *
-     * `network-share`'s *Encrypted transport*: the source detail screen states whether the
-     * connection is encrypted, so the answer of every probe is kept for that screen.
-     */
-    internal suspend fun reachShare(sourceId: UUID, address: SmbAddress) {
-        val identity = SmbClient(address).use { it.connect() }
-        ShareSessions.record(sourceId, identity.transport)
     }
 }
 
