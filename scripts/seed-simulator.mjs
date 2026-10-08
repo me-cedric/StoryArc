@@ -23,9 +23,12 @@
 // the walks then reported "The library toolbar offers no View menu" about a menu that exists.
 
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+import { png } from './png.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const BUNDLE = 'com.mecedric.storyarc'
@@ -179,4 +182,11 @@ for (const seed of SEEDS) {
 const hex = Buffer.from(JSON.stringify(record), 'utf8').toString('hex')
 run(['simctl', 'spawn', udid, 'defaults', 'write', BUNDLE, 'app.storyarc.downloads', '-data', hex])
 
-console.log(`Seeded ${record.length} publications on ${udid}`)
+// One picture in the Photos library. The system photo picker runs in another process and shows
+// that library, which is empty on a clean simulator, so a UI test that chooses a cover has
+// nothing to choose. `simctl addmedia` is the only way to fill it from outside.
+const photo = join(mkdtempSync(join(tmpdir(), 'seed-photo-')), 'cover-to-pick.png')
+writeFileSync(photo, png(400, 600, [200, 90, 60]))
+run(['simctl', 'addmedia', udid, photo])
+
+console.log(`Seeded ${record.length} publications and one photo on ${udid}`)
