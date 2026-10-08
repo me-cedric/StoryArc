@@ -28,6 +28,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
     case diagnostic
     case exportLibrary
     case importLibrary
+    case sync
 
     var id: String { rawValue }
 
@@ -39,7 +40,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
         case .volumeButtons, .readingDefaults: .reading
         case .downloadsWiFiOnly, .downloadsRemoveAfterFinishing, .downloadsLimit: .downloads
         case .coverLookup, .clearCache, .clearHistory, .clearDownloads, .diagnostic: .privacy
-        case .exportLibrary, .importLibrary: .sources
+        case .exportLibrary, .importLibrary, .sync: .sources
         }
     }
 
@@ -62,6 +63,7 @@ enum SettingsAnchor: String, CaseIterable, Identifiable, Sendable {
         case .diagnostic: "privacy.diagnostic"
         case .exportLibrary: "transfer.export"
         case .importLibrary: "transfer.import"
+        case .sync: "sync.title"
         }
     }
 }

@@ -5468,6 +5468,470 @@
         }
       }
     },
+    "sync.about": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Halten Sie Lesepositionen, Regale und Einstellungen auf allen Ihren Geräten gleich, über einen Ort Ihrer Wahl."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep your reading positions, shelves and settings the same on all your devices, through a place you choose."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mantén tus posiciones de lectura, estanterías y ajustes iguales en todos tus dispositivos, a través de un lugar que elijas."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gardez vos positions de lecture, vos étagères et vos réglages identiques sur tous vos appareils, grâce à un emplacement de votre choix."
+          }
+        }
+      }
+    },
+    "sync.chooseFolder": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordner auswählen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a folder"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir una carpeta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un dossier"
+          }
+        }
+      }
+    },
+    "sync.chooseShare": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Freigegebenen Ordner verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a shared folder"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar una carpeta compartida"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser un dossier partagé"
+          }
+        }
+      }
+    },
+    "sync.everyDevice": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jedes Gerät, das gleich bleiben soll, muss diesen Ort erreichen können."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every device you want to keep the same must be able to reach this place."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cada dispositivo que quieras mantener igual debe poder llegar a este lugar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chaque appareil à garder identique doit pouvoir accéder à cet emplacement."
+          }
+        }
+      }
+    },
+    "sync.folderRefused": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc kann den Zugriff auf diesen Ordner nicht behalten. Wählen Sie einen anderen Ordner."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc cannot keep access to this folder. Choose another folder."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no puede mantener el acceso a esta carpeta. Elige otra carpeta."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc ne peut pas garder l’accès à ce dossier. Choisissez un autre dossier."
+          }
+        }
+      }
+    },
+    "sync.now": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jetzt synchronisieren"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync now"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizar ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchroniser maintenant"
+          }
+        }
+      }
+    },
+    "sync.place": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ort"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Place"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emplacement"
+          }
+        }
+      }
+    },
+    "sync.status.idle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Noch nicht synchronisiert"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not synced yet"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aún sin sincronizar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pas encore synchronisé"
+          }
+        }
+      }
+    },
+    "sync.status.newer": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierungsdatei stammt aus einer neueren Version von StoryArc. Aktualisieren Sie StoryArc auf diesem Gerät. Es wurde nichts geändert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sync file comes from a newer version of StoryArc. Update StoryArc on this device. Nothing was changed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El archivo de sincronización es de una versión más reciente de StoryArc. Actualiza StoryArc en este dispositivo. No se cambió nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fichier de synchronisation vient d’une version plus récente de StoryArc. Mettez StoryArc à jour sur cet appareil. Rien n’a été modifié."
+          }
+        }
+      }
+    },
+    "sync.status.notLibrary": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Synchronisierungsdatei ist keine StoryArc-Bibliothek. Es wurde nichts geändert."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sync file is not a StoryArc library. Nothing was changed."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El archivo de sincronización no es una biblioteca de StoryArc. No se cambió nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le fichier de synchronisation n’est pas une bibliothèque StoryArc. Rien n’a été modifié."
+          }
+        }
+      }
+    },
+    "sync.status.synced %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisiert um %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced at %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizado a las %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisé à %@"
+          }
+        }
+      }
+    },
+    "sync.status.syncing": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wird synchronisiert …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizando…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisation…"
+          }
+        }
+      }
+    },
+    "sync.status.unreachable %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ist nicht erreichbar. StoryArc synchronisiert wieder, sobald der Ort erreichbar ist."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ cannot be reached. StoryArc syncs again when it can reach it."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede llegar a %@. StoryArc volverá a sincronizar cuando pueda llegar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ est inaccessible. StoryArc synchronisera dès qu’il pourra y accéder."
+          }
+        }
+      }
+    },
+    "sync.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sync"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisation"
+          }
+        }
+      }
+    },
+    "sync.turnOff": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisierung ausschalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off sync"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar la sincronización"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Désactiver la synchronisation"
+          }
+        }
+      }
+    },
+    "sync.when": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc synchronisiert, wenn Sie die App öffnen und wenn Sie ein Buch schließen. Im Hintergrund kann iOS StoryArc gelegentlich synchronisieren lassen, oder nie."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc syncs when you open the app and when you close a book. In the background, iOS can let StoryArc sync from time to time, or never."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc sincroniza cuando abres la app y cuando cierras un libro. En segundo plano, iOS puede dejar que StoryArc sincronice de vez en cuando, o nunca."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc synchronise quand vous ouvrez l’app et quand vous fermez un livre. En arrière-plan, iOS peut laisser StoryArc synchroniser de temps en temps, ou jamais."
+          }
+        }
+      }
+    },
     "transfer.cancel": {
       "extractionState": "manual",
       "localizations": {

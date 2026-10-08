@@ -65,6 +65,8 @@ struct SourcesSettings: View {
     /// stores behind it (a preview, a test) has no use for.
     var libraryTransfer: LibraryTransfer?
     var onLibraryImported: (LibraryImportOutcome) -> Void = { _ in }
+    /// Where the sync document lives. Nil hides the section, as `libraryTransfer` does.
+    var syncRunner: LibrarySyncRunner?
     var highlight: SettingsAnchor?
 
     @State private var removing: Source?
@@ -95,6 +97,10 @@ struct SourcesSettings: View {
                 LibraryTransferSection(
                     transfer: libraryTransfer, highlight: highlight, onImported: onLibraryImported
                 )
+            }
+
+            if let syncRunner {
+                SyncSettingsSection(runner: syncRunner, sources: sources, highlight: highlight)
             }
 
             if sources.isEmpty {

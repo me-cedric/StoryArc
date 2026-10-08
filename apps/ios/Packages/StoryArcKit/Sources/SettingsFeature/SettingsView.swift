@@ -83,6 +83,8 @@ public struct SettingsView: View {
     /// hides the two rows. `library-portability`.
     private let libraryTransfer: LibraryTransfer?
     private let onLibraryImported: (LibraryImportOutcome) -> Void
+    /// Where the sync document lives, and when it syncs. Nil hides the section. `library-sync`.
+    private let syncRunner: LibrarySyncRunner?
 
     /// What the summary rows state, so Sources and Downloads describe themselves.
     private var summary: LibrarySummary {
@@ -129,7 +131,8 @@ public struct SettingsView: View {
         onRemoveFinished: @escaping (Download) -> RemovedDownload? = { _ in nil },
         onRestoreFinished: @escaping (RemovedDownload) -> Void = { _ in },
         libraryTransfer: LibraryTransfer? = nil,
-        onLibraryImported: @escaping (LibraryImportOutcome) -> Void = { _ in }
+        onLibraryImported: @escaping (LibraryImportOutcome) -> Void = { _ in },
+        syncRunner: LibrarySyncRunner? = nil
     ) {
         _settings = settings
         self.readerStore = readerStore
@@ -158,6 +161,7 @@ public struct SettingsView: View {
         self.onRestoreFinished = onRestoreFinished
         self.libraryTransfer = libraryTransfer
         self.onLibraryImported = onLibraryImported
+        self.syncRunner = syncRunner
     }
 
     public var body: some View {
@@ -289,6 +293,7 @@ public struct SettingsView: View {
                 onReorder: onReorderSource,
                 libraryTransfer: libraryTransfer,
                 onLibraryImported: onLibraryImported,
+                syncRunner: syncRunner,
                 highlight: highlight
             )
         case .downloads:

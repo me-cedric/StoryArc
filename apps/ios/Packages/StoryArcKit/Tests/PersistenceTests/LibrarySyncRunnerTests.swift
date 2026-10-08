@@ -60,16 +60,30 @@ private final class CountingPlace: SyncPlace {
     }
 }
 
+/// What the runner's closures count, kept apart from the device so they capture no device.
+@MainActor
+private final class Counters {
+    var now = Date(timeIntervalSince1970: 1_767_225_600)
+    var placesBuilt = 0
+    var reloads = 0
+}
+
 /// One device: real stores in a suite of its own, a clock the test moves, and a runner.
 @MainActor
 private final class SyncDevice {
-    var now = Date(timeIntervalSince1970: 1_767_225_600)
+    let counters = Counters()
     let place = CountingPlace()
     let defaults = UserDefaults(suiteName: "app.storyarc.tests.\(UUID().uuidString)") ?? .standard
     let progress: ProgressStore
-    var placesBuilt = 0
-    var reloads = 0
-    private(set) var runner: LibrarySyncRunner!
+    let runner: LibrarySyncRunner
+
+    var now: Date {
+        get { counters.now }
+        set { counters.now = newValue }
+    }
+
+    var placesBuilt: Int { counters.placesBuilt }
+    var reloads: Int { counters.reloads }
 
     init() throws {
         progress = try ProgressStore.inMemory()
@@ -79,16 +93,24 @@ private final class SyncDevice {
         )
         let state = LibrarySyncState(defaults: defaults)
         let place = place
+        let counters = counters
         runner = LibrarySyncRunner(
             places: SyncPlaceStore(defaults: defaults),
-            placeFor: { [unowned self] _ in
-                placesBuilt += 1
+            placeFor: { _ in
+                counters.placesBuilt += 1
                 return place
             },
             sync: { try await transfer.sync(with: $0, state: state, appVersion: "1.0") },
-            now: { [unowned self] in now }
+            now: { counters.now }
         )
-        runner.onSynced = { [unowned self] in reloads += 1 }
+        runner.onSynced = { counters.reloads += 1 }
+    }
+
+    /// A position on page `index` of the book the tests read.
+    func page(_ index: Int) -> ReadingProgress {
+        ReadingProgress(
+            identity: PublicationIdentity(contentDigest: "d1"), position: .page(index: index, of: 100), updatedAt: now
+        )
     }
 
     var shelves: ShelvesStore { ShelvesStore(defaults: defaults) }
@@ -98,7 +120,6 @@ private final class SyncDevice {
 /// the real engine. Android's `LibrarySyncRunnerTest` makes the same claims.
 @MainActor
 struct LibrarySyncRunnerTests {
-    private let book = PublicationIdentity(contentDigest: "d1")
 
     @Test func syncIsOffUntilAPlaceIsChosenAndOffReadsAndWritesNothing() async throws {
         let device = try SyncDevice()
@@ -147,7 +168,7 @@ struct LibrarySyncRunnerTests {
     @Test func leavingAPublicationWritesItsPositionAtOnceAndAKavitaPublicationWritesNothing() async throws {
         let device = try SyncDevice()
         device.runner.chooseShare(UUID())
-        try await device.progress.save(ReadingProgress(identity: book, position: .page(index: 40, of: 100), updatedAt: device.now))
+        try await device.progress.save(device.page(40))
 
         #expect(await !device.runner.leftPublication(ownedByKavita: true))
         #expect(device.place.calls == 0)
@@ -155,6 +176,29 @@ struct LibrarySyncRunnerTests {
         #expect(await device.runner.leftPublication(ownedByKavita: false))
         #expect(device.place.writes == 1)
         #expect(try device.place.positions() == ["d1"])
+    }
+
+    @Test func theBackgroundRefreshIsAskedForOnlyWhileSyncIsOn() throws {
+        let device = try SyncDevice()
+        var submitted: [Date] = []
+        var cancels = 0
+        device.runner.scheduleBackgroundRefresh(submit: { submitted.append($0) }, cancel: { cancels += 1 })
+        #expect(submitted.isEmpty)
+        #expect(cancels == 1)
+
+        device.runner.chooseShare(UUID())
+        device.runner.scheduleBackgroundRefresh(submit: { submitted.append($0) }, cancel: { cancels += 1 })
+        #expect(submitted == [device.now.addingTimeInterval(15 * 60)])
+        #expect(cancels == 1)
+    }
+
+    @Test func theBackgroundRefreshRunsTheSameSyncAndIsNotThrottled() async throws {
+        let device = try SyncDevice()
+        device.runner.chooseShare(UUID())
+        #expect(await device.runner.run(.foreground))
+        device.now += 1
+        #expect(await device.runner.run(.background))
+        #expect(device.place.writes == 2)
     }
 
     @Test func aTriggerDuringASyncRunsTheSyncOnceMoreWhenItEnds() async throws {
@@ -170,7 +214,7 @@ struct LibrarySyncRunnerTests {
         let first = Task { await device.runner.run(.foreground) }
         for await _ in inside { break }
         // The position is saved while the first sync waits on the place.
-        try await device.progress.save(ReadingProgress(identity: book, position: .page(index: 7, of: 100), updatedAt: device.now))
+        try await device.progress.save(device.page(7))
         #expect(await !device.runner.leftPublication(ownedByKavita: false))
         released.yield()
         #expect(await first.value)

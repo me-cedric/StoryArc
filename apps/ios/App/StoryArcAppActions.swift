@@ -62,6 +62,7 @@ extension StoryArcApp {
         Task {
             await library.refreshProgress()
             await reportToKavita(closed?.publication)
+            if let closed { await syncAfterLeaving(closed.publication) }
         }
     }
 

@@ -118,10 +118,15 @@ targets:
         # `ebook-reader`: read-aloud "continues" when the app is backgrounded, and the
         # platform media controls carry the title. iOS suspends an app that has not
         # declared this the moment it leaves the screen, so without the line the voice
-        # stops mid-sentence and the lock screen shows nothing. Audio only — no location,
-        # no fetch, no processing.
+        # stops mid-sentence and the lock screen shows nothing.
+        # `library-sync` task 4.3: `fetch` lets iOS grant the sync a background refresh,
+        # which it may skip. The identifier below is the one `LibrarySyncWiring.swift`
+        # registers. No location, no processing.
         UIBackgroundModes:
           - audio
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - app.storyarc.sync
         # `native-experience`: Handoff, and the same activity in Spotlight. iOS creates no
         # `NSUserActivity` for a type that is not declared here, so without this line the
         # reader's other device is never offered the book and nothing is indexed. See

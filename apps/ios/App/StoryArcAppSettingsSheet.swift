@@ -60,7 +60,8 @@ extension StoryArcApp {
             onRemoveFinished: removeFinished,
             onRestoreFinished: restoreFinished,
             libraryTransfer: libraryTransfer,
-            onLibraryImported: libraryImported
+            onLibraryImported: libraryImported,
+            syncRunner: syncRunner
         )
             .storyArcTheme(appearance: settings.appearance)
             .speaking(settings.language)

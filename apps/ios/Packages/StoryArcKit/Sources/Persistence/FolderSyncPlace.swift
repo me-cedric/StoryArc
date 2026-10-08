@@ -72,7 +72,9 @@ public struct FolderSyncPlace: SyncPlace {
     private func coordinated<T>(reading url: URL, _ body: (URL) throws -> T) throws -> T {
         var coordination: NSError?
         var outcome: Result<T, any Error> = .failure(CocoaError(.fileReadUnknown))
-        NSFileCoordinator(filePresenter: nil).coordinate(readingItemAt: url, options: [], error: &coordination) { granted in
+        NSFileCoordinator(filePresenter: nil).coordinate(
+            readingItemAt: url, options: [], error: &coordination
+        ) { granted in
             outcome = Result { try body(granted) }
         }
         if let coordination { throw coordination }

@@ -126,6 +126,22 @@ public final class LibrarySyncRunner {
         ownedByKavita ? false : await run(.leftPublication)
     }
 
+    /// How long after one background refresh the next is asked for. iOS decides when, or
+    /// whether, it runs.
+    public static let backgroundInterval: TimeInterval = 15 * 60
+
+    /// Asks for the next background refresh while sync is on, and withdraws it while off.
+    ///
+    /// `library-sync` task 4.3. The app hands in the two `BGTaskScheduler` calls; the refresh
+    /// runs ``run(_:)`` with ``Trigger/background``, the entry point every trigger uses.
+    public func scheduleBackgroundRefresh(submit: (Date) -> Void, cancel: () -> Void) {
+        if places.choice() != nil {
+            submit(now().addingTimeInterval(Self.backgroundInterval))
+        } else {
+            cancel()
+        }
+    }
+
     private func chose(isOn: Bool) {
         retryPending = false
         lastStart = nil

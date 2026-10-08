@@ -78,6 +78,9 @@ struct StoryArcApp: App {
     /// Held here so the app can refresh it when the reader closes.
     @State var library: LibraryModel
 
+    /// `library-sync`: where the sync document lives, and when it syncs. See `LibrarySyncWiring.swift`.
+    @State var syncRunner: LibrarySyncRunner?
+
     /// Which local picker or sheet Settings' own add button asked for (task 17.9) — this
     /// screen's own copy of what `LibraryView` keeps for its toolbar, since the two are
     /// never both asking at once and a shared one would reach into the other's state.
@@ -178,6 +181,7 @@ struct StoryArcApp: App {
             journal: ScanJournal()
         )
         _library = State(initialValue: library)
+        _syncRunner = State(initialValue: Self.makeSyncRunner(progress: store))
 
         // The speed a listener chose, remembered per publication and offered to the rest of the
         // series. Here rather than beside the session's other wiring because a session can
@@ -275,6 +279,8 @@ struct StoryArcApp: App {
                 PlayerCentre.shared.recordReached()
                 Task { await reportToKavita(reading?.publication ?? dismissed?.publication) }
             }
+            .onChange(of: scenePhase, initial: true) { _, phase in syncPhaseChanged(to: phase) }
+            .task { syncRunner?.onSynced = { syncWroteTheStores() } }
             .refusing($refusedFile)
             // `native-experience`: the home-screen menu, Handoff and Spotlight. All three
             // name a publication and none of them can open one, so the waiting lives in
@@ -358,5 +364,8 @@ struct StoryArcApp: App {
             }
         }
         .continuingDownloadsInBackground()
+        .backgroundTask(.appRefresh(Self.syncRefreshTask)) { [syncRunner] in
+            await Self.syncInBackground(syncRunner)
+        }
     }
 }

@@ -101,6 +101,8 @@ extension SettingsGroup {
               match: SettingMatch(anchor: .exportLibrary)),
         Entry(terms: ["import", "restore", "library file", "bring library"],
               match: SettingMatch(anchor: .importLibrary)),
+        Entry(terms: ["sync", "synchronise", "synchronize", "devices", "icloud", "google drive", "same on"],
+              match: SettingMatch(anchor: .sync)),
         Entry(terms: ["about", "version", "author", "licence", "license",
                       "acknowledgements", "credits", "support"],
               match: SettingMatch(group: .about)),
