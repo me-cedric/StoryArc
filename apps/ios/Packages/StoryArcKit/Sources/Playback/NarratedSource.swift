@@ -53,6 +53,14 @@ public final class NarratedSource: PlaybackSource {
     private var failedToReachEnd: (any NSObjectProtocol)?
     /// The files already counted as unreadable, so a repeated report adds nothing.
     private var failedFiles: Set<URL> = []
+    /// Where the engine first reported that the current file cannot play to its end.
+    ///
+    /// Task 23.6, owner answer O21. The engine reports a cut from its read-ahead and then plays
+    /// the item on to its nominal end through the normal end path, so ``fileFinished()`` reads
+    /// this to end on the failure, here, rather than at the nominal end.
+    /// ponytail: the read-ahead reports at or before the cut, never after it, so a resume can
+    /// replay audio that played and cannot skip audio that did not.
+    private var failedPlace: PlaybackPlace?
 
     public init(_ book: Audiobook) {
         timeline = PlaybackTimeline(parts: book.parts)
@@ -130,6 +138,7 @@ public final class NarratedSource: PlaybackSource {
             item.audioTimePitchAlgorithm = .timeDomain
             player.replaceCurrentItem(with: item)
             playing = target.url
+            failedPlace = nil
             observeEnd(of: item)
         }
 
@@ -190,6 +199,11 @@ public final class NarratedSource: PlaybackSource {
         // the one file — so running that file out is running the book out.
         let next = place.partIndex + 1
         guard let target = timeline.seek(toPart: next, offset: 0), target.url != playing else {
+            if let failedPlace {
+                place = failedPlace
+                endedOnFailure = true
+                moved?()
+            }
             ended?()
             return
         }
@@ -208,6 +222,7 @@ public final class NarratedSource: PlaybackSource {
     /// fails after it carried on still ends.
     private func fileFailed() {
         if let playing, failedFiles.insert(playing).inserted { unreadablePartCount += 1 }
+        if failedPlace == nil { failedPlace = place }
         switch timeline.response(
             toFailureAtPart: place.partIndex,
             itemHasFailed: player.currentItem?.status == .failed
