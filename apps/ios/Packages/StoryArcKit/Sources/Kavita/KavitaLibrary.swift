@@ -84,6 +84,18 @@ public struct KavitaSeries: Sendable, Equatable, Hashable, Identifiable, Decodab
     }
 }
 
+/// The one field of a chapter's file this client reads.
+private struct KavitaFileSize: Decodable {
+    let bytes: Int64
+
+    init(from decoder: any Decoder) throws {
+        bytes = try decoder.container(keyedBy: CodingKeys.self)
+            .decodeIfPresent(Int64.self, forKey: .bytes) ?? 0
+    }
+
+    private enum CodingKeys: String, CodingKey { case bytes }
+}
+
 /// A chapter — the thing a reader actually opens.
 public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
     public let id: Int
@@ -103,13 +115,19 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
     /// not opened.
     public let seriesId: Int
 
+    /// How large the chapter's files are together, in bytes, or zero where the server said
+    /// nothing. Kavita's `ChapterDto.files[].bytes`, which a whole-shelf download adds up to
+    /// state its size before it starts. Zero is "not stated" rather than an empty file.
+    public let fileBytes: Int64
+
     public init(
         id: Int,
         number: String,
         title: String? = nil,
         pages: Int = 0,
         pagesRead: Int = 0,
-        seriesId: Int = 0
+        seriesId: Int = 0,
+        fileBytes: Int64 = 0
     ) {
         self.id = id
         self.number = number
@@ -117,6 +135,7 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
         self.pages = pages
         self.pagesRead = pagesRead
         self.seriesId = seriesId
+        self.fileBytes = fileBytes
     }
 
     /// Counts default to nothing, for the reason ``KavitaSeries`` gives.
@@ -129,10 +148,12 @@ public struct KavitaChapter: Sendable, Equatable, Identifiable, Decodable {
         pages = try container.decodeIfPresent(Int.self, forKey: .pages) ?? 0
         pagesRead = try container.decodeIfPresent(Int.self, forKey: .pagesRead) ?? 0
         seriesId = try container.decodeIfPresent(Int.self, forKey: .seriesId) ?? 0
+        fileBytes = try container.decodeIfPresent([KavitaFileSize].self, forKey: .files)?
+            .reduce(0) { $0 + $1.bytes } ?? 0
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, number, title, pages, pagesRead, seriesId
+        case id, number, title, pages, pagesRead, seriesId, files
 
         /// What a search result calls a chapter's title. Kavita's own search DTO differs
         /// from its volume DTO here, and a chapter found by name would otherwise be listed

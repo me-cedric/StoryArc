@@ -16,15 +16,32 @@ import Testing
 /// check, and the device checklist carries it. Android's
 /// `KavitaCoverUploadAgainstTheMockTest` is the twin of this file.
 ///
+/// The same mock answers the sizes task 7.8 reads: a list entry's `fileSize` and a chapter's
+/// `files[].bytes`, so a whole-shelf download can state its size before it starts.
+///
 /// Fails, and does not skip, when `node` cannot start: a guard that quietly stops running is
 /// the failure this repository has been bitten by before.
-@Suite("The cover upload, against the real mock", .serialized)
+@Suite("The real Kavita mock, through the app's own client", .serialized)
 struct KavitaCoverUploadAgainstTheMockTests {
 
     /// A 1 x 1 PNG: the mock reads the type from the first bytes and keeps the rest whole.
-    private let picture = Data(base64Encoded:
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
-    )!
+    private func picture() throws -> Data {
+        try #require(Data(base64Encoded:
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ))
+    }
+
+    /// A mock that is running, and what to clean up when a test is done with it.
+    private struct RunningMock {
+        let client: KavitaClient
+        let process: Process
+        let corpus: URL
+
+        func stop() {
+            process.terminate()
+            try? FileManager.default.removeItem(at: corpus)
+        }
+    }
 
     private func repositoryRoot() throws -> URL {
         var directory = URL(fileURLWithPath: #filePath)
@@ -43,7 +60,7 @@ struct KavitaCoverUploadAgainstTheMockTests {
     }
 
     /// Runs the mock on a port of its own and answers a client for it, with the process to stop.
-    private func startMock() throws -> (KavitaClient, Process, URL) {
+    private func startMock() throws -> RunningMock {
         let root = try repositoryRoot()
         let corpus = URL.temporaryDirectory.appending(path: "kavita-upload-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: corpus, withIntermediateDirectories: true)
@@ -69,20 +86,22 @@ struct KavitaCoverUploadAgainstTheMockTests {
                 process.terminate()
                 throw MockError.noBanner
             }
-            text += String(decoding: chunk, as: UTF8.self)
+            text += String(bytes: chunk, encoding: .utf8) ?? ""
             port = text.firstMatch(of: pattern).map { String($0.output.1) }
         }
         let bound = try #require(port)
         let address = try #require(
             KavitaAddress.from(base: "http://localhost:\(bound)", apiKey: "storyarc-test-key")
         )
-        return (KavitaClient(address: address), process, corpus)
+        return RunningMock(client: KavitaClient(address: address), process: process, corpus: corpus)
     }
 
     @Test("A chosen cover is served back byte for byte, and the list says it is locked")
     func coverRoundTrip() async throws {
-        let (client, process, corpus) = try startMock()
-        defer { process.terminate(); try? FileManager.default.removeItem(at: corpus) }
+        let mock = try startMock()
+        defer { mock.stop() }
+        let client = mock.client
+        let picture = try picture()
         let before = try await client.readingLists().first { $0.id == 1 }
         #expect(before?.coverImageLocked == false, "The list was locked before anything was sent.")
 
@@ -96,8 +115,10 @@ struct KavitaCoverUploadAgainstTheMockTests {
 
     @Test("Bytes that are not a picture are refused and the earlier cover stays")
     func notAPictureIsRefused() async throws {
-        let (client, process, corpus) = try startMock()
-        defer { process.terminate(); try? FileManager.default.removeItem(at: corpus) }
+        let mock = try startMock()
+        defer { mock.stop() }
+        let client = mock.client
+        let picture = try picture()
         try await client.uploadReadingListCover(1, image: picture)
 
         await #expect(throws: (any Error).self) {
@@ -105,5 +126,22 @@ struct KavitaCoverUploadAgainstTheMockTests {
         }
 
         #expect(try await client.readingListCover(1) == picture)
+    }
+
+    @Test("A list entry and a chapter state the size of their file")
+    func sizesAreStated() async throws {
+        let mock = try startMock()
+        defer { mock.stop() }
+        let client = mock.client
+
+        let entries = try await client.readingListItems(1)
+        let first = try #require(entries.first)
+        // The corpus file holds 22 bytes, which is what the mock must state for it.
+        #expect(first.fileSize == 22)
+        #expect(first.pagesTotal > 0 && first.volumeId > 0 && first.libraryId > 0)
+
+        let chapters = try await client.volumes(ofSeries: first.seriesId).flatMap(\.chapters)
+        #expect(!chapters.isEmpty)
+        #expect(chapters.allSatisfy { $0.fileBytes == 22 })
     }
 }

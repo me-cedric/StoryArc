@@ -31,6 +31,7 @@ struct KavitaCollectionView: View {
 
     var body: some View {
         let client = KavitaClient(address: server.address)
+        let held = series
         ScrollView {
             LazyVGrid(columns: columns, spacing: StoryArcSpace.md) {
                 ForEach(series) { each in
@@ -58,6 +59,10 @@ struct KavitaCollectionView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        // Task 7.8: a collection holds series, so the chapters are the series' own.
+        .kavitaShelfBulkActions(server: server) {
+            await KavitaShelfBulk.chapters(of: held) { try await client.volumes(ofSeries: $0) }
+        }
         .task {
             guard series.isEmpty else { return }
             series = (try? await client.collected(collectionID)) ?? []
@@ -126,6 +131,7 @@ struct KavitaListView: View {
     }
 
     var body: some View {
+        let held = items
         List {
             // Tasks 6.4 and 5.1 of `cover-for-every-publication`: the list's own cover, and
             // the write-back button once the reader has chosen one.
@@ -162,6 +168,18 @@ struct KavitaListView: View {
         // already know — the same one ``ReadingListDetail`` gives a local list.
         .toolbar { ToolbarItem(placement: .primaryAction) { EditButton() } }
         #endif
+        // Task 7.8: the list's own entries are the chapters, and a mark is read back from the
+        // server so the rows show the state it now holds.
+        .kavitaShelfBulkActions(
+            server: server,
+            load: { KavitaShelfBulk.chapters(of: held) },
+            onMarked: {
+                let client = KavitaClient(address: server.address)
+                if let fetched = try? await client.readingListItems(listID) {
+                    items = fetched.sorted { $0.order < $1.order }
+                }
+            }
+        )
         .navigationTitle(title)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

@@ -147,10 +147,7 @@ struct KavitaListCoverTests {
                     .appendingPathComponent("Sources/LibraryFeature").path
             )
             .filter { $0.hasSuffix(".swift") }
-        var placed: [String] = []
-        for name in names {
-            if try source(name).contains("CoverWriteBackButton(") { placed.append(name) }
-        }
+        let placed = try names.filter { try source($0).contains("CoverWriteBackButton(") }
 
         #expect(placed.sorted() == ["KavitaListCover.swift"])
     }

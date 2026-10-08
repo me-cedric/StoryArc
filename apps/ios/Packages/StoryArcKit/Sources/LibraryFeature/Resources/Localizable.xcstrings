@@ -3946,6 +3946,93 @@
         }
       }
     },
+    "kavita.bulk.size.atLeast %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mindestens %@ werden in StoryArcs eigenen Speicher kopiert. Der Server hat nicht jede Größe angegeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "At least %@ will be copied into StoryArc’s own storage. The server did not state every size."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se copiarán al menos %@ al almacenamiento de StoryArc. El servidor no indicó todos los tamaños."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Au moins %@ seront copiés dans l’espace de StoryArc. Le serveur n’a pas indiqué toutes les tailles."
+          }
+        }
+      }
+    },
+    "kavita.bulk.size.unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Server hat nicht angegeben, wie groß sie sind."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server did not state how large they are."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El servidor no indicó su tamaño."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur n’a pas indiqué leur taille."
+          }
+        }
+      }
+    },
+    "kavita.bulk.unreachable %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ hat nicht geantwortet, daher wurde nichts gestartet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ did not answer, so nothing was started."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ no respondió, así que no se inició nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ n’a pas répondu, donc rien n’a été lancé."
+          }
+        }
+      }
+    },
     "kavita.chapter.unnumbered": {
       "extractionState": "manual",
       "localizations": {
