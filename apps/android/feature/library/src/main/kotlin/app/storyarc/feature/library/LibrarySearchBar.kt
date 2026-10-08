@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.clearText
@@ -395,7 +394,7 @@ internal fun LibrarySearchBar(
  * heading* down the screen. Exactly what is and is not promised lives on [SearchListing].
  */
 @Composable
-private fun SearchAnswerList(
+internal fun SearchAnswerList(
     listing: SearchListing,
     recents: RecentSearches,
     onUseRecent: (String) -> Unit,
@@ -423,17 +422,7 @@ private fun SearchAnswerList(
             if (recents.terms.isNotEmpty()) {
                 item { Heading(stringResource(R.string.library_search_recent)) }
                 items(recents.terms) { term ->
-                    Text(
-                        text = term,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = palette.textPrimary,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onUseRecent(term) }
-                            .heightIn(min = MIN_TOUCH_TARGET)
-                            .wrapContentHeight(Alignment.CenterVertically)
-                            .padding(StoryArcSpace.gutter, StoryArcSpace.sm),
-                    )
+                    RecentSearchRow(term) { onUseRecent(term) }
                 }
                 item {
                     TextButton(

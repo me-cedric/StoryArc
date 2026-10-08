@@ -27,6 +27,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Task 24.1, 24.2 and 24.5 of `close-the-audited-gaps`: a cover's actions are one menu, every
@@ -38,6 +39,7 @@ import org.robolectric.annotation.Config
  * rather than on a phone. iOS's `CoverMenuTests` is the twin.
  */
 @RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
 class CoverActionsMenuTest {
 

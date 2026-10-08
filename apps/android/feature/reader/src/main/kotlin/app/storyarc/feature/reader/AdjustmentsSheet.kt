@@ -251,7 +251,7 @@ private fun AdjustmentSwitch(
  * the grid rather than sharing it -- the same choice [matting] makes for the rule itself.
  */
 @Composable
-private fun MatteSwatches(current: String?, onChoose: (String?) -> Unit) {
+internal fun MatteSwatches(current: String?, onChoose: (String?) -> Unit) {
     val palette = LocalStoryArcPalette.current
     Column {
         Text(

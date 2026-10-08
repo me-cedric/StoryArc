@@ -359,7 +359,7 @@ private fun Sample(palette: ReaderPalette, modifier: Modifier = Modifier) {
  * swatches; a ring in the app's accent never does.
  */
 @Composable
-private fun SwatchRow(
+internal fun SwatchRow(
     colours: List<String>,
     selected: String?,
     onSelect: (String) -> Unit,

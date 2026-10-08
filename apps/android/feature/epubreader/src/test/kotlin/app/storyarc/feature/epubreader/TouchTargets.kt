@@ -1,4 +1,4 @@
-package app.storyarc
+package app.storyarc.feature.epubreader
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.SemanticsNodeInteraction

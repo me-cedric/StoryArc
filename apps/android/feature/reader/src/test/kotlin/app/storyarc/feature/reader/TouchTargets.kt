@@ -1,4 +1,4 @@
-package app.storyarc
+package app.storyarc.feature.reader
 
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.SemanticsNodeInteraction
