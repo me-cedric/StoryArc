@@ -282,7 +282,7 @@ change** — never the whole repository when one module moved.
 | **Two** changes with a `## MODIFIED` delta on one requirement | The same `pnpm delta:drop`. Each delta can be spotless against the main spec and lethal to the other: whichever syncs second replaces the block and takes the first's scenarios with it, after the first change has archived and its delta is gone. Identical blocks are safe in any order and are not reported. Otherwise make the **later** block a superset of the earlier one and record the order in `.delta-drops.json`; an order over a genuinely disjoint pair is refused, because no order saves it. This check was added on 2026-09-04 and found **four** live instances on its first run, one on a requirement that was about to be synced |
 | `docs/openspec/config.yaml` | `pnpm spec:guard` — a broken list item makes the CLI report an empty project |
 | The `@fission-ai/openspec` version | `pnpm openspec:workflows` then commit the regenerated workflow files |
-| Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet: five files are already over it and recorded in `scripts/line-cap.mjs` with the length they had, so they may shrink and may not grow. A sixth crossing fails the build. |
+| Any Swift or Kotlin file | `pnpm lines:check` — part of `pnpm lint`. The 800-line cap is a ratchet. No file is over it now, and the record in `scripts/line-cap.mjs` is empty. A file that crosses the cap fails the build. Split it at a real seam. |
 
 **Scope a test run to what moved, and say why when you cannot.** Section 5 opens with that
 rule and the iOS UI target is where it is easiest to break, because one flag is the difference

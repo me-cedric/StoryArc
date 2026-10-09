@@ -70,11 +70,7 @@ export const capFor = (path) => {
  * commit that does — a new entry here is a decision to ship a file nobody can hold in
  * their head, and the whole point of a ratchet is that adding a tooth costs something.
  */
-const ALLOWED = {
-    'apps/android/feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt': 1893,
-    'apps/android/feature/library/src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt': 1696,
-    'apps/android/feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt': 1051,
-}
+const ALLOWED = {}
 
 /** Source this project writes. Generated files and dependencies are nobody's to split. */
 const COUNTED = /\.(kt|swift)$/
