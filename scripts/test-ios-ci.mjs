@@ -52,6 +52,10 @@ const RUN = [
   'PlayerBarLongTitleTests',
   // The same audit on both readers.
   'ReaderAuditTests',
+  // The audit over the screen catalogue, where a hit region, a missing description and
+  // clipped text fail. A screen a runner cannot show is skipped. One test proves the audit
+  // fails a 30 point target.
+  'CatalogueAuditTests',
   // The round trip `reading-progress` calls the app's most consequential behaviour: read,
   // close, relaunch, reopen, same page.
   'ReadingContinuityUITests',

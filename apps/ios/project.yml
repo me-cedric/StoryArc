@@ -58,6 +58,11 @@ packages:
   # and StoryArcKit also builds for macOS. See StoryArcEpub/Package.swift.
   StoryArcEpub:
     path: Packages/StoryArcEpub
+  # Test-only, linked by `StoryArcSnapshotTests` and nothing else. MIT. Exact, like every other
+  # remote package here: the version moves in a reviewed diff or it does not move.
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    exactVersion: 1.19.6
 
 targets:
   StoryArc:
@@ -317,3 +322,50 @@ targets:
         # has no plist of its own in this repository and does not want one; Xcode
         # generates what it needs. This is why the audit below had never been run.
         GENERATE_INFOPLIST_FILE: true
+
+  # The screen catalogue (`docs/designs/screen-catalogue.md`), drawn with fixture data and
+  # compared with the reference image beside each test (`lighter-visual-check`).
+  #
+  # **Hosted in the app, and that is the whole reason this is not a package test.** Liquid
+  # Glass, blurs and `backgroundExtensionEffect` are drawn by the render server, and a test
+  # process with no app has no window scene to draw them in: the Home hero came out as a white
+  # card and every glass button as a ghost. Inside the app the key window is a real one, so the
+  # image is what the display shows. It also reaches the views that live in the app target.
+  #
+  # Run it with `pnpm snap:ios`. The references sit in `SnapshotTests/__Snapshots__`.
+  StoryArcSnapshotTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SnapshotTests
+        excludes:
+          - "__Snapshots__/**"
+    dependencies:
+      - target: StoryArc
+      - package: SnapshotTesting
+        product: SnapshotTesting
+      - package: StoryArcKit
+        product: DesignSystem
+      - package: StoryArcKit
+        product: StoryArcCore
+      - package: StoryArcKit
+        product: LibraryFeature
+      - package: StoryArcKit
+        product: ReaderFeature
+      - package: StoryArcKit
+        product: SettingsFeature
+      - package: StoryArcKit
+        product: Persistence
+      - package: StoryArcKit
+        product: Playback
+      - package: StoryArcKit
+        product: PlayerFeature
+      - package: StoryArcEpub
+        product: EpubReaderFeature
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.SnapshotTests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/StoryArc.app/StoryArc"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        SWIFT_STRICT_CONCURRENCY: complete

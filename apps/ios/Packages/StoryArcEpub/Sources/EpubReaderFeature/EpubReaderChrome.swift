@@ -32,6 +32,7 @@ extension EpubReaderView {
                         Image(systemName: "xmark")
                     }
                     .labelStyle(.iconOnly)
+                    .frame(minWidth: 20, minHeight: 20)
                 }
                 // The platform's own glass button, and **untinted**. `.tint` on a glass
                 // button tints the *material*, not the glyph — which is why these
@@ -63,6 +64,8 @@ extension EpubReaderView {
                         Image(systemName: "ellipsis")
                     }
                     .labelStyle(.iconOnly)
+                    // The same 20 points as `ReaderChrome`: an ellipsis alone left this button 35 tall.
+                    .frame(minWidth: 20, minHeight: 20)
                 }
                 .storyArcGlassButton(in: Circle())
                 .controlSize(.large)

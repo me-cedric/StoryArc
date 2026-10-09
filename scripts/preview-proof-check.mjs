@@ -35,6 +35,13 @@
  * **A frame is an image file under `docs/designs/screenshots/`.** That tree holds 1000 `.png`
  * files and 53 `.md` files today, so a README added beside the frames is not a frame.
  *
+ * **A snapshot reference is proof too** (`lighter-visual-check`). A snapshot test draws the
+ * screen with fixture data, in light and dark, and compares it with the `.png` beside the
+ * test: `__Snapshots__/` on iOS, `src/test/snapshots/` on Android. A branch that adds *or
+ * changes* one of those images has looked at its screen, so it passes. A changed image counts
+ * where a changed frame does not, because a reference that moved is exactly what a drawing
+ * change does to a snapshot test.
+ *
  * **Two exceptions, and no third.** `AGENTS.md` §6 names them: code behind a flag that nothing
  * renders yet, and a pure refactor whose screenshots are byte-identical. It also says the
  * handoff must name which one applies. Name it in a commit message, the way
@@ -64,6 +71,8 @@ import { fileURLToPath } from 'node:url'
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const FRAMES = 'docs/designs/screenshots/'
 const IMAGE = /\.(png|jpe?g|heic|webp|gif)$/i
+/** A snapshot reference: a `.png` in an iOS `__Snapshots__` folder or an Android `src/test/snapshots` one. */
+const REFERENCE = /(^|\/)(__Snapshots__|src\/test\/snapshots)\/.+\.png$/i
 const MARKER = /^[ \t]*Visual-proof:[ \t]*(\w+)/im
 const EXCEPTIONS = {
   flag: 'code behind a flag that nothing renders yet',
@@ -71,7 +80,7 @@ const EXCEPTIONS = {
 }
 
 /** A test source. Drawing code in a test draws for the test, and no reader sees it. */
-const TEST_PATH = /(^|\/)(Tests?|UITests|androidTest|test)\/|Tests?\.(swift|kt)$/
+const TEST_PATH = /(^|\/)(Tests?|UITests|SnapshotTests|androidTest|test)\/|Tests?\.(swift|kt)$/
 
 /**
  * The head of a declaration that draws.
@@ -212,7 +221,7 @@ export function claimedException(messages) {
  * `contentOf` reads a changed file as the branch left it. Everything else is diff text, path
  * strings and commit messages, so the self-test drives the same function the check does.
  */
-export function analyse({ diffText, contentOf, framePaths, messages }) {
+export function analyse({ diffText, contentOf, framePaths, referencePaths = [], messages }) {
   const drawing = []
   for (const file of parseDiff(diffText)) {
     const kind = language(file.path)
@@ -223,9 +232,10 @@ export function analyse({ diffText, contentOf, framePaths, messages }) {
     if (lines.length) drawing.push({ path: file.path, kind, lines: lines.length })
   }
   const frames = framePaths.filter((path) => path.startsWith(FRAMES) && IMAGE.test(path))
+  const references = referencePaths.filter((path) => REFERENCE.test(path))
   const exception = claimedException(messages)
-  const ok = drawing.length === 0 || frames.length > 0 || exception !== null
-  return { drawing, frames, exception, ok }
+  const ok = drawing.length === 0 || frames.length > 0 || references.length > 0 || exception !== null
+  return { drawing, frames, references, exception, ok }
 }
 
 const git = (args, cwd = ROOT) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64e6 })
@@ -260,6 +270,19 @@ function addedFrames(base, cwd = ROOT) {
   return [...committed.split('\n'), ...working].map((path) => path.trim()).filter(Boolean)
 }
 
+/**
+ * Every snapshot reference the branch adds or changes: committed since the merge base, staged,
+ * modified or untracked. A deletion is dropped, for the reason `addedFrames` drops one.
+ */
+function changedReferences(base, cwd = ROOT) {
+  const committed = git(['diff', '--name-only', '--diff-filter=AMR', '-M', base, 'HEAD'], cwd)
+  const working = git(['status', '--porcelain', '-uall'], cwd)
+    .split('\n')
+    .filter((row) => row.length > 3 && !row.slice(0, 2).includes('D'))
+    .map((row) => row.slice(3).replace(/^.* -> /, ''))
+  return [...committed.split('\n'), ...working].map((path) => path.trim()).filter((path) => REFERENCE.test(path))
+}
+
 function check() {
   const base = mergeBase()
   if (!base) {
@@ -286,14 +309,16 @@ function check() {
       }
     },
     framePaths: addedFrames(base),
+    referencePaths: changedReferences(base),
     messages,
   })
   return report(result)
 }
 
-function report({ drawing, frames, exception, ok }) {
+function report({ drawing, frames, references, exception, ok }) {
   console.log(
-    `preview-proof: ${drawing.length} drawing change(s), ${frames.length} new frame(s)`
+    `preview-proof: ${drawing.length} drawing change(s), ${frames.length} new frame(s), `
+      + `${references.length} snapshot reference(s)`
       + `${exception ? `, exception claimed: ${exception}` : ''}.`,
   )
   if (ok) return 0
@@ -306,8 +331,10 @@ function report({ drawing, frames, exception, ok }) {
 A \`#Preview\` and a \`@Preview\` are development aids, not proof. Neither exercises real
 data, real insets, real system materials or a real Dynamic Type setting.
 
-Capture from a booted simulator or emulator, in light and dark, at the default text size.
-Put the frames in \`${FRAMES}<topic>-<yyyy-mm-dd>/\`:
+Look at the screen in light and dark. Either record a snapshot reference, which a snapshot
+test compares on every run (\`pnpm snap:ios:record\`, \`pnpm snap:android:record\`), or capture
+from a booted simulator or emulator at the default text size. A reference is a \`.png\` under
+\`__Snapshots__/\` (iOS) or \`src/test/snapshots/\` (Android). Put a frame in \`${FRAMES}<topic>-<yyyy-mm-dd>/\`:
 
   xcrun simctl io booted screenshot shot.png
   pnpm capture:android --list
@@ -344,6 +371,39 @@ function untrackedFrameCase() {
     writeFileSync(join(dir, frame), 'the bytes do not matter here')
     return ['an untracked frame counts, although git names only its directory by default',
       addedFrames(base, dir).includes(frame)]
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+/**
+ * A reference changed and one added, read out of a real repository: committed, modified and
+ * untracked, with a deletion that must not count. Text alone cannot prove that `--diff-filter`
+ * keeps a modified file, which is the case that separates a reference from a frame.
+ */
+function changedReferenceCase() {
+  const dir = mkdtempSync(join(tmpdir(), 'preview-proof-'))
+  try {
+    git(['init', '-q'], dir)
+    git(['config', 'user.email', 'gate@storyarc.invalid'], dir)
+    git(['config', 'user.name', 'preview-proof self-test'], dir)
+    const folder = 'apps/ios/SnapshotTests/__Snapshots__/Shelf'
+    mkdirSync(join(dir, folder), { recursive: true })
+    writeFileSync(join(dir, `${folder}/changed.light.png`), 'before')
+    writeFileSync(join(dir, `${folder}/removed.light.png`), 'before')
+    git(['add', '-A'], dir)
+    git(['commit', '-qm', 'seed'], dir)
+    const base = git(['rev-parse', 'HEAD'], dir).trim()
+    writeFileSync(join(dir, `${folder}/changed.light.png`), 'after')
+    git(['rm', '-q', `${folder}/removed.light.png`], dir)
+    git(['add', '-A'], dir)
+    git(['commit', '-qm', 'change one, remove one'], dir)
+    writeFileSync(join(dir, `${folder}/new.dark.png`), 'untracked')
+    const found = changedReferences(base, dir)
+    return ['a changed, an untracked and not a deleted reference are all read from a repository',
+      found.includes(`${folder}/changed.light.png`)
+        && found.includes(`${folder}/new.dark.png`)
+        && !found.includes(`${folder}/removed.light.png`)]
   } finally {
     rmSync(dir, { recursive: true, force: true })
   }
@@ -407,12 +467,14 @@ function selfTest() {
     [KOTLIN]: composable,
     'apps/ios/App/Shelf.swift': helper,
     'apps/ios/Packages/StoryArcKit/Tests/LibraryFeatureTests/ShelfTests.swift': view,
+    'apps/ios/SnapshotTests/CatalogueSnapshot.swift': view,
   }
-  const run = ({ diffText, framePaths = [], messages = [''] }) =>
+  const run = ({ diffText, framePaths = [], referencePaths = [], messages = [''] }) =>
     analyse({
       diffText,
       contentOf: (path) => contents[path] ?? null,
       framePaths,
+      referencePaths,
       messages,
     })
 
@@ -491,6 +553,30 @@ function selfTest() {
   }).ok === false])
 
   cases.push(untrackedFrameCase())
+
+  const IOS_REFERENCE = 'apps/ios/SnapshotTests/__Snapshots__/LibraryCatalogueTests/03-library-grid.light.png'
+  const ANDROID_REFERENCE = 'apps/android/feature/library/src/test/snapshots/03-library-grid-light.png'
+  got = run({ diffText: swiftBody, referencePaths: [IOS_REFERENCE] })
+  cases.push(['an iOS snapshot reference satisfies the gate', got.ok && got.references.length === 1])
+
+  got = run({ diffText: kotlinBody, referencePaths: [ANDROID_REFERENCE] })
+  cases.push(['an Android snapshot reference satisfies the gate', got.ok && got.references.length === 1])
+
+  got = run({ diffText: swiftBody, referencePaths: ['apps/ios/SnapshotTests/__Snapshots__/README.md'] })
+  cases.push(['a file under `__Snapshots__` that is not a `.png` is not a reference', !got.ok])
+
+  got = run({ diffText: swiftBody, referencePaths: ['apps/android/feature/library/src/test/kotlin/Shot.png'] })
+  cases.push(['an image outside the two reference folders is not a reference', !got.ok])
+
+  got = run({ diffText: swiftBody, referencePaths: [] })
+  cases.push(['a drawing change with no reference and no frame is still refused', !got.ok && got.references.length === 0])
+
+  got = run({
+    diffText: diff('apps/ios/SnapshotTests/CatalogueSnapshot.swift', 5, ['        Text("count")']),
+  })
+  cases.push(['a snapshot test source is never a drawing change', got.ok && got.drawing.length === 0])
+
+  cases.push(changedReferenceCase())
 
   const ranges = previewRanges(composable, 'kotlin')
   cases.push(['a Compose preview block spans its annotations and its body', ranges.length === 1

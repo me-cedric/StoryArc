@@ -161,7 +161,9 @@ public struct PlayerDock: View {
             .lineLimit(1)
             .truncationMode(.tail)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
+            // Two lines of text are 32 points, and the system's capsule around them is taller.
+            // The button was the 32, so the 8 above and below it did nothing under a finger.
+            .hitRegion(alignment: .leading)
         }
         .buttonStyle(.plain)
         // The name says where it goes, because a screen-reader user learns the outcome

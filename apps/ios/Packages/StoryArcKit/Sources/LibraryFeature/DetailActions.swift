@@ -130,13 +130,13 @@ struct DetailActions: View {
 
     // MARK: - The one that matters
 
+    private var offer: DetailOffer {
+        DetailOffer.of(isOpenable: publication.isOpenable, hasAddress: address != nil, canCopy: canCopy)
+    }
+
     @ViewBuilder
     private var primary: some View {
-        switch DetailOffer.of(
-            isOpenable: publication.isOpenable,
-            hasAddress: address != nil,
-            canCopy: canCopy
-        ) {
+        switch offer {
         case .none:
             EmptyView()
         case .read:
@@ -214,8 +214,11 @@ struct DetailActions: View {
             // own padding — half again as tall as the button it pairs with. Dropping the
             // frame alone left it too small; the answer is neither number, it is the height
             // of the thing beside it.
+            // Only beside a primary action. With none there is nothing to match, and a height
+            // that takes "whatever the row settled on" settled on the room left in the window:
+            // a 300 point blank row above the one sentence that says why nothing can be opened.
             Image(systemName: "ellipsis")
-                .frame(maxHeight: .infinity)
+                .frame(minHeight: 20, maxHeight: offer == .none ? nil : .infinity)
                 .aspectRatio(1, contentMode: .fit)
                 .contentShape(.rect)
         }
