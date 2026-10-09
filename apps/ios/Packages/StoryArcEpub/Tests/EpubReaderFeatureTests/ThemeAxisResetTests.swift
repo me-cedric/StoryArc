@@ -212,10 +212,10 @@ struct ThemeAxisResetTests {
         let sliders = try Self.source("ThemeAxisSliders.swift")
 
         #expect(
-            sliders.contains("LongPressGesture()"),
+            sliders.contains("SliderLongPress(travel: Self.pressTravel) { resetAxis(axis) }"),
             """
-            No long press is attached to the axis slider. `reading-themes` asks for a long \
-            press or a double tap, and a long press on a control is the iOS idiom.
+            No long press is attached to the axis slider's own control, so a press on the \
+            thumb resets nothing. `reading-themes` asks for a long press or a double tap.
             """
         )
     }
@@ -226,7 +226,7 @@ struct ThemeAxisResetTests {
 
         #expect(
             sliders.contains("TapGesture(count: 2)") &&
-                sliders.contains("TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }"),
+                sliders.contains("TapGesture(count: 2).onEnded { resetAxis(axis) }"),
             """
             No double tap is attached to the axis slider, or it no longer calls the same \
             reset the long press does. `reading-themes` asks for "a long press or a \
