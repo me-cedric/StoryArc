@@ -36,6 +36,7 @@ Every `-dark` twin is the same walk in the dark appearance. `ios-audiobook-reope
 
 - The destinations are Home, Library, Downloads and Search. The task text says Settings. The shell has no Settings tab.
 - 4.5 uses `With Cover Long.m4b`: the fixture `with-cover.m4b` looped to two minutes, cover atom kept. The fixture alone lasts two seconds and ends before a walk can pause it. The cover is a 2 x 3 pixel image, so it draws as a flat blue block.
+- Both Sea Room walks end by choosing chapter One and pausing, so a run does not leave the six-second book near its end. Five alternating runs passed with that rule.
 - 13.3 needs a book that was never marked finished. A finished mark is sticky, and a finished book restarts from zero. Reset with `xcrun simctl uninstall <id> com.mecedric.storyarc`, then repeat the steps below.
 - The walk in `ReadAloudPlayerTests` pauses the voice before it leaves the reader. In two runs the bar still offered Pause afterwards, so that pause does not take. Its frames may show a running voice. This lane does not change it.
 

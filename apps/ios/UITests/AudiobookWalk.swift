@@ -125,7 +125,8 @@ extension XCTestCase {
 
     /// Picks a playback speed in the player, so a two-second chapter lasts long enough to pause in.
     /// The speed is kept by the app, so a walk that slows the book puts it back to `1`.
-    func setSpeed(_ rate: String /* a regex: the decimal mark follows the device locale */, in app: XCUIApplication) throws {
+    /// `rate` is a regex, because the decimal mark follows the device locale.
+    func setSpeed(_ rate: String, in app: XCUIApplication) throws {
         let wayIn = app.buttons["Open the player"].firstMatch
         if wayIn.exists, wayIn.isHittable { wayIn.tap() }
         let speed = app.buttons["Speed"].firstMatch
@@ -137,12 +138,23 @@ extension XCTestCase {
         hold(1)
     }
 
+    /// Puts the book back at its first chapter, paused, so the next run does not start near the end.
+    /// A walk that ends in chapter two leaves a six-second book where one more run finishes it, and a
+    /// finished book loses its bar before the next walk can look for it.
+    func rewindTheBook(in app: XCUIApplication) throws {
+        try openTheChapterList(in: app)
+        let first = try XCTUnwrap(chapterRows(in: app).first, "The chapter list has no row.")
+        first.tap()
+        pauseWhatPlays(in: app)
+    }
+
     /// Taps the Pause that can be reached. The bar behind the player sheet has one too, and a tap on it
     /// lands on the sheet.
     func pauseWhatPlays(in app: XCUIApplication) {
         let deadline = Date().addingTimeInterval(5)
         while Date() < deadline {
-            if let pause = app.buttons.matching(identifier: "Pause").allElementsBoundByIndex.first(where: \.isHittable) {
+            let pauses = app.buttons.matching(identifier: "Pause").allElementsBoundByIndex
+            if let pause = pauses.first(where: \.isHittable) {
                 pause.tap()
                 return
             }

@@ -141,7 +141,13 @@ extension XCTestCase {
         // paused session keeps its bar, which `CompactPlayerTests` pins.
         if pausing { app.buttons["Pause"].firstMatch.tap() }
 
-        // The chrome has had four seconds to go away again while the voice started.
+        closeTheReader(in: app)
+        backToTheShelf(in: app)
+        return (app, focus)
+    }
+
+    /// Closes the reader. The chrome has had four seconds to go away again while the voice started.
+    func closeTheReader(in app: XCUIApplication) {
         let close = app.buttons["Close"].firstMatch
         if !close.waitForExistence(timeout: 3) {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
@@ -149,8 +155,6 @@ extension XCTestCase {
         }
         XCTAssertTrue(close.exists, "No way out of the reader.")
         close.tap()
-        backToTheShelf(in: app)
-        return (app, focus)
     }
 
     /// What the focus system holds, as a label, or nil when it holds nothing.

@@ -39,18 +39,27 @@ final class AudiobookResumeTests: XCTestCase {
             "The book reopened at part \(back.part + 1), not at part \(saved.part + 1): \(back)"
         )
         shutter(app, named: "audiobook-reopened")
+        try rewindTheBook(in: app)
         try setSpeed("1×", in: app)
     }
 
+    /// The part in progress, its row label as a screen reader hears it, and the position the player states.
+    private struct Place {
+        let part: Int
+        let label: String
+        let position: String
+    }
+
     /// The row in progress in the chapter list, and the position the player states.
-    private func placeInThePlayer(_ app: XCUIApplication) throws -> (part: Int, label: String, position: String) {
+    private func placeInThePlayer(_ app: XCUIApplication) throws -> Place {
         try openTheChapterList(in: app)
         hold(1)
         let rows = chapterRows(in: app).map(\.label)
         let index = try XCTUnwrap(rows.firstIndex { $0.contains("In progress") }, "No row is in progress: \(rows)")
         app.buttons["Close"].firstMatch.tap()
         hold(1)
-        let position = app.sliders.firstMatch.exists ? (app.sliders.firstMatch.value as? String ?? "") : "no scrub control"
-        return (index, rows[index], position)
+        let slider = app.sliders.firstMatch
+        let position = slider.exists ? (slider.value as? String ?? "") : "no scrub control"
+        return Place(part: index, label: rows[index], position: position)
     }
 }

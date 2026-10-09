@@ -43,7 +43,8 @@ final class ReadAloudShellTests: XCTestCase {
         XCTAssertEqual(after.title, before.title, "The bar names another book after four seconds.")
         XCTAssertFalse(after.title.isEmpty, "The bar draws no title.")
         shutter(app, named: "voice-running-reader-closed")
-        add(XCTAttachment(string: "title: \(before.title) -> \(after.title); line: \(before.chapter) -> \(after.chapter)"))
+        let seen = "title: \(before.title) -> \(after.title); line: \(before.chapter) -> \(after.chapter)"
+        add(XCTAttachment(string: seen))
     }
 
     /// Four destinations, each with no session and with one, and the tab bar the same height.
@@ -58,7 +59,7 @@ final class ReadAloudShellTests: XCTestCase {
             try XCTUnwrap(destination(name, in: none)).tap()
             hold(1.5)
             XCTAssertFalse(none.buttons["Stop"].exists, "\(name) draws a bar with no session.")
-            XCTAssertFalse(slotAboveTheTabBar(in: none), "\(name) holds an empty slot above the tab bar with no session.")
+            XCTAssertFalse(slotAboveTheTabBar(in: none), "\(name) holds an empty slot with no session.")
             baseline[name] = none.tabBars.firstMatch.frame
             shutter(none, named: "shell-\(name.lowercased())-no-session")
         }
@@ -67,9 +68,13 @@ final class ReadAloudShellTests: XCTestCase {
         for name in Self.destinations {
             try XCTUnwrap(destination(name, in: app)).tap()
             bringBackTheFullBar(in: app)
-            XCTAssertTrue(app.buttons["Stop"].firstMatch.waitForExistence(timeout: 5), "\(name) draws no bar with a session.")
+            XCTAssertTrue(
+                app.buttons["Stop"].firstMatch.waitForExistence(timeout: 5),
+                "\(name) draws no bar with a session."
+            )
             shutter(app, named: "shell-\(name.lowercased())-session")
-            add(XCTAttachment(string: "\(name) tab bar with a session: \(app.tabBars.firstMatch.frame); baseline: \(String(describing: baseline[name]))"))
+            let frames = "\(app.tabBars.firstMatch.frame); baseline: \(String(describing: baseline[name]))"
+            add(XCTAttachment(string: "\(name) tab bar with a session: \(frames)"))
         }
 
         app.buttons["Stop"].firstMatch.tap()
@@ -78,8 +83,8 @@ final class ReadAloudShellTests: XCTestCase {
             try XCTUnwrap(destination(name, in: app)).tap()
             hold(1.5)
             XCTAssertFalse(app.buttons["Stop"].exists, "\(name) still draws a bar after the session ended.")
-            XCTAssertFalse(app.buttons["Open the player"].exists, "\(name) still offers the player after the session ended.")
-            XCTAssertFalse(slotAboveTheTabBar(in: app), "\(name) holds an empty slot above the tab bar after the session ended.")
+            XCTAssertFalse(app.buttons["Open the player"].exists, "\(name) still offers the player after the end.")
+            XCTAssertFalse(slotAboveTheTabBar(in: app), "\(name) holds an empty slot after the session ended.")
             XCTAssertEqual(
                 app.tabBars.firstMatch.frame, baseline[name],
                 "\(name): the tab bar is not where it was before any session. The slot is still reserved."
@@ -108,13 +113,13 @@ final class ReadAloudShellTests: XCTestCase {
         let app = try speakAloud(opening: "One Sentence", pausing: false, leavingTheReader: false).app
         let bar = app.buttons["Stop"].firstMatch
         let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: bar)
-        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 60), .completed, "The voice never reached the end of one sentence.")
+        XCTAssertEqual(
+            XCTWaiter().wait(for: [gone], timeout: 60), .completed,
+            "The voice never reached the end of one sentence."
+        )
         hold(1)
         shutter(app, named: "voice-end-reader")
-        let close = app.buttons["Close"].firstMatch
-        if !close.exists { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
-        XCTAssertTrue(close.waitForExistence(timeout: 5), "No way out of the reader.")
-        close.tap()
+        closeTheReader(in: app)
         backToTheShelf(in: app)
         hold(1)
         XCTAssertFalse(app.buttons["Stop"].exists, "The bar is still there after the voice ended.")

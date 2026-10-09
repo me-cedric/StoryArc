@@ -109,6 +109,7 @@ final class PlayerScreenshotTests: XCTestCase {
         add(XCTAttachment(string: "Spoken rows: \(labels)"))
         attach(app.screenshot(), named: "chapter-list-marks")
         app.buttons["Close"].firstMatch.tap()
+        try rewindTheBook(in: app)
         try setSpeed("1×", in: app)
     }
 
