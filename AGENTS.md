@@ -381,16 +381,84 @@ the remaining risks. See the Completion Gate in the compass contract.
 
 ## 6. Visual proof
 
-**A change a user can see owes a screenshot from a booted simulator or emulator.**
+**A change a user can see is looked at, and checked against the Apple Human Interface
+Guidelines and Material 3, by the one who made it, before it lands.** The owner set this
+rule on 2026-10-09 (change `lighter-visual-check`): a frames phase after each merge cost
+2 to 5 hours a wave. Use the cheapest check that shows the screen as a reader sees it.
+Every tool here is free and open source; use nothing paid.
 
-A SwiftUI `#Preview` and a Compose `@Preview` are development aids, not proof —
-neither exercises real data, real insets, real system materials, or a real
-Dynamic Type setting.
+**1. Look at your own screen while you build.** After a UI change, look at the screen in
+light and dark, at the default text size, and fix what is wrong before you commit:
 
-```bash
-xcrun simctl io booted screenshot shot.png     # iOS, whatever is on screen
-adb exec-out screencap -p > shot.png           # Android, whatever is on screen
-```
+- **Snapshot tests first** (`pnpm snap:ios`, `pnpm snap:android`). They draw each screen
+  state with fixture data in seconds: swift-snapshot-testing on a booted iOS simulator,
+  Roborazzi on Robolectric for Android, with no emulator. Open the PNG and look at it. A
+  changed image fails the test until you record it again (`pnpm snap:ios:record`,
+  `pnpm snap:android:record`) — record only after you looked.
+- **The running app where a snapshot cannot show it**: navigation, system materials (Liquid
+  Glass over content), insets, system interface (shade, widgets, CarPlay), and the content of
+  a web view. Drive it with **agent-device** (Callstack, MIT), pinned in `pnpm device`:
+  `pnpm device open com.mecedric.storyarc --platform ios --udid <lane simulator> --session
+  <lane> --foreground` prints an accessibility snapshot with `@refs`; `settings appearance
+  dark` (and `light`) switches the appearance, `settings animations off` lets a screen settle;
+  then `press @e12
+  --settle`, `scroll down --until <selector>`, `snapshot -i` (element bounds, for hit sizes),
+  `screenshot /tmp/<lane>/<screen>-light.png`, and `close`. Android uses
+  `com.mecedric.storyarc.debug --platform android --serial <emulator>`. It claims the device
+  for your worktree, so parallel lanes do not take each other's. `.mcp.json` exposes the same
+  commands as MCP tools. Without it, `xcrun simctl io <id> screenshot` and
+  `adb exec-out screencap -p`.
+- **One emulator at a time** on this machine. A snapshot needs none.
+
+**What to check in each image.** Each of these is a fault, not a remark, so fix it or
+record it as a task:
+
+- A hit target under 44 x 44 pt (iOS) or 48 x 48 dp (Android), or two Android targets
+  less than 8 dp apart.
+- **Two or more related actions drawn side by side or stacked** (for example up, down,
+  edit and delete on a row). They become one menu (`Menu`, `DropdownMenu`) or a
+  platform pattern (swipe actions, a drag handle to reorder). A row whose title wraps
+  because its actions take the width is this fault, even when each target passes.
+- A destructive action that is not last, alone, in the destructive style, and confirmed
+  (unless it can be undone).
+- Text under 4.5:1 against what is behind it (3:1 for large text), in light or dark.
+- Clipped, truncated or one-letter-per-line text; content under a bar or outside the
+  safe area.
+- A look-alike of a system component (a hand-made menu, sheet, alert or switch).
+- A control in the other platform's idiom: a Material tonal capsule on iOS, a glass or
+  iOS-style control on Android. On iOS 26, a close action is a `Button(role: .close)`; a
+  secondary action is borderless or `.glass`, not a tinted capsule beside plain text.
+- A larger hit region that changed the drawn size of a control. The touch area grows; the
+  capsule, the chip or the icon keeps its system size.
+- A screen that is wrong in one appearance only.
+
+**2. Machines check the guidelines.** The accessibility checks run over every screen of
+`docs/designs/screen-catalogue.md`: `performAccessibilityAudit` (hit region, contrast,
+clipped text, Dynamic Type) in the iOS UI tests, and the Accessibility Test Framework
+(`enableAccessibilityChecks()`) in the Android Robolectric tests. A target under 44 pt or
+48 dp, a contrast failure or a missing label fails the test. **A new screen adds its
+catalogue entry**: a snapshot test in light and dark, and an audit.
+
+**3. Commit little.** A snapshot reference is the proof for a screen state. A device
+screenshot is committed only for what a snapshot cannot draw: one light and one dark per
+changed screen, at the default text size, downscaled with `pnpm frames:shrink`, under
+`docs/designs/screenshots/<topic>-<yyyy-mm-dd>/`. No separate frames agent and no
+photo per task.
+
+The largest text size, all four languages and the guideline checks are covered by the
+snapshot tests and the audits, not by committed frames.
+
+`pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses a branch
+that adds a line inside a `View` or a `@Composable` and adds neither a frame under
+`docs/designs/screenshots/` nor a snapshot reference (`__Snapshots__/` on iOS,
+`src/test/snapshots/` on Android). Two exceptions, named in a commit message on the branch:
+`Visual-proof: flag` (code behind a flag that nothing renders yet) and `Visual-proof:
+identical` (a pure refactor whose snapshots or screenshots are byte-identical). It reads
+added lines only, cuts out every preview block, and stays quiet on a comment, an import or
+a test source. `scripts/preview-proof-check.mjs` says why each of those is deliberate.
+
+A SwiftUI `#Preview` and a Compose `@Preview` are development aids, not proof: neither runs
+in the test suite with fixture data.
 
 **A frame is kept while something still needs it, and removed the day nothing does.**
 `docs/designs/screenshots/` reached 268 megabytes and 1128 files, of which **14** were cited
@@ -415,29 +483,6 @@ what was pruned and why — a README describing frames that are gone is worse th
 **Git holds every removed frame**, so a comparison is always recoverable and does not need to
 sit in the working tree. Never commit an archive of them: a 242 megabyte `Archive.zip` was
 staged once and caught before it landed.
-
-On Android, prefer the harness — it walks to the screen, sets the condition, and
-**puts the device back**, which the raw command cannot do and which a person
-forgets:
-
-```bash
-pnpm capture:android --list                                        # the routes
-pnpm capture:android Downloads --out shot.png --dark
-```
-
-Capture **light and dark**, at the default text size only. The largest text size is a
-test and review gate (`docs/design.md` section 10), not a frame. Two exceptions,
-and the handoff must name which one applies: code behind a flag that nothing
-renders yet, and a pure refactor whose screenshots are byte-identical — where
-the identical screenshots *are* the proof.
-
-`pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses
-a branch that adds a line inside a `View` or a `@Composable` and adds no frame
-under `docs/designs/screenshots/`. Name an exception in a commit message on the
-branch — `Visual-proof: flag` or `Visual-proof: identical` — and it stands aside.
-It reads added lines only, cuts out every preview block, and stays quiet on a
-comment, an import or a test source. `scripts/preview-proof-check.mjs` says why
-each of those is deliberate.
 
 **A screenshot that could look the same for a boring reason needs a control.**
 The EPUB reader's chrome photographed in cream proves nothing on its own — the

@@ -577,24 +577,20 @@ Not a section to check at the end. These are build and review gates.
 
 ## 11. Proof
 
-**A change a user can see owes a screenshot from a booted simulator or emulator.**
+**A change a user can see is looked at, and checked against the Apple Human Interface
+Guidelines and Material 3, by the one who made it, before it lands.** `AGENTS.md`
+section 6 holds the rule and the commands (change `lighter-visual-check`, 2026-10-09).
 
-A SwiftUI `#Preview` and a Compose `@Preview` are development aids. Neither
-exercises real data, real safe-area insets, real system materials, or a real
-Dynamic Type setting — so neither is proof.
+- Snapshot tests draw each screen state in light and dark with fixture data:
+  `pnpm snap:ios`, `pnpm snap:android`. The reference image is the proof.
+- The accessibility checks run over every screen of `docs/designs/screen-catalogue.md`
+  and fail on a target under 44 pt or 48 dp, a contrast failure, a missing label or
+  clipped text. The largest text size (section 10) is checked there, not by a frame.
+- A device screenshot, driven with agent-device (`pnpm device`) or `simctl` and `adb`, is kept only for
+  what a snapshot cannot draw: navigation, system materials, insets, system interface
+  and web view content. One light and one dark per changed screen, downscaled.
 
-Every screen change is captured in light and dark, at the default text size only,
-and compared against its reference. The largest text size is a test and review gate
-(section 10), not a frame.
+A SwiftUI `#Preview` and a Compose `@Preview` are development aids, not proof.
 
-```bash
-# iOS
-xcrun simctl io booted screenshot shot.png
-
-# Android
-adb exec-out screencap -p > shot.png
-```
-
-Two exceptions, and the handoff must name which one applies: code behind a flag
-that nothing renders yet, and a pure refactor whose screenshots are
-byte-identical — where the identical screenshots *are* the proof.
+Two exceptions, named in a commit message: code behind a flag that nothing renders
+yet, and a pure refactor whose snapshots or screenshots are byte-identical.

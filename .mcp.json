@@ -5,6 +5,14 @@
         "--mcp"
       ],
       "command": "/Applications/Konvoy.app/Contents/MacOS/konvoy"
+    },
+    "agent-device": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "agent-device@0.21.22",
+        "mcp"
+      ]
     }
   }
 }

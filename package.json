@@ -2,7 +2,7 @@
   "name": "storyarc",
   "version": "0.2.0",
   "private": true,
-  "description": "Monorepo tooling for StoryArc \u2014 native comic, manga and ebook readers for iOS and Android.",
+  "description": "Monorepo tooling for StoryArc — native comic, manga and ebook readers for iOS and Android.",
   "license": "MIT",
   "packageManager": "pnpm@11.20.0",
   "engines": {
@@ -110,7 +110,8 @@
     "build:ios:ui": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -quiet",
     "test:ios:ci": "node scripts/test-ios-ci.mjs",
     "ios:ci:check": "node scripts/test-ios-ci.mjs --check",
-    "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs"
+    "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs",
+    "device": "npx -y agent-device@0.21.22"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
