@@ -135,7 +135,6 @@ extension ThemeAxesSheet {
             .background(
                 SliderLongPress(travel: Self.pressTravel) { resetAxis(axis) }
             )
-            .storyArcFeedback(.selection, trigger: axisResets)
             // The other gesture the same sentence names. A `TapGesture` does
             // not sequence a drag after it the way the long press above does,
             // because a double tap has already lifted twice before it is

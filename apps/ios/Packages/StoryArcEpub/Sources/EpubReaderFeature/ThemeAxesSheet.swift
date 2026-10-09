@@ -93,6 +93,8 @@ struct ThemeAxesSheet: View {
                 }
                 .padding(StoryArcSpace.gutter)
             }
+            // Once on the sheet: a modifier on each slider played one haptic per slider.
+            .storyArcFeedback(.selection, trigger: axisResets)
             .navigationTitle(Text("theme.customise", bundle: .module))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
