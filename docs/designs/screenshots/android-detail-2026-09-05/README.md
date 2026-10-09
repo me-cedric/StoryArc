@@ -12,6 +12,7 @@ external files directory, belonging to no source.
 | `android-detail-series.png` | A publication that really has a series, reading `Tidal Reach #2` |
 | `android-detail-standalone-capped.png` | The same bare page after the hero cap: cover at a third of the room, the page's one line in view |
 | `android-detail-series-capped.png` | The rich page after the cap: *Other issues in this series* above the fold |
+| `../frames-android-2026-10-09/pd-bare-page-coverless-411x914.png` (and `-dark`) | Wave 5, 2026-10-09: the bare page, with no series, no year, no description and no cover, at 411 by 914 dp. The well carries the format symbol and the hero keeps to a third of the room |
 
 ## What the first frame found, and it was not what anyone was looking for
 

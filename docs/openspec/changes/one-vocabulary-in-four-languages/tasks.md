@@ -168,6 +168,8 @@ format layer stops being able to hold a sentence.
         instead, and no string of any length could fail it — this bullet claimed
         containment for two days that the test did not assert. What it still
         cannot say is whether the result reads well.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `skipped-list-es` (the sheet in Spanish with the two skipped files) and `skipped-list-en` (the English control), light and dark where the README says so. **Left:** the iOS Spanish frames were not taken. The frames at font scale 2.0 are not taken, by the owner rule of 2026-10-08.
 - [~] **1.8** Confirm a screen reader speaks the translated words.
       Both notices group with `accessibilityElement(children: .combine)` and its
       Android equivalent, so the reason is announced as part of the notice.
@@ -259,6 +261,8 @@ is the target shape.
       light and dark. Text size: default. Control frame: the same alert with the
       interface language set to English, same device, same moment.
 
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `open-in-refused-fr` (the alert Impossible d'ouvrir ce fichier) and `open-in-refused-en` (the English control), light and dark. **Left:** the iOS alert frames were not taken.
+
 ## 3. The Android reader failure
 
 Two literals, and the largest hidden surface behind them.
@@ -336,7 +340,7 @@ Two literals, and the largest hidden surface behind them.
       app writes no log, so a refusal's cause is now known to nobody. The four resource
       comments and the test's doc comment said otherwise and now say what happens.
       Task 3.5 owns the missing half.
-- [~] **3.4** Capture the reader's failure message in French.
+- [x] **3.4** Capture the reader's failure message in French.
       Walk: open a truncated file from the corpus. Light and dark.
       **Control:** the same screen in English at the same moment — the sentence
       is what changed, so a picture of a failure screen proves nothing on its
@@ -349,6 +353,8 @@ Two literals, and the largest hidden surface behind them.
       `ReaderScreen.kt:228`. Appearance: light and dark. Text size: default.
       Control frame: the same screen with the interface language set to English,
       same device, same moment.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Frames are taken on Android: `docs/designs/screenshots/frames-android-2026-10-09/` has `reader-cannot-open-fr` (a truncated PDF, Ce titre n'a pas pu être ouvert.) and `reader-cannot-open-en` (the control, This title could not be opened.), light and dark.
 - [x] **3.5** Record a refusal's cause where a maintainer reaches it.
       3.3 removed the exception from the screen and put it nowhere. One `[Last
       failure]` section in `Diagnostic.text`, or one `Log.w` call at
@@ -624,6 +630,8 @@ Two literals, and the largest hidden surface behind them.
       this row's keys and did not change one of them.
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified, the code reconciles the page. **Not proved by frames.** The iOS French frame `docs/designs/screenshots/l10n-french-ios-2026-10-09/ios-detail-provenance-device-fr.png` shows the provenance line in English ('From On this device, readable now') although `Localizable.xcstrings` holds 'De %@, lisible maintenant'. The English sentence also puts a source name after 'From'. Android French states a, b and c (with the refusal) are framed in `docs/designs/screenshots/wave4-android-2026-10-09/`; states d and e, the gone state, the open failure and the French comic matte menu are owed. Two divergences stay for the owner: iOS names a picked folder as a library ('From <folder>, readable now') and Android never does; Android `detail_needs_source` has no iOS twin.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `fr-detail-e-also-in` (state e, a copy on the device and a second place, in French) and `comic-adjustments-fr` (the comic matte menu in French). **Left:** French state d (a source removed, no copy) and the French gone state could not be staged on Android, because they need a stale route. The iOS frames are not taken: they need a Kavita mock, a stopped mock and a stale route, and the iOS French page still shows its provenance line in English (defect 25.1), so the frames would repeat it.
 
 ## 5. The check that has to be able to fail
 

@@ -70,7 +70,7 @@ watched it on a device.
   against a real `Context` under Robolectric, and the iOS twin asserts the same two things: the
   clear empties the cover cache, and the store's own directory is not under any directory the
   clear reaches.
-- [~] 2.6 **Frames**: the coverless well before, and a publication with a chosen cover after, on
+- [x] 2.6 **Frames**: the coverless well before, and a publication with a chosen cover after, on
   both platforms, light and dark, default and largest text.
   **Done 2026-10-06.** Sixteen frames in
   `docs/designs/screenshots/cover-for-every-publication/`: the coverless well and a publication
@@ -81,9 +81,11 @@ watched it on a device.
   the state their names claim. The emulator was failing under the capture harness when they
   were taken. Retake them on a healthy emulator. See 6.5.
 
+  **Wave 5 (close-all-yellow), 2026-10-09.** The five Android frames that did not show their state are retaken on a healthy emulator. The Android frames of the coverless well and the chosen cover are in `docs/designs/screenshots/cover-for-every-publication/` (four replaced, README note removed) and in `wave4-android-2026-10-09/`.
+
 ## 3. The lookup, off until it is turned on
 
-- [~] 3.1 **A setting that names its providers** (both), off by default, stating what leaves
+- [x] 3.1 **A setting that names its providers** (both), off by default, stating what leaves
   the device for each kind of request.
 
       `AppSettings.lookUpMissingCovers` on both platforms, false by default, and absent in a
@@ -102,6 +104,8 @@ watched it on a device.
       MangaUpdates as well. Fixed: the row is built from both lists, and the note says what
       each kind of request sends, in four languages. Still owed: the Android frame of the
       setting. See 6.5.
+
+  **Wave 5 (close-all-yellow), 2026-10-09.** The Android frame of the setting is taken: `docs/designs/screenshots/cover-lookup-2026-10-06/android-settings-privacy` (off and on, light and dark; the README is corrected). `frames-android-2026-10-09/cover-menu-lookup-on` shows the cover menu with the lookup on.
 - [x] 3.2 **Lookup by identifier** (both): Open Library by ISBN, Cover Art Archive by MBID, **Done, 2026-10-07 (close-all-yellow, wave 2).** The client is now called by the shelf ladder on both platforms (6.1), and the rung tests show one provider asked once while the switch is on and nothing asked while it is off. Every test uses a stub transport; a check against the three live catalogues stays an owner step.
   Audnexus by ASIN. One request per publication. Every answer cached to disk.
 
@@ -153,6 +157,8 @@ watched it on a device.
       answering `null root node returned by UiTestAutomationBridge`. The chooser is not
       reachable until task 2.3 opens it. The set's README states both gaps.
 
+      **Wave 5 (close-all-yellow), 2026-10-09.** The setting is framed on both platforms (`docs/designs/screenshots/cover-lookup-2026-10-06/`). `frames-android-2026-10-09/cover-chooser-no-candidate` shows the Choose a cover sheet with its no-candidate sentence. **Left:** the chooser with candidate pictures. The lookup hosts allow https only and the emulator got no candidate, so a capture test needs a recording transport. The iOS chooser is not taken.
+
 ## 4. The web hand-off
 
 - [x] 4.1 **The system browser opens an image search for the title** (both).
@@ -180,11 +186,13 @@ watched it on a device.
       failed: !text.contains(forbidden)`, and a `WebView` string in the Kotlin file reports
       `CoverSearchHandoffTest > the hand-off is a Custom Tab, never a web view this app owns
       FAILED`.
-- [ ] 4.3 **Frames**: the hand-off, and the publication afterwards with its new cover.
+- [~] 4.3 **Frames**: the hand-off, and the publication afterwards with its new cover.
 
       **2026-10-06: neither frame exists.** Both need the entry point of task 2.3, and the
       second needs the override store of task 2.1 as well. The commits that add the drawing
       code carry `Visual-proof: flag`.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** `docs/designs/screenshots/frames-android-2026-10-09/cover-web-handoff-chrome-first-run.png` shows Find a cover on the web leaving the app. Chrome opened on its first-run screen. **Left:** a person must dismiss the Chrome first-run screen. Then retake the Custom Tab on the image search, and the publication afterwards. The iOS frame is not taken.
 
 ## 5. Writing back where it works
 
@@ -247,8 +255,8 @@ listed hosts. These are what it did not close.
 - [x] 6.4 **The write-back button is on the Kavita reading-list screen** (both), and only once a **Done, 2026-10-08 (close-all-yellow, wave 3).** The button is the first row of the Kavita reading-list screen on both platforms, and it shows only once a cover is chosen on a list the reader owns. Frames: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`.
   cover is chosen. Today it is placed nowhere, and its own view draws it with no cover chosen,
   where Send does nothing.
-- [ ] 6.5 **Retake the frames** (android). Five of the eight frames of task 2.6, and the setting
-  of task 3.1, on an emulator that stays responsive under the harness.
+- [x] 6.5 **Retake the frames** (android). Five of the eight frames of task 2.6, and the setting
+  of task 3.1, on an emulator that stays responsive under the harness. **Wave 5 (close-all-yellow), 2026-10-09.** The retaken Android frames are in `docs/designs/screenshots/cover-for-every-publication/` and `cover-lookup-2026-10-06/`. See 2.6 and 3.1.
 - [x] 6.6 **An instrumented test runs the scanner over a content tree** (android), with a cover **Done, 2026-10-07 (close-all-yellow, wave 2).** `LibraryScannerCoverTreeInstrumentedTest` ran on the storyarc-ci emulator (API 35) through `pnpm gradle :core:format:connectedDebugAndroidTest`: 4 tests, 0 failures, through a real `DocumentsProvider` (`TestTreeProvider`). A temporary mutation that passed a null cover directory at the index call site made `theIncrementalIndexGivesEachAudiobookItsOwnCover` fail by name (reviewer).
   directory, and asserts each audiobook's own cover path. It closes task 1.1.
-
+- [ ] 6.7 **Frames still owed after wave 5** (both). Three frames need a step that no agent can take. (1) The candidate chooser with pictures: the lookup hosts allow https only and the emulator got no candidate, so a capture test needs a recording transport (task 3.6). (2) The web hand-off: a person must dismiss the Chrome first-run screen, then the Custom Tab on the image search and the publication afterwards are retaken (task 4.3). (3) The iOS chooser and the iOS hand-off frame (tasks 3.6 and 4.3). Tick 3.6 and 4.3 when these exist.

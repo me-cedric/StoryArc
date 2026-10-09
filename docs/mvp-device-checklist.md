@@ -184,6 +184,65 @@ Each item is an owner step that an emulator or a simulator cannot answer.
    `reader-theming-and-page-transitions` 0.5). Do the second drag during a curl settle
    (7.5). Listen with VoiceOver and with TalkBack over the theme sheet (7.6).
 
+## H. Wave 5 of close-all-yellow, 2026-10-09
+
+Each item is an owner step that an emulator or a simulator cannot answer. Each item names
+what the emulator or simulator proved.
+
+1. **Read-aloud after the reader closes (iOS).** Start read-aloud, close the reader, lock the
+   phone, and hear the voice continue. Simulator: the bar still offers Pause four seconds
+   after the reader closes. The sound and the lock screen are not proved. Task
+   `read-aloud-beyond-the-reader` 0.1.
+2. **Read-aloud after the reader closes (Android).** Start read-aloud, back out of the
+   reader, and hear the voice continue. Emulator: one media session in state PLAYING, one
+   app notification, the app holds the audio focus. Google speech synthesis crashes there
+   (SIGILL), so no sound was made. Task `read-aloud-beyond-the-reader` 0.2.
+3. **A call during read-aloud (Android).** Start read-aloud, take a call, hang up, and hear
+   the voice carry on. Then pause, take a call, hang up, and check the voice stays silent.
+   Emulator: `adb emu gsm call` gave PAUSED then PLAYING, and PAUSED then PAUSED. The test
+   `aCallEndingResumesTheVoice` fails and its cause is not isolated. Task
+   `read-aloud-beyond-the-reader` 4.1.
+4. **An audiobook, an EPUB and a call (Android).** Start an audiobook, open an EPUB (the
+   narrator stops), start read-aloud (one voice), take a call, end the call, and confirm that
+   only the voice speaks. Emulator steps 1 to 7 passed. In step 8 the voice could not start
+   while the call held the audio focus. Also check that the displaced audiobook comes back
+   where it stopped: on the emulator it restarted at 2 to 3 seconds. Task
+   `audiobooks-and-playback` 6.1.
+5. **Reopen an audiobook after a force quit (iOS).** Play a book for two minutes, force quit
+   the app, reopen the book, and confirm the same minute. Simulator: chapter Two at 0:01.
+   Task `audiobooks-and-playback` 13.3.
+6. **The chapter list with a screen reader (both).** With VoiceOver or TalkBack on, confirm
+   that the list says finished, in progress and nothing on the right rows. Proved by reading
+   the row labels: iOS "Finished, One", "In progress, Two, 1 second left", "Three"; Android
+   "Finished", "Playing", no mark. Task `audiobooks-and-playback` 15.6.
+7. **Headphones removed (Android).** Play a book over wired or Bluetooth headphones,
+   disconnect them, and confirm the audio pauses. Reconnect and confirm it does not start
+   again. The emulator image refuses the broadcast (no root). Task `audiobooks-and-playback`
+   3.9.
+8. **Split View beside another app (iPad).** Put StoryArc in Split View beside another app,
+   then drag the divider narrow and wide again. The narrow slot must drop the sidebar and
+   fill with the page. The widened slot must show the same publication in both panes.
+   Simulator: a resized window only, compact width and back. Tasks
+   `one-library-three-destinations` 4.1 and 4.3, `publication-detail` 4.1.
+9. **A foldable at half-open (Android).** On a Pixel Fold AVD or a real foldable at the
+   half-open posture, open a publication in the library pane. Take the frame and write the
+   posture in the README. Task `one-library-three-destinations` 4.2.
+10. **A writable share as the sync place (both).** Sync, open a second device on the same
+    share, and check both show the same position. Simulator and emulator: the document is
+    written and overwritten on a signed and an encrypted Samba share, a stopped share gives
+    the grey "cannot be reached" line, and a foreign or newer file is refused with nothing
+    written over it. A real NAS and a second device were not used. Task `library-sync` 2.2.
+11. **A cloud folder as the sync place (both).** Pick a folder in iCloud Drive (iPhone) and
+    in Google Drive (Android), write on one device, see the file arrive on the other,
+    relaunch, and check the place still works. Proved with a local folder on both: the grant
+    or bookmark holds across a relaunch and the next sync rewrites the file. No cloud
+    provider was used. Task `library-sync` 2.3.
+12. **Background sync on a locked phone (both).** Turn sync on, read to a new page on device
+    A, lock it for 20 to 30 minutes, and check device B shows the position after it opens.
+    Android emulator: the 15-minute periodic job exists and `adb shell cmd jobscheduler run
+    -f` rewrote the file. iOS simulator: not proved, because `BGTaskScheduler.submit` fails
+    there with code 1. Task `library-sync` 4.3.
+
 ## Suggested order
 
 1. Section A, item 1. The accessibility audits gate every claim about whether the apps are

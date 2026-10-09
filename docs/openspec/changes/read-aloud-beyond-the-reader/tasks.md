@@ -18,7 +18,7 @@ says so and names what is left to watch.
 
 ## Phase 0 — Prove the assumption
 
-- [~] **0.1** iOS: start speech, dismiss the reader, confirm the voice continues
+- [x] **0.1** iOS: start speech, dismiss the reader, confirm the voice continues
       with the audio-session category and background modes the app already
       declares. Deliverable: a yes or no, on a booted simulator and — because
       audio-session behaviour on a simulator is not a device — recorded as
@@ -41,7 +41,9 @@ says so and names what is left to watch.
       the reader still over it. Then the same walk on hardware, because an `AVAudioSession`
       on a simulator is not a phone — the task already says to record the simulator answer
       as simulator-only.
-- [~] **0.2** Android: confirm the existing foreground service keeps speaking when
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frame: `docs/designs/screenshots/playback-proofs-ios-2026-10-09/ios-voice-running-reader-closed` (light and dark). The reader is closed and the compact bar above the tab bar still offers Pause. The test `testTheVoiceCarriesOnAfterTheReaderCloses` asserts Pause at once and after four seconds. This is a simulator proof: the session state is read, not the sound. The sound and the lock screen are on the device checklist (section H).
+- [x] **0.2** Android: confirm the existing foreground service keeps speaking when
       the reader activity is finished while the app stays in the foreground, which
       is a different case from the backgrounding the service was built for.
 
@@ -58,6 +60,8 @@ says so and names what is left to watch.
       of the reader so the activity finishes while the app stays on the library, and confirm
       the voice carries on. Two frames: the library with the media notification in the shade
       and the reader gone, light and dark. `pnpm capture:android --list` names the routes.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/playback-proofs-android-2026-10-09/android-voice-library-reader-gone` (light and dark) shows the Library with the compact bar and Pause after the reader is gone. `dumpsys` shows one media session in state PLAYING, one app notification and the app as focus owner. Google speech synthesis crashes on this emulator (SIGILL), so no sound was made. The device checklist has the step (section H).
 
 ## Phase 1 — Move the ownership
 
@@ -295,7 +299,7 @@ says so and names what is left to watch.
       the accessory belongs to the `TabView`, so it survives a push inside a tab, and
       the reader's `fullScreenCover` belongs to the window's root, so it covers
       whatever the listener had descended to. Neither is a new mechanism.
-- [~] **2.3** It appears when a session starts, goes when it ends, and reserves no
+- [x] **2.3** It appears when a session starts, goes when it ends, and reserves no
       space when absent. Screenshot: with a session and without, on each
       destination.
 
@@ -394,6 +398,8 @@ says so and names what is left to watch.
       and dark — the pair is what proves `isEnabled:` withholds the height rather than only
       the bar. No 26.0 frame is owed any more: the floor is 26.1 and there is no second code
       path to photograph.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Frames are taken on iOS: `docs/designs/screenshots/playback-proofs-ios-2026-10-09/` has Home, Library, Downloads and Search with no session (no bar and no empty slot above the tab bar) and with a read-aloud session (the bar above the tab bar), light and dark. The test `testTheShellReservesNothingWithoutASession` fails when an empty accessory slot is drawn. The fourth tab is Search, not Settings.
 - [x] **2.4** Accessibility: reachable in the reading order, labelled per action,
       and it does not take focus when it appears. Verified with the screen reader
       on, not by reading the code.
@@ -479,13 +485,15 @@ says so and names what is left to watch.
       truncate. The inline frame is the one that matters: it is where a title, a chapter, a
       play button and a stop button compete for a strip four destinations wide.
 
+      **Wave 5 (close-all-yellow), 2026-10-09.** Not done. The task needs frames at the largest text size. The owner ruled on 2026-10-08 that no frame is taken at another text size. The truncation rule stays covered by the text-size test gate.
+
 ## Phase 3 — Android's transport
 
 > **This phase was called "Android, which adds no bar" until 2026-09-05.** The owner reversed
 > that clause; the amended `ebook-reader` delta carries the reasoning. Android's transport is
 > now the compact bar **and** the media notification, and 3.3 below is the task that changed.
 
-- [~] **3.1** Confirm the notification and lock-screen controls are correct while
+- [x] **3.1** Confirm the notification and lock-screen controls are correct while
       the app is foregrounded with no reader on screen — not only while
       backgrounded. Screenshot the notification in both states.
 
@@ -510,6 +518,8 @@ says so and names what is left to watch.
       the library with no reader, and with the app backgrounded — plus one lock screen while
       speaking, and one shade with notifications refused showing that the lock screen still
       has its controls.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/playback-proofs-android-2026-10-09/` has the shade with the media card speaking and paused (app in the foreground and in the background), the lock screen while the voice runs, and the shade and lock screen with POST_NOTIFICATIONS refused. The notification flags while paused were not read.
 - [~] **3.2** Returning from the notification lands in the publication at the
       spoken sentence, not at the app's launch destination.
 
@@ -555,6 +565,8 @@ says so and names what is left to watch.
       and confirm both land on the sentence the voice is on rather than at the top of the
       chapter — then press back once and confirm the library is underneath. One frame per
       landing.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/playback-proofs-android-2026-10-09/android-voice-tap-*` show a tap on the card with the reader closed and with the reader open, and Back after the tap. **Left:** no frame shows the highlighted sentence being spoken, because the speech engine crashes on this emulator and the voice never moves. Back after the tap lands on Home, not on the screen the listener left (defect 2 in that README).
 - [x] **3.3** Explicitly assert that the app docks **one** compact bar and that the **Verified built on 2026-10-07** against the source: ReadAloudHost hands the voice to PlaybackHost.startVoice; OneCompactBarTest and PlaybackHostVoiceTest assert one bar.
       voice takes it rather than being given a second one, and record why in the
       handoff, so neither the sharing nor the single bar is read as an accident and
@@ -696,6 +708,8 @@ says so and names what is left to watch.
       should say so rather than attaching a frame that proves nothing.
 
       **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS: the voice and the audiobook use the same `PlaybackAudioSession`, and `AudioSessionEventTests` cover began, ended with `shouldResume` and ended without it for both source kinds. Android: `ReadAloudController` takes a `SentenceWalk`, and `VoiceFocusTest` raises each focus change through the request that the controller made (4 cases fail by name when `AUDIOFOCUS_GAIN` maps to `mayResume = false`). **Left: the Android emulator proof.** `VoiceFocusInstrumentedTest` ran on storyarc-ci and both cases skipped with "No speech engine started on this device", also after the default engine was set to `com.google.android.tts`. Run it on an image that speaks. Device checklist line added.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** On the emulator `adb emu gsm call` takes the audio and the session goes PAUSED. `gsm cancel` gives it back and the session goes PLAYING. With the voice paused by the listener it stays PAUSED. **Left:** the instrumented test `aCallEndingResumesTheVoice` fails and its cause is not isolated (defect 3 in `docs/designs/screenshots/playback-proofs-android-2026-10-09/README.md`). The engine crashes with SIGILL, so no speech was measured. The device checklist has the step (section H).
 - [x] **4.2** Audio taken for good: the session ends, the position is recorded,
       the transport goes.
 
@@ -717,7 +731,7 @@ says so and names what is left to watch.
       Asserted in four mirrored host tests each. **Hearing it happen still wants a
       real call on a device** — `AVAudioSession` interruptions on a simulator are not
       a phone ringing.
-- [~] **4.3** End of the publication: the voice stops, the highlight is withdrawn,
+- [x] **4.3** End of the publication: the voice stops, the highlight is withdrawn,
       the transport and the media controls both go away.
 
       **Built on both platforms; one of the three clauses had no guard at all, and it does
@@ -750,6 +764,8 @@ says so and names what is left to watch.
       JVM unit test — `ReadAloudHost` and `ReadAloudController` need `Context`,
       `TextToSpeech` and a Readium `Publication` — so on that side the emulator walk is the
       only evidence there will be.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Frames are taken on both platforms. iOS: `docs/designs/screenshots/playback-proofs-ios-2026-10-09/ios-voice-end-reader` and `ios-voice-end-shelf` (the reader page with no decoration, then the Library with no bar and no empty slot). Android: `playback-proofs-android-2026-10-09/android-voice-end-reader-after-stop` and `android-voice-end-shade-no-notification`. Android reached the end with Next sentence, not by the engine finishing, so the natural end is not proved there. The iOS highlight is a web view decoration, so only the page frame shows it gone.
 - [x] **4.4** The process is reclaimed mid-session: nothing is left claiming to
       play, and the last recorded position is where the voice actually got to.
 

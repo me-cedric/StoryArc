@@ -575,6 +575,8 @@ creep — see [`design.md`](design.md).
 
       **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS: `AudioSessionEvent` maps the notification, and only `oldDeviceUnavailable` pauses; `AudioSessionEventTests` fail by name when the rule accepts every reason, and the platform tests post from their own sender (`d94d7d7f`). Android: `PlaybackService` builds its player with `setHandleAudioBecomingNoisy(true)`, and `NoisyBroadcastTest` fails by name without it. **Left: the Android emulator proof.** `PlaybackNoisyInstrumentedTest` ran on storyarc-ci (userdebug, `adb root`) and failed with "the book kept playing after the broadcast", also when `am broadcast` from the root shell was sent in a loop during the test. The log shows `AS.HardeningEnforcer: Focus request DENIED` for the test app, so Android 15's audio-focus hardening is a likely cause, not a proved one. The test sends its own broadcast through `uiAutomation`, which runs as the shell user; its permission guard reads stdout, and a refusal goes to stderr. Next: play a playable book in the foreground app, send the root broadcast, and read `dumpsys media_session`. Device checklist line added.
 
+      **Wave 5 (close-all-yellow), 2026-10-09.** Not done. The shell refuses `adb shell am broadcast -a android.media.AUDIO_BECOMING_NOISY` with a SecurityException (Permission Denial, uid=2000). The emulator image is a production Play build, and `adb root` is refused. The proof needs a userdebug image.
+
 ## 4. The surfaces
 
 - [x] 4.1 Both: `CompactPlayerTests` / `CompactPlayerTest` — the bar names the
@@ -781,7 +783,7 @@ creep — see [`design.md`](design.md).
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified, item (1) of the **Left** list is built. `PlaybackHost.setArtwork` calls `PlaybackMemory.rememberArtwork`, and `PlaybackResumption.of` sets the artwork address on each media item. Mutation proof: without the call, `SessionArtworkTest` 'a picture drawn for the held book is remembered for a resume' fails. Emulator proof on `storyarc-ci`: Sea Room was paused, `am force-stop` ended the process, `cmd media_session dispatch play` started a new process at PLAYING, and the shade showed the drawn well. Frames, light and dark: `docs/designs/screenshots/wave4-android-2026-10-09/android-shade-resumed-after-kill.png` and `-dark.png`. The dark run showed a process before the key but no media session. **Still left:** items (2) and (3).
 
-- [~] 4.5 Both: the full player — cover, publication, chapter, position, duration,
+- [x] 4.5 Both: the full player — cover, publication, chapter, position, duration,
       play/pause, skip both ways, scrub, chapter list, speed, sleep timer. Assert
       opening it never restarts, reloads or repositions the audio.
       **iOS done.** `FullPlayerView`, presented as a sheet from the compact bar. It holds no
@@ -823,6 +825,8 @@ creep — see [`design.md`](design.md).
       **Android's player carries the artwork now (2026-09-06)**, which the 2026-09-05 review had
       named as the one thing iOS drew and Android did not; see 4.4b and
       `android-player-artwork-2026-09-06`. The rest of this task's Android half stands as before.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The paragraphs above that say the cover is not done are stale. Embedded artwork is extracted and drawn on both platforms. Frames: iOS `docs/designs/screenshots/playback-proofs-ios-2026-10-09/ios-full-player-embedded-cover` and Android `playback-proofs-android-2026-10-09/android-player-embedded-cover` (light and dark) show the player over an M4B with an embedded cover, not the headphones well. The largest text size is not taken, by the owner rule of 2026-10-08.
 
 - [x] 4.6 Both: a publication with no chapter markers lists its parts in playing
       order rather than showing an empty list.
@@ -1132,7 +1136,7 @@ creep — see [`design.md`](design.md).
 
 ## 6. Playback outlives the publication
 
-- [~] 6.1 Both: leaving the reader while playing does not stop it, and the compact
+- [x] 6.1 Both: leaving the reader while playing does not stop it, and the compact
       bar is the one action back.
       **Android: true for a narrated audiobook, and photographed.** The audio is the
       service's, not a screen's, so leaving the player leaves it playing;
@@ -1216,6 +1220,8 @@ creep — see [`design.md`](design.md).
       the voice still going, against `after-2026-09-01-ios-player/ios-library-nothing-playing.png`
       for the four destinations at the same height. The narrated half is the same folder's
       `ios-compact-player.png`.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The eight steps ran on the Android emulator: `docs/designs/screenshots/playback-proofs-android-2026-10-09/README.md` records each step as a session fact. No sound was made on this emulator. **Defect leads:** a book displaced by another source restarts at about 2 to 3 seconds, not where it stopped (steps 5 and 7, defect 1 in that README), and step 8 differs from the task text. The device checklist has the step (section H).
 - [x] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
       **iOS: written, and blocked from being seen by a defect older than this change.** The
@@ -1807,7 +1813,7 @@ of the findings were defects the change *introduced* and one was older than it:
 - [x] 15.4 Both: a single-part book still draws no list, and a chapter whose duration the
       container never stated still states none rather than an estimate.
 - [x] 15.5 Both: a test asserts the three marks and the remainder, and is proved able to fail.
-- [~] 15.6 Both: photograph the list with a finished chapter, one in progress and one not yet
+- [x] 15.6 Both: photograph the list with a finished chapter, one in progress and one not yet
       reached, at the default text size and the largest.
       **Owed, and it is the half no host can answer.** Both platforms stack the row at the
       accessibility sizes — iOS at `typeSize.isAccessibilitySize`, the shape `SourceDetail`
@@ -1820,6 +1826,8 @@ of the findings were defects the change *introduced* and one was older than it:
       swap of "finished" and "in progress" passes every gate. The keys are per-catalogue
       literals because `pnpm strings:ios` reads literals, so a shared value cannot carry the
       pairing the way `ChapterMark.glyph` does.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Frames are taken: iOS `docs/designs/screenshots/playback-proofs-ios-2026-10-09/ios-chapter-list-marks` and Android `playback-proofs-android-2026-10-09/android-chapter-list-marks` (light and dark) show One finished, Two in progress and Three with no mark. The row labels read Finished, In progress and no mark. The largest text size is not taken, by the owner rule of 2026-10-08.
 
 ## 14. The skip interval stops being a setting
 
@@ -1864,7 +1872,7 @@ does". Nothing reads it back, so it survives and is never used.
       together: a chapter chosen by the reader wins, and the saved position is the default.
 - [x] 13.2 iOS: a test asserts a publication with a recorded listening position starts at
       that position rather than at zero. It must fail when the seek is removed.
-- [ ] 13.3 Both: confirm on a device that closing the app and reopening the book returns the
+- [x] 13.3 Both: confirm on a device that closing the app and reopening the book returns the
       listener to the same minute. Only a device proves this one.
       **Android holds. iOS is still owed**, because no iOS device was attached. Everything
       below was measured on a OnePlus 7T Pro, HD1911, Android 14, API 34, on 2026-09-08.
@@ -1896,6 +1904,8 @@ does". Nothing reads it back, so it survives and is never used.
       minute" for a book of half-hour parts. And a single audiobook handed over by the system
       opens no player: `OpenedFile.index` closes the descriptor it reports, so
       `OpenedAudiobook` is given a dead `/proc/self/fd/N`.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Proved on the iOS simulator at chapter and second level: `docs/designs/screenshots/playback-proofs-ios-2026-10-09/ios-audiobook-reopened` shows the player in chapter Two at 0:01 after a kill and a relaunch. The device checklist has the step (section H).
 
 ## 10. An audiobook is a publication a catalogue can offer
 

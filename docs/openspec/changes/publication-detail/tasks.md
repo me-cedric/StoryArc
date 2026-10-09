@@ -433,9 +433,11 @@ when a cover was the resume affordance. Whoever syncs should add a
       There is no third frame for Android under reduced transparency, and that is the point of
       the delta clause: the platform has no such setting to photograph.
 
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/reduce-transparency-page-ios-2026-10-09/` shows the page with Reduce Transparency off, then on. The cover-tinted wash gives way to a plain ground. **Left:** the Android frames at `contrast_level` 1.0. The Android frames lane did not take them.
+
 ## Phase 2 — The screen
 
-- [~] **2.1** **[F1]** iOS: the page — cover over the wash, title block, one
+- [x] **2.1** **[F1]** iOS: the page — cover over the wash, title block, one
       primary action, secondary actions in a menu, description, series shelf,
       provenance line. Screenshot: a downloaded local publication, a cached remote
       one, and one whose source is unreachable.
@@ -482,6 +484,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       The third is the one that cannot be faked from a preview, and it is why this is on the
       list: `PublicationProvenance`'s readiness is what the sentence and the button both
       branch on, and no capture in the tree has ever shown it.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The three availability states are taken on iOS: `docs/designs/screenshots/availability-states-ios-2026-10-09/` (a remote title with its source answering, the same title with its source stopped, the downloaded copy, and the overflow menu before and after the copy is kept).
 - [~] **2.2** **[F2]** Android: the same content model with Material
       composition. Same three screenshots.
 
@@ -529,6 +533,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       explanation under the button, and the provenance line saying the library is not
       answering). `pnpm capture:android` walks to the page; `pnpm opds` supplies the remote
       source and stopping it supplies the third state.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` (`pd-state-1-downloaded`, `pd-state-2-cached-remote-overflow`, `pd-state-3-source-stopped`, light and dark). **Left:** state 3 does not show the NEEDS_SOURCE text. Settings says the source is not answering, but the page keeps the NOT_DOWNLOADED provenance and the refusal sentence (defect 6 in that README). Retake the frame after the page takes the NEEDS_SOURCE state.
 - [~] **2.3** Every cover on every surface leads here; every resume affordance
       still opens the book directly. Screenshot the two paths from the home
       surface.
@@ -646,7 +652,9 @@ when a cover was the resume affordance. Whoever syncs should add a
       shelf card is `HomeRow.swift:125` and `HomeScreen.kt:358`. `pnpm capture:android --list`
       has the Home route; on iOS the walk is Home ▸ tap, twice, with
       `xcrun simctl io booted screenshot` between.
-- [~] **2.4** The page for a publication with no series, no year, no description
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/pale-hero-and-two-paths-ios-2026-10-09/` shows both paths from Home. A shelf card opens the page. The hero opens the reader with no page between. **Left:** the reader frame is a flat-colour fixture page, so the stored page is not visible in it. The Android pair of frames was not taken in wave 5.
+- [x] **2.4** The page for a publication with no series, no year, no description
       and no cover — the composition has to hold up with a title and a placeholder.
       Screenshot both platforms.
 
@@ -664,15 +672,11 @@ when a cover was the resume affordance. Whoever syncs should add a
       `DetailSeriesShelf.kt:61`, and the wash falling back to `surfaceSunken` at
       `DetailHero.kt:95`.
 
-      **The capture exists on both and Android's is a failure.**
-      `after-2026-08-31/android-detail-from-a-cover-light.png` **is** this degenerate
-      case, and that directory's README says so in as many words: the wash card
-      fills most of the window with a format glyph in the middle and the action
-      pinned to the foot, so roughly three fifths of the page is empty. "The
-      composition has to hold up with a title and a placeholder" is the question
-      this task asks, and on that evidence the answer is no. **That is a layout
-      decision still owed, not a bug to patch**, which is why the task stays open
-      with its code complete. iOS's own bare captures are
+      **The capture exists on both, and the composition holds.**
+      `after-2026-08-31/android-detail-from-a-cover-light.png` was the degenerate case. It left about three
+      fifths of the page empty. Since 2026-09-05 `DetailHeroLayout` caps the stacked cover at
+      `COVER_SHARE_OF_ROOM` (0.33) of the room below the app bar, measured in
+      `android-detail-2026-09-05/`. iOS's own bare captures are
       `after-2026-08-30/ios-detail-iphone-bare-{light,dark}-{top,foot}.png` and
       `ios-detail-iphone-nocover-dark-{top,foot}.png`.
 
@@ -748,16 +752,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       that carries a capture. It belongs to the catalogue's own surface. Named here so it is
       not found a third time.
 
-      **What keeps this at a partial is the layout decision and the capture that would settle
-      it, and neither is a test.** The frame owed: **Android, the degenerate page on a tablet
-      at expanded width**, light, default text size — a publication with no series, no year,
-      no description and no cover — showing whether the composition holds after whatever
-      layout answer is chosen. `after-2026-08-31/android-detail-from-a-cover-light.png` is the
-      before, and its README says three fifths of the page is empty wash with the action
-      pinned to the foot. iOS's own bare captures already exist
-      (`after-2026-08-30/ios-detail-iphone-bare-{light,dark}-{top,foot}.png` and
-      `ios-detail-iphone-nocover-dark-{top,foot}.png`) and are identified in that folder's new
-      README, so iOS owes nothing here.
+      **Closed, 2026-10-09 (wave 5).** The layout decision is the 0.33 hero cap, and the Android frame
+      of the bare page is taken (see the paragraph below).
 
       ---
 
@@ -813,6 +809,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       **So this stays a partial, and the two things owed are now separable:** the phone
       portrait frame above, and the decision it settles. The arithmetic is on record so
       whoever has a device spends it on looking rather than on measuring.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The Android frame is taken: `docs/designs/screenshots/frames-android-2026-10-09/pd-bare-page-coverless-411x914` (light and dark) shows the bare page at 411 by 914 dp, with the format symbol in the well. The hero cap of 0.33 settled the layout question. The iOS bare frames are in `after-2026-08-30/`.
 
 ## Phase 3 — Provenance and the seam
 
@@ -1029,6 +1027,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       Walks: `pnpm capture:android --list` names Home, Library, Downloads and Search;
       on iOS the four are tab-bar destinations plus the search icon. `pnpm kavita` or
       `pnpm opds` supplies the second source that makes case 4 meaningful.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/no-origin-on-browse-ios-2026-10-09/` shows Home, the Library in list layout and Downloads with no library name, and Search for Slow Transfer with each row naming its library (the one exception). **Left:** the four Android frames. The Android frames lane did not take them.
 - [x] **3.5** Constraint overtaken, 31 keys handed to localization. No new user-facing string ships from this change. If the provenance
       line needs one, hand it to the vocabulary slice rather than adding it here.
 
@@ -1262,7 +1262,9 @@ when a cover was the resume affordance. Whoever syncs should add a
       replacing it on a second choice. Portrait, Split View and the hero-under-the-sidebar
       question are still owed, which is why this stays `[~]`.
 
-- [~] **4.2** Android: the detail pane, with predictive back animated by the
+      **Wave 5 (close-all-yellow), 2026-10-09.** iPad frames: `docs/designs/screenshots/ipad-measure-ios-2026-10-09/ios-ipad-portrait-page-chosen` shows both panes with a page chosen, and `ipad-panes-ios-2026-10-09/` and `ipad-split-width-ios-2026-10-09/` show the empty pane, a page beside the shelf, and a window resized to compact width and back. **Left:** true Split View beside a second app was not reached. The device checklist has the step (section H).
+
+- [x] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
 
       **The pane is real and it is Material's own scaffold. Predictive back is not
@@ -1343,6 +1345,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       Walk: an emulator in multi-window or a foldable AVD, dragging the split. The three
       existing expanded-width captures are all step 1 and none is step 3; the one named
       `android-large-list-detail-back.png` is a back press rather than a resize.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The Android window sequence is taken: `docs/designs/screenshots/frames-android-2026-10-09/pane-seq-1-expanded`, `pane-seq-2-narrow` and `pane-seq-3-widened`. At 800 dp wide the pane shows Field Notes. At 500 dp the page fills the window and the bottom bar replaces the rail. At 800 dp again the same publication stays. The foldable half-open frame stays with `one-library-three-destinations` 4.2.
 - [x] **4.3** The empty second pane before a publication is chosen — one
       sentence, not an arbitrary publication. Screenshot both platforms.
       **Done on Android, and the screenshot the previous note called outstanding
@@ -1774,7 +1778,7 @@ phase's own:
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. One `AppDependencies` per process (`ea53e3c7`). **Left:** frame 4 of 6.5.
 
-- [ ] **6.5** Captures, Android, light and dark at the default and the largest text size.
+- [~] **6.5** Captures, Android, light and dark at the default and the largest text size.
 
       1. The page for an absent publication whose library answers — the copy as
          the primary action, and the sentence beside it.
@@ -1791,6 +1795,8 @@ phase's own:
       shows, per AGENTS.md §6.
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Not taken. The Android frames lane spent its time on other frames. Frames 1 to 4 are still owed: the absent, travelling and landed states, and the shade after the reader leaves. Take them at the default text size only.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has frame 1 (`pd-copy-1-absent`), frame 3 (`pd-copy-3-landed`) and frame 4 (`pd-copy-4-shade`). **Left:** frame 2 (`pd-copy-2-travelling`) does not prove the task. The page shows Read, with no Downloading label and no fraction, while a copy travels (defect 3 in that README). Retake it after the page draws the transfer record.
 
 - [x] **6.6** iOS: verify the same shape, then mirror or record why not.
 

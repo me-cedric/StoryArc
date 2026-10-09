@@ -80,7 +80,7 @@ card carries a kicker, a title and one line, has **no** `ProgressView`, names no
 kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up to 420pt — about
 **half** a phone's height, where the review said "nearly a full viewport".
 
-- [~] 0b.1 Both: progress is visible as well as stated, and the author is named where the card
+- [x] 0b.1 Both: progress is visible as well as stated, and the author is named where the card
       has room. A title alone is not enough to recognise a book by.
 
       **Code landed on both platforms 2026-09-05; the frames are owed.**
@@ -127,6 +127,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - Route: `pnpm capture:android Home --dark --font-scale 2.0` and the matching light
         and default runs; iOS by the `LibrarySelectionCapture`-style walk that opens a book,
         reads a page, backs out, and lands on Home with something in progress.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The pale-cover frames are taken on iOS: `docs/designs/screenshots/pale-hero-and-two-paths-ios-2026-10-09/` (`ios-home-hero-pale`, light and dark). The byline and the progress bar read over the scrim, and the Resume button is legible. The Android frames, light and dark, are in `one-and-a-half-cards-2026-09-10/`. The largest text size is not taken, by the owner rule of 2026-10-08.
 - [~] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
       the same thing — a card that is a button with no button on it teaches nothing about what
       tapping does.
@@ -175,6 +177,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         which grew by `HOME_RESUME_ROW` for it.
       - One frame per platform of a publication whose source is away, showing **no** button
         under the dimmed card.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/library-away-ios-2026-10-09/` (`ios-home-card-library-away`) shows the dimmed card with no Resume button, and the pale-cover frame of 0b.1 shows the button over the scrim. **Left:** the Android frame of a card whose source is away. Nobody took it in wave 5.
 - [~] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
       next in its series, rather than offering to reopen its last page. Finishing removes it
       from Keep reading by the same rule finishing normally does.
@@ -231,6 +235,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         rather than asserted.
       - Route: on Android, `pnpm capture:android Home` after a walk that opens the first
         issue and pages to its end; on iOS the equivalent walk before the shutter.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/finish-and-next-ios-2026-10-09/` shows Finish with Next in series, Finish alone, the Home after Finish, and the Finished section. **Left:** the three Android frames (Finish with Next in series, Finish alone, after Finish). The Android frames lane did not take them.
 - [x] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
 
@@ -493,7 +499,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       cannot be ticked. Screenshots in
       `docs/designs/screenshots/after-2026-08-30/android-shell-*.png`, plus the
       tablet rail in `after-2026-08-31/android-tablet-rail-home-light.png`.
-- [~] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, a **fourth destination for
+- [x] **1.2** **[D] iOS shell.** `TabView` with three `Tab`s, a **fourth destination for
       search**, `.tabViewStyle(.sidebarAdaptable)` and the minimize behaviour, around the
       existing library view. Settings and add-source leave the library toolbar.
       Screenshot: each destination, iPhone and iPad, portrait and landscape.
@@ -513,15 +519,10 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `LibraryView` at `:165-173`. The search role that used to sit at `:107` is gone, and
       that is the fix above, not a regression.
 
-      **Settings left the library toolbar; add-source did not.**
-      `LibraryToolbar.swift:13-15` records the move and `HomeScreen.swift:99-107`
-      is where Settings landed — the home destination's trailing bar item. But
-      `LibraryToolbar.swift:71-79` still carries `AddSourceMenu`, and
-      `LibraryToolbar.swift:15-19` says why in its own words: add-books stays "for
-      now and against the direction's end state", because both places it is meant to
-      go — the rebuilt empty state and Settings' connected-libraries screen — belong
-      to later slices. That is a defensible hold, and it is still half a clause
-      unmet.
+      **Settings and add-source both left the library toolbar.** `LibraryToolbar.swift` records the move.
+      Settings landed on the home destination's trailing bar item. Add-source landed in Settings,
+      Your libraries (decision D37, task 17.9 of `close-the-audited-gaps`). `AddSourceMenu` stays
+      in the empty state and in the Home first run.
 
       **The landscape captures were owed when that was written and are not any more.** The
       paragraph above described `after-2026-08-30/` and stopped there: every iPad PNG in
@@ -548,31 +549,11 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `.tabBarMinimizeBehavior(.onScrollDown)` at `:184`. The line numbers in the paragraphs
       above have drifted by roughly sixty lines; the facts they assert have not.
 
-      **The add-source hold still holds, and it now has a task number attached.** Both places
-      the direction moves it to are still unbuilt: the rebuilt empty state is **task 5.1**,
-      open on this list, and Settings' connected-libraries screen is `source-lifecycle`'s.
-      Moving it before either exists would take the only way to add a library out of the app.
-      Unticked rather than argued away, with the dependency named so the next reader knows
-      what would close it.
+      **The add-source hold is over.** Decision D37 gave Settings, Your libraries, the five ways to
+      add a source. A reader with a populated library adds a second source there.
 
-      *Half of that dependency is stale, checked 2026-09-05, and the hold survives it.*
-      **Task 5.1 is done and its empty state does carry `AddSourceMenu`** —
-      `LibraryStates.swift:160` is the secondary, `AddSourceMenu.swift:24-36` behind it. So
-      the first of the two places exists. It does not close the hold, because an empty state
-      is only reached by a reader whose library is *empty*, and the clause the toolbar comment
-      actually turns on is a reader with a populated library needing to add a second one.
-
-      **The second place exists too, and cannot yet do the job.** `SettingsFeature` has a
-      *Your libraries* screen — `SourcesSettings.swift`, `SourceDetail.swift` — and it says
-      in its own strings that it is not the way in: *"Folders, shared folders and online
-      libraries. Added from your library for now."* and *"No libraries yet. Add a folder from
-      your library to get started."* Giving it an add control is `source-lifecycle`'s work,
-      and until it has one, `LibraryToolbar.swift`'s add-books item is still the only route.
-      So: one dependency met, one outstanding, hold unchanged — and the reference to 5.1 is
-      corrected here rather than left to send the next reader looking for an open task.
-
-      **Frames owed:** iPad **portrait**, Downloads and the on-device shelf with something in
-      it — 2 frames, light and dark. Everything else this task named exists.
+      **The portrait frames are taken, 2026-10-09:** iPad Downloads and Search in portrait are in
+      `ipad-measure-ios-2026-10-09/`. Nothing is owed.
 
       *The shell was re-read on 2026-09-05 by the pass that gave the iPad a second pane, and
       not one line of it moved.* That is now a checked claim rather than a sentence in a
@@ -592,6 +573,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       and tabs on iPhone — would each stop satisfying that requirement on exactly the device
       the work is for. `LibraryPanes.swift` carries the argument. **No frame is added to this
       task by it**; the split's own frames are on `publication-detail` task 4.1.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The iPad frames are taken: `docs/designs/screenshots/ipad-measure-ios-2026-10-09/` (Downloads and Search in portrait, the sidebar, and the Settings sheet) and `ipad-sweep-ios-2026-10-09/`. The add-source hold ended with decision D37: Settings, Your libraries, has the add control and the Library toolbar has none.
 - [x] **1.3** Verify against the delta that the destination count does not change
       when a source is added, renamed, reordered or removed. A test with nine
       configured sources, on both platforms.
@@ -764,6 +747,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - One frame per platform after unpinning, showing the section gone from Home **and** the
         collection unchanged on the shelves screen — the clause about altering nothing, seen
         rather than asserted.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/pinned-shelves-ios-2026-10-09/` shows the shelf menu (Pin to Home and Unpin from Home), Home with a pinned collection and a pinned reading list, and Home after both are unpinned. `by-library-filter-ios-2026-10-09/` shows that Keep reading stays on Home after the shelf is narrowed to one library. **Left:** Home draws a placeholder cover for each shelf on iOS, so the list order is not visible. The Android pin frames were not retaken in wave 5.
 - [x] **2.2** Test that Home renders complete and unchanged with every source
       unreachable, and that no shelf appears, reorders or grows when a slow source
       answers. This is the property most likely to regress silently, so it is a
@@ -935,7 +920,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **One correction to the audit above, carried from 0.3**: the iOS projection is in
       `Sources/LibraryFeature/LibraryAvailability.swift`, not `ScopeMenu.swift` — no file by
       that name exists in the package.
-- [~] **3.2** **[G1/G2]** The library's primary scope becomes availability. The
+- [x] **3.2** **[G1/G2]** The library's primary scope becomes availability. The
       by-library filter lands in the same commit as the removal of the source
       scope, so no reader loses per-source browse between one build and the next.
       Screenshot: everywhere, on-this-device, and the filter sheet.
@@ -1081,7 +1066,9 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **Still owed: the same six frames on iOS**, and the routes are
       `Library > filter libraries`, `Library > filtered to one library` and
       `Library > clear filters offered` if the iOS walks want naming after them.
-- [~] **3.3** The on-device mark on a cover, and dimming for a publication that is
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The iOS frames are taken: `docs/designs/screenshots/by-library-filter-ios-2026-10-09/` shows Which library, the shelf narrowed to one library, Clear filters, and Home after the filter. The Android frames are in `shelves-and-marks-2026-09-12/`.
+- [x] **3.3** The on-device mark on a cover, and dimming for a publication that is
       neither downloaded nor reachable — with the accessibility label carrying the
       fact, not the opacity. Screenshot: a grid with all four combinations of
       progress and availability.
@@ -1163,6 +1150,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       least one publication attributed to a source that is **down** and not downloaded, which
       the corpus (`origin: EMBEDDED`, no source) cannot produce — the same obstacle 3.2's
       owed frame hits, and the same two-catalogue setup answers both.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The iOS grid is taken: `docs/designs/screenshots/library-away-ios-2026-10-09/ios-library-four-marks` shows part-read on device, part-read away, unread on device and unread away. The README table names each state. It has no drawn legend. The Android frame is in `shelves-and-marks-2026-09-12/`.
 - [x] **3.4** Section headings in a long library, by series where declared and by
       the sort key otherwise. Screenshot: a library of at least 200 publications.
 
@@ -1271,7 +1260,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - The **list layout draws no heading at all**, at any length. `CoverList` takes no
         sections and says so at its `rail` parameter. Whether `library-browsing` means its
         division to reach the list is a question for that spec.
-- [~] **3.4b** Section headings in the list layout, and a column count the divide
+- [x] **3.4b** Section headings in the list layout, and a column count the divide
       function takes as a parameter. The spec answers the question 3.4 left open:
       *Sectioning a long library* now says the division is drawn in whichever layout
       the reader chose, and that a division averaging fewer than one row per column
@@ -1362,6 +1351,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       offers them: `opds-spec.org/image` and `/image/thumbnail` are on every entry of the
       mock catalogue, and `opds-catalog` asks for "its cover at a size worth looking at".
       Task 3.6 below is that gap.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** The iOS list frame is taken: `docs/designs/screenshots/long-shelf-ios-2026-10-09/ios-library-list` shows letter headings A, B and C and the A to Z rail on a library of 200 publications. The Android frames are in `long-shelf-2026-09-11/`.
 - [x] **3.6** A publication from an OPDS catalogue draws the cover the feed offers. **Verified built on 2026-10-07** against the source: built as close-the-audited-gaps 11.7 under D29: ServerLibraryOpdsCoverTest and OpdsCoverTests.
 
       **Found on 2026-09-12 while taking 3.3's frame**, and recorded there with the
@@ -1472,6 +1463,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       - **Settings open on a 13-inch iPad**, which is the frame this pass earned and the only
         one that can show whether 720 is the right number. Before/after would be ideal;
         after alone still answers the clause.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** iPad frames: `docs/designs/screenshots/ipad-sweep-ios-2026-10-09/`, `ipad-panes-ios-2026-10-09/` and `ipad-measure-ios-2026-10-09/` show the sidebar in portrait and landscape, the empty pane, a page beside the shelf, and the Settings sheet in both orientations. **Left:** true Split View beside a second app was not reached on the simulator. The device checklist has the step (section H).
 - [~] **4.2** **[K2]** Android: Material's five breakpoints replacing the
       two-valued window class, the collapsed and expanded rail, and the two-pane
       scaffold. Screenshot: compact, medium and expanded, and a foldable half-open.
@@ -1518,6 +1511,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       fold, which is the one thing a half-open capture is for and the one thing no width can
       predict. Take it on a foldable AVD at its half-open posture, in the library with a page
       open, so the seam and the pane boundary are in the same frame.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** Not done. The frame needs a Pixel Fold AVD at Device pose Half-open, with a publication open in the library pane. Wave 5 had one AVD, a phone with no hinge and no posture sensor. The README of `docs/designs/screenshots/frames-android-2026-10-09/` records the gap.
 - [~] **4.3** Verify the resize path: a two-pane window narrowed to one pane keeps
       what the reader was looking at, and widening restores the second pane.
 
@@ -1596,6 +1591,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       Walk: manual. Split View needs the app switcher and a drag between two apps, and
       `XCUIApplication` has no vocabulary for either; `SweepIpadPanes.swift` says so rather
       than faking it. Still unticked, and now for a different reason: not unmeetable, unwatched.
+
+      **Wave 5 (close-all-yellow), 2026-10-09.** `docs/designs/screenshots/ipad-split-width-ios-2026-10-09/` shows a wide window with two panes, the window dragged narrow (the page fills it and the tab bar sits at the foot), and widened again (the same page). **Left:** it is a resized window, not Split View beside a second app. Dark is not taken. The device checklist has the step (section H).
 
 ## Phase 5 — First run and the empty path
 
@@ -1906,8 +1903,8 @@ having moved after the task list for no visible reason.
       home and by the library, rather than a copy on each.
 - [x] R.3 Android: `HomeFirstRun` in `HomeScreen.kt` draws the same state the library's own
       empty state draws, and its doc comment stops arguing for the retired shape.
-- [~] R.4 Both: photograph the home first-run screen at the default text size and at the
-      largest accessibility size, because the menu sat behind the tab bar once already.
+- [x] R.4 Both: photograph the home first-run screen at the default text size and at the
+      largest accessibility size, because the menu sat behind the tab bar once already. **Wave 5 (close-all-yellow), 2026-10-09.** The iOS first-run frame is taken at the default text size: `docs/designs/screenshots/home-first-run-ios-2026-10-09/ios-empty-home`. The largest text size is not taken, by the owner rule of 2026-10-08. The Android frames are in `android-home-firstrun-2026-09-07/`.
 
 ## Carried from a sibling, and not this change's behaviour
 

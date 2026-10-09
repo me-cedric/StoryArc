@@ -250,6 +250,27 @@ provenance line in English), `publication-detail` 6.1 to 6.5 (frames), `reader-t
 4.3b (two chapter-end frames; on the emulator a tap did not turn the page after a resume), 7.6
 and 7.8 (the stored locator delta is not written). Frames are at the default text size only.
 
+**Wave 5 of the close-all-yellow goal landed on 2026-10-09** (the last wave of the goal; four lanes,
+then frames on the iOS simulator and the Android emulator). Closed: `library-sync` 2.1, 2.2, 2.4, 4.1,
+4.2 and 4.4 (the reader chooses a share or a folder as the sync place; both platforms write the
+document to a signed and to an encrypted share; an unreachable or refusing place shows grey words and
+never blocks the library; sync runs on foreground and when a book closes); `one-library-three-destinations`
+0b.1, 1.2, 3.2, 3.3, 3.4b and R.4; `publication-detail` 2.1, 2.4 and 4.2; `close-the-audited-gaps` 23.1
+and 23.3; `one-vocabulary-in-four-languages` 3.4; `cover-for-every-publication` 2.6, 3.1 and 6.5;
+`read-aloud-beyond-the-reader` 0.1, 0.2, 2.3, 3.1 and 4.3; and `audiobooks-and-playback` 4.5, 6.1, 13.3
+and 15.6. Partial: `library-sync` 2.3 and 4.3 (owner device steps: a cloud folder, and a locked phone;
+the iOS simulator refuses every background refresh request) and 5.3 (no conflict notice exists to
+photograph, because the runner drops the conflicts a sync returns). Also partial: `one-library-three-destinations`
+0b.2, 0b.3 (Android frames), 2.1, 4.1 and 4.3 (true Split View); `publication-detail` 1.4, 2.2, 2.3, 3.4,
+4.1 and 6.5; `close-the-audited-gaps` 23.2 (no tall fixture) and 24.4; `one-vocabulary-in-four-languages`
+1.7, 2.4 and 4.6; `cover-for-every-publication` 3.6 and 4.3; and `read-aloud-beyond-the-reader` 3.2 and 4.1.
+Not done: `one-library-three-destinations` 4.2 (no foldable AVD), `read-aloud-beyond-the-reader` 2.5 (needs
+frames at the largest text size, which the owner cancelled) and `audiobooks-and-playback` 3.9 (the emulator
+image has no root). Product defects the frames found are in the READMEs of the wave 5 frame sets: iOS
+accepts the storage root and its own library folder as the sync place; a displaced audiobook restarts at
+2 to 3 seconds; the publication page keeps the NOT_DOWNLOADED provenance while a source does not answer;
+the page shows no progress while a copy travels. Frames are at the default text size only.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
