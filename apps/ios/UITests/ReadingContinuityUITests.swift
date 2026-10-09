@@ -180,16 +180,18 @@ final class ReadingContinuityUITests: XCTestCase {
         return seen
     }
 
-    /// By its name. The first button in the tree was the way out until the reader gained others,
-    /// and a tap on any other left the reader up for the relaunch to kill (2026-10-09).
+    /// By its name, and with no other button in its place: a tap on another button turned the
+    /// reader back a page before it closed (2026-10-09).
+    ///
+    /// The centre tap only when the chrome is down. The chrome is often still up from the turn,
+    /// and a centre tap then hid the Close button it was meant to show.
     private func close(_ reader: XCUIElement, in app: XCUIApplication) {
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let close = app.buttons["Close"].firstMatch
-        if close.waitForExistence(timeout: 5), close.isHittable {
-            close.tap()
-        } else {
-            app.buttons.element(boundBy: 0).tap()
+        if !(close.exists && close.isHittable) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
+        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isHittable, "The reader shows no Close button.")
+        close.tap()
         hold(1)
     }
 }
