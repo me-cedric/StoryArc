@@ -31,11 +31,12 @@ fun brandAccentText(label: String, look: Look? = null) =
 
 /**
  * Text drawn in `colorScheme.error`, which is `Status.danger` in both appearances. It reaches
- * 3.9:1 on a white card, under the 4.5:1 of body text, and passes on the dark canvas. A token
- * decision for the same reason as [brandAccentText].
+ * 3.9:1 on a white card and 3.6:1 on the light canvas, and 3.7:1 on a dark card, all under the
+ * 4.5:1 of body text. It passes on the dark canvas. A token decision for the same reason as
+ * [brandAccentText].
  */
-fun dangerText(label: String) =
-    KnownFault(Check.CONTRAST, label, "error text is under 4.5:1 on a white card", Look.Light)
+fun dangerText(label: String, look: Look = Look.Light) =
+    KnownFault(Check.CONTRAST, label, "error text is under 4.5:1 on a card or canvas", look)
 
 /** The three rules a catalogue entry is held to. */
 enum class Check { TOUCH_TARGET, LABEL, CONTRAST }
