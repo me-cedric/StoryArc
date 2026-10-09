@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.model.Download
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
@@ -121,7 +122,13 @@ class Catalogue13DownloadsTest {
                 dangerText("Remove download", Look.Dark),
                 dangerText("Failed after 3 attempts"),
             ),
-            act = { waitUntil(timeoutMillis = 10_000) { host.library.publications.value.size == finished.size } },
+            act = {
+                waitUntil(timeoutMillis = 10_000) { host.library.publications.value.size == finished.size }
+                // Covers decode off the main thread: the well that says CBZ goes when they land.
+                waitUntil(timeoutMillis = 10_000) {
+                    onAllNodesWithText("CBZ", useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
+                }
+            },
         ) { DownloadsDestination(host) }
     }
 
