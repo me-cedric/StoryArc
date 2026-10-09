@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -46,6 +47,8 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+roborazzi { outputDir.set(layout.projectDirectory.dir("src/test/snapshots")) }
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
@@ -70,6 +73,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(project(":core:snapshots"))
     testImplementation(libs.robolectric)
     // A composition on the JVM, so the unit gate can ask what a screen reader is offered.
     // `PageTurnSemanticsTest` asks whether the page surface carries the two named turns and

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -157,6 +158,8 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+roborazzi { outputDir.set(layout.projectDirectory.dir("src/test/snapshots")) }
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
@@ -179,6 +182,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(project(":core:snapshots"))
     // `runTest`, for the two suspend decisions behind the share browser. See
     // `ShareOpeningTest`.
     testImplementation(libs.kotlinx.coroutines.test)

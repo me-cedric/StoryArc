@@ -3,6 +3,7 @@ import javax.inject.Inject
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 // Reflowable EPUB rendering, in its own module.
@@ -108,6 +109,8 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+roborazzi { outputDir.set(layout.projectDirectory.dir("src/test/snapshots")) }
+
 dependencies {
     implementation(project(":core:designsystem"))
     // `PublicationAccess`: a book on a share or a server is read through its ranged source.
@@ -131,6 +134,7 @@ dependencies {
     implementation(libs.readium.navigator)
 
     testImplementation(libs.junit)
+    testImplementation(project(":core:snapshots"))
     // `ReadAloudHost` holds a scope on `Dispatchers.Main.immediate`, so touching the object
     // at all needs a main dispatcher a plain JVM test does not have. See
     // `ReadAloudSessionTest`, which asserts that the voice is one of the speakers
