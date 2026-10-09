@@ -10,6 +10,8 @@ import app.storyarc.feature.library.KavitaConnection
 import app.storyarc.feature.library.KavitaSheet
 import app.storyarc.feature.library.SmbConnection
 import app.storyarc.feature.library.SmbSheet
+import app.storyarc.feature.library.addSource
+import app.storyarc.feature.library.reconnectSource
 import app.storyarc.navigation.AppSheet
 
 /**

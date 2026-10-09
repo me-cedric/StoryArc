@@ -50,11 +50,11 @@ class EpubNextOfferWiringTest {
 
     @Test
     fun `the activity asks for the offer and hands a chosen next back as a result`() {
-        val activity = read(EPUB_READER_ACTIVITY)
+        val activity = read(EPUB_READER_ACTIVITY) + read(EPUB_READER_CONTENT)
         assertTrue(
             "EpubReaderActivity no longer asks EpubEndOfBookOffer to draw, so a reader" +
                 " who reaches the end of the book sees no offer.",
-            activity.contains("EpubEndOfBookOffer(this@EpubReaderActivity, failure, progression)"),
+            activity.contains("EpubEndOfBookOffer(this@EpubReaderContent, failure, progression)"),
         )
         assertTrue(
             "Choosing the offer no longer sets a result the launcher can read, so the" +
@@ -88,6 +88,8 @@ class EpubNextOfferWiringTest {
         const val APP_SHELL = "app/src/main/kotlin/app/storyarc/AppShell.kt"
         const val EPUB_READER_ACTIVITY =
             "feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt"
+        const val EPUB_READER_CONTENT =
+            "feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderContent.kt"
         const val EPUB_END_OF_PUBLICATION =
             "feature/epubreader/src/main/kotlin/app/storyarc/feature/epubreader/EpubEndOfPublication.kt"
 

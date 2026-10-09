@@ -149,7 +149,8 @@ class SkippedScanTest {
         // Prose stripped: the KDoc on `rescan` and the comments around the settling call
         // both quote the branch below in order to say it is gone, and a guard that read
         // those would pass on the documentation of the fix.
-        val code = source.readText().lineSequence().joinToString("\n") { it.substringBefore("//") }
+        val scan = File(source.parentFile, SCAN_SOURCE).readText()
+        val code = (source.readText() + scan).lineSequence().joinToString("\n") { it.substringBefore("//") }
 
         assertFalse(
             "The view model matches `$DISCARDED` again. That is the line this change existed" +
@@ -178,6 +179,9 @@ class SkippedScanTest {
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
         const val VIEW_MODEL_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
+
+        /** The view model's walk, kept beside it in its own file. */
+        const val SCAN_SOURCE = "LibraryViewModelScan.kt"
 
         /** The branch that threw a refusal away. */
         const val DISCARDED = "is ScanEvent.Skipped -> Unit"

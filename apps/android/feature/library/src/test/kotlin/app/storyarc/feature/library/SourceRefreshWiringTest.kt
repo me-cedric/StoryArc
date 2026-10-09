@@ -46,9 +46,9 @@ class SourceRefreshWiringTest {
      */
     private val body: String by lazy {
         val source = read(VIEW_MODEL)
-        val start = source.indexOf("fun testSource(")
+        val start = source.indexOf("fun LibraryViewModel.testSource(")
         if (start < 0) error("LibraryViewModel no longer has testSource — the detail screen cannot refresh one source")
-        val end = source.indexOf("\n    fun ", start + 1).let { if (it < 0) source.length else it }
+        val end = source.indexOf("\nfun ", start + 1).let { if (it < 0) source.length else it }
         source.substring(start, end)
     }
 
@@ -79,6 +79,6 @@ class SourceRefreshWiringTest {
 
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
-        const val VIEW_MODEL = "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
+        const val VIEW_MODEL = "src/main/kotlin/app/storyarc/feature/library/LibraryViewModelSources.kt"
     }
 }

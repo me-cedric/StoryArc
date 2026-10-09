@@ -9,11 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import app.storyarc.core.format.LibraryScanner
 import app.storyarc.core.format.CoverCache
-import app.storyarc.core.format.PublicationIndexer
 import app.storyarc.core.format.SafTree
-import app.storyarc.core.format.ScanEvent
 import app.storyarc.core.model.FolderSnapshot
 import app.storyarc.core.model.LibraryIndex
 import app.storyarc.core.model.LibraryLayout
@@ -24,33 +21,19 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.grouped
 import app.storyarc.core.model.inScope
 import app.storyarc.core.model.nameOf
-import app.storyarc.core.model.PublicationFormat
 import app.storyarc.core.model.ReadingProgress
 import app.storyarc.core.model.RecentSearches
 import app.storyarc.core.persistence.DownloadStore
 import app.storyarc.core.persistence.KavitaCardStore
-import app.storyarc.core.persistence.ImportedCopies
-import app.storyarc.core.persistence.documentNameOf
-import app.storyarc.core.persistence.importing
-import app.storyarc.core.persistence.imports
-import app.storyarc.core.persistence.locationOf
 import app.storyarc.core.persistence.LibraryPreferences
 import app.storyarc.core.persistence.readerLocale
-import app.storyarc.core.model.Source
 import java.util.Locale
 import java.util.UUID
 import app.storyarc.core.catalogue.CertificatePins
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.LibraryCache
 import app.storyarc.core.persistence.KavitaProgressStore
-import app.storyarc.core.model.SourceConnectionState
-import app.storyarc.core.model.SourceKind
-import app.storyarc.core.model.SourcePrecedence
-import app.storyarc.core.model.SourceProbe
 import app.storyarc.core.model.SourceRegistry
-import app.storyarc.core.model.BulkSelection
-import app.storyarc.core.model.PublicationCollection
-import app.storyarc.core.model.ReadingList
 import app.storyarc.core.model.Shelves
 import app.storyarc.core.persistence.ShelvesStore
 import app.storyarc.core.persistence.SourceStore
@@ -58,7 +41,6 @@ import app.storyarc.core.persistence.ProgressStore
 import app.storyarc.core.persistence.ScanJournal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -78,12 +60,12 @@ class LibraryViewModel(
      * "app-managed storage", and this store already owns exactly that -- see
      * [ImportedCopies].
      */
-    private val downloadStore: DownloadStore? = null,
+    internal val downloadStore: DownloadStore? = null,
     /**
      * What an interrupted scan wrote down. `local-library` requires a scan to be
      * "cancellable and resumable" -- see [ScanJournal] for why those are one promise.
      */
-    private val journal: ScanJournal? = null,
+    internal val journal: ScanJournal? = null,
     /**
      * What a Kavita server said about the downloads it produced.
      *
@@ -92,7 +74,7 @@ class LibraryViewModel(
      * server can be reached. Null for a view model built without one, the way every other
      * store here is optional.
      */
-    private val cards: KavitaCardStore? = null,
+    internal val cards: KavitaCardStore? = null,
     /** The reader's saved server keys. Null reads no server. See [readServers]. */
     internal val credentials: CredentialStore? = null,
     /** The app-level download queue, the only writer of the download store. See [keepOffline]. */
@@ -143,7 +125,7 @@ class LibraryViewModel(
     internal val _publications = MutableStateFlow<List<Publication>>(emptyList())
     val publications: StateFlow<List<Publication>> = _publications.asStateFlow()
 
-    private val _scanState = MutableStateFlow<LibraryScanState>(LibraryScanState.Idle)
+    internal val _scanState = MutableStateFlow<LibraryScanState>(LibraryScanState.Idle)
     val scanState: StateFlow<LibraryScanState> = _scanState.asStateFlow()
 
     /**
@@ -158,7 +140,7 @@ class LibraryViewModel(
     val refreshing: StateFlow<SourceRefreshOrigin?> = _refreshing.asStateFlow()
 
     /** What the library could not open, and whether the reader has been told. */
-    private val _skipped = MutableStateFlow(SkippedPublications())
+    internal val _skipped = MutableStateFlow(SkippedPublications())
     val skipped: StateFlow<SkippedPublications> = _skipped.asStateFlow()
     /** The reader put the notice away. `library-browsing` keeps the list reachable. */
     fun dismissSkipped() = _skipped.update { it.dismissing() }
@@ -225,7 +207,7 @@ class LibraryViewModel(
      * library of 10,000 to stay usable, and recomputing on every recomposition
      * would re-sort all of them each time.
      */
-    private val _visible = MutableStateFlow<List<Publication>>(emptyList())
+    internal val _visible = MutableStateFlow<List<Publication>>(emptyList())
     val visible: StateFlow<List<Publication>> = _visible.asStateFlow()
 
     /**
@@ -433,519 +415,6 @@ class LibraryViewModel(
         startWatching()
     }
 
-    /**
-     * Adds a picked folder.
-     *
-     * The caller takes the persistable permission before calling — it belongs to
-     * the `Intent` result and cannot be recovered afterwards.
-     */
-    fun addFolder(tree: Uri) {
-        if (tree in _folders.value) return
-        _folders.update { it + tree }
-        _unavailableFolders.update { it - nameOf(tree) }
-        register(tree)
-        rescan()
-        startWatching()
-    }
-
-    /**
-     * Records a folder as a source, if it is not one already.
-     *
-     * Named by the provider, and only then by its document id — [FolderSourceName] says why
-     * a folder was appearing as `primary:Audiobooks`. A folder picked twice is one source,
-     * and the reader's own name for it survives: `sources` requires a rename to stick, so
-     * re-adding must not overwrite one.
-     */
-    private fun register(tree: Uri) {
-        val segment = tree.lastPathSegment
-        val locator = tree.toString()
-        val name = FolderSourceName.of(SafTree.displayName(resolver, tree), segment, locator)
-        // Matched on where the folder *is*, not on what it is called. A reader who renames a
-        // source keeps its name; matching by name would fail to recognise it on the next
-        // launch and add the same folder a second time.
-        val existing = _registry.value.sources.firstOrNull {
-            it.kind == SourceKind.LOCAL_FOLDER && it.locator == locator
-        }
-        _registry.update {
-            when {
-                // Connected, not connecting. State is never persisted, so every source
-                // loads as connecting and something has to answer. For a folder the answer
-                // is immediate: there is nothing to probe.
-                existing == null -> it.adding(
-                    Source(
-                        displayName = name,
-                        kind = SourceKind.LOCAL_FOLDER,
-                        state = SourceConnectionState.Connected,
-                        locator = locator,
-                    ),
-                )
-                FolderSourceName.isRawDocumentId(existing.displayName, segment) ->
-                    it.renaming(existing.id, name).marking(existing.id, SourceConnectionState.Connected)
-                existing.state != SourceConnectionState.Connected ->
-                    it.marking(existing.id, SourceConnectionState.Connected)
-                else -> return
-            }
-        }
-        retireStaleFolderRows(name, locator) // 10.13
-        sourceStore?.save(_registry.value)
-    }
-
-    /**
-     * Renames a source.
-     *
-     * The identifier does not move, so everything referring to the source follows — which is
-     * what `sources` means by a name appearing "everywhere the source is referenced". The
-     * folder itself keeps its own name: a reader who calls a folder "Comics" has not asked
-     * to rename the directory.
-     */
-    /**
-     * Adds a source the reader configured elsewhere, such as a catalogue.
-     *
-     * Distinct from the folder path, which adopts a folder the app already found. A
-     * catalogue arrives already confirmed -- it answered, and it told us its name -- so
-     * there is nothing to match and nothing to probe.
-     */
-    fun addSource(source: Source) {
-        if (_registry.value[source.id] != null) return
-        _registry.update { it.adoptingOrReadding(source) }
-        sourceStore?.save(_registry.value)
-    }
-
-    /**
-     * Puts a re-authorised source back where it stood.
-     *
-     * `sources` requires "a single action to re-enter credentials" for a source that was
-     * refused. The sheet writes the new secret under the reference the registry already
-     * holds, so all this has to do is put the row back — and putting it *back* rather than
-     * adding it is the point: the position decides which of two sources wins for a title, and
-     * the identifier is what the downloads and the reading positions are filed under.
-     */
-    fun reconnectSource(source: Source) {
-        _registry.update { it.replacing(source) }
-        sourceStore?.save(_registry.value)
-    }
-
-    fun renameSource(source: Source, name: String) {
-        _registry.update { it.renaming(source.id, name) }
-        sourceStore?.save(_registry.value)
-    }
-
-    /**
-     * Moves a source one place, which decides precedence rather than merely display order.
-     *
-     * `sources`: the order "persists across launches", and "the library's combined view
-     * lists titles from higher sources first when two sources hold the same publication".
-     * The second clause needs no code here — the scan walks the registry in order and the
-     * first find of an identity wins — but it is why this writes through immediately.
-     *
-     * One place at a time, because that is what the two buttons on the screen offer. The
-     * arithmetic that turns "one place later" into the index a drag would have reported
-     * lives in `SourceRegistry`, where a test can reach it without a screen.
-     */
-    fun reorderSource(source: Source, later: Boolean) {
-        _registry.update { it.moving(source.id, later) }
-        sourceStore?.save(_registry.value)
-    }
-
-    /**
-     * Forgets a folder's source, and remembers that it was forgotten.
-     *
-     * The tombstone is what keeps reading progress for thirty days, per `sources`. It is
-     * left for the registry to collect rather than deleted here. 10.11: the rows go too, the
-     * same way [forget] already drops them for every other source kind.
-     */
-    private fun unregister(tree: Uri) {
-        val source = _registry.value.sources.firstOrNull {
-            it.kind == SourceKind.LOCAL_FOLDER && it.locator == tree.toString()
-        } ?: return
-        _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
-        sourceStore?.save(_registry.value)
-        dropRowsOf(source.id)
-    }
-
-    /**
-     * Removes a source, its secret, and the folder behind it when it has one.
-     *
-     * The permission goes back, and the registry keeps a tombstone so reading progress
-     * survives the thirty days the requirement promises. The downloads are gone by the time
-     * this runs: the app layer deletes them — files, records and Kavita cards — *before*
-     * calling this (`SettingsHost`'s `REMOVE`, through `removeDownloads`), because the
-     * registry entry is what attributes a download to a source, and this method's own job is
-     * the registry, the credential, the shelf and the 30-day tombstone. A comment here used
-     * to say files on disk are never touched, and a reading of it as the whole story called
-     * the confirmation dialog right when it was promising the opposite of what the button did.
-     *
-     * The secret goes first and unconditionally. `sources` requires removal to take "its
-     * stored credentials" with it, and until this nothing in the app had ever called
-     * [CredentialStore.remove]: the folder lookup below used to be the first statement, with
-     * a `?: return` on the end, so removing a Kavita server or an SMB share did nothing at
-     * all and its password stayed on the device for a server the reader believed was gone.
-     *
-     * `credentials` is a parameter rather than something the view model holds, matching
-     * [probeNetworkSources]: the store is a handle to the Keystore and this class has no
-     * other use for one.
-     */
-    fun removeSource(source: Source, credentials: CredentialStore?) {
-        val removal = SourceRemoval.of(source, _folders.value.map { it.toString() })
-        removal.credentialReference?.let { credentials?.remove(it) }
-
-        val tree = removal.folder?.let { named ->
-            _folders.value.firstOrNull { it.toString() == named }
-        }
-        if (tree != null) {
-            removeFolder(tree)
-            return
-        }
-        if (source.kind == SourceKind.LOCAL_FOLDER) source.locator?.let(Uri::parse)?.let(::releaseFolderGrant) // 10.13
-        forget(source)
-    }
-
-    /**
-     * Asks one source, now, and says so while it is asking.
-     *
-     * `sources`: a source's detail screen "offers actions to test the connection, refresh,
-     * clear the cache, remove downloads, and remove the source". Removal already existed;
-     * this and the two below did not, on either platform.
-     *
-     * Marked `Connecting` first. A test whose only visible effect arrives a network timeout
-     * later is a button a reader presses twice. A folder is asked of the content resolver
-     * rather than of a network: it is either still readable or it is not, which is the
-     * distinction [SourceProbe.isRemote] draws.
-     *
-     * iOS's `LibraryModel.test` answers the same way.
-     */
-    fun testSource(source: Source, credentials: CredentialStore?, pins: CertificatePins) {
-        if (!SourceProbe.isRemote(source.kind)) {
-            _registry.update { it.marking(source.id, folderState(source)) }
-            return
-        }
-        viewModelScope.launch {
-            _registry.update { it.marking(source.id, SourceConnectionState.Connecting) }
-            val application = getApplication<Application>().speakingReaderLanguage()
-            val reason = application.getString(R.string.source_state_unauthorized)
-            val encryption = application.getString(R.string.smb_error_encryption)
-            val state = SourceHealth.probe(
-                source,
-                credentials,
-                pins,
-                System.currentTimeMillis(),
-                reason,
-                encryption,
-            )
-            _registry.update { it.marking(source.id, state) }
-        }
-    }
-
-    /**
-     * Re-fetches what one source holds.
-     *
-     * The test first, because a refresh of a source that is not answering is a walk that
-     * finds nothing — and a walk that finds nothing is deliberately not allowed to empty the
-     * shelf. For a folder the walk is the refresh; for a server the probe is, since a
-     * server's contents are browsed rather than folded into the shelf.
-     */
-    fun refreshSource(source: Source, credentials: CredentialStore?, pins: CertificatePins) {
-        testSource(source, credentials, pins)
-        if (source.kind == SourceKind.LOCAL_FOLDER) rescan()
-    }
-
-    /**
-     * Drops what is cached for one source, and nothing else.
-     *
-     * The rows go, the on-disk snapshot is rewritten without them, and the next refresh puts
-     * back whatever is still there. Downloads are untouched: `sources` lists clearing the
-     * cache and removing downloads as two actions, and a reader on a train who meant the
-     * first must not get the second.
-     *
-     * Cover *files* are not swept one by one. They live in the cache directory keyed by
-     * publication, are evicted under storage pressure, and Privacy's "Clear cache" takes the
-     * lot — so those bytes are already reachable by something the reader can press.
-     */
-    fun clearSourceCache(source: Source) {
-        val gone = _publications.value.filter { it.sourceId == source.id }.map { it.id }
-        if (gone.isEmpty()) return
-        _publications.update { list -> list.filterNot { it.id in gone } }
-        gone.forEach { covers.remove(it); locations.remove(it) }
-        writeShelfThrough()
-        rebuild()
-    }
-
-    /**
-     * Whether a folder source can still be read.
-     *
-     * The persisted permission is the question. A tree the system no longer grants is a
-     * folder the app cannot open, whatever is on the card — and the answer is grey rather
-     * than red, because `local-library` names an unavailable folder separately and "offline
-     * is a normal state, not an error".
-     */
-    private fun folderState(source: Source): SourceConnectionState {
-        val granted = resolver.persistedUriPermissions.any {
-            it.uri.toString() == source.locator && it.isReadPermission
-        }
-        return if (granted) {
-            SourceConnectionState.Connected
-        } else {
-            SourceConnectionState.Unreachable(System.currentTimeMillis())
-        }
-    }
-
-    /**
-     * Drops a source that has no folder behind it — a catalogue, a Kavita server, a share.
-     *
-     * The tombstone rather than a discard, for the reason [unregister] gives: `sources`
-     * keeps reading progress for thirty days so re-adding the same server restores where the
-     * reader stopped. The publications it contributed go with it and the rest of the shelf
-     * stays. Its downloads are not this method's to touch and are already gone: the app layer
-     * deleted them before [removeSource] was called, as that method's note says.
-     */
-    private fun forget(source: Source) {
-        _registry.update { it.removing(source.id, System.currentTimeMillis(), identitiesHeld(source.id)) }
-        sourceStore?.save(_registry.value)
-        dropRowsOf(source.id)
-        rebuild()
-    }
-
-    /** Removes a folder and gives its permission back. */
-    fun removeFolder(tree: Uri) {
-        _folders.update { it - tree }
-        unregister(tree)
-        releaseFolderGrant(tree)
-        snapshots.remove(tree.toString())
-        rescan()
-        startWatching()
-    }
-
-    /**
-     * Walks the folders again, without emptying the shelf first.
-     *
-     * `sources` asks a refresh to update "the view incrementally rather than clearing it
-     * and re-populating". This used to do the opposite: every pull-to-refresh blanked the
-     * library, threw away every decoded cover, and rebuilt the lot — so the reader watched
-     * their shelf disappear and come back, and the covers were decoded twice for nothing.
-     * iOS has always appended; this is Android catching up.
-     *
-     * What the walk *does* remove is a publication it no longer finds, which is the
-     * requirement's other half: "the publication is removed from the library view and its
-     * reading progress is retained". Retaining the progress needs no code — it lives in
-     * `ProgressStore`, keyed by identity, and nothing here touches it. A file that comes
-     * back finds its position waiting.
-     *
-     * Every folder, and the managed folder when there are none — under one job rather than
-     * one job each, so cancelling is a single action and the found count is the library's
-     * rather than a folder's.
-     */
-    fun rescan() {
-        scanJob?.cancel()
-        restoreCachedLibrary()
-        _scanState.value = LibraryScanState.Scanning(_publications.value.size)
-
-        val trees = _folders.value
-        // Put back before the walk starts, so a reader who left mid-scan comes back to the
-        // library they had rather than to an empty grid filling up again.
-        val resumed = trees.associate { tree ->
-            tree.toString() to journal?.indexed(tree.toString()).orEmpty()
-        }
-        for ((tree, publications) in resumed) {
-            val sourceId = sourceOf(Uri.parse(tree))
-            for (publication in publications) {
-                adopt(publication, sourceId)
-                publication.identity.normalizedPath?.let { locations[publication.id] = it }
-            }
-        }
-        if (_publications.value.isNotEmpty()) {
-            _scanState.value = LibraryScanState.Scanning(_publications.value.size)
-            rebuild()
-        }
-
-        scanJob = viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                var found = _publications.value.size
-                // The pairs, not a tally -- see [SkippedPublications].
-                val refusals = mutableListOf<SkippedPublications.Entry>()
-                // What each walk actually saw, so what it did not see can go afterwards --
-                // per source, never pooled. See [ScanReconciliation].
-                val seenBySource = mutableMapOf<UUID?, MutableSet<String>>()
-                // And which of them could not account for themselves. A walk that met a
-                // directory it could not list has not proved anything absent -- see
-                // [ScanReconciliation] and [cacheLibrary], which are the two decisions that
-                // used to treat "found nothing" and "could see nothing" as one answer.
-                val partial = mutableSetOf<UUID?>()
-                // Each walk carries the tree it came from, so a publication can be
-                // attributed to the source it was reached through. The managed folder is
-                // not a source, so its walk carries null -- and it is walked on every scan,
-                // never instead of the picked trees. See [ScanTargets].
-                val walks: List<Pair<Uri?, Flow<ScanEvent>>> =
-                    ScanTargets.of(trees.map { it.toString() }).map { target ->
-                        // The scope this walk answers for, resolved once so the reporter
-                        // below closes over it rather than over the loop variable.
-                        val scope = sourceOf(target?.let(Uri::parse))
-                        val unreadable: (String) -> Unit = { partial += scope }
-                        if (target == null) {
-                            return@map null to
-                                LibraryScanner.scan(managedFolder, onUnreadableFolder = unreadable, coverCacheDir = audiobookCoverCacheDir)
-                        }
-                        val tree = Uri.parse(target)
-                        // Matched on the path, which is what a directory walk knows. A
-                        // publication whose identity is a content digest is still filed
-                        // under the document it came out of.
-                        val done = resumed[target]
-                            .orEmpty()
-                            .mapNotNull { it.identity.normalizedPath }
-                            .toSet()
-                        tree to LibraryScanner.scan(resolver, tree, done, audiobookCoverCacheDir, unreadable)
-                    }
-                for ((tree, walk) in walks) {
-                    scanningFolder = tree?.toString()
-                    scanned = resumed[tree?.toString()].orEmpty().toMutableList()
-                    // Present and empty before the walk starts: a scope that was walked and
-                    // found nothing has to be distinguishable from one nothing walked.
-                    val seen = seenBySource.getOrPut(sourceOf(tree)) { mutableSetOf() }
-                    walk.collect { event ->
-                        when (event) {
-                            is ScanEvent.Found -> {
-                                seen += event.publication.id
-                                append(event.publication, tree)
-                            }
-                            is ScanEvent.Skipped -> refusals += event.asRefusal()
-                            is ScanEvent.Finished -> {
-                                found += event.found
-                                // Nothing left to resume. Cleared rather than kept: this is
-                                // a journal, not the metadata cache `sources` asks for, and
-                                // a journal that outlived its scan would be a stale library
-                                // nobody decided to keep.
-                                tree?.let { journal?.clear(it.toString()) }
-                            }
-                        }
-                    }
-                }
-                // Anything a walk did not meet is gone from the folder that walk covered.
-                // Only ever a removal of rows, never a clear: a reader watching the screen
-                // sees the one book they deleted leave, not the whole shelf blink. And only
-                // from a source whose own walk saw something — [ScanReconciliation] carries
-                // the argument, and why asking it of the scan as a whole stopped being safe.
-                val vanished = ScanReconciliation.vanished(
-                    seenBySource,
-                    _publications.value.map { it.id to it.sourceId },
-                    partial,
-                )
-                if (vanished.isNotEmpty()) {
-                    _publications.update { list -> list.filterNot { it.id in vanished } }
-                    vanished.forEach { covers.remove(it); locations.remove(it) }
-                }
-                scanningFolder = null
-                scanned = mutableListOf()
-                _scanState.value = LibraryScanState.Finished(found, refusals.size)
-                // Once, after every tree -- settling replaces the list, it does not add.
-                _skipped.value = _skipped.value.settling(refusals)
-                // What each folder held at the moment the scan agreed with it. Without this
-                // the first reconcile would see every file as new and re-read the whole
-                // library to learn nothing.
-                for (tree in trees) {
-                    snapshots[tree.toString()] =
-                        FolderSnapshot.of(LibraryScanner.entries(resolver, tree))
-                }
-                rebuild()
-                cacheLibrary(partial.isNotEmpty())
-                // The digests this walk computed, handed to the store that keeps reading
-                // positions. A position written before digests existed carries a path alone,
-                // so the first rename lost it; [ProgressStore.save] repairs that only when
-                // the reader opens the book again, which a reader who tidies first never
-                // does. Once, at the end, over the whole shelf: [ProgressStore.link] writes
-                // only what is new, so a linked library writes nothing. It is not free --
-                // `existing` queries by server key, then digest, then path, and stops at the
-                // first hit, so a publication nobody has read costs two indexed lookups.
-                // Nothing here digests anything. iOS does the same in `LibraryModel.scan`.
-                for (publication in _publications.value) {
-                    progressStore?.link(publication.identity)
-                }
-            }
-            // After the walk, not before it. Recorded positions are matched against
-            // the publications the scan produced, so refreshing while the list is
-            // still empty matches nothing and every cover opens without its bar.
-            refreshProgress()
-        }
-    }
-
-    /**
-     * Brings finished downloads onto the shelf, each attributed to its source.
-     *
-     * `library-browsing`'s first requirement is one library "spanning every source", and a
-     * download is how a publication from a server comes to be on this device. Until this
-     * existed the shelf held what a folder scan found and nothing else: a reader who had
-     * downloaded forty chapters from Kavita saw none of them in their library, and could
-     * only reach them by browsing back to the server they came from -- which is the opposite
-     * of taking a library with you, and made the source selector a list of sources with
-     * nothing behind them.
-     *
-     * The tree is walked rather than each record's path being reconstructed. The record says
-     * what a download is called and the writers have not always agreed on the file's name;
-     * they have always agreed on the *directory*, which is what [DownloadStore.download]
-     * matches on.
-     *
-     * Only finished downloads. A running one is a partial file, and indexing a truncated
-     * archive produces either an error or, worse, a publication with three of its pages.
-     */
-    fun adoptDownloads() {
-        val store = downloadStore ?: return
-        viewModelScope.launch {
-            val downloads = store.library()
-            if (downloads.finished.isEmpty()) return@launch
-
-            var added = false
-            withContext(Dispatchers.IO) {
-                LibraryScanner.scan(store.directory, coverCacheDir = audiobookCoverCacheDir).collect { event ->
-                    val publication = (event as? ScanEvent.Found)?.publication ?: return@collect
-                    val path = publication.identity.normalizedPath ?: return@collect
-                    val record = store.download(File(path), downloads) ?: return@collect
-                    if (!record.state.isFinished) return@collect
-                    // What the server said wins over what the file says, and the card also
-                    // names the row this file is a copy of. Both in [DownloadFold.described];
-                    // this is the one place every kept download passes through.
-                    val described = DownloadFold.described(publication, cards?.card(publication.id), record)
-                    if (adopt(described, record.sourceId, path)) added = true
-                }
-            }
-            if (!added) return@launch
-            rebuild()
-            // Their reading positions too. A chapter downloaded and then read has a position
-            // on this device like any other, and the bar under its cover is how a reader sees
-            // that the library and the reader are talking about the same book.
-            refreshProgress()
-        }
-    }
-
-    /**
-     * Puts one downloaded publication on the shelf.
-     *
-     * Returns whether the shelf actually changed, so a walk that found nothing new does not
-     * trigger a re-sort of the whole library.
-     *
-     * A publication already there is not added twice: identity decides, not the path, so a
-     * comic that lives in a picked folder *and* was downloaded is one row (ADR-0006). The
-     * existing row gains the attribution when it had none, for the same reason a second
-     * folder scan hands one over -- a row that knows where it came from beats one that does
-     * not, whichever found it first.
-     */
-    private fun adopt(publication: Publication, sourceId: UUID?, path: String): Boolean {
-        val seen = DownloadFold.rowFor(_publications.value, publication)
-        if (seen != null) {
-            if (_publications.value[seen].sourceId == null && sourceId != null) {
-                _publications.update { current ->
-                    current.mapIndexed { index, existing ->
-                        if (index == seen) existing.copy(sourceId = sourceId) else existing
-                    }
-                }
-            }
-            // The row learns where its bytes are and keeps everything else, key included.
-            locations[_publications.value[seen].id] = path
-            return false
-        }
-
-        locations[publication.id] = path
-        _publications.update { it + publication.copy(sourceId = sourceId) }
-        return true
-    }
-
     // [itemCount] and [isPartial] moved to `LibrarySourceStats.kt`: this file is at its
     // recorded line-cap ceiling (`scripts/line-cap.mjs`), and 22.1-smb-opds needs the two
     // continuation-cursor properties below it.
@@ -959,82 +428,6 @@ class LibraryViewModel(
     /** A partial catalogue's next feed link. [OpdsContributor.page] resumes from it. */
     internal var opdsNext: Map<UUID, String> by mutableStateOf(emptyMap())
 
-    /** The source a tree belongs to. [folderSourceOf] holds the rule. */
-    private fun sourceOf(tree: Uri?): UUID? = _registry.value.folderSourceOf(tree)
-
-    fun cancelScan() {
-        scanJob?.cancel()
-        scanJob = null
-        // Written down rather than lost, which is what makes the next scan of this folder a
-        // resumption instead of a repetition.
-        scanningFolder?.let { journal?.record(scanned, it) }
-        (_scanState.value as? LibraryScanState.Scanning)?.let {
-            _scanState.value = LibraryScanState.Finished(it.found, 0)
-        }
-    }
-
-    private fun append(publication: Publication, tree: Uri? = null) {
-        // Attributed here rather than by the indexer, which reads bytes and has no idea a
-        // registry exists. `sources` needs this for a source's item count, and
-        // `library-browsing` for the order two sources holding one title appear in.
-        if (!adopt(publication, sourceOf(tree))) return
-        (_scanState.value as? LibraryScanState.Scanning)?.let {
-            _scanState.value = LibraryScanState.Scanning(it.found + 1)
-        }
-        // ponytail: re-arranged in batches during a scan, not per publication --
-        // sorting after every one of 10,000 appends is quadratic. The scan's own
-        // completion rebuilds the rest, so the only visible effect is that the
-        // last few rows arrive together.
-        if (_publications.value.size % REBUILD_EVERY == 0) rebuild()
-        // Written down on the same beat. A journal flushed per publication would cost a
-        // preferences write per file; one every two dozen loses at most that many to a
-        // process the system reclaims without warning -- which is the case this exists for,
-        // because a killed process runs no cleanup of its own.
-        scanned += publication
-        val folder = scanningFolder
-        if (folder != null && scanned.size % REBUILD_EVERY == 0) journal?.record(scanned, folder)
-    }
-
-    /**
-     * Puts a publication in the library under the source it was reached through, and says
-     * whether it was new.
-     *
-     * Shared by the folder scan and by the imported copies, which find publications two
-     * entirely different ways and have to agree about what one row means.
-     */
-    internal fun adopt(publication: Publication, sourceId: UUID?): Boolean {
-        val seen = _publications.value.indexOfFirst { it.identity.matches(publication.identity) }
-        if (seen >= 0) {
-            // Unless this find came through a source the reader put higher. `sources`: the
-            // combined view "lists titles from higher sources first when two sources hold the
-            // same publication" -- so the registry's order decides which copy the row is, not
-            // which scan happened to reach it first. [SourcePrecedence] is where that
-            // comparison lives and where it is asserted.
-            //
-            // The unattributed case falls out of the same rule: the app's own files directory
-            // is scanned before any source is restored, so a reader whose library lives there
-            // had every publication found with no source at all -- and a source holding eleven
-            // books reported nought. Null ranks last, so the source wins.
-            val existing = _publications.value[seen]
-            if (!LibraryMerge.replaces(sourceId, existing.sourceId, _registry.value.sources)) {
-                return false
-            }
-            _publications.update { current ->
-                current.mapIndexed { index, each ->
-                    if (index != seen) each else LibraryMerge.merged(each, publication, sourceId, existing.id in locations)
-                }
-            }
-            // The file goes with the attribution. A row that says one source and opens the
-            // other source's copy is the same bug wearing a different hat.
-            publication.identity.normalizedPath?.let { locations[existing.id] = it }
-            return false
-        }
-
-        publication.identity.normalizedPath?.let { locations[publication.id] = it }
-        _publications.update { it + publication.copy(sourceId = sourceId) }
-        return true
-    }
-
     /**
      * The folder being walked, and what has been indexed in it so far.
      *
@@ -1042,8 +435,8 @@ class LibraryViewModel(
      * a scan to be "cancellable and resumable", which are one promise: a reader who stops a
      * scan and starts it again should not wait for the same archives twice.
      */
-    private var scanningFolder: String? = null
-    private var scanned: MutableList<Publication> = mutableListOf()
+    internal var scanningFolder: String? = null
+    internal var scanned: MutableList<Publication> = mutableListOf()
 
     // Watched changes
 
@@ -1056,91 +449,13 @@ class LibraryViewModel(
      * publications themselves are not cached either, so a snapshot read from disk would
      * describe a library this process has not built yet.
      */
-    private val snapshots = mutableMapOf<String, FolderSnapshot>()
+    internal val snapshots = mutableMapOf<String, FolderSnapshot>()
 
-    private val watcher = FolderWatcher(resolver)
-
-    /**
-     * Watches every folder the reader added.
-     *
-     * Called whenever the set of folders changes, which is the only thing that invalidates
-     * what is being watched.
-     */
-    private fun startWatching() {
-        if (_folders.value.isEmpty()) {
-            watcher.stop()
-            return
-        }
-        watcher.watch(_folders.value) { reconcileWatchedFolders() }
-    }
-
-    /** Stops watching. The library stays; only the registrations go. */
-    fun stopWatching() {
-        watcher.stop()
-    }
+    internal val watcher = FolderWatcher(resolver)
 
     override fun onCleared() {
         watcher.stop()
         super.onCleared()
-    }
-
-    /** Brings every watched folder up to date, and re-checks that each can still be read. */
-    fun reconcileWatchedFolders() {
-        val restored = SafTree.persistedTrees(resolver)
-        refreshFolderAvailability(restored, restored.filter { SafTree.displayName(resolver, it) != null })
-        val trees = _folders.value
-        if (trees.isEmpty()) return
-        viewModelScope.launch {
-            for (tree in trees) reconcile(tree)
-        }
-    }
-
-    /**
-     * Notices what changed in one folder, and re-reads only that: nothing, in the common
-     * case of an unchanged listing, and nothing while it has no snapshot yet either -- the
-     * running scan owns that one, and an empty fallback used to report every file as added.
-     */
-    private suspend fun reconcile(tree: Uri) {
-        val snapshot = snapshots[tree.toString()].takeIf(::mayReconcile) ?: return
-        val listing = withContext(Dispatchers.IO) { LibraryScanner.listing(resolver, tree) }
-        val walked = listing.map { it.entry }
-        // Null means the walk found nothing where something used to be -- an unreadable
-        // folder far more often than a reader who deleted every book. Nothing is removed and
-        // the snapshot is left alone; see `FolderSnapshot.change`.
-        val change = snapshot.change(walked) ?: return
-        if (change.isEmpty) return
-
-        val sourceId = sourceOf(tree)
-        // A changed file is re-read from scratch rather than patched: its series, its page
-        // count and its cover can all have moved, and there is no cheaper honest answer.
-        for (path in change.removed + change.changed.map { it.path }) forget(path)
-
-        val byPath = listing.associateBy { it.entry.path }
-        for (entry in change.toIndex) {
-            val listed = byPath[entry.path] ?: continue
-            val publication = withContext(Dispatchers.IO) {
-                runCatching { LibraryScanner.index(resolver, tree, listed, audiobookCoverCacheDir) }.getOrNull()
-            } ?: continue
-            adopt(publication, sourceId)
-            locations[publication.id] = entry.path
-        }
-
-        snapshots[tree.toString()] = snapshot.updated(walked)
-        rebuild()
-        refreshProgress()
-    }
-
-    /**
-     * Drops the row for a file that has gone or has been replaced.
-     *
-     * By path rather than by identity, because the path is the only thing a directory
-     * listing knows -- and it is what [locations] is keyed on for exactly this.
-     */
-    private fun forget(path: String) {
-        val gone = locations.filterValues { it == path }.keys.toSet()
-        if (gone.isEmpty()) return
-        _publications.update { current -> current.filterNot { it.id in gone } }
-        locations.keys.removeAll(gone)
     }
 
     // Imported copies
@@ -1152,147 +467,11 @@ class LibraryViewModel(
      * should be the exception: a reader who picked the wrong file needs to know it was the
      * file rather than the app.
      */
-    private val _importFailure = MutableStateFlow<ImportFailure?>(null)
+    internal val _importFailure = MutableStateFlow<ImportFailure?>(null)
     val importFailure: StateFlow<ImportFailure?> = _importFailure.asStateFlow()
 
     fun dismissImportFailure() {
         _importFailure.value = null
-    }
-
-    /**
-     * Copies a publication into app storage and puts it in the library.
-     *
-     * The copy is indexed the same way a scanned file is, through [PublicationIndexer], so
-     * an imported comic carries the same title, series and cover a found one does. Indexing
-     * the *copy* rather than the original is what makes the promise true: from here on the
-     * library reads only bytes the app owns.
-     */
-    fun importFile(uri: Uri) {
-        val store = downloadStore ?: return
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) {
-                runCatching { store.importing(resolver, uri, store.library()) }
-            }
-            val copy = result.getOrNull()
-            if (copy == null) {
-                // Named, not silent, and naming the format when that is why (10.8).
-                val unsupported = result.exceptionOrNull() as? ImportedCopies.ImportException.Unsupported
-                _importFailure.value = withContext(Dispatchers.IO) {
-                    ImportFailure(documentNameOf(resolver, uri), unsupported?.format)
-                }
-                return@launch
-            }
-            registerImportedSource()
-            indexImport(copy.file)
-            rebuild()
-        }
-    }
-
-    /**
-     * Reconciles the library with what has actually been imported.
-     *
-     * Called on every resume rather than once on launch, because the copies can change while
-     * the library is off screen: Settings is where one is deleted, and a library that only
-     * read the store at startup would keep offering a book whose bytes are gone.
-     */
-    fun refreshImports() {
-        val store = downloadStore ?: return
-        viewModelScope.launch {
-            val imports = withContext(Dispatchers.IO) { store.imports(store.library()) }
-            val files = imports.map { store.locationOf(it).absolutePath }.toSet()
-
-            // Rows whose copy has been deleted go. The record is the authority here, not a
-            // filesystem walk: this store is the app's own, so an empty list means the
-            // reader deleted their last import rather than that a folder could not be read.
-            _publications.update { current ->
-                current.filterNot { publication ->
-                    publication.sourceId == ImportedCopies.SOURCE_ID &&
-                        locations[publication.id].orEmpty() !in files
-                }
-            }
-
-            if (imports.isEmpty()) {
-                forgetImportedSource()
-                rebuild()
-                return@launch
-            }
-
-            registerImportedSource()
-            for (download in imports) {
-                val file = store.locationOf(download)
-                if (!file.exists() || file.absolutePath in locations.values) continue
-                indexImport(file)
-            }
-            rebuild()
-        }
-    }
-
-    /** What all the imported copies weigh, for a screen that reports the space used. */
-    suspend fun importedBytes(): Long {
-        val store = downloadStore ?: return 0
-        return withContext(Dispatchers.IO) {
-            store.imports(store.library()).sumOf { it.downloadedBytes }
-        }
-    }
-
-    private suspend fun indexImport(file: File) {
-        val publication = withContext(Dispatchers.IO) {
-            runCatching { PublicationIndexer.index(file) }.getOrNull()
-        } ?: return
-        adopt(publication, ImportedCopies.SOURCE_ID)
-        // Set again rather than left to `adopt`: the identity of a PDF or an EPUB can carry
-        // a content digest instead of a path, and the reader still has to be handed the file.
-        locations[publication.id] = file.absolutePath
-    }
-
-    /**
-     * Puts "On this device" in the registry, if it is not there already.
-     *
-     * Added the moment there is something in it rather than at launch: `sources` requires
-     * the empty state to name the four source types, and a fifth row for a source holding
-     * nothing would be a source the reader never added.
-     *
-     * The name is [importedSourceName], asked again on every call because it is translated.
-     */
-    private fun registerImportedSource() {
-        val named = importedSourceName()
-        if (keptImportedSourceNamed(named)) return
-        _registry.update {
-            it.adding(
-                Source(
-                    id = ImportedCopies.SOURCE_ID,
-                    displayName = named,
-                    kind = SourceKind.LOCAL_FOLDER,
-                    state = SourceConnectionState.Connected,
-                    // Not a tree `Uri`, and deliberately something no picked folder can be:
-                    // a folder's locator is the `Uri` the picker returned, which always
-                    // carries a scheme. Without that, a matching folder would be adopted as
-                    // the reader's imports.
-                    locator = IMPORTED_LOCATOR,
-                ),
-            )
-        }
-        sourceStore?.save(_registry.value)
-    }
-
-    /**
-     * Takes "On this device" out again when the last copy has been deleted.
-     *
-     * Discarded rather than tombstoned. A tombstone says the reader removed a source and
-     * their progress should outlive it; this source was never added by hand, and holding
-     * thirty days of retention open for it would be retention for nothing.
-     */
-    private fun forgetImportedSource() {
-        if (_registry.value[ImportedCopies.SOURCE_ID] == null) return
-        _registry.update { it.discarding(ImportedCopies.SOURCE_ID) }
-        sourceStore?.save(_registry.value)
-    }
-
-    private companion object {
-        const val REBUILD_EVERY = 24
-
-        /** What "On this device" points at, which is not a folder anyone picked. */
-        const val IMPORTED_LOCATOR = "storyarc/imported"
     }
 
     fun setQuery(value: LibraryQuery) {
@@ -1531,38 +710,6 @@ class LibraryViewModel(
     fun finishedPublications(): Set<String> =
         progress.filterValues { it.isFinished }.keys
 
-    fun createCollection(name: String) {
-        if (name.isBlank()) return
-        _shelves.update { it.adding(PublicationCollection(name = name.trim())) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun createList(name: String) {
-        if (name.isBlank()) return
-        _shelves.update { it.adding(ReadingList(name = name.trim())) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun addToCollection(members: Set<String>, id: UUID) {
-        _shelves.update { it.adding(members, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun appendToList(entries: List<String>, id: UUID) {
-        _shelves.update { it.appending(entries, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun removeFromList(entry: String, id: UUID) {
-        _shelves.update { it.removing(entry, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    fun moveInList(entry: String, destination: Int, id: UUID) {
-        _shelves.update { it.moving(entry, destination, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
     /**
      * The app's own download store, for keeping a library publication on the device.
      *
@@ -1589,107 +736,4 @@ class LibraryViewModel(
 
     /** Forgets copies [keepOffline] made, deleting the files with them. */
     fun forgetKept(ids: Set<String>) = KeepOffline.forget(downloads, ids, downloadQueue)
-
-    fun removeFromCollection(members: Set<String>, id: UUID) {
-        _shelves.update { it.removing(members, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    // Bulk actions: the single-publication paths, applied to a set. Each answers with what
-    // it changed rather than with nothing, because the undo is built from the change --
-    // [BulkSelection] works out what that is, and these carry it out.
-
-    /** Adds a whole selection to a collection. */
-    fun addSelectionToCollection(selection: Set<String>, id: UUID): Set<String> {
-        val collection = _shelves.value.collections.firstOrNull { it.id == id } ?: return emptySet()
-        val joining = BulkSelection.joining(selection, collection)
-        if (joining.isEmpty()) return emptySet()
-        addToCollection(joining, id)
-        return joining
-    }
-
-    /** Appends a whole selection to a reading list, in the order the library is showing it. */
-    fun appendSelectionToList(selection: Set<String>, id: UUID): List<String> {
-        val list = _shelves.value.lists.firstOrNull { it.id == id } ?: return emptyList()
-        val entries = BulkSelection.appending(selection, list, _visible.value.map { it.id })
-        if (entries.isEmpty()) return emptyList()
-        appendToList(entries, id)
-        return entries
-    }
-
-    /**
-     * Deletes a shelf the reader has confirmed, and not one they have not.
-     *
-     * The only way a shelf leaves the app, and it takes a [ShelfDeletion] -- which can only be
-     * answered by the dialogue that presents it. The two calls this replaced took a bare
-     * identity, so a caller could delete a hand-built collection without asking, and one did.
-     * `collections-and-reading-lists` requires the confirmation, and the signature is what
-     * makes it required rather than remembered.
-     */
-    internal fun delete(deletion: ShelfDeletion) {
-        _shelves.update { deletion.apply(it) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    /**
-     * Gives a collection a cover of its own, or hands it back to the composite with `null`.
-     *
-     * `collections-and-reading-lists` makes the composite what a collection wears "unless the
-     * user sets a specific one". [Shelves.settingCover] has always been able to store the
-     * choice; this is the first thing that asks it to.
-     */
-    fun setCollectionCover(member: String?, id: UUID) {
-        _shelves.update { it.settingCover(member, id) }
-        shelvesStore?.save(_shelves.value)
-    }
-
-    /**
-     * What to offer when a publication is finished.
-     *
-     * A reading list wins over a series. `collections-and-reading-lists`: when a reader
-     * finishes an entry in a list, "the next entry in list order is offered, regardless of
-     * series or source" -- a crossover read in publication order is exactly a case where the
-     * series' own next issue is the wrong answer.
-     *
-     * The first list containing it decides, when a publication is in several. Any rule here
-     * is arbitrary; this one is at least the reader's own order, since the lists are in the
-     * order they made them.
-     *
-     * Falls back to the series, which is what `comic-reader` asks for and what a reader who
-     * keeps no lists will always get.
-     */
-    fun next(after: Publication): Publication? {
-        val known = _publications.value
-        for (list in _shelves.value.lists) {
-            if (after.id !in list.entries) continue
-            // An entry whose publication is gone does not stop the flow: walk forward
-            // past every unavailable entry before trying the next list or the series.
-            var cursor = after.id
-            while (true) {
-                cursor = list.next(cursor) ?: break
-                known.firstOrNull { it.id == cursor }?.let { return it }
-            }
-        }
-        return LibraryIndex.next(after, known)
-    }
-
-    /**
-     * What the reader came from, for `comic-reader`'s previous-chapter action.
-     *
-     * The mirror of [next] and resolved the same way, list before series: a reader who
-     * arranged a crossover expects to walk back through their own order, not through the
-     * issue numbers it cuts across.
-     */
-    fun previous(before: Publication): Publication? {
-        val known = _publications.value
-        for (list in _shelves.value.lists) {
-            if (before.id !in list.entries) continue
-            var cursor = before.id
-            while (true) {
-                cursor = list.previous(cursor) ?: break
-                known.firstOrNull { it.id == cursor }?.let { return it }
-            }
-        }
-        return LibraryIndex.previous(before, known)
-    }
 }

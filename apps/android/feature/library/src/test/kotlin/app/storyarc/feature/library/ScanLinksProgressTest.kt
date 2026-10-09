@@ -36,7 +36,8 @@ class ScanLinksProgressTest {
         assertTrue("$VIEW_MODEL_SOURCE is not at ${source.absolutePath}", source.isFile)
         // The KDoc on the call quotes the defect in order to say it is closed, and a guard
         // that read the prose would pass on the documentation of the fix.
-        return source.readText().lineSequence().joinToString("\n") { it.substringBefore("//") }
+        val scan = File(source.parentFile, SCAN_SOURCE).readText()
+        return (source.readText() + scan).lineSequence().joinToString("\n") { it.substringBefore("//") }
     }
 
     /** [code] with each run of whitespace collapsed, so an assertion can quote a statement. */
@@ -77,6 +78,9 @@ class ScanLinksProgressTest {
         const val MODULE_DIRECTORY = "storyarc.library.projectDir"
         const val VIEW_MODEL_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
+
+        /** The view model's walk, kept beside it in its own file. */
+        const val SCAN_SOURCE = "LibraryViewModelScan.kt"
 
         /** The call that closes the window. */
         const val LINKED = "progressStore?.link("

@@ -43,7 +43,7 @@ class SourceRetryWiringTest {
 
     private val retry: String by lazy { read(RETRY_SOURCE) }
     private val triggers: String by lazy { read(TRIGGERS_SOURCE) }
-    private val viewModel: String by lazy { read(VIEWMODEL_SOURCE) }
+    private val viewModel: String by lazy { read(VIEWMODEL_SOURCE) + read(SOURCES_SOURCE) }
 
     /**
      * The body of `probeEverySource`, not the whole file. Task 7.5: "pushed on
@@ -244,5 +244,7 @@ class SourceRetryWiringTest {
             "src/main/kotlin/app/storyarc/feature/library/SourceRetryTriggers.kt"
         const val VIEWMODEL_SOURCE =
             "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt"
+        const val SOURCES_SOURCE =
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModelSources.kt"
     }
 }

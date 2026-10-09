@@ -25,6 +25,7 @@ import app.storyarc.feature.library.LibraryScreen
 import app.storyarc.feature.library.SearchScreen
 import app.storyarc.feature.library.SourceRetryTriggers
 import app.storyarc.feature.library.probe
+import app.storyarc.feature.library.reconcileWatchedFolders
 import app.storyarc.feature.library.retryUnreachableSources
 import app.storyarc.navigation.AppDestination
 import app.storyarc.navigation.AppSheet

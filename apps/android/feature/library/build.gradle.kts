@@ -88,6 +88,13 @@ tasks.withType<Test>().configureEach {
         layout.projectDirectory.file(
             "src/main/kotlin/app/storyarc/feature/library/LibraryViewModel.kt",
         ),
+        // The walk and the source edits moved beside it to keep it under the line cap.
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModelScan.kt",
+        ),
+        layout.projectDirectory.file(
+            "src/main/kotlin/app/storyarc/feature/library/LibraryViewModelSources.kt",
+        ),
     )
         .withPropertyName("skippedScanWiringSource")
         .withPathSensitivity(PathSensitivity.RELATIVE)
