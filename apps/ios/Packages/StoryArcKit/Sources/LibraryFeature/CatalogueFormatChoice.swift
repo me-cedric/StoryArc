@@ -36,6 +36,7 @@ struct CatalogueFormatChoice: View {
                         .padding(.vertical, StoryArcSpace.xs)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(theme.accent)
 
                 if isDownloaded {
                     Button(role: .destructive, action: onRemove) {

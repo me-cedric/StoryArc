@@ -57,6 +57,7 @@ public struct WhatsNewSheet: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
             .controlSize(.large)
             .padding(.horizontal, StoryArcSpace.gutter)
             .padding(.vertical, StoryArcSpace.lg)

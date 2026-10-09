@@ -186,7 +186,7 @@ private struct ThumbnailCell: View {
                     Text(verbatim: badgeText)
                         .textRole(.caption)
                         .fontWeight(.semibold)
-                        .foregroundStyle(theme.accent)
+                        .foregroundStyle(theme.accentText)
                         .padding(.horizontal, StoryArcSpace.xs)
                         .padding(.vertical, StoryArcSpace.hair)
                         .background(.thinMaterial, in: Capsule())
@@ -213,7 +213,7 @@ private struct ThumbnailCell: View {
                 // The number, not only the border: `native-experience` forbids
                 // colour as the only signal, and a border is only colour.
                 .fontWeight(isCurrent ? .semibold : .regular)
-                .foregroundStyle(isCurrent ? theme.accent : theme.palette.textTertiary)
+                .foregroundStyle(isCurrent ? theme.accentText : theme.palette.textTertiary)
         }
         .contentShape(.rect)
         .onTapGesture { onSelect(index) }

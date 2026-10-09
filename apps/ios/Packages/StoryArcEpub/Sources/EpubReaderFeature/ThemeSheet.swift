@@ -95,6 +95,7 @@ struct ThemeSheet: View {
             .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
+        .tint(theme.accent)
         .controlSize(.large)
     }
 

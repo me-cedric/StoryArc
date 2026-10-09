@@ -99,7 +99,7 @@ struct SearchResultsView: View {
                         Text("library.availability.widen", bundle: .module).textRole(.footnote)
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(theme.palette.accent)
+                    .foregroundStyle(theme.accentText)
                     .listRowSeparator(.hidden)
                     .listRowBackground(theme.palette.surfaceCanvas)
                 }
@@ -243,7 +243,7 @@ struct SearchResultsView: View {
                 Text("search.retry", bundle: .module).textRole(.footnote).hitRegion()
             }
             .buttonStyle(.plain)
-            .foregroundStyle(theme.palette.accent)
+            .foregroundStyle(theme.accentText)
         }
         .listRowSeparator(.hidden)
         .listRowBackground(theme.palette.surfaceCanvas)

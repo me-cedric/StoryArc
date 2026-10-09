@@ -145,7 +145,7 @@ struct DetailChapterList: View {
     private func remainder(_ seconds: TimeInterval) -> some View {
         Text("detail.chapter.remaining \(PlaybackClock.time(seconds))", bundle: .module)
             .textRole(.caption)
-            .foregroundStyle(theme.accent)
+            .foregroundStyle(theme.accentText)
             .monospacedDigit()
             .accessibilityLabel(
                 Text("detail.chapter.remaining \(PlaybackClock.spokenTime(seconds))", bundle: .module)

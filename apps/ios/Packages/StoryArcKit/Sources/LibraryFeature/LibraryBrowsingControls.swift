@@ -222,6 +222,7 @@ struct NarrowedToNothing: View {
                     Text("library.availability.widen", bundle: .module)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(theme.accent)
             }
 
             Button(action: clear) {

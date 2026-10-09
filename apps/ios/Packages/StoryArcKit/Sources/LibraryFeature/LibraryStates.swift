@@ -66,6 +66,8 @@ struct ScanningView: View {
 /// English — which is how one situation described twice in a four-language app drifts. One
 /// pair now, on both destinations and both platforms.
 struct EmptyLibraryView: View {
+    @Environment(\.theme) private var theme
+
     /// The primary, and deliberately not a source: a file picker configures nothing and
     /// remembers nothing beyond the copy the app keeps.
     var openFile: () -> Void = {}
@@ -91,6 +93,7 @@ struct EmptyLibraryView: View {
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
 
             // Plain, and second: a reader who has just installed the app wants to open
             // something and read it, and the shelf full of sources can wait until they know
@@ -148,6 +151,8 @@ extension View {
 /// source at all. Offline is a normal state, so neither sentence is an error and neither is
 /// red — see AGENTS.md §2.
 struct LibraryAway: View {
+    @Environment(\.theme) private var theme
+
     /// Whether nothing the reader added can be reached.
     ///
     /// Static and pure so the branch can be asserted without a window: which of the two
@@ -186,6 +191,7 @@ struct LibraryAway: View {
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
 
             Button(action: openFile) {
                 Text("library.openFile", bundle: .module).hitRegion()

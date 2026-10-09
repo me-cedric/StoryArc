@@ -80,7 +80,7 @@ struct CatalogueGroupSection: View {
                         Image(systemName: "chevron.right")
                     }
                     .textRole(.subheadline)
-                    .foregroundStyle(theme.accent)
+                    .foregroundStyle(theme.accentText)
                     .hitRegion(alignment: .trailing)
                 }
                 .buttonStyle(.plain)

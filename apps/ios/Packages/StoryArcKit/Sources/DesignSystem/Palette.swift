@@ -36,6 +36,14 @@ public struct Palette: Sendable, Equatable {
     /// violet (4.77:1); Natural draws its own, the raised surface or the canvas on clay.
     public let onAccent: Color
 
+    /// The accent drawn as text, at 4.5:1 or better on every surface of this palette: a borderless
+    /// button, a link, the selected tab label. ``accent`` is a mark and a fill; it reads 4.4:1 on the
+    /// light canvas and 4.1:1 on the dark one, so a label never draws it directly.
+    public let accentText: Color
+
+    /// `Status.danger` drawn as text, at 4.5:1 or better on every surface of this palette.
+    public let dangerText: Color
+
     public static let dark = Palette(
         surfaceCanvas: StoryArcColor.Dark.surfaceCanvas,
         surfaceRaised: StoryArcColor.Dark.surfaceRaised,
@@ -50,7 +58,9 @@ public struct Palette: Sendable, Equatable {
         scrim: StoryArcColor.Dark.scrim,
         accent: StoryArcColor.Brand.accent,
         accentMuted: StoryArcColor.Brand.accentMuted,
-        onAccent: StoryArcColor.Brand.onAccent
+        onAccent: StoryArcColor.Brand.onAccent,
+        accentText: StoryArcColor.Dark.accentText,
+        dangerText: StoryArcColor.Dark.dangerText
     )
 
     public static let light = Palette(
@@ -67,7 +77,9 @@ public struct Palette: Sendable, Equatable {
         scrim: StoryArcColor.Light.scrim,
         accent: StoryArcColor.Brand.accent,
         accentMuted: StoryArcColor.Brand.accentMuted,
-        onAccent: StoryArcColor.Brand.onAccent
+        onAccent: StoryArcColor.Brand.onAccent,
+        accentText: StoryArcColor.Light.accentText,
+        dangerText: StoryArcColor.Light.dangerText
     )
 
     /// True black chrome, with the reader surface deliberately above it.
@@ -89,7 +101,9 @@ public struct Palette: Sendable, Equatable {
         scrim: StoryArcColor.OledDark.scrim,
         accent: StoryArcColor.Brand.accent,
         accentMuted: StoryArcColor.Brand.accentMuted,
-        onAccent: StoryArcColor.Brand.onAccent
+        onAccent: StoryArcColor.Brand.onAccent,
+        accentText: StoryArcColor.OledDark.accentText,
+        dangerText: StoryArcColor.OledDark.dangerText
     )
 
     /// The palette for a resolved scheme and appearance.
@@ -146,7 +160,9 @@ public struct Palette: Sendable, Equatable {
             scrim: scrim,
             accent: accent,
             accentMuted: accentMuted,
-            onAccent: onAccent
+            onAccent: onAccent,
+            accentText: accentText,
+            dangerText: dangerText
         )
     }
 }

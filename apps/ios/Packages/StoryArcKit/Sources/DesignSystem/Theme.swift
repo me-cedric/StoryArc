@@ -24,6 +24,10 @@ public struct Theme: Sendable, Equatable {
 
     public var accent: Color { coverAccent ?? palette.accent }
 
+    /// The accent drawn as text, at 4.5:1 or better: a borderless button, a link, the selected
+    /// tab label. Under a cover accent that colour already clears the floor, so it serves both.
+    public var accentText: Color { coverAccent ?? palette.accentText }
+
     /// The label or icon drawn on ``accent``, at 4.5:1 or better.
     public var onAccent: Color { coverOnAccent ?? palette.onAccent }
 
@@ -100,7 +104,10 @@ private struct ThemeResolver: ViewModifier {
         )
         return content
             .environment(\.theme, theme)
-            .tint(theme.accent)
+            // The environment tint is what a borderless button, a link and the selected tab label
+            // draw as text, so it is the text accent. A prominent button fills with the accent
+            // itself: it sets `.tint(theme.accent)` and `.onAccentLabel()` where it is drawn.
+            .tint(theme.accentText)
             .background(theme.palette.surfaceCanvas)
             // `settings-and-about`: Natural's grain reaches reading surfaces and nothing
             // else, so what travels down the tree is the *permission*, not the texture.

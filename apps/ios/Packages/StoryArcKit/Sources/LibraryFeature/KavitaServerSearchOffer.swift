@@ -50,7 +50,7 @@ struct KavitaServerSearchOffer: View {
                     .hitRegion(alignment: .leading)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(theme.palette.accent)
+            .foregroundStyle(theme.accentText)
         }
     }
 }

@@ -226,6 +226,7 @@ struct DownloadsDestination: View {
                 Text("downloads.openLibrary")
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
         }
         .padding(.horizontal, StoryArcSpace.gutter)
         .padding(.top, StoryArcSpace.xl)

@@ -118,6 +118,7 @@ struct KavitaChapterList: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(theme.accent)
                 .disabled(fetching != nil)
                 .listRowSeparator(.hidden)
             }

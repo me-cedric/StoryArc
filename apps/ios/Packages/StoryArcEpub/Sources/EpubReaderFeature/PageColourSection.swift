@@ -167,6 +167,7 @@ struct PageColourSection: View {
                     Text("theme.pageColour.apply", bundle: .module)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(theme.accent)
             }
 
             Button(role: .destructive) {

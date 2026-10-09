@@ -261,6 +261,7 @@ private struct HomeHeroCard: View {
             .onAccentLabel()
         }
         .buttonStyle(.glassProminent)
+        .tint(theme.accent)
         .buttonSizing(.fitted)
         .accessibilityHidden(true)
     }
@@ -311,6 +312,7 @@ private struct HomeHeroCard: View {
             .onAccentLabel()
         }
         .buttonStyle(.glassProminent)
+        .tint(theme.accent)
         .buttonSizing(.fitted)
         .padding(.top, StoryArcSpace.xs)
         .accessibilityHidden(true)

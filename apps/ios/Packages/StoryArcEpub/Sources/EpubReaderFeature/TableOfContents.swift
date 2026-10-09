@@ -247,7 +247,7 @@ private struct ContentsRow: View {
                     // Weight as well as colour, and the tick beside it: where the
                     // reader is never rests on colour alone.
                     .fontWeight(isCurrent ? .semibold : .regular)
-                    .foregroundStyle(isCurrent ? theme.accent : theme.palette.textPrimary)
+                    .foregroundStyle(isCurrent ? theme.accentText : theme.palette.textPrimary)
                     .multilineTextAlignment(.leading)
 
                 Spacer(minLength: StoryArcSpace.sm)

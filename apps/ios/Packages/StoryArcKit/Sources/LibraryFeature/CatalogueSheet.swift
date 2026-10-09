@@ -155,6 +155,7 @@ public struct CatalogueSheet: View {
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
         }
     }
 }
@@ -225,6 +226,7 @@ struct CatalogueSignIn: View {
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
         }
     }
 }

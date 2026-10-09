@@ -53,7 +53,7 @@ struct PresetCard: View {
                     .textRole(.caption)
                     // Weight as well as colour: colour is never the only signal.
                     .fontWeight(isActive ? .semibold : .regular)
-                    .foregroundStyle(isActive ? theme.accent : theme.palette.textSecondary)
+                    .foregroundStyle(isActive ? theme.accentText : theme.palette.textSecondary)
 
                 if isModified {
                     Text("theme.modified", bundle: .module)
@@ -99,7 +99,7 @@ struct CustomCard: View {
                 title
                     .textRole(.caption)
                     .fontWeight(.semibold)
-                    .foregroundStyle(theme.accent)
+                    .foregroundStyle(theme.accentText)
                     .lineLimit(1)
             }
         }

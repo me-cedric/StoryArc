@@ -90,7 +90,9 @@ extension Palette {
         scrim: StoryArcColor.NaturalLight.scrim,
         accent: StoryArcColor.Brand.clayStrong,
         accentMuted: StoryArcColor.Brand.clayStrong,
-        onAccent: StoryArcColor.NaturalLight.surfaceRaised
+        onAccent: StoryArcColor.NaturalLight.surfaceRaised,
+        accentText: StoryArcColor.NaturalLight.accentText,
+        dangerText: StoryArcColor.NaturalLight.dangerText
     )
 
     /// Warm ink and the clay accent. Natural's dark variant.
@@ -112,7 +114,9 @@ extension Palette {
         scrim: StoryArcColor.NaturalDark.scrim,
         accent: StoryArcColor.Brand.clay,
         accentMuted: StoryArcColor.Brand.clayStrong,
-        onAccent: StoryArcColor.NaturalDark.surfaceCanvas
+        onAccent: StoryArcColor.NaturalDark.surfaceCanvas,
+        accentText: StoryArcColor.NaturalDark.accentText,
+        dangerText: StoryArcColor.NaturalDark.dangerText
     )
 }
 

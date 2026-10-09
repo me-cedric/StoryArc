@@ -186,6 +186,7 @@ public struct KavitaSheet: View {
                     .padding(.vertical, StoryArcSpace.xs)
             }
             .buttonStyle(.borderedProminent)
+            .tint(theme.accent)
         }
     }
 }

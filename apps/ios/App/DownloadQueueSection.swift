@@ -255,7 +255,7 @@ private struct DownloadQueueRow: View {
             // reader has chosen now — `localization` 15.9.
             Text("downloads.failed \(DownloadFailureWords.sentence(stored: reason)) \(attempts)")
                 .textRole(.footnote)
-                .foregroundStyle(StoryArcColor.Status.danger)
+                .foregroundStyle(theme.palette.dangerText)
         case let .paused(pause):
             Text(pause.explanationKey)
                 .textRole(.footnote)

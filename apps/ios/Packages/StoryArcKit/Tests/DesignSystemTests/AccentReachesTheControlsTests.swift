@@ -69,16 +69,20 @@ struct AccentReachesTheControlsTests {
 
     /// The one line the tab bar, the sliders and every unstyled control hang off.
     ///
+    /// The tint is `accentText`, not `accent`: an unstyled button and the selected tab label draw it as
+    /// text, and `accent` reads 4.4:1 on the light canvas and 4.1:1 on the dark one (`close-the-audited-gaps`
+    /// 27.4). A prominent button sets `.tint(theme.accent)` itself, for its fill.
+    ///
     /// It is applied by `ThemeResolver`, which is applied once at the root of each window and
     /// each presentation. `Theme.accent` is `coverAccent ?? palette.accent`, so this is also
     /// what makes §7 of `docs/design.md` work: inside a publication's context the same line
     /// hands down the cover-derived colour instead, with no control knowing it happened.
-    @Test("The theme injects the accent as the environment tint")
+    @Test("The theme injects the text accent as the environment tint")
     func theResolverTintsTheTree() {
         // A local rather than the expression, so a failure prints the answer instead of the
         // whole file. `#expect` dumps what it evaluated, and what it evaluated here is four
         // hundred lines of Swift.
-        let tintsTheTree = Self.theme.contains(".tint(theme.accent)")
+        let tintsTheTree = Self.theme.contains(".tint(theme.accentText)")
         #expect(
             tintsTheTree,
             """
