@@ -543,6 +543,21 @@ export const ROUTES = [
     ['Settings > imported source sign in sheet', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, 'Loft Kavita', '=Sign in again']],
     ['Transfer > export passphrases differ', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('transfer_export'), named('transfer_export_passwords'), '=' + named('transfer_passphrase'), '@type abc', '@back', '=' + named('transfer_passphrase_again'), '@type abd', '@back']],
 
+
+    // --- library-sync 5.3: the Sync section of Settings > Your libraries -----------------
+    //
+    // `scripts/smb-server.sh --writable /tmp/sa-corpus` serves a writable `Sync` share on 4448, and with `--encrypted` on 4449 (the routes use 4449);
+    // an emulator reaches the Mac at 10.0.2.2. Each run of the add route adds a share: clear
+    // the app's data first. The section fits the first screen of the group, so no route scrolls.
+    ['Settings > Sync section', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
+    ['Settings > Sync off', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
+    ['Sources > add share sync', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_share'), '@drag-sheet-up', '=Host', '@type 10.0.2.2:4449', '@back', '=Share', '@type Sync', '@back', '=User name', '@type ' + userInfo().username, '@back', '=Password', '@type lovelace', '@back', '=Connect', '@wait', '@wait', named('smb_use_folder'), '@wait', '@wait']],
+    ['Settings > Sync choose share', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sync_choose_share')]],
+    ['Settings > Sync now', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('sync_now'), '@wait', '@wait']],
+    ['Settings > Sync turn off', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('sync_turn_off'), '@wait']],
+    ['Settings > Sync pick folder', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '=' + named('sync_choose_folder'), '@wait']],
+    ['Sources > add files and folders', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_folder'), '@wait']],
+    ['Settings > Sync on', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sync_choose_share'), '=10.0.2.2/Sync', '@wait', '@wait']],
 ]
 
 /**
