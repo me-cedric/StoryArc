@@ -66,6 +66,52 @@ final class PlayerScreenshotTests: XCTestCase {
         attach(app.screenshot(), named: "full-player")
     }
 
+    /// The full player over an M4B that carries its own cover.
+    ///
+    /// `audiobooks-and-playback` 4.5: the artwork is read at index time and the player draws it
+    /// instead of the coverless well. The device's library holds `With Cover Long.m4b`: the
+    /// fixture `with-cover.m4b` looped to two minutes with its cover atom, because the fixture itself
+    /// lasts two seconds and ends before a walk can pause it.
+    func testCaptureFullPlayerWithAnEmbeddedCover() throws {
+        let app = launch()
+        try openAnAudiobook(in: app, titled: "With")
+        try XCTUnwrap(app.buttons["Open the player"].firstMatch).tap()
+        settle(2)
+        attach(app.screenshot(), named: "full-player-embedded-cover")
+    }
+
+    /// The chapter list with a finished chapter, one in progress and one not reached, and the word
+    /// a screen reader hears on each row.
+    ///
+    /// `audiobooks-and-playback` 15.6. Sea Room has three chapters. Choosing the second one plays it,
+    /// so the first is finished and the third is not reached. A swap of the two words passes every
+    /// unit test; this reads the rows' own labels.
+    func testCaptureChapterListMarks() throws {
+        let app = launch()
+        try openAnAudiobook(in: app)
+        try setSpeed("0[.,]5", in: app)
+        try openTheChapterList(in: app)
+        let rows = chapterRows(in: app)
+        XCTAssertEqual(rows.count, 3, "Sea Room lists \(rows.count) rows: \(rows.map(\.label))")
+        rows[1].tap()
+        // The sheet closes on a choice. Pause before the six-second book plays on.
+        pauseWhatPlays(in: app)
+        try openTheChapterList(in: app)
+        settle(1)
+        let labels = chapterRows(in: app).map(\.label)
+        XCTAssertEqual(labels.count, 3, "The reopened list has \(labels.count) rows: \(labels)")
+        XCTAssertTrue(labels[0].contains("Finished"), "Row 1 should be finished: \(labels)")
+        XCTAssertTrue(labels[1].contains("In progress"), "Row 2 should be in progress: \(labels)")
+        XCTAssertFalse(
+            labels[2].contains("Finished") || labels[2].contains("In progress"),
+            "Row 3 carries a mark: \(labels)"
+        )
+        add(XCTAttachment(string: "Spoken rows: \(labels)"))
+        attach(app.screenshot(), named: "chapter-list-marks")
+        app.buttons["Close"].firstMatch.tap()
+        try setSpeed("1×", in: app)
+    }
+
     /// The sleep timer, set, with its remaining time on the face of the control.
     ///
     /// `audio-playback` requires that "the remaining time is shown on the player", and until

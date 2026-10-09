@@ -111,4 +111,50 @@ extension XCTestCase {
         app.buttons["Pause"].firstMatch.tap()
         return audiobook
     }
+
+    /// Opens the full player from the compact bar, then its chapter list.
+    func openTheChapterList(in app: XCUIApplication) throws {
+        let wayIn = app.buttons["Open the player"].firstMatch
+        if wayIn.exists, wayIn.isHittable { wayIn.tap() }
+        let chapters = app.buttons["Chapters"].firstMatch
+        XCTAssertTrue(chapters.waitForExistence(timeout: 10), "The player offers no chapter list.")
+        chapters.tap()
+        XCTAssertTrue(app.navigationBars["Chapters"].waitForExistence(timeout: 5), "The chapter list did not open.")
+        hold(1)
+    }
+
+    /// Picks a playback speed in the player, so a two-second chapter lasts long enough to pause in.
+    /// The speed is kept by the app, so a walk that slows the book puts it back to `1`.
+    func setSpeed(_ rate: String /* a regex: the decimal mark follows the device locale */, in app: XCUIApplication) throws {
+        let wayIn = app.buttons["Open the player"].firstMatch
+        if wayIn.exists, wayIn.isHittable { wayIn.tap() }
+        let speed = app.buttons["Speed"].firstMatch
+        XCTAssertTrue(speed.waitForExistence(timeout: 10), "The player offers no speed control.")
+        speed.tap()
+        let row = app.buttons.matching(NSPredicate(format: "label MATCHES %@", "^\(rate).*")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "No speed row starts with \(rate).")
+        row.tap()
+        hold(1)
+    }
+
+    /// Taps the Pause that can be reached. The bar behind the player sheet has one too, and a tap on it
+    /// lands on the sheet.
+    func pauseWhatPlays(in app: XCUIApplication) {
+        let deadline = Date().addingTimeInterval(5)
+        while Date() < deadline {
+            if let pause = app.buttons.matching(identifier: "Pause").allElementsBoundByIndex.first(where: \.isHittable) {
+                pause.tap()
+                return
+            }
+            hold(0.1)
+        }
+    }
+
+    /// The chapter rows, top to bottom, each as the label a screen reader is handed.
+    func chapterRows(in app: XCUIApplication) -> [XCUIElement] {
+        let top = app.navigationBars["Chapters"].frame.maxY
+        return app.buttons.allElementsBoundByIndex
+            .filter { $0.exists && $0.isHittable && $0.frame.minY >= top && $0.label != "Close" }
+            .sorted { $0.frame.minY < $1.frame.minY }
+    }
 }
