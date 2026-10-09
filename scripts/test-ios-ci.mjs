@@ -60,6 +60,8 @@ const RUN = [
   // Home's Shelves row lands on the Library tab on the first tap after launch, when the
   // same tap creates that tab.
   'ShelvesFromHomeTests',
+  // An audiobook reopens at its part after the app is killed. Needs only the seeded Sea Room.
+  'AudiobookResumeTests',
   // Two assertions that live inside capture classes.
   'ScreenshotTests/testTheInertCapsuleIsDimmerThanTheLiveOne',
   'SweepSearchTests/testSearchOffersAFieldToTypeIn',
@@ -73,7 +75,18 @@ const RUN = [
  */
 const LARGEST_TEXT = 'They assert the largest-text gate (docs/design.md section 10) and took a frame until 2026-10-08. They have not passed on a runner yet: a local run on 2026-10-08 could not launch the simulator under load. Move them to RUN after one green run.'
 
+const CORPUS_VOICE = 'Starts read-aloud in an EPUB from the shared corpus (Harbour Lights 01 or One Sentence), which `scripts/corpus.mjs` writes and a runner does not have.'
+const WAVE5_SETUP = 'Capture setup for the wave 5 frames. It reads or shelves books from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have, and it leaves state for the captures that follow it.'
+
 const EXCLUDED = {
+  'ReadAloudShellTests/testTheVoiceCarriesOnAfterTheReaderCloses': CORPUS_VOICE,
+  'ReadAloudShellTests/testTheShellReservesNothingWithoutASession': CORPUS_VOICE,
+  'ReadAloudShellTests/testTheEndOfThePublicationWithdrawsTheVoice': CORPUS_VOICE,
+  'SweepWave5HomeTests/testSetupPale': WAVE5_SETUP,
+  'SweepWave5HomeTests/testSetupFinishNoNext': WAVE5_SETUP,
+  'SweepWave5HomeTests/testSetupFinishAndNext': WAVE5_SETUP,
+  'SweepWave5HomeTests/testTapFinish': WAVE5_SETUP,
+  'SweepWave5ShelvesTests/testSetupShelves': WAVE5_SETUP,
   'ScreenshotTests/testLibrarySelectingEmptyAtLargestText': LARGEST_TEXT,
   'ScreenshotTests/testLibrarySelectingAtLargestText': LARGEST_TEXT,
   'ScreenshotTests/testWhatsNewKeepsItsActionReachableAtLargestText': LARGEST_TEXT,
