@@ -34,6 +34,7 @@ extension ReaderView {
                         Image(systemName: "xmark")
                     }
                     .labelStyle(.iconOnly)
+                    .frame(minWidth: 20, minHeight: 20)
                 }
                 // The platform's own glass button, and **untinted**. `.tint` on a glass
                 // button tints the *material*, not the glyph — which is why these
@@ -65,6 +66,9 @@ extension ReaderView {
                         Image(systemName: "ellipsis")
                     }
                     .labelStyle(.iconOnly)
+                    // 20 points of glyph room and the glass button's own 25 of padding make 45, over the
+                    // 44 a finger needs. An ellipsis is 7 points tall, which left this button 35.
+                    .frame(minWidth: 20, minHeight: 20)
                 }
                 .storyArcGlassButton(in: Circle())
                 .controlSize(.large)

@@ -19,6 +19,9 @@ internal import StoryArcCore
 /// carry no resources, so each feature names them in its own catalogue.
 struct SourcesSettings: View {
     @Environment(\.theme) private var theme
+    /// One width for every kind's symbol, so the names line up down the list: a folder, a
+    /// server and a feed are drawn at three widths, and the text followed each of them.
+    @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 28
 
     let sources: [Source]
     /// How many publications each source holds, for the removal statement.
@@ -241,6 +244,7 @@ struct SourcesSettings: View {
         HStack(spacing: StoryArcSpace.md) {
             Image(systemName: Self.symbol(for: source.kind))
                 .foregroundStyle(theme.accent)
+                .frame(width: iconWidth)
 
             VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
                 Text(source.displayName)
