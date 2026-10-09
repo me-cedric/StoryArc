@@ -31,6 +31,11 @@ public struct Palette: Sendable, Equatable {
     public let accent: Color
     public let accentMuted: Color
 
+    /// The label or icon drawn on ``accent``: a prominent button, a selected chip. Text, not
+    /// a mark, so `pnpm tokens:check` holds each ramp's pair to 4.5:1. White on the brand
+    /// violet (4.77:1); Natural draws its own, the raised surface or the canvas on clay.
+    public let onAccent: Color
+
     public static let dark = Palette(
         surfaceCanvas: StoryArcColor.Dark.surfaceCanvas,
         surfaceRaised: StoryArcColor.Dark.surfaceRaised,
@@ -44,7 +49,8 @@ public struct Palette: Sendable, Equatable {
         textTertiary: StoryArcColor.Dark.textTertiary,
         scrim: StoryArcColor.Dark.scrim,
         accent: StoryArcColor.Brand.accent,
-        accentMuted: StoryArcColor.Brand.accentMuted
+        accentMuted: StoryArcColor.Brand.accentMuted,
+        onAccent: StoryArcColor.Brand.onAccent
     )
 
     public static let light = Palette(
@@ -60,7 +66,8 @@ public struct Palette: Sendable, Equatable {
         textTertiary: StoryArcColor.Light.textTertiary,
         scrim: StoryArcColor.Light.scrim,
         accent: StoryArcColor.Brand.accent,
-        accentMuted: StoryArcColor.Brand.accentMuted
+        accentMuted: StoryArcColor.Brand.accentMuted,
+        onAccent: StoryArcColor.Brand.onAccent
     )
 
     /// True black chrome, with the reader surface deliberately above it.
@@ -81,7 +88,8 @@ public struct Palette: Sendable, Equatable {
         textTertiary: StoryArcColor.OledDark.textTertiary,
         scrim: StoryArcColor.OledDark.scrim,
         accent: StoryArcColor.Brand.accent,
-        accentMuted: StoryArcColor.Brand.accentMuted
+        accentMuted: StoryArcColor.Brand.accentMuted,
+        onAccent: StoryArcColor.Brand.onAccent
     )
 
     /// The palette for a resolved scheme and appearance.
@@ -137,7 +145,8 @@ public struct Palette: Sendable, Equatable {
             textTertiary: textSecondary,
             scrim: scrim,
             accent: accent,
-            accentMuted: accentMuted
+            accentMuted: accentMuted,
+            onAccent: onAccent
         )
     }
 }

@@ -141,7 +141,7 @@ public struct PublicationDetailView: View {
         // The derived accent, on this subtree only. `Theme.coverAccent` has had a slot and
         // no library caller since it was written — the reader's thumbnails were the only
         // thing in the app that ever set it.
-        .coverAccent(wash.map { Color(hex: $0.tint) })
+        .coverAccent(wash.map { Color(hex: $0.tint) }, label: wash.map { Color(hex: $0.onTint) })
         .navigationTitle(publication.displayTitle)
         // Inline, so the bar stays a thin sliver of glass over the artwork rather than
         // restating the title the page has already set in the editorial face.

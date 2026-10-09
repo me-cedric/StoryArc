@@ -5,6 +5,7 @@
   "brand": {
     "accent":          { "oklch": "oklch(58% 0.2304 295.4)",  "use": "Primary accent. Tab bars, chips, sliders, progress ticks, links. One value on both appearances — see $brandNote. Chrome-only: in-content accents defer to cover-derived colour." },
     "accentMuted":     { "oklch": "oklch(45% 0.10 295.4)",    "use": "Accent at rest: progress rails, unselected indicators." },
+    "onAccent":        { "oklch": "oklch(100% 0 0)",          "use": "The label or icon drawn ON brand.accent: a filled or prominent button, a selected chip. Text, not a mark, so `pnpm tokens:check` holds it to 4.5:1. Nothing else in the set clears 4.5:1 on this violet (the canvas ink reaches 4.06:1). Natural draws its own: the raised surface on clayStrong, the canvas on clay." },
     "secondary":       { "oklch": "oklch(72.4% 0.185 2)",     "use": "Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote." },
     "secondaryStrong": { "oklch": "oklch(62% 0.185 2)",       "use": "Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper." },
     "arcMid":          { "oklch": "oklch(71.2% 0.195 347.7)", "use": "The mark's second arc stop. Identity only — the mark, the app icons, brand surfaces. Never a chrome accent." },

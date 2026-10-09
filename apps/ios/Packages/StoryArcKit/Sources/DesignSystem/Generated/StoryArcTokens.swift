@@ -9,6 +9,8 @@ public enum StoryArcColor {
         public static let accent = Color(.sRGB, red: 0.5412, green: 0.3020, blue: 0.9412, opacity: 1)  // #8A4DF0
         /// Accent at rest: progress rails, unselected indicators.
         public static let accentMuted = Color(.sRGB, red: 0.3529, green: 0.2824, blue: 0.5255, opacity: 1)  // #5A4886
+        /// The label or icon drawn ON brand.accent: a filled or prominent button, a selected chip. Text, not a mark, so `pnpm tokens:check` holds it to 4.5:1. Nothing else in the set clears 4.5:1 on this violet (the canvas ink reaches 4.06:1). Natural draws its own: the raised surface on clayStrong, the canvas on clay.
+        public static let onAccent = Color(.sRGB, red: 1.0000, green: 1.0000, blue: 1.0000, opacity: 1)  // #FFFFFF
         /// Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote.
         public static let secondary = Color(.sRGB, red: 1.0000, green: 0.4196, blue: 0.6157, opacity: 1)  // #FF6B9D
         /// Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper.

@@ -13,6 +13,8 @@ object StoryArcColor {
         val accent = Color(0xFF8A4DF0)
         /** Accent at rest: progress rails, unselected indicators. */
         val accentMuted = Color(0xFF5A4886)
+        /** The label or icon drawn ON brand.accent: a filled or prominent button, a selected chip. Text, not a mark, so `pnpm tokens:check` holds it to 4.5:1. Nothing else in the set clears 4.5:1 on this violet (the canvas ink reaches 4.06:1). Natural draws its own: the raised surface on clayStrong, the canvas on clay. */
+        val onAccent = Color(0xFFFFFFFF)
         /** Secondary on dark surfaces. The mark's first arc stop, so palette and artwork cannot drift. Deliberately out of gamut — see $brandNote. */
         val secondary = Color(0xFFFF6B9D)
         /** Secondary on light surfaces, where the lighter pink reaches only 2.48:1 on paper. */

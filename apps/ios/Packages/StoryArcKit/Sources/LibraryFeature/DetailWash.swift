@@ -30,6 +30,10 @@ struct DetailWash: Equatable, Sendable {
     /// How much of the canvas it takes, at the wash's strongest point.
     let strength: Double
 
+    /// The label to draw on ``tint``, black or white, whichever reads better. Never below
+    /// 4.58:1, which is the least the better of the two reaches on any fill.
+    var onTint: String { ReadingContrast.bestForeground(on: tint).hex }
+
     /// How much of the tint the page actually draws.
     ///
     /// Three answers rather than two, and the third is why this is a named rule and not a

@@ -123,6 +123,25 @@ struct DetailWashTests {
         }
     }
 
+    /// `close-the-audited-gaps` 25.7, O26. The prominent button on the page is filled with
+    /// this tint, and the system picks its label without knowing the fill. The label is
+    /// derived from the fill here, and the worse of the two ends of the scale is a mid-tone.
+    @Test(
+        "The label drawn on the tint reaches 4.5:1 whatever the cover",
+        arguments: [0xDC14_3C, 0x2E5A_AC, 0xE8C4_1A, 0x1F7A_3D, 0x7B2F_8F, 0x8A6F_B8, 0x6F9F_5F] as [UInt32]
+    )
+    func theLabelOnTheTintIsLegible(colour: UInt32) {
+        for (canvas, text) in [(darkCanvas, darkText), (lightCanvas, lightText)] {
+            guard let wash = DetailWash.of(cover: field(colour), canvas: canvas, text: text) else {
+                continue
+            }
+            #expect(
+                ReadingContrast.ratio(wash.onTint, wash.tint) >= ReadingContrast.aa,
+                "\(String(colour, radix: 16)) on \(canvas): label \(wash.onTint) on \(wash.tint)"
+            )
+        }
+    }
+
     @Test("The blend is a plain composite, so nothing of the tint survives at zero")
     func blendEndpoints() {
         #expect(DetailWash.blend("#FF0000", into: "#000000", by: 0) == "#000000")

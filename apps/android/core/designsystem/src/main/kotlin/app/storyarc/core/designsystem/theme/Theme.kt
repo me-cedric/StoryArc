@@ -299,10 +299,10 @@ internal fun ColorScheme.groundedInChrome(
  */
 internal fun brandDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.accent,
-    onPrimary = StoryArcColor.Light.surfaceRaised,
+    onPrimary = StoryArcColor.Brand.onAccent,
     secondary = StoryArcColor.Brand.secondary,
     secondaryContainer = StoryArcColor.Brand.accentMuted,
-    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
+    onSecondaryContainer = StoryArcColor.Brand.onAccent,
     background = StoryArcColor.Dark.surfaceCanvas,
     onBackground = StoryArcColor.Dark.textPrimary,
     surface = StoryArcColor.Dark.surfaceRaised,
@@ -321,10 +321,10 @@ internal fun brandDarkScheme() = darkColorScheme(
  */
 internal fun brandOledDarkScheme() = darkColorScheme(
     primary = StoryArcColor.Brand.accent,
-    onPrimary = StoryArcColor.Light.surfaceRaised,
+    onPrimary = StoryArcColor.Brand.onAccent,
     secondary = StoryArcColor.Brand.secondary,
     secondaryContainer = StoryArcColor.Brand.accentMuted,
-    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
+    onSecondaryContainer = StoryArcColor.Brand.onAccent,
     background = StoryArcColor.OledDark.surfaceCanvas,
     onBackground = StoryArcColor.OledDark.textPrimary,
     surface = StoryArcColor.OledDark.surfaceRaised,
@@ -346,13 +346,13 @@ internal fun brandOledDarkScheme() = darkColorScheme(
  */
 internal fun brandLightScheme() = lightColorScheme(
     primary = StoryArcColor.Brand.accent,
-    onPrimary = StoryArcColor.Light.surfaceRaised,
+    onPrimary = StoryArcColor.Brand.onAccent,
     secondary = StoryArcColor.Brand.secondaryStrong,
     // The same pair as the two dark schemes, on purpose. See [brandDarkScheme]: the light
     // tint this role conventionally wants does not exist in the token set, and adding one is
     // a palette decision rather than a wiring one.
     secondaryContainer = StoryArcColor.Brand.accentMuted,
-    onSecondaryContainer = StoryArcColor.Light.surfaceRaised,
+    onSecondaryContainer = StoryArcColor.Brand.onAccent,
     background = StoryArcColor.Light.surfaceCanvas,
     onBackground = StoryArcColor.Light.textPrimary,
     surface = StoryArcColor.Light.surfaceRaised,

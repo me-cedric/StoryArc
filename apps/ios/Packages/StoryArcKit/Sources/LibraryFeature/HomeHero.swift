@@ -258,6 +258,7 @@ private struct HomeHeroCard: View {
                 systemImage: "checkmark"
             )
             .textRole(.footnote)
+            .onAccentLabel()
         }
         .buttonStyle(.glassProminent)
         .buttonSizing(.fitted)
@@ -307,6 +308,7 @@ private struct HomeHeroCard: View {
                 systemImage: "play.fill"
             )
             .textRole(.footnote)
+            .onAccentLabel()
         }
         .buttonStyle(.glassProminent)
         .buttonSizing(.fitted)

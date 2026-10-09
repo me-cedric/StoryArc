@@ -52,13 +52,13 @@ and both platforms consume plain sRGB.
 | --- | --- |
 | Any text role on any surface it can be drawn on, tertiary included | 4.5:1 |
 | A chrome accent read as a mark on its own canvas | 3:1 |
-| The label drawn **on** the accent — text, not a mark | 4.5:1 |
+| The label drawn **on** the accent (brand, clay and clayStrong) — text, not a mark | 4.5:1 |
 | Every reading theme's background/text pair | 7:1 (AAA) |
 
 Reading-theme text is read for hours rather than glanced at, hence AAA.
 
 The pair list is **derived, not repeated**: every text role is checked on every
-surface ramp, so adding a ramp cannot ship an untested palette. 58 pairs plus the
+surface ramp, so adding a ramp cannot ship an untested palette. 60 pairs plus the
 six themes today.
 
 `brand.accent` takes **two** accent rows rather than one, because it is a single

@@ -55,7 +55,7 @@ class BrandSchemeTest {
         // `ACCENT_PAIRS` in the token build gates the pair. This asserts the wiring: that
         // `onPrimary` is that value on all three schemes and is not the canvas it used to
         // be on the two dark ones.
-        val onPrimary = StoryArcColor.Light.surfaceRaised
+        val onPrimary = StoryArcColor.Brand.onAccent
 
         assertEquals(onPrimary, brandDarkScheme().onPrimary)
         assertEquals(onPrimary, brandOledDarkScheme().onPrimary)

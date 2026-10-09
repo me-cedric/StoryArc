@@ -115,7 +115,9 @@ const ACCENT_PAIRS = [
   // measures 4.06:1 and fails. Pure white is the only value in this token set that clears
   // 4.5 on the violet, at 4.77, so it is what `onPrimary` is on all three brand schemes
   // — and this row is what stops it drifting back to the canvas.
-  ['light.surfaceRaised',   'brand.accent',               4.5],
+  ['brand.onAccent',        'brand.accent',               4.5],
+  ['naturalLight.surfaceRaised', 'brand.clayStrong',      4.5],
+  ['naturalDark.surfaceCanvas',  'brand.clay',            4.5],
 ]
 
 const PAIRS = [

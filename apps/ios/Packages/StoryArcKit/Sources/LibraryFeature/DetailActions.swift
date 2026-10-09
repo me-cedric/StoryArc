@@ -141,7 +141,7 @@ struct DetailActions: View {
             EmptyView()
         case .read:
             Button(action: onRead) {
-                primaryLabel.frame(maxWidth: .infinity)
+                primaryLabel.onAccentLabel().frame(maxWidth: .infinity)
             }
             // §3.4: the one place in the app a prominent glass button is warranted, because
             // it *is* the most important functional element on the screen.
@@ -152,7 +152,9 @@ struct DetailActions: View {
             Button {
                 copy()
             } label: {
-                Text("catalogue.acquire.download", bundle: .module).frame(maxWidth: .infinity)
+                Text("catalogue.acquire.download", bundle: .module)
+                    .onAccentLabel()
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.glassProminent)
             .controlSize(.large)

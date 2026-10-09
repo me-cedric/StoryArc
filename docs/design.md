@@ -550,7 +550,7 @@ Not a section to check at the end. These are build and review gates.
   appearance ramps**: 4.5:1 for every text role, tertiary included, on every
   surface it can be drawn on; 3:1 for an accent read as a mark on its canvas;
   4.5:1 for the label drawn *on* the accent, which is text and not a mark; and
-  **7:1 for all six reading themes**. 58 pairs plus the six themes. A palette
+  **7:1 for all six reading themes**. 60 pairs plus the six themes. A palette
   that fails does not build.
 - **A user-chosen reading background cannot be made illegible.** Its text colour
   is derived at 7:1; an override below 4.5:1 is refused with the measured ratio

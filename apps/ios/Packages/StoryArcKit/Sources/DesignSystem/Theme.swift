@@ -18,11 +18,19 @@ public struct Theme: Sendable, Equatable {
     /// colour here is a bug.
     public var coverAccent: Color?
 
+    /// What to draw on ``coverAccent``, derived from that fill. A cover colour is the one fill
+    /// no token gate can see, so the label is chosen for it at run time.
+    public var coverOnAccent: Color?
+
     public var accent: Color { coverAccent ?? palette.accent }
 
-    public init(palette: Palette, coverAccent: Color? = nil) {
+    /// The label or icon drawn on ``accent``, at 4.5:1 or better.
+    public var onAccent: Color { coverOnAccent ?? palette.onAccent }
+
+    public init(palette: Palette, coverAccent: Color? = nil, coverOnAccent: Color? = nil) {
         self.palette = palette
         self.coverAccent = coverAccent
+        self.coverOnAccent = coverOnAccent
     }
 }
 
@@ -44,8 +52,26 @@ extension View {
     }
 
     /// Layers a cover-derived accent over the inherited theme for this subtree.
-    public func coverAccent(_ color: Color?) -> some View {
-        transformEnvironment(\.theme) { $0.coverAccent = color }
+    public func coverAccent(_ color: Color?, label: Color? = nil) -> some View {
+        transformEnvironment(\.theme) {
+            $0.coverAccent = color
+            $0.coverOnAccent = label
+        }
+    }
+
+    /// Draws a label or icon in the colour made for the accent behind it. Put it on the
+    /// content of a prominent button, whose fill is the accent and whose own label colour
+    /// the system picks without knowing the fill.
+    public func onAccentLabel() -> some View {
+        modifier(OnAccentLabel())
+    }
+}
+
+private struct OnAccentLabel: ViewModifier {
+    @Environment(\.theme) private var theme
+
+    func body(content: Content) -> some View {
+        content.foregroundStyle(theme.onAccent)
     }
 }
 
