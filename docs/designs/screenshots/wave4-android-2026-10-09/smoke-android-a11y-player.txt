@@ -1,0 +1,35 @@
+  a11y   Player: 4 problem(s)
+  ok     Player
+  ok     Player > chapters
+  a11y   Player > compact bar: 1 problem(s)
+  ok     Player > compact bar
+  ok     Player > damaged mark as finished
+  ok     Player > finished series audiobook
+  a11y   Player > Sea Room playing: 4 problem(s)
+  ok     Player > Sea Room playing
+  a11y   Player > Sea Room paused: 4 problem(s)
+  ok     Player > Sea Room paused
+
+7/11 routes walked and survived
+
+13 accessibility problem(s) across the routes:
+  Player: SMALL     View 67.0x37.3dp "5 min"
+  Player: SMALL     View 74.7x37.3dp "15 min"
+  Player: SMALL     View 74.7x37.3dp "30 min"
+  Player: SMALL     View 74.7x37.3dp "45 min"
+  Player > compact bar: SMALL     View 411.4x28.6dp "Up next"
+  Player > Sea Room playing: SMALL     View 67.0x37.3dp "5 min"
+  Player > Sea Room playing: SMALL     View 74.7x37.3dp "15 min"
+  Player > Sea Room playing: SMALL     View 74.7x37.3dp "30 min"
+  Player > Sea Room playing: SMALL     View 74.7x37.3dp "45 min"
+  Player > Sea Room paused: SMALL     View 67.0x37.3dp "5 min"
+  Player > Sea Room paused: SMALL     View 74.7x37.3dp "15 min"
+  Player > Sea Room paused: SMALL     View 74.7x37.3dp "30 min"
+  Player > Sea Room paused: SMALL     View 74.7x37.3dp "45 min"
+
+4 could not be reached -- the route map may be stale,
+or this device has no publication in the state the route needs:
+  Player > voice stopped: could not reach "Harbour Lights 01"
+  Player > finished with a damaged part: could not reach "Cut Short"
+  Player > Dawn Road 2 paused: could not reach "Pause|Pausa"
+  Player > Chaptered playing: could not reach "Chaptered"

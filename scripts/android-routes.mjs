@@ -472,6 +472,10 @@ export const ROUTES = [
     // The page-turn mode is stored per shelf, so choosing Curl once leaves every later open in it.
     ['EPUB reader > Long Field curl chosen', [NAMES.library, 'The Long Field', NAMES.read, named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up', 'Customise', '=Curl']],
     ['EPUB reader > Long Field page', [NAMES.library, 'The Long Field', NAMES.read]],
+    // The same book through Search, for a library whose list does not show it. Wave 4 frames lane.
+    ['EPUB reader > Long Field through search', [NAMES.search, named('library_search'), '@type the long', '=The Long Field', NAMES.read]],
+    ['EPUB reader > Long Field through search contents', [NAMES.search, named('library_search'), '@type the long', '=The Long Field', NAMES.read, named('epub_menu'), named('reader_menu_contents')]],
+    ['EPUB reader > Long Field through search curl chosen', [NAMES.search, named('library_search'), '@type the long', '=The Long Field', NAMES.read, named('epub_menu'), named('reader_menu_themes'), '@drag-sheet-up', 'Customise', '=Curl']],
     // close-the-audited-gaps 9.7: the end card of a book with a coloured cover, and the control.
     // `Blue Harbour` has a blue cover (#255B97); `Harbour Lights` has none, so it keeps the brand accent.
     ['EPUB reader > end card coloured cover', [NAMES.library, named('library_grouping_chip'), named('library_grouping_issues'), 'Blue Harbour 01', NAMES.read, '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5', '@tap 0.92,0.5']],

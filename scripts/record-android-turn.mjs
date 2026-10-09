@@ -15,6 +15,7 @@
  *
  * Modes, each one gesture across the page at mid height (the reader must be open, in Curl):
  *   tap        one tap on the trailing third, so the roll runs with no finger on the screen
+ *   back       one tap on the leading third, a backward turn
  *   drag       a held forward drag from 92 percent of the width to `--to` (default 50), lifted after a second
  *   interrupt  a forward drag lifted at 40 percent, then a second touch inside the settle that
  *              carries the page back to 85 percent. The page must not snap.
@@ -35,8 +36,8 @@ const out = flag('out')
 const fps = Number(flag('fps', '30'))
 const seconds = Number(flag('seconds', '6'))
 const to = Number(flag('to', '0.5'))
-if (!['tap', 'drag', 'interrupt'].includes(mode) || !out) {
-    console.error('Usage: node scripts/record-android-turn.mjs tap|drag|interrupt --out <directory> [--fps 30] [--seconds 6] [--to 0.5]')
+if (!['tap', 'back', 'drag', 'interrupt'].includes(mode) || !out) {
+    console.error('Usage: node scripts/record-android-turn.mjs tap|back|drag|interrupt --out <directory> [--fps 30] [--seconds 6] [--to 0.5]')
     process.exit(2)
 }
 
@@ -64,6 +65,7 @@ const path = (from, last, count) => Array.from({ length: count }, (_, i) => from
 
 const gestures = {
     tap: `input tap ${x(0.92)} ${y}`,
+    back: `input tap ${x(0.08)} ${y}`,
     drag: [press(0.92), slides(path(0.92, to, 7), 0.12), wait(1), lift(to)].join('; '),
     interrupt: [
         press(0.92),
