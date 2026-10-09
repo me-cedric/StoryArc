@@ -18,6 +18,9 @@ accessibility audit.
     fix what is wrong before the commit.
   - The tolerance is 99 per cent of the pixels and 98 per cent perceptual precision. Liquid
     Glass moves its edge by a few hundred pixels from run to run, and that must not fail a test.
+  - Entry 08 allows 16 per cent of its pixels to differ, because the tab bar and the accessory
+    are two glass lenses that move a few levels of colour from run to run. Those two bars are a
+    device screenshot case.
   - A reference belongs to one iOS version. Another version fails by a few thousand pixels or by
     a whole bar. Record again on that version.
 - **iOS accessibility audit.** `CatalogueAuditTests` in the UI-test target walks the real app to

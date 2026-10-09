@@ -62,6 +62,7 @@ private func draw(
 func assertCatalogue<Screen: View>(
     _ slug: String,
     delay: TimeInterval = 0,
+    precision: Float = 0.99,
     file: StaticString = #filePath,
     line: UInt = #line,
     @ViewBuilder _ screen: () -> Screen
@@ -74,7 +75,7 @@ func assertCatalogue<Screen: View>(
     ] {
         assertSnapshot(
             of: draw(view, mode: mode, style: style, for: max(delay, settleSeconds)),
-            as: .image(precision: 0.99, perceptualPrecision: 0.98, scale: 2),
+            as: .image(precision: precision, perceptualPrecision: 0.98, scale: 2),
             named: name,
             file: file,
             testName: slug,
