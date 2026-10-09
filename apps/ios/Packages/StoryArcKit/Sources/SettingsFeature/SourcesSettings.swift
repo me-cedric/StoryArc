@@ -293,9 +293,14 @@ struct SourcesSettings: View {
         // title and the space each frees; a remove here would delete every copy at once
         // behind a sentence that could name none of them.
         if source.id != ImportedCopies.sourceID {
+            // Drawn in the danger colour: under the app's accent the system painted it the same
+            // purple as Rename, and a destructive action that looks like its neighbour is not
+            // in the destructive style. It is first in the builder, so it is the one at the
+            // screen's edge, last and alone, and it still asks before it acts.
             Button(role: .destructive) { removing = source } label: {
                 Text("sources.remove", bundle: .module)
             }
+            .tint(StoryArcColor.Status.danger)
         }
         Button {
             // Seeded with the current name rather than blank: a rename is usually a
