@@ -133,9 +133,11 @@ struct CoverEditButton: View {
                 .frame(width: 44, height: 44)
                 .storyArcGlass(in: Circle())
                 .contentShape(Circle())
+                // On the label, where the button inside the menu is, so that button carries
+                // the name; the menu around it takes the same name from it.
+                .accessibilityLabel(Text("cover.edit", bundle: .module))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("cover.edit", bundle: .module))
     }
 }
 

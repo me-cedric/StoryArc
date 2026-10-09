@@ -138,6 +138,25 @@ struct KavitaListCoverTests {
         #expect(!collection.contains(".coverWriteBack("))
     }
 
+    /// Task 27.5. A list row that holds a single accessibility element lends it the whole row as
+    /// its frame, so the edit menu answered as an `Edit cover` element as large as the cover
+    /// with an unnamed button inside. The picture is a second element, named, so the menu keeps
+    /// its own 44 point frame; the name sits on the label inside the menu, where its button is.
+    /// Read from the source because the frame is the platform's: it was measured on a booted
+    /// simulator (the outer element went from 370 by 180 to 44 by 44).
+    @Test("The cover picture is a named element of its own, and the edit button names its label")
+    func theEditButtonIsOneNamedControl() throws {
+        let cover = try source("KavitaListCover.swift").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let menu = try source("CoverMenu.swift").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+
+        #expect(cover.contains(".accessibilityElement(children: .ignore) .accessibilityLabel(Text(\"cover.picture\""))
+        let editButton = try #require(menu.range(of: "struct CoverEditButton"))
+        let body = String(menu[editButton.upperBound...])
+        let label = try #require(body.range(of: ".accessibilityLabel(Text(\"cover.edit\""))
+        let style = try #require(body.range(of: ".buttonStyle(.plain)"))
+        #expect(label.lowerBound < style.lowerBound, "the name is outside the menu, on its outer element")
+    }
+
     @Test("The write-back confirmation is placed in one view, which is the list's cover controls")
     func confirmationIsPlacedOnce() throws {
         let names = try FileManager.default

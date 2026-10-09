@@ -34,7 +34,9 @@ extension XCTestCase {
     ///
     /// A menu on a cover answers `Edit cover` with an outer element as large as the cover and
     /// holds the real button inside it, so the outer frame passes whatever the button measures
-    /// (30 pt, measured on 2026-10-09). The button inside is the one a finger lands on.
+    /// (30 pt, measured on 2026-10-09). The button inside is the one a finger lands on. In a
+    /// list row the outer element was the whole row until task 27.5 gave the row a second
+    /// element, so it is now 44 pt there as well.
     func coverButtonRegion(_ edit: XCUIElement) -> CGRect {
         let inner = edit.buttons.firstMatch
         return inner.exists ? inner.frame : edit.frame

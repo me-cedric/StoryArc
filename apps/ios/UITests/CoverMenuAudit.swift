@@ -129,6 +129,8 @@ extension AccessibilityAuditTests {
         }
 
         XCTAssertTrue(edit.waitForExistence(timeout: 10), "A chosen cover left the list with no edit button.")
+        // One control, not an element as large as the row around a button (task 27.5).
+        XCTAssertLessThanOrEqual(edit.frame.height, 48, "The edit button sits in an outer element: \(edit.frame).")
         let region = coverButtonRegion(edit)
         XCTAssertGreaterThanOrEqual(region.width, 44, "The edit button is narrower than 44 pt: \(region).")
         XCTAssertGreaterThanOrEqual(region.height, 44, "The edit button is shorter than 44 pt: \(region).")

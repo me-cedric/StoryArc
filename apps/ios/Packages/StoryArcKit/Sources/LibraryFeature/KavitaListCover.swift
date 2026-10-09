@@ -157,7 +157,12 @@ struct KavitaListCoverControls: View {
         }
         .frame(height: 150)
         .aspectRatio(2.0 / 3.0, contentMode: .fit)
-        .accessibilityHidden(true)
+        // A second element in the row, and not only a label for the picture: a list row that
+        // holds one accessibility element lends it the whole row as its frame, so the edit
+        // button answered as an element as large as the cover and held the real button inside.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("cover.picture", bundle: .module))
+        .accessibilityAddTraits(.isImage)
     }
 
     private func adopt(_ item: PhotosPickerItem?, as list: Publication) async {
