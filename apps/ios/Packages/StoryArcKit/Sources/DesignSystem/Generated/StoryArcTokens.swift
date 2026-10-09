@@ -51,6 +51,10 @@ public enum StoryArcColor {
         public static let textTertiary = Color(.sRGB, red: 0.5451, green: 0.5294, blue: 0.5137, opacity: 1)  // #8B8783
         /// Modal scrim at 60% alpha; reader chrome gradient.
         public static let scrim = Color(.sRGB, red: 0.0078, green: 0.0078, blue: 0.0039, opacity: 1)  // #020201
+        /// Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, lightened until the label reaches 4.5:1 on canvas, raised, overlay and sunken.
+        public static let accentText = Color(.sRGB, red: 0.6314, green: 0.4588, blue: 0.9961, opacity: 1)  // #A175FE
+        /// Status.danger drawn as text on the four surfaces of this ramp: Remove, Failed after 3 attempts. The hue of status.danger, lightened until the label reaches 4.5:1.
+        public static let dangerText = Color(.sRGB, red: 0.9804, green: 0.3373, blue: 0.3294, opacity: 1)  // #FA5654
     }
     public enum Light {
         /// App background. Warm paper, not #FFF.
@@ -75,6 +79,10 @@ public enum StoryArcColor {
         public static let textTertiary = Color(.sRGB, red: 0.4078, green: 0.3922, blue: 0.3725, opacity: 1)  // #68645F
         /// Modal scrim at 40% alpha.
         public static let scrim = Color(.sRGB, red: 0.1882, green: 0.1765, blue: 0.1686, opacity: 1)  // #302D2B
+        /// Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, darkened until the label reaches 4.5:1 on canvas, raised, overlay and sunken.
+        public static let accentText = Color(.sRGB, red: 0.4980, green: 0.2471, blue: 0.8863, opacity: 1)  // #7F3FE2
+        /// Status.danger drawn as text on the four surfaces of this ramp: Reset settings, Remove, Failed after 3 attempts. The hue of status.danger, darkened until the label reaches 4.5:1.
+        public static let dangerText = Color(.sRGB, red: 0.7804, green: 0.1216, blue: 0.1647, opacity: 1)  // #C71F2A
     }
     public enum OledDark {
         /// App background. True black.
@@ -99,6 +107,10 @@ public enum StoryArcColor {
         public static let textTertiary = Color(.sRGB, red: 0.5020, green: 0.4902, blue: 0.4745, opacity: 1)  // #807D79
         /// Modal scrim at 70% alpha.
         public static let scrim = Color(.sRGB, red: 0.0000, green: 0.0000, blue: 0.0000, opacity: 1)  // #000000
+        /// Brand accent drawn as text on the four surfaces of this ramp. The hue of brand.accent, lightened until the label reaches 4.5:1.
+        public static let accentText = Color(.sRGB, red: 0.5961, green: 0.3765, blue: 1.0000, opacity: 1)  // #9860FF
+        /// Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1.
+        public static let dangerText = Color(.sRGB, red: 0.9098, green: 0.2706, blue: 0.2706, opacity: 1)  // #E84545
     }
     public enum NaturalLight {
         /// App background. Warm cream stock.
@@ -123,6 +135,10 @@ public enum StoryArcColor {
         public static let textTertiary = Color(.sRGB, red: 0.4157, green: 0.3608, blue: 0.3216, opacity: 1)  // #6A5C52
         /// Modal scrim at 40% alpha.
         public static let scrim = Color(.sRGB, red: 0.2275, green: 0.1922, blue: 0.1647, opacity: 1)  // #3A312A
+        /// Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clayStrong, which already reaches 4.5:1 here.
+        public static let accentText = Color(.sRGB, red: 0.5961, green: 0.2863, blue: 0.1725, opacity: 1)  // #98492C
+        /// Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, darkened until the label reaches 4.5:1.
+        public static let dangerText = Color(.sRGB, red: 0.7451, green: 0.0627, blue: 0.1333, opacity: 1)  // #BE1022
     }
     public enum NaturalDark {
         /// App background. Warm ink.
@@ -147,6 +163,10 @@ public enum StoryArcColor {
         public static let textTertiary = Color(.sRGB, red: 0.5647, green: 0.5412, blue: 0.4980, opacity: 1)  // #908A7F
         /// Modal scrim at 60% alpha.
         public static let scrim = Color(.sRGB, red: 0.0196, green: 0.0118, blue: 0.0078, opacity: 1)  // #050302
+        /// Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clay, lightened until the label reaches 4.5:1 on the overlay.
+        public static let accentText = Color(.sRGB, red: 0.8118, green: 0.5098, blue: 0.3922, opacity: 1)  // #CF8264
+        /// Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1.
+        public static let dangerText = Color(.sRGB, red: 0.9961, green: 0.3608, blue: 0.3490, opacity: 1)  // #FE5C59
     }
     public enum Status {
         /// Sync succeeded, source reachable.

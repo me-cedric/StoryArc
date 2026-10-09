@@ -55,6 +55,10 @@ object StoryArcColor {
         val textTertiary = Color(0xFF8B8783)
         /** Modal scrim at 60% alpha; reader chrome gradient. */
         val scrim = Color(0xFF020201)
+        /** Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, lightened until the label reaches 4.5:1 on canvas, raised, overlay and sunken. */
+        val accentText = Color(0xFFA175FE)
+        /** Status.danger drawn as text on the four surfaces of this ramp: Remove, Failed after 3 attempts. The hue of status.danger, lightened until the label reaches 4.5:1. */
+        val dangerText = Color(0xFFFA5654)
     }
     object Light {
         /** App background. Warm paper, not #FFF. */
@@ -79,6 +83,10 @@ object StoryArcColor {
         val textTertiary = Color(0xFF68645F)
         /** Modal scrim at 40% alpha. */
         val scrim = Color(0xFF302D2B)
+        /** Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, darkened until the label reaches 4.5:1 on canvas, raised, overlay and sunken. */
+        val accentText = Color(0xFF7F3FE2)
+        /** Status.danger drawn as text on the four surfaces of this ramp: Reset settings, Remove, Failed after 3 attempts. The hue of status.danger, darkened until the label reaches 4.5:1. */
+        val dangerText = Color(0xFFC71F2A)
     }
     object OledDark {
         /** App background. True black. */
@@ -103,6 +111,10 @@ object StoryArcColor {
         val textTertiary = Color(0xFF807D79)
         /** Modal scrim at 70% alpha. */
         val scrim = Color(0xFF000000)
+        /** Brand accent drawn as text on the four surfaces of this ramp. The hue of brand.accent, lightened until the label reaches 4.5:1. */
+        val accentText = Color(0xFF9860FF)
+        /** Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1. */
+        val dangerText = Color(0xFFE84545)
     }
     object NaturalLight {
         /** App background. Warm cream stock. */
@@ -127,6 +139,10 @@ object StoryArcColor {
         val textTertiary = Color(0xFF6A5C52)
         /** Modal scrim at 40% alpha. */
         val scrim = Color(0xFF3A312A)
+        /** Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clayStrong, which already reaches 4.5:1 here. */
+        val accentText = Color(0xFF98492C)
+        /** Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, darkened until the label reaches 4.5:1. */
+        val dangerText = Color(0xFFBE1022)
     }
     object NaturalDark {
         /** App background. Warm ink. */
@@ -151,6 +167,10 @@ object StoryArcColor {
         val textTertiary = Color(0xFF908A7F)
         /** Modal scrim at 60% alpha. */
         val scrim = Color(0xFF050302)
+        /** Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clay, lightened until the label reaches 4.5:1 on the overlay. */
+        val accentText = Color(0xFFCF8264)
+        /** Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1. */
+        val dangerText = Color(0xFFFE5C59)
     }
     object Status {
         /** Sync succeeded, source reachable. */

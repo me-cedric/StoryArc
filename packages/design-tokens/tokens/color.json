@@ -26,7 +26,9 @@
     "textPrimary":    { "oklch": "oklch(95% 0.006 70)", "use": "Titles and body." },
     "textSecondary":  { "oklch": "oklch(74% 0.008 70)", "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(62.5% 0.008 70)", "use": "Timestamps, disabled, placeholder." },
-    "scrim":          { "oklch": "oklch(8% 0.004 70)",  "use": "Modal scrim at 60% alpha; reader chrome gradient." }
+    "scrim":          { "oklch": "oklch(8% 0.004 70)",  "use": "Modal scrim at 60% alpha; reader chrome gradient." },
+    "accentText":     { "oklch": "oklch(67% 0.1964 295.4)", "use": "Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, lightened until the label reaches 4.5:1 on canvas, raised, overlay and sunken." },
+    "dangerText":     { "oklch": "oklch(67.5% 0.2 25)",  "use": "Status.danger drawn as text on the four surfaces of this ramp: Remove, Failed after 3 attempts. The hue of status.danger, lightened until the label reaches 4.5:1." }
   },
   "light": {
     "surfaceCanvas":  { "oklch": "oklch(97.5% 0.004 75)", "use": "App background. Warm paper, not #FFF." },
@@ -39,7 +41,9 @@
     "textPrimary":    { "oklch": "oklch(20% 0.008 70)",   "use": "Titles and body." },
     "textSecondary":  { "oklch": "oklch(45% 0.010 70)",   "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(50.5% 0.010 70)",   "use": "Timestamps, disabled, placeholder." },
-    "scrim":          { "oklch": "oklch(30% 0.006 70)",   "use": "Modal scrim at 40% alpha." }
+    "scrim":          { "oklch": "oklch(30% 0.006 70)",   "use": "Modal scrim at 40% alpha." },
+    "accentText":     { "oklch": "oklch(54% 0.2304 295.4)", "use": "Brand accent drawn as text on the four surfaces of this ramp: a text button, a link, the selected navigation label. The hue of brand.accent, darkened until the label reaches 4.5:1 on canvas, raised, overlay and sunken." },
+    "dangerText":     { "oklch": "oklch(53.5% 0.2 25)",   "use": "Status.danger drawn as text on the four surfaces of this ramp: Reset settings, Remove, Failed after 3 attempts. The hue of status.danger, darkened until the label reaches 4.5:1." }
   },
   "$oledDarkNote": "True black chrome for OLED panels, where black draws no power. `surfaceReader` deliberately stays above true black: pure black smears during a page turn, which is the exact motion this app is built around. The setting is honoured where it helps and explained where it does not.",
   "oledDark": {
@@ -53,7 +57,9 @@
     "textPrimary":    { "oklch": "oklch(93% 0.005 70)",  "use": "Titles and body. Not pure white — reduces halation against true black." },
     "textSecondary":  { "oklch": "oklch(72% 0.006 70)",  "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(59% 0.006 70)",  "use": "Timestamps, disabled, placeholder." },
-    "scrim":          { "oklch": "oklch(0% 0 0)",        "use": "Modal scrim at 70% alpha." }
+    "scrim":          { "oklch": "oklch(0% 0 0)",        "use": "Modal scrim at 70% alpha." },
+    "accentText":     { "oklch": "oklch(63% 0.2244 295.4)", "use": "Brand accent drawn as text on the four surfaces of this ramp. The hue of brand.accent, lightened until the label reaches 4.5:1." },
+    "dangerText":     { "oklch": "oklch(62.5% 0.2 25)",  "use": "Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1." }
   },
   "$naturalNote": "Natural is a theme, not an appearance: it carries paper texture and an earthier accent, and has its own light and dark variants. Accents reach the whole app so the theme is coherent; the grain is confined to reading surfaces, because texture behind a dense settings list reads as noise rather than as paper.",
   "naturalLight": {
@@ -67,7 +73,9 @@
     "textPrimary":    { "oklch": "oklch(24% 0.022 58)",   "use": "Titles and body. Warm near-brown rather than neutral ink." },
     "textSecondary":  { "oklch": "oklch(45% 0.024 58)",   "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(48.5% 0.024 58)",   "use": "Timestamps, disabled, placeholder." },
-    "scrim":          { "oklch": "oklch(32% 0.018 58)",   "use": "Modal scrim at 40% alpha." }
+    "scrim":          { "oklch": "oklch(32% 0.018 58)",   "use": "Modal scrim at 40% alpha." },
+    "accentText":     { "oklch": "oklch(50% 0.115 40)",   "use": "Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clayStrong, which already reaches 4.5:1 here." },
+    "dangerText":     { "oklch": "oklch(51% 0.2 25)",     "use": "Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, darkened until the label reaches 4.5:1." }
   },
   "naturalDark": {
     "surfaceCanvas":  { "oklch": "oklch(18% 0.013 58)",  "use": "App background. Warm ink." },
@@ -80,7 +88,9 @@
     "textPrimary":    { "oklch": "oklch(93% 0.016 84)",  "use": "Titles and body. Warm cream rather than neutral white." },
     "textSecondary":  { "oklch": "oklch(74% 0.018 84)",  "use": "Metadata, subtitles." },
     "textTertiary":   { "oklch": "oklch(63.5% 0.018 84)",  "use": "Timestamps, disabled, placeholder." },
-    "scrim":          { "oklch": "oklch(10% 0.008 58)",  "use": "Modal scrim at 60% alpha." }
+    "scrim":          { "oklch": "oklch(10% 0.008 58)",  "use": "Modal scrim at 60% alpha." },
+    "accentText":     { "oklch": "oklch(68% 0.105 42)",  "use": "Natural's accent drawn as text on the four surfaces of this ramp. The hue of brand.clay, lightened until the label reaches 4.5:1 on the overlay." },
+    "dangerText":     { "oklch": "oklch(69% 0.198 25)",  "use": "Status.danger drawn as text on the four surfaces of this ramp. The hue of status.danger, lightened until the label reaches 4.5:1." }
   },
   "status": {
     "success":    { "oklch": "oklch(70% 0.150 150)", "use": "Sync succeeded, source reachable." },

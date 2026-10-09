@@ -120,9 +120,20 @@ const ACCENT_PAIRS = [
   ['naturalDark.surfaceCanvas',  'brand.clay',            4.5],
 ]
 
+// The accent and the danger colour drawn as text, at 4.5, on every surface of their ramp
+// that carries a label: the canvas, a card, a menu or dialog (overlay) and an inset well.
+// `brand.accent` itself reads 4.4:1 on the light canvas and 4.1:1 on the dark one, and
+// `status.danger` reads 3.6 to 3.9:1 on light, so a label never draws them directly: it draws
+// the ramp's own `accentText` or `dangerText`, the same hue at the lightness that clears 4.5.
+const ACCENT_TEXT_ROLES = ['accentText', 'dangerText']
+const ACCENT_TEXT_SURFACES = ['surfaceCanvas', 'surfaceRaised', 'surfaceOverlay', 'surfaceSunken']
+
 const PAIRS = [
   ...SURFACE_RAMPS.flatMap((ramp) =>
     TEXT_ON_SURFACE.map(([fg, bg, floor]) => [`${ramp}.${fg}`, `${ramp}.${bg}`, floor])),
+  ...SURFACE_RAMPS.flatMap((ramp) =>
+    ACCENT_TEXT_ROLES.flatMap((role) =>
+      ACCENT_TEXT_SURFACES.map((surface) => [`${ramp}.${role}`, `${ramp}.${surface}`, 4.5]))),
   ...ACCENT_PAIRS,
 ]
 
