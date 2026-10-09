@@ -11,18 +11,19 @@ once they have chosen one.
 | Frame | What it shows |
 | --- | --- |
 | `android-coverless-well-*.png` | The well is the entry point, with the same offer in words under the hero |
-| `android-chosen-cover-*.png` | The chosen picture, *Change cover* and *Remove cover* |
+| `android-chosen-cover-*.png` | The chosen picture and the edit button on its corner (the menu is in `../wave4-android-2026-10-09/`) |
 | `ios-detail-coverless-well*.png` | The same before state on iOS |
 | `ios-detail-chosen-cover*.png` | The same after state on iOS |
 
-> **Not all of these are evidence yet.** The wave 11 review found that five of the eight
-> Android frames do not show the state their names claim: the emulator was failing under the
-> capture harness when they were taken. Task 2.6 is partial again, and task 6.5 retakes them.
-> The iOS frames stand.
+> **Android frames retaken, 2026-10-09.** The four Android files are copies of the wave 4 frames
+> `../wave4-android-2026-10-09/android-detail-no-cover*.png` and `android-detail-chosen-cover*.png`,
+> taken on the `storyarc-ci` emulator at the default text size and checked by eye: "Sea Room"
+> with the drawn well, the edit button and "Add a cover" label, then with the chosen picture and
+> the edit button on its corner. The cover edit menu replaced the *Change cover* and *Remove cover*
+> buttons, so the table below names the menu. The iOS frames stand. Frames at the largest text size
+> are not kept (owner rule of 2026-10-08).
 
-`-dark` is the dark appearance. `-largest` on Android and `-ax5` on iOS are the largest
-accessibility text size; the two platforms' capture harnesses name that condition differently
-and each keeps its own convention.
+`-dark` is the dark appearance.
 
 ## How the *after* state was staged, and why it is not a lie
 
