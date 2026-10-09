@@ -19,6 +19,9 @@ of the arriving page.
 The gap of about 75 ms at a chapter end is gone. `android-epub-curl-chapter-end-1..4` are four
 frames of a recording of one such tap. The page under the fold is Chapter 6 from the first
 frame (`6.1` to `6.5` show), and `android-epub-curl-chapter-end-after.png` is the settled page.
+Frames 2, 3 and 4 are the same to the pixel. The recording has no new frame in that time, so
+this set does not show that the fold moved without a stop there. A turn on a phone must
+answer that.
 The in-chapter number is the old figure for the raster taken after the move, and is a different
 measure from the chapter-end one. It did not change.
 
@@ -41,6 +44,13 @@ chapter end of the book) under `simctl recordVideo`, 60 fps, scanned with `ffmpe
 
 `ProseCurlOnABookTests` (host test, no pixels) again: inside a chapter the move took 2 to 20 ms,
 across the chapter end 117 ms (7 frames), which the raster ahead hides.
+
+## Backward turns on Android
+
+Readium scrolls a neighbour chapter to its arriving page only when it becomes current. A
+previous chapter that loaded fresh shows its first page. So `ProseAhead.raster` rasters a
+neighbour only when its web view cannot scroll toward the current page. In the other case the
+curl waits for the navigator, as before. The measurements above are forward turns only.
 
 ## Repeat
 
