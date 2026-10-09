@@ -22,7 +22,8 @@ extension XCTestCase {
             hold(0.4)
         }
         shutter(app, named: "x-nocover")
-        throw Wave5Failure.because("No cover on the shelf starts with \(title). Buttons: \(app.buttons.allElementsBoundByIndex.prefix(14).map(\.label))")
+        let labels = app.buttons.allElementsBoundByIndex.prefix(14).map(\.label)
+        throw Wave5Failure.because("No cover on the shelf starts with \(title). Buttons: \(labels)")
     }
 
     /// Opens a title from the Library shelf and lands on its page.
@@ -34,7 +35,8 @@ extension XCTestCase {
         try coverNamed(title, in: app).tap()
         XCTAssertTrue(
             app.buttons.matching(NSPredicate(
-                format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue' OR label BEGINSWITH 'Listen' OR label BEGINSWITH 'Download'"
+                format: "label BEGINSWITH 'Read' OR label BEGINSWITH 'Continue' "
+                    + "OR label BEGINSWITH 'Listen' OR label BEGINSWITH 'Download'"
             )).firstMatch.waitForExistence(timeout: 10),
             "The cover \(title) reached no publication page."
         )

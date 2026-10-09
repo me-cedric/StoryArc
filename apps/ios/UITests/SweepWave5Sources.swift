@@ -42,7 +42,9 @@ final class SweepWave5SourcesTests: XCTestCase {
         let cover = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         XCTAssertTrue(cover.waitForExistence(timeout: 10), "Downloads holds no copy of \(title).")
         cover.tap()
-        XCTAssertTrue(app.buttons.matching(primary).firstMatch.waitForExistence(timeout: 10), "The copy opened no page.")
+        XCTAssertTrue(
+            app.buttons.matching(primary).firstMatch.waitForExistence(timeout: 10), "The copy opened no page."
+        )
         hold(1.5)
     }
 
@@ -69,7 +71,8 @@ final class SweepWave5SourcesTests: XCTestCase {
         // A copy kept by an earlier run is un-kept first, so every run starts at "Download".
         try XCTUnwrap(hittable("More actions", in: app)).tap()
         hold(1)
-        if let forget = app.buttons.matching(NSPredicate(format: "label == 'Remove download'")).firstMatch as XCUIElement?,
+        let removal = NSPredicate(format: "label == 'Remove download'")
+        if let forget = app.buttons.matching(removal).firstMatch as XCUIElement?,
            forget.exists {
             forget.press(forDuration: 0.15)
             hold(2)

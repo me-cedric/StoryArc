@@ -54,7 +54,8 @@ final class SweepWave5HomeTests: XCTestCase {
                     && !$0.label.hasPrefix("Pale") && !$0.label.hasPrefix("Broken")
                     && !$0.label.hasPrefix("Foreign")
             },
-            "The shelf offered no second card. \(app.buttons.allElementsBoundByIndex.prefix(24).map { "\($0.label)|\($0.frame)" })"
+            "The shelf offered no second card. "
+                + "\(app.buttons.allElementsBoundByIndex.prefix(24).map { "\($0.label)|\($0.frame)" })"
         )
         card.tap()
         XCTAssertTrue(

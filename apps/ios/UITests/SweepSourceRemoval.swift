@@ -133,7 +133,9 @@ final class SweepSourceRemovalTests: XCTestCase {
         // so a wait on them proved nothing about the dialog, and passed here for that reason.
         XCTAssertTrue(
             app.staticTexts.matching(
-                NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "This removes", "Remove downloads from")
+                NSPredicate(
+                    format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "This removes", "Remove downloads from"
+                )
             ).firstMatch.waitForExistence(timeout: 5),
             "Remove raised no confirmation stating what it removes. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
