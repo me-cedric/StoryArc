@@ -129,17 +129,9 @@ final class SweepCoverMenuTests: XCTestCase {
         return false
     }
 
-    /// Home draws the server's reading lists as cards once the mock is added. The list is
-    /// `Start here`, and its card is found by its title.
+    /// The server's `Start here` list, reached from the Shelves screen as a reader reaches it.
     private func openStartHere(in app: XCUIApplication) throws {
-        try XCTUnwrap(destination("Home", in: app)).tap()
-        let title = app.staticTexts["Start here"]
-        _ = title.waitForExistence(timeout: 10)
-        try XCTSkipUnless(
-            scrollTo(title, in: app, swipes: 12),
-            "Home shows no list called Start here. Run node scripts/kavita-server.mjs on port 5001 and add it."
-        )
-        title.tap()
+        try openTheKavitaList("Start here", in: app)
     }
 
     /// The downloads queue with a failed transfer's actions menu open, then the menu for every

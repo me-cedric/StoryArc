@@ -40,7 +40,9 @@ final class AddMockKavitaTests: XCTestCase {
         try openSetting("Your libraries", landmark: "Add a library", in: app)
         let addMenu = try XCTUnwrap(hittable("Add a library", in: app), "Your libraries offers no way to add one.")
         hold(1)
-        addMenu.tap()
+        // At the start of the row, where its words are: a tap in the middle of the row misses
+        // the menu's label and opens nothing.
+        addMenu.coordinate(withNormalizedOffset: CGVector(dx: 0.06, dy: 0.5)).tap()
 
         // **A skip rather than a failure, and the skip is the finding.** The menu opens under
         // a finger — driven by hand on 2026-10-05 the five kinds appear at once — and does not

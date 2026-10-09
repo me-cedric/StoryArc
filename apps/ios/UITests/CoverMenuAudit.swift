@@ -24,8 +24,9 @@ extension AccessibilityAuditTests {
 
         let edit = app.buttons["Edit cover"]
         XCTAssertTrue(edit.waitForExistence(timeout: 5), "The cover has no edit button.")
-        XCTAssertGreaterThanOrEqual(edit.frame.width, 44, "The edit button is narrower than 44 pt.")
-        XCTAssertGreaterThanOrEqual(edit.frame.height, 44, "The edit button is shorter than 44 pt.")
+        let region = coverButtonRegion(edit)
+        XCTAssertGreaterThanOrEqual(region.width, 44, "The edit button is narrower than 44 pt: \(region).")
+        XCTAssertGreaterThanOrEqual(region.height, 44, "The edit button is shorter than 44 pt: \(region).")
     }
 
     /// A page with no artwork keeps a visible "Add a cover", and it opens the same menu.
@@ -128,8 +129,9 @@ extension AccessibilityAuditTests {
         }
 
         XCTAssertTrue(edit.waitForExistence(timeout: 10), "A chosen cover left the list with no edit button.")
-        XCTAssertGreaterThanOrEqual(edit.frame.width, 44, "The edit button is narrower than 44 pt.")
-        XCTAssertGreaterThanOrEqual(edit.frame.height, 44, "The edit button is shorter than 44 pt.")
+        let region = coverButtonRegion(edit)
+        XCTAssertGreaterThanOrEqual(region.width, 44, "The edit button is narrower than 44 pt: \(region).")
+        XCTAssertGreaterThanOrEqual(region.height, 44, "The edit button is shorter than 44 pt: \(region).")
         try audit(app, named: "Kavita reading list, a cover chosen", types: .hitRegion)
 
         edit.tap()
