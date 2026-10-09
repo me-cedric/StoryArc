@@ -233,6 +233,7 @@ struct StoryArcApp: App {
                 isReading: { reading != nil }
             )
             .storyArcTheme(appearance: settings.appearance)
+            .auditTargets()
             .speaking(settings.language)
             // The shelf is drawn from a stored, already-collated list, so it does not follow
             // the language the way a `Text` does — see `LibraryModel.languageChanged()`.
