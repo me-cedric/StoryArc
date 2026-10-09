@@ -682,9 +682,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             replace(container.id, EpubNavigatorFragment::class.java, Bundle(), NAVIGATOR_TAG)
         }
 
-        val navigator =
-            supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
-                ?: return
+        val navigator = supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment ?: return
 
         // Through Readium's own input listener, not a Compose gesture: a gesture layered over
         // the web view swallows the taps the reader needs to turn pages and follow links.
