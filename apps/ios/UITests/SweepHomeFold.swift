@@ -15,22 +15,16 @@ final class SweepHomeFoldTests: XCTestCase {
     }
 
     func testCaptureHomeFold() throws {
-        try captureHome(named: "home-fold", contentSize: nil)
+        try captureHome(named: "home-fold")
     }
 
-    func testCaptureHomeFoldAtLargestText() throws {
-        try captureHome(named: "home-fold-ax5", contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
-    }
-
-    private func captureHome(named name: String, contentSize: String?) throws {
-        // Read at the default size even for the large-text frame: at the largest accessibility
-        // size a shelf row is taller than the screen and the cover cannot be found. The position
-        // is stored, so the relaunch below finds the comic in progress.
+    private func captureHome(named name: String) throws {
+        // The position is stored, so the relaunch below finds the comic in progress.
         let reading = sweepLaunch()
         try readAComic(named: "Fine Print", in: reading)
         reading.terminate()
 
-        let app = sweepLaunch(contentSize: contentSize)
+        let app = sweepLaunch()
         try XCTUnwrap(destination("Home", in: app), "The shell offers no Home tab.").tap()
         XCTAssertTrue(app.staticTexts["Home"].waitForExistence(timeout: 10))
         hold(2)

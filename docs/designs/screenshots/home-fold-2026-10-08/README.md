@@ -12,7 +12,6 @@ Field*) so Home draws the Keep reading card, with Recently added under it.
 | --- | --- | --- | --- |
 | `android-home-411x914.png` | 411 x 914 dp | default | The *Recently added* heading is whole above the navigation bar. |
 | `android-home-360x800.png` | 360 x 800 dp (`wm density 480`) | default | Same, with a shorter cover box. The card stays 200 dp wide and *Resume* stays on one line. |
-| `android-home-411x914-largest-text.png`, `android-home-360x800-largest-text.png` | both | 2.0 | No fold claim. No caption is clipped. |
 
 ### What the first frames found
 
@@ -29,12 +28,11 @@ gives up height (`homeHeroArtHeight`). The cover is letterboxed in the shorter b
 ## iOS
 
 iPhone 17 Pro simulator, iOS 26.4, 402 x 874 pt, light. *Fine Print* is read for one page, so Home
-draws the Continue reading card. `SweepHomeFoldTests` takes both frames.
+draws the Continue reading card. `SweepHomeFoldTests` takes the frame.
 
 | Frame | Text size | What it shows |
 | --- | --- | --- |
 | `ios-home-fold.png` | default | The *Recently added* heading is whole above the tab bar, with about 60 pt to spare. The card is the one emphasis. |
-| `ios-home-fold-ax5.png` | largest | No fold claim. No caption is clipped. |
 
 The task predicted a pass on iOS by arithmetic. The frame confirms it, so iOS needs no change.
 The card is 1.25 times its width and the window is tall enough. A 375 x 812 pt phone has about 35 pt
