@@ -57,6 +57,6 @@ extension PublicationProvenance {
 
 enum DetailStrings {
     static func text(_ key: String.LocalizationValue) -> String {
-        String(localized: key, bundle: .module, locale: .storyArc)
+        String(localized: key, bundle: Bundle.module.inChosenLanguage, locale: .storyArc)
     }
 }

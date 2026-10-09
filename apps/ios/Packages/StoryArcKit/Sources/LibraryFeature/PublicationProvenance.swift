@@ -1,5 +1,6 @@
 internal import Foundation
 
+internal import Persistence
 internal import StoryArcCore
 
 /// Where one publication lives, and whether it can be opened right now.
@@ -98,11 +99,11 @@ struct PublicationProvenance: Equatable, Sendable {
                 // The library it was fetched from, and failing that any other shelf entry
                 // for it. `nil` for a removed source, which is the whole point of asking the
                 // registry rather than the publication.
-                alsoIn: source?.displayName ?? elsewhere
+                alsoIn: source.flatMap(libraryName) ?? elsewhere
             )
         }
 
-        guard let source else {
+        guard let source, source.id != ImportedCopies.sourceID else {
             // A file in the app's own storage is on this device even though nothing
             // downloaded it — an import, or the folder the app itself owns. It reads as
             // being here, because it is.
@@ -143,8 +144,14 @@ struct PublicationProvenance: Equatable, Sendable {
         library
             .lazy
             .filter { $0.id == publication.id && $0.sourceID != publication.sourceID }
-            .compactMap { $0.sourceID.flatMap { registry[$0] }?.displayName }
+            .compactMap { $0.sourceID.flatMap { registry[$0] }.flatMap(libraryName) }
             .first
+    }
+
+    /// The name a reader gave a library, and `nil` for "On this device": that source is storage
+    /// the app owns, so a line that named it would read "From On this device" (task 25.1).
+    private static func libraryName(_ source: Source) -> String? {
+        source.id == ImportedCopies.sourceID ? nil : source.displayName
     }
 
     /// What the second clause says for a publication held in a library.

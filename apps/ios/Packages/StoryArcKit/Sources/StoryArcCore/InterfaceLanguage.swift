@@ -31,6 +31,23 @@ public enum InterfaceLanguage {
     }
 }
 
+extension Bundle {
+    /// This bundle's strings in the language the reader chose, or the bundle itself when they
+    /// chose none or the bundle has no strings in it.
+    ///
+    /// `String(localized:bundle:locale:)` takes its *formatting* from the locale it is handed
+    /// and its *language* from the process, so a reader who set the app to French on an
+    /// English device met English there (task 25.1). Opening the chosen language's own
+    /// `.lproj` is the lookup that follows the choice.
+    public var inChosenLanguage: Bundle {
+        guard let tag = InterfaceLanguage.tag,
+              let path = path(forResource: tag, ofType: "lproj"),
+              let chosen = Bundle(path: path)
+        else { return self }
+        return chosen
+    }
+}
+
 extension Locale {
     /// The locale every string in StoryArc resolves against.
     ///
