@@ -8,7 +8,8 @@
  *
  * A catalogue test class is named `Catalogue<number><Name>Test`, so `--tests` narrows each
  * module to those and the rest of its unit tests stay out of the run. `pnpm test:android`
- * runs the same tests, and verifies them, as part of the whole suite. A module that gains a
+ * runs the same tests, and verifies them, as part of the whole suite. A plain `./gradlew test`
+ * (the Linux CI) does not compare images. A module that gains a
  * catalogue test is added to MODULES.
  */
 import { spawnSync } from 'node:child_process'
