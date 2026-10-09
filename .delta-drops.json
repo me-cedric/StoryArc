@@ -53,5 +53,18 @@
       },
       "reason": "Rewritten longer, not removed. The delta replaces one sentence with five that say what the first screen shows, what the primary and secondary actions do, where the four source types are named and where they are not. The 'under ten seconds' figure goes with it: it was a target rather than an observable behaviour, and every requirement here is meant to be user-observable. Drains when one-library-three-destinations syncs."
     }
+  },
+  "lighter-visual-check/native-experience": {
+    "Visual proof of interface changes": {
+      "bullets": {
+        "Screen change": [
+          "a screenshot from a booted simulator or emulator is captured at the project's device matrix and compared against the reference"
+        ]
+      },
+      "shalls": [
+        "Every change a user can see SHALL be verified against a running app on a real simulator or emulator, not against a preview."
+      ],
+      "reason": "Replaced on purpose by the owner's decision of 2026-10-09: frames cost hours per wave. Proof now comes from the builder looking at its own screen, snapshot tests (on the JVM for Android, so not always an emulator), machine accessibility checks, and a device screenshot only where a snapshot cannot draw the screen. The new 'Screen change' and 'A device screenshot where only a device shows it' scenarios carry what remains of both sentences. Drains when lighter-visual-check syncs."
+    }
   }
 }
