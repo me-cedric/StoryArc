@@ -111,7 +111,7 @@ class ThemeAxisResetTest {
             screen.contains("onSet(axis, preset.values.value(axis))"),
         )
 
-        val activity = code("EpubReaderActivity.kt")
+        val activity = code("EpubReaderActivity.kt") + code("EpubReaderContent.kt")
         assertTrue(
             "The axes screen's `onSet` is no longer the view model's `set`, so the reset" +
                 " never reaches `applyTheme`.",

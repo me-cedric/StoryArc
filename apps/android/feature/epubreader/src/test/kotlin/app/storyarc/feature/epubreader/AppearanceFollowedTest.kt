@@ -260,7 +260,7 @@ class AppearanceFollowedTest {
 
     @Test
     fun `the activity reads the link again while the book is open`() {
-        val source = code("EpubReaderActivity.kt")
+        val source = code("EpubReaderActivity.kt") + code("EpubReaderContent.kt")
 
         assertTrue(
             "The link is still resolved once, from `resources.configuration`, outside the" +

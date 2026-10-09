@@ -30,7 +30,7 @@ class EpubHingeWiringTest {
     private val source: String by lazy {
         val file = File(module, ACTIVITY_SOURCE)
         if (!file.isFile) error("$ACTIVITY_SOURCE is not under ${module.absolutePath} — has it moved?")
-        file.readText()
+        file.readText() + File(module, CONTENT_SOURCE).readText()
     }
 
     @Test
@@ -58,6 +58,7 @@ class EpubHingeWiringTest {
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.epubreader.projectDir"
         const val ACTIVITY_SOURCE = "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderActivity.kt"
+        const val CONTENT_SOURCE = "src/main/kotlin/app/storyarc/feature/epubreader/EpubReaderContent.kt"
         const val LAYOUT_SOURCE = "src/main/kotlin/app/storyarc/feature/epubreader/EpubHingeLayout.kt"
     }
 }

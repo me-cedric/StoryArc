@@ -15,20 +15,9 @@ import androidx.activity.enableEdgeToEdge
 import android.widget.FrameLayout
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.res.stringResource
@@ -37,12 +26,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentContainerView
 import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commitNow
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
-import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.theme.resolved
 import app.storyarc.core.designsystem.theme.swatch
-import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.AnnotationExport
 import app.storyarc.core.model.AppSettings
@@ -142,7 +128,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     /** Where the book is asking to send the reader, or null when it is not asking. */
-    private val leaving = MutableStateFlow<ExternalLink?>(null)
+    internal val leaving = MutableStateFlow<ExternalLink?>(null)
 
     /**
      * The reader said yes. Browsable, so the address goes to a browser rather than to
@@ -150,7 +136,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * nothing able to open it doing nothing is better than a crash on a link the reader was
      * merely curious about.
      */
-    private fun leaveTheBook(going: ExternalLink) {
+    internal fun leaveTheBook(going: ExternalLink) {
         leaving.value = null
         runCatching {
             startActivity(
@@ -218,7 +204,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     /** What the reader chose in Settings › Appearance, read once when the book opens. */
-    private val settings: AppSettings by lazy {
+    internal val settings: AppSettings by lazy {
         SettingsStore.open(applicationContext).settings()
     }
 
@@ -244,20 +230,20 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * used to watch the chrome go dark and the page stay light for the rest of the book,
      * which is the opposite of what `ebook-reader` asks for.
      */
-    private val appearance: ReaderAppearance by lazy {
+    internal val appearance: ReaderAppearance by lazy {
         ReaderAppearance.of(settings, settings.appearance.resolved(resources.configuration))
     }
 
-    private lateinit var container: FragmentContainerView
+    internal lateinit var container: FragmentContainerView
 
     /// The navigator's parent, which steals a horizontal drag while StoryArc draws the turn.
-    private lateinit var interceptor: TurnInterceptor
+    internal lateinit var interceptor: TurnInterceptor
 
     /// What the dip is added to, above the book and below the chrome.
     internal lateinit var root: FrameLayout
 
     /** Every page turn, from a tap, a key, a volume press or a swipe. */
-    private val turns by lazy {
+    internal val turns by lazy {
         EpubPageTurns(
             scope = lifecycleScope,
             navigator = { supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment },
@@ -280,7 +266,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * Whether the control belongs on screen. Its own flow, because the chrome is composed
      * before the publication is parsed.
      */
-    private val canReadAloud = MutableStateFlow(false)
+    internal val canReadAloud = MutableStateFlow(false)
 
     /**
      * The shade's copy of the transport, which from API 33 has to be asked for. A refusal
@@ -310,7 +296,6 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         super.attachBaseContext(newBase.speaking(newBase.chosenLanguage()))
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         // `native-experience`: edge to edge below API 35 too -- `MainActivity` already
         // does this, and `EpubChrome`'s `safeDrawingPadding` expects the same window.
@@ -359,276 +344,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
         val chrome = ComposeView(this).apply {
             setContent {
-                // Read, not fixed. `settings-and-about`'s appearance is the reader's and it
-                // applies "across the whole app"; the Material You opt-out is
-                // `native-experience`'s and belongs to the same choice. Both come from the
-                // one read on `appearance`, which also carries why this one is the literal
-                // choice rather than the resolved one.
-                StoryArcTheme(
-                    appearance = appearance.chrome,
-                    useDynamicColor = appearance.useDynamicColor,
-                ) {
-                    val progression by model.progression.collectAsStateWithLifecycle()
-                    val chapter by model.chapterTitle.collectAsStateWithLifecycle()
-                    val withinChapter by model.withinChapter.collectAsStateWithLifecycle()
-                    val failure by model.failure.collectAsStateWithLifecycle()
-                    val isVisible by model.isChromeVisible.collectAsStateWithLifecycle()
-                    val theme by model.theme.collectAsStateWithLifecycle()
-                    val values by model.values.collectAsStateWithLifecycle()
-                    val customPalette by model.customPalette.collectAsStateWithLifecycle()
-                    val transition by model.transition.collectAsStateWithLifecycle()
-                    val reduceMotion by model.reduceMotionFlow.collectAsStateWithLifecycle()
-                    val brightness by model.brightness.collectAsStateWithLifecycle()
-                    val contents by model.tableOfContents.collectAsStateWithLifecycle()
-                    val resource by model.currentResource.collectAsStateWithLifecycle()
-                    val bookmarks by model.bookmarks.collectAsStateWithLifecycle()
-                    val isPageBookmarked by model.isPageBookmarked.collectAsStateWithLifecycle()
-                    val matches by model.matches.collectAsStateWithLifecycle()
-                    val isSearching by model.isSearching.collectAsStateWithLifecycle()
-                    val note by model.note.collectAsStateWithLifecycle()
-                    val returnPoint by model.returnPoint.collectAsStateWithLifecycle()
-                    val canSpeak by canReadAloud.collectAsStateWithLifecycle()
-                    // The session belongs to `ReadAloudHost`, and this screen only observes
-                    // it. Scoped to this book, because a listener looking at one book while
-                    // another is being spoken must not get a transport in this chrome that
-                    // would pause a book they cannot see.
-                    val spoken by ReadAloudHost.session.collectAsStateWithLifecycle()
-                    val spokenBook by ReadAloudHost.book.collectAsStateWithLifecycle()
-                    val isThisBook = spokenBook?.id == bookId
-                    val annotations by model.annotations.collectAsStateWithLifecycle()
-                    val writing by writingNote.collectAsStateWithLifecycle()
-                    var editingNote by remember { mutableStateOf<Annotation?>(null) }
-                    // Either route into the editor: the selection bar's "Note", which
-                    // highlights first and lands here, or a row's own pencil. Named apart
-                    // from `note` above, which is the footnote a reader tapped.
-                    val writtenOn = writing ?: editingNote
-                    var isShowingTheme by remember { mutableStateOf(false) }
-                    var isShowingContents by remember { mutableStateOf(false) }
-
-                    // The other half of the two-control chrome: one button leaves the book
-                    // and this one is everything else. See `EpubMenuSheet.kt`.
-                    var isShowingMenu by remember { mutableStateOf(false) }
-                    var contentsTab by remember { mutableStateOf(ContentsTab.CONTENTS) }
-
-                    // Level two of the theme surface, which on this platform is a
-                    // destination rather than a second sheet. See `ThemeAxesScreen.kt`.
-                    var isCustomisingTheme by remember { mutableStateOf(false) }
-
-                    KeepOffHinge(container) // `native-experience`, Foldables. See `EpubHingeLayout.kt`.
-
-                    // `reading-themes`: reader-local. A window attribute rather than
-                    // the system setting, so it reverts when this screen goes away.
-                    LaunchedEffect(brightness) {
-                        window.attributes = window.attributes.apply {
-                            screenBrightness = brightness
-                                ?: WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-                        }
-                    }
-
-                    // `reading-themes`: visible immediately. Reduce Motion is a key too,
-                    // so turning it off mid-session applies at once, not on the next turn.
-                    LaunchedEffect(theme, values, transition, reduceMotion) { applyTheme(reduceMotion) }
-
-                    // `ebook-reader`: the reading theme follows the appearance "then and
-                    // there rather than at the next open", and only for the reader who
-                    // linked the two. The first run is a no-op, because the view model was
-                    // built with this same answer. What it catches is the device turning
-                    // dark while the book is open, which the effect above puts on the page.
-                    val linked = linkedReadingTheme(settings)
-                    LaunchedEffect(linked) { model.follow(linked) }
-
-                    // `page-transitions`: the reader picks a page turn *after* the book is
-                    // open, and Reduce Motion can turn a Slide into Fast fade's own turn, so
-                    // ownership follows `effective` and the swipe is armed, not one mode.
-                    val drawnTurn = model.transitions(reduceMotion).drawnTurn
-                    LaunchedEffect(drawnTurn) {
-                        interceptor.arm(drawnTurn, turns)
-                    }
-
-                    // `ebook-reader`: a footnote "opens in place". A bottom sheet is the
-                    // platform's own in-place, and it leaves the page it was tapped on
-                    // visible behind it.
-                    note?.let { text ->
-                        ModalBottomSheet(onDismissRequest = { model.dismissNote() }) {
-                            Text(
-                                text = text,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(
-                                    horizontal = StoryArcSpace.gutter,
-                                    vertical = StoryArcSpace.lg,
-                                ),
-                            )
-                        }
-                    }
-
-                    // A link out of the book names where it goes before it goes there.
-                    val going by leaving.collectAsStateWithLifecycle()
-                    going?.let { destination ->
-                        LeaveTheBookDialog(
-                            leaving = destination,
-                            onOpen = { leaveTheBook(destination) },
-                            onDismiss = { leaving.value = null },
-                        )
-                    }
-
-                    writtenOn?.let { mark ->
-                        NoteDialog(
-                            initial = mark.note,
-                            onSave = { text ->
-                                model.annotate(mark, text)
-                                writingNote.value = null
-                                editingNote = null
-                            },
-                            onDismiss = {
-                                writingNote.value = null
-                                editingNote = null
-                            },
-                        )
-                    }
-
-                    if (isShowingContents) {
-                        ContentsBottomSheet(
-                            entries = contents.orEmpty(),
-                            currentResource = resource,
-                            bookmarks = bookmarks,
-                            matches = matches,
-                            isSearching = isSearching,
-                            onSearch = { model.search(it) },
-                            onGoToMatch = { match ->
-                                go(match)
-                                isShowingContents = false
-                            },
-                            annotations = annotations,
-                            onGoToAnnotation = { mark ->
-                                go(mark)
-                                isShowingContents = false
-                            },
-                            onEditAnnotation = { editingNote = it },
-                            onRemoveAnnotation = { model.removeAnnotation(it.id) },
-                            onExportAnnotations = { format -> share(annotations, format) },
-                            onGo = { link ->
-                                go(link)
-                                isShowingContents = false
-                            },
-                            onGoToBookmark = { bookmark ->
-                                go(bookmark)
-                                isShowingContents = false
-                            },
-                            onRemoveBookmark = { model.removeBookmark(it.id) },
-                            onDismiss = { isShowingContents = false },
-                            opensOn = contentsTab,
-                        )
-                    }
-
-                    if (isShowingTheme) {
-                        // Words from where the reader is, read once when the sheet opens —
-                        // re-reading the resource on every slider step would put a disk read
-                        // inside a drag.
-                        var excerpt by remember { mutableStateOf("") }
-                        LaunchedEffect(Unit) { excerpt = model.previewExcerpt() }
-
-                        ThemeSurface(
-                            theme = theme,
-                            values = values,
-                            customPalette = customPalette,
-                            onAdopt = { preset ->
-                                model.adopt(preset)
-                                // `ebook-reader`: "picking a preset applies it and leaves the
-                                // surface, because that was the whole errand".
-                                isShowingTheme = false
-                            },
-                            onAdoptColours = model::adoptColours,
-                            onCustomise = {
-                                // Level one leaves as level two arrives: a destination is not
-                                // a second sheet over the first, which is the whole point of
-                                // it being a destination.
-                                isShowingTheme = false
-                                isCustomisingTheme = true
-                            },
-                            onDismiss = { isShowingTheme = false },
-                            chapter = chapter,
-                            excerpt = excerpt,
-                        )
-                    }
-
-                    if (isCustomisingTheme) {
-                        // Words from where the reader is, read once when the destination
-                        // opens. The position does not move while it is up, and re-reading
-                        // the resource on every slider step would put a disk read inside a
-                        // drag.
-                        var axesExcerpt by remember { mutableStateOf("") }
-                        LaunchedEffect(Unit) { axesExcerpt = model.previewExcerpt() }
-
-                        ThemeAxesScreen(
-                            theme = theme,
-                            values = values,
-                            brightness = brightness,
-                            onChange = model::change,
-                            onSet = model::set,
-                            onBrightness = model::setBrightness,
-                            onRestore = model::restoreTheme,
-                            onLeavePublisherStyles = model::leavePublisherStyles,
-                            onAdoptColours = model::adoptColours,
-                            onDiscardColours = model::discardCustomColours,
-                            choices = model.transitions(reduceMotion),
-                            onChooseTransition = model::choose,
-                            onClose = { isCustomisingTheme = false },
-                            chapter = chapter,
-                            excerpt = axesExcerpt,
-                        )
-                    }
-
-                    if (isShowingMenu) {
-                        EpubMenuSheet(
-                            facts = EpubMenuFacts(
-                                chapter = chapter,
-                                progression = progression,
-                                withinChapter = withinChapter,
-                                isPageBookmarked = isPageBookmarked,
-                                isContentsReady = contents != null,
-                                canReadAloud = canSpeak,
-                                isReadingAloud = isThisBook && spoken.isActive,
-                            ),
-                            actions = EpubMenuActions(
-                                onDismiss = { isShowingMenu = false },
-                                onOpenContents = { panel ->
-                                    contentsTab = panel
-                                    isShowingMenu = false
-                                    isShowingContents = true
-                                },
-                                onToggleBookmark = { model.toggleBookmark() },
-                                onOpenTheme = {
-                                    isShowingMenu = false
-                                    isShowingTheme = true
-                                },
-                                onStartReadAloud = {
-                                    isShowingMenu = false
-                                    startReadAloud()
-                                },
-                                onStopReadAloud = ReadAloudHost::end,
-                            ),
-                        )
-                    }
-
-                    EpubChrome(
-                        failure = failure,
-                        isVisible = isVisible,
-                        onClose = { finish() },
-                        onOpenMenu = { isShowingMenu = true },
-                    )
-
-                    // Not the chrome, and on screen on their own terms: `EpubReaderOverlays.kt`.
-                    EpubReaderOverlays(
-                        canReturn = returnPoint != null,
-                        onReturn = { model.takeReturnPoint()?.let { goToLocator(it, remember = false) } },
-                        isReadingAloud = isThisBook && spoken.isActive,
-                        isSpeaking = isThisBook && spoken.isPlaying,
-                        onToggleReadAloud = ReadAloudHost::toggle,
-                        onSkipSentence = ReadAloudHost::skip,
-                        onStopReadAloud = ReadAloudHost::end,
-                    )
-                    EpubEndOfBookOffer(this@EpubReaderActivity, failure, progression) // Task 7.2.
-                }
+                EpubReaderContent()
             }
         }
 
@@ -716,7 +432,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * fragment the activity owns and a view model holding one would outlive it.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun applyTheme(reduceMotion: Boolean) {
+    internal fun applyTheme(reduceMotion: Boolean) {
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
@@ -749,10 +465,10 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * same words after a type size has moved every page break.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun go(bookmark: Bookmark) = goToLocator(bookmark.locator)
+    internal fun go(bookmark: Bookmark) = goToLocator(bookmark.locator)
 
     /** A mark the reader is writing on, or null. Held here because the bar cannot hold it. */
-    private val writingNote = MutableStateFlow<Annotation?>(null)
+    internal val writingNote = MutableStateFlow<Annotation?>(null)
 
     /**
      * Marks what is selected, and paints it.
@@ -819,7 +535,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     /** Goes to a mark. The same journey a bookmark takes, from the same kind of record. */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun go(annotation: Annotation) = goToLocator(annotation.locator)
+    internal fun go(annotation: Annotation) = goToLocator(annotation.locator)
 
     /**
      * Hands the marks to whatever the reader wants to put them in.
@@ -827,7 +543,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * The platform's own share sheet rather than a file this app writes: `ebook-reader` asks
      * for them to be "exportable", and where they go is the reader's business.
      */
-    private fun share(annotations: List<Annotation>, format: AnnotationExport.Format) {
+    internal fun share(annotations: List<Annotation>, format: AnnotationExport.Format) {
         val document = AnnotationExport.document(
             annotations,
             title = intent.getStringExtra(EXTRA_TITLE).orEmpty(),
@@ -847,7 +563,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
 
     /** Goes to a search hit. The same journey a bookmark takes, from the same kind of record. */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun go(match: SearchMatch) = goToLocator(match.locator)
+    internal fun go(match: SearchMatch) = goToLocator(match.locator)
 
     /**
      * Builds the voice once the publication is open.
@@ -897,7 +613,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
     }
 
     /** What this screen's publication is called wherever a publication is named. */
-    private val bookId: String
+    internal val bookId: String
         get() = PublicationIdentity(
             normalizedPath = requireNotNull(intent.getStringExtra(EXTRA_LOCATION)),
         ).stableId
@@ -910,7 +626,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * back to what they have already read.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun startReadAloud() {
+    internal fun startReadAloud() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
             PackageManager.PERMISSION_GRANTED
@@ -1020,7 +736,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * after one kind of jump and not another would look like a bug rather than a rule.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun goToLocator(json: String, remember: Boolean = true) {
+    internal fun goToLocator(json: String, remember: Boolean = true) {
         // Not on the way back: the control's whole promise is that it goes away once it
         // has done what it offers, and a return that recorded where it returned *from*
         // would leave a button that bounces the reader between two pages for ever.
@@ -1039,7 +755,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * Readium that knows how the entry's fragment maps onto a position in the resource.
      */
     @OptIn(ExperimentalReadiumApi::class)
-    private fun go(link: Link) {
+    internal fun go(link: Link) {
         val navigator =
             supportFragmentManager.findFragmentByTag(NAVIGATOR_TAG) as? EpubNavigatorFragment
                 ?: return
