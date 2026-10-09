@@ -1,5 +1,7 @@
 package app.storyarc.feature.library
 
+import kotlinx.coroutines.flow.update
+
 /**
  * What the view model re-reads when a library import has written its stores.
  *
@@ -14,11 +16,13 @@ package app.storyarc.feature.library
  */
 fun LibraryViewModel.reloadAfterImport() {
     sourceStore?.let { store ->
-        val held = _registry.value
         val stored = store.registry()
-        _registry.value = stored.copy(
-            sources = stored.sources.map { source -> held[source.id]?.let { source.copy(state = it.state) } ?: source },
-        )
+        // `update`, so a probe that answers during the reload is not lost.
+        _registry.update { held ->
+            stored.copy(
+                sources = stored.sources.map { source -> held[source.id]?.let { source.copy(state = it.state) } ?: source },
+            )
+        }
     }
     shelvesStore?.let { _shelves.value = it.shelves() }
     refreshProgress()
