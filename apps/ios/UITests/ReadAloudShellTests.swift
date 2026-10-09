@@ -99,6 +99,30 @@ final class ReadAloudShellTests: XCTestCase {
         }
     }
 
+    /// The voice reaches the end of a one-sentence book: the bar goes, and the page keeps no decoration.
+    ///
+    /// `read-aloud-beyond-the-reader` 4.3. `one-sentence.epub` is the fixture generated for it. The
+    /// reader stays open until the voice stops, so the first frame is the last sentence's page at the
+    /// moment of silence. The second is the shelf behind it, with no bar above the tab bar.
+    func testTheEndOfThePublicationWithdrawsTheVoice() throws {
+        let app = try speakAloud(opening: "One Sentence", pausing: false, leavingTheReader: false).app
+        let bar = app.buttons["Stop"].firstMatch
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: bar)
+        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: 60), .completed, "The voice never reached the end of one sentence.")
+        hold(1)
+        shutter(app, named: "voice-end-reader")
+        let close = app.buttons["Close"].firstMatch
+        if !close.exists { app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap() }
+        XCTAssertTrue(close.waitForExistence(timeout: 5), "No way out of the reader.")
+        close.tap()
+        backToTheShelf(in: app)
+        hold(1)
+        XCTAssertFalse(app.buttons["Stop"].exists, "The bar is still there after the voice ended.")
+        XCTAssertFalse(app.buttons["Open the player"].exists, "The player is still offered after the voice ended.")
+        XCTAssertFalse(slotAboveTheTabBar(in: app), "An empty slot sits above the tab bar after the voice ended.")
+        shutter(app, named: "voice-end-shelf")
+    }
+
     /// A minimised tab bar holds the bar inline. A swipe down on the screen brings the full bar back.
     private func bringBackTheFullBar(in app: XCUIApplication) {
         if !app.buttons["Open the player"].firstMatch.waitForExistence(timeout: 3) { app.swipeDown() }

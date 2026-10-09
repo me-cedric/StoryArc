@@ -455,6 +455,28 @@
       "note": "`belongs-to-collection` is what the format defines and `calibre:series` is what most files carry; a file with both is a file whose publisher knew better than its converter, so the defined one wins."
     },
     {
+      "file": "ebooks/one-sentence.epub",
+      "pins": "a reflowable book of one chapter and one sentence, so a read-aloud session reaches its end in seconds",
+      "epubVersion": 3,
+      "expectedSpineCount": 1,
+      "expectedTitle": "One Sentence",
+      "expectedAuthor": "StoryArc Fixtures",
+      "expectedLanguage": "en",
+      "expectedIdentifier": "urn:uuid:storyarc-fixture-one-sentence",
+      "expectedSpineHrefs": [
+        "OEBPS/ch1.xhtml"
+      ],
+      "expectedTocTitles": [
+        "One Sentence"
+      ],
+      "expectedCoverHref": null,
+      "expectedSpineCoverHref": null,
+      "hasNavDocument": true,
+      "hasCoverImage": false,
+      "isFixedLayout": false,
+      "note": "Task 4.3 of read-aloud-beyond-the-reader. Read aloud, it ends within seconds of starting."
+    },
+    {
       "file": "ebooks/fixed-layout.epub",
       "pins": "a fixed-layout EPUB declares rendition:layout, so it is read with the image reader and not offered font controls",
       "epubVersion": 3,

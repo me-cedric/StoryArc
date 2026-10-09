@@ -183,7 +183,16 @@ const xml = args.includes('--clear')
   : "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n" +
     `    <string name="registry">${escape(JSON.stringify(chosen))}</string>\n</map>\n`
 
-adb('root')
+// A Play Store image refuses `adb root`. A debug build still lets `run-as` write its own files,
+// and a file written that way already has the app's owner, mode and label.
+let rooted = true
+try {
+  adb('root')
+  // A refusal exits 0, so ask who the shell is.
+  rooted = adb('shell', 'id', '-u') === '0'
+} catch {
+  rooted = false
+}
 // The app has to be down. `SharedPreferences` keeps the map in memory and writes it back on
 // the next edit, so a file written under a running app is overwritten by what the app
 // already held.
@@ -191,6 +200,12 @@ adb('shell', 'am', 'force-stop', PACKAGE)
 
 const scratch = join(tmpdir(), 'storyarc-sources.xml')
 writeFileSync(scratch, xml)
+if (!rooted) {
+  adb('shell', `run-as ${PACKAGE} mkdir -p shared_prefs`)
+  execFileSync('adb', [...(flag('--device', null) ? ['-s', flag('--device')] : []), 'exec-in', 'run-as', PACKAGE, 'sh', '-c', 'cat > shared_prefs/app.storyarc.sources.xml'], { input: xml })
+  console.log(adb('shell', `run-as ${PACKAGE} cat shared_prefs/app.storyarc.sources.xml`).slice(0, 200))
+  process.exit(0)
+}
 adb('push', scratch, '/data/local/tmp/storyarc-sources.xml')
 
 // The owner and the mode of a neighbouring preference file, so this one is indistinguishable

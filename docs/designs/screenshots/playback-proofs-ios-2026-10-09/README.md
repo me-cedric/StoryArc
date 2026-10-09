@@ -1,6 +1,6 @@
 # Playback proofs, iOS, 2026-10-09
 
-Tasks: read-aloud-beyond-the-reader 0.1 and 2.3. audiobooks-and-playback 4.5, 13.3 and 15.6.
+Tasks: read-aloud-beyond-the-reader 0.1, 2.3 and 4.3. audiobooks-and-playback 4.5, 13.3 and 15.6.
 
 Device: iPhone Air simulator (iOS 26.4), default text size, light and dark. A frame with the suffix `-dark` is dark. Simulator answers are simulator-only: the session state is read, not the sound.
 
@@ -13,6 +13,8 @@ Device: iPhone Air simulator (iOS 26.4), default text size, light and dark. A fr
 | `ios-shell-home-session`, `-library-`, `-downloads-`, `-search-` | 2.3 | The same four destinations with a read-aloud session. The bar sits above the tab bar. |
 | `ios-chapter-list-marks` | 15.6 | Sea Room chapter list: One finished, Two in progress, Three not reached. |
 | `ios-full-player-embedded-cover` | 4.5 | Full player over an M4B with an embedded cover. The artwork is the cover, not the headphones well. |
+| `ios-voice-end-reader` | 4.3 | One Sentence, the moment the voice stops: the page shows the sentence with no decoration and no controls. |
+| `ios-voice-end-shelf` | 4.3 | The Library after the voice ended: no bar and no empty slot above the tab bar. |
 | `ios-audiobook-reopened` | 13.3 | The player after a kill and a relaunch, in chapter Two at 0:01. |
 
 Every `-dark` twin is the same walk in the dark appearance. `ios-audiobook-reopened` is light only (optional in the task).
@@ -24,6 +26,7 @@ Every `-dark` twin is the same walk in the dark appearance. `ios-audiobook-reope
 - `PlayerScreenshotTests/testCaptureChapterListMarks` (15.6). Reads the label of each row. Asserts "Finished" on row one, "In progress" on row two and no mark on row three. The spoken rows are `Finished, One`, `In progress, Two, 1 second left` and `Three`. Mutation: swapping the two words in `PlayerSheets.mark(_:)` fails it with the row labels printed.
 - `AudiobookResumeTests/testAnAudiobookReopensAtTheSavedPart` (13.3). Chooses chapter Two at 0.5x, pauses, kills the app, relaunches, opens the same book and reads the chapter marked in progress. Before the kill: part 2 (Two). After the relaunch: part 2 (Two), 0:01. Mutation: `resumePlace` returning nil fails it with "reopened at part 1".
 - `PlayerScreenshotTests/testCaptureFullPlayerWithAnEmbeddedCover` (4.5). Photographs only.
+- `ReadAloudShellTests/testTheEndOfThePublicationWithdrawsTheVoice` (4.3). Reads `One Sentence` (new fixture `one-sentence.epub`, copied into the simulator's `Documents/Corpus`) aloud with the reader open. Waits up to 60 s for the bar to go, photographs the page, closes the reader, and asserts no bar, no player entry and no empty slot on the shelf. The simulator voice ended in a few seconds. Mutation: reading `Harbour Lights 01` instead fails it with "The voice never reached the end of one sentence". The highlight is a web view decoration that XCUITest cannot read, so only the page frame shows it gone.
 
 ## Owed
 

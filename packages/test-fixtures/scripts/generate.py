@@ -648,6 +648,60 @@ epub(
     ],
 )
 
+# `read-aloud-beyond-the-reader` 4.3 needs a reflowable book whose voice reaches the end in seconds, so
+# the highlight, the bar and the media notification can be seen to go. One chapter, one sentence.
+ONE_SENTENCE_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:storyarc-fixture-one-sentence</dc:identifier>
+    <dc:title>One Sentence</dc:title>
+    <dc:language>en</dc:language>
+    <dc:creator>StoryArc Fixtures</dc:creator>
+    <meta property="dcterms:modified">2026-01-01T00:00:00Z</meta>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="ch1"/>
+  </spine>
+</package>
+"""
+
+ONE_SENTENCE_NAV = b"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Contents</title></head>
+<body>
+  <nav epub:type="toc" id="toc">
+    <ol>
+      <li><a href="ch1.xhtml">One Sentence</a></li>
+    </ol>
+  </nav>
+</body>
+</html>
+"""
+
+ONE_SENTENCE_CHAPTER = b"""<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>One Sentence</title></head>
+<body>
+    <h1>One Sentence</h1>
+<p>The harbour was quiet.</p>
+</body>
+</html>
+"""
+
+epub(
+    "one-sentence.epub",
+    [
+        ("META-INF/container.xml", EPUB_CONTAINER),
+        ("OEBPS/package.opf", ONE_SENTENCE_PACKAGE),
+        ("OEBPS/nav.xhtml", ONE_SENTENCE_NAV),
+        ("OEBPS/ch1.xhtml", ONE_SENTENCE_CHAPTER),
+    ],
+)
+
 FIXED_PACKAGE = b"""<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id"
          prefix="rendition: http://www.idpf.org/vocab/rendition/#">
@@ -1120,6 +1174,24 @@ ebooks: list[dict] = [
         "hasCoverImage": False,
         "isFixedLayout": False,
         "note": "`belongs-to-collection` is what the format defines and `calibre:series` is what most files carry; a file with both is a file whose publisher knew better than its converter, so the defined one wins.",
+    },
+    {
+        "file": "ebooks/one-sentence.epub",
+        "pins": "a reflowable book of one chapter and one sentence, so a read-aloud session reaches its end in seconds",
+        "epubVersion": 3,
+        "expectedSpineCount": 1,
+        "expectedTitle": "One Sentence",
+        "expectedAuthor": "StoryArc Fixtures",
+        "expectedLanguage": "en",
+        "expectedIdentifier": "urn:uuid:storyarc-fixture-one-sentence",
+        "expectedSpineHrefs": ["OEBPS/ch1.xhtml"],
+        "expectedTocTitles": ["One Sentence"],
+        "expectedCoverHref": None,
+        "expectedSpineCoverHref": None,
+        "hasNavDocument": True,
+        "hasCoverImage": False,
+        "isFixedLayout": False,
+        "note": "Task 4.3 of read-aloud-beyond-the-reader. Read aloud, it ends within seconds of starting.",
     },
     {
         "file": "ebooks/fixed-layout.epub",

@@ -505,6 +505,11 @@ export const ROUTES = [
     // audiobooks-and-playback 3.6 and 17.3: Sea Room playing, for the kill-and-resume proofs.
     ['Player > Sea Room playing', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '@wait']],
     ['Player > Sea Room paused', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause')]],
+    // audiobooks-and-playback 15.6: Sea Room paused in chapter two, then the chapter list. One chapter
+    // finished, one in progress, one not reached.
+    ['Player > chapter marks', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause'), '@swipe-up', '@swipe-up']],
+    // audiobooks-and-playback 4.5: `with-cover.m4b` looped to two minutes so it can be paused, cover atom kept.
+    ['Player > embedded cover', [NAMES.search, named('library_search'), '@type with cover', '=With Cover Long', NAMES.listen, '=' + named('player_pause')]],
     ['Publication page > Sea Room', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room']],
     // audiobooks-and-playback 17.3: a book never finished, so Listen continues where the reader stopped.
     ['Player > Dawn Road 2 paused', [NAMES.search, named('library_search'), '@type dawn roa', '=Dawn Road #2', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause')]],

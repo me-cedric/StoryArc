@@ -59,7 +59,12 @@ extension XCTestCase {
     ///
     /// - Parameter title: a reflowable EPUB to open by name, or `nil` to let the shared search
     ///   in `EpubWalk` find one — which skips, rather than fails, on a device without any.
-    func speakAloud(opening title: String? = nil, pausing: Bool = true) throws -> (app: XCUIApplication, focus: (before: String?, after: String?)) {
+    /// - Parameter leavingTheReader: `false` returns with the reader open and the voice running.
+    func speakAloud(
+        opening title: String? = nil,
+        pausing: Bool = true,
+        leavingTheReader: Bool = true
+    ) throws -> (app: XCUIApplication, focus: (before: String?, after: String?)) {
         // **Filtered to the two formats these walks open, so nothing scrolls.** With the shelf
         // reduced to EPUBs and audiobooks every book these walks name is in the first two rows.
         // The filter was added while chasing a cover that opened nothing at any position; that
@@ -128,6 +133,7 @@ extension XCTestCase {
         )
 
         let focus = (before: focusBefore, after: uiFocus(in: app))
+        if !leavingTheReader { return (app, focus) }
 
         // **Paused before leaving, and deliberately.** A capture of a moving session is a
         // race: the voice crosses a sentence between the two screenshots and the chapter line
