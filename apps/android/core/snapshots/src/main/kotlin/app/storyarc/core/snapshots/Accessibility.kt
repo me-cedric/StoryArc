@@ -26,8 +26,8 @@ class KnownFault(val check: Check, val label: String, val why: String, val look:
  * text. Changing the accent is a design-token decision and not a fix to one screen, so each node
  * that draws it is listed on its own entry until the token moves.
  */
-fun brandAccentText(label: String) =
-    KnownFault(Check.CONTRAST, label, "primary text is the brand accent, under 4.5:1 on the canvas in both appearances")
+fun brandAccentText(label: String, look: Look? = null) =
+    KnownFault(Check.CONTRAST, label, "primary text is the brand accent, under 4.5:1 on the canvas in both appearances", look)
 
 /**
  * Text drawn in `colorScheme.error`, which is `Status.danger` in both appearances. It reaches
