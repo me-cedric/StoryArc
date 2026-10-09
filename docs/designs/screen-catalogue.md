@@ -35,30 +35,40 @@ accessibility audit.
   - Clipped text is printed and does not fail, because the audit cannot tell text that a scroll
     view cuts at its edge from text that a layout clips, and it names no element for most of what
     it finds.
-- **Android.** The Android column says "see lighter-visual-check 2.2" until that task fills it.
+- **Android snapshots.** Each screen module has a Robolectric test `Catalogue<number><Name>Test`
+  that draws the real Compose screen with fixture data through `catalogue()` in `:core:snapshots`,
+  in light and in dark, at `w411dp-h891dp-xhdpi` (822 by 1782 pixels). Roborazzi writes the
+  reference images to `src/test/snapshots/<number>-<name>-<light|dark>.png` in that module.
+  - `pnpm snap:android` compares each image with its reference. A changed image fails the test.
+    `pnpm test:android` also compares them. A plain `./gradlew test`, as the Linux CI runs it,
+    does not compare them, because the references are recorded on macOS.
+  - `pnpm snap:android:record` records every reference again. Open each changed image before the
+    commit.
+  - The same call runs the accessibility checks of `:core:snapshots` on each screen: touch
+    targets, contrast and labels. A fault that stands for now is a `KnownFault` with its reason.
 
 ## The catalogue
 
 | No. | Screen | iOS snapshot test | iOS images (light and dark) | iOS audit | Android |
 | --- | --- | --- | --- | --- | --- |
-| 01 | Home with content | `LibraryCatalogueTests/testCatalogue01HomeWithContent` | `LibraryCatalogueTests/01-home-with-content` | `testCatalogue01HomeWithContent` | see lighter-visual-check 2.2 |
-| 02 | Home on a first run | `LibraryCatalogueTests/testCatalogue02HomeFirstRun` | `LibraryCatalogueTests/02-home-first-run` | `testCatalogue02HomeFirstRun`, on a device with no library | see lighter-visual-check 2.2 |
-| 03 | Library grid | `LibraryCatalogueTests/testCatalogue03LibraryGrid` | `LibraryCatalogueTests/03-library-grid` | `testCatalogue03LibraryGridAndRail` | see lighter-visual-check 2.2 |
-| 04 | Library list | `LibraryCatalogueTests/testCatalogue04LibraryList` | `LibraryCatalogueTests/04-library-list` | `testCatalogue04LibraryList` | see lighter-visual-check 2.2 |
-| 05 | Publication page with a cover | `DetailAndPlayerCatalogueTests/testCatalogue05PublicationWithCover` | `DetailAndPlayerCatalogueTests/05-publication-with-cover` | `testCatalogue05PublicationWithCover` | see lighter-visual-check 2.2 |
-| 05b | Publication page, file not on this device | `DetailAndPlayerCatalogueTests/testCatalogue05bPublicationUnavailable` | `DetailAndPlayerCatalogueTests/05b-publication-unavailable` | not reachable: needs an unreachable source | see lighter-visual-check 2.2 |
-| 06 | Publication page without a cover | `DetailAndPlayerCatalogueTests/testCatalogue06PublicationWithoutCover` | `DetailAndPlayerCatalogueTests/06-publication-without-cover` | `testCatalogue06PublicationWithoutCover` | see lighter-visual-check 2.2 |
-| 07 | Full player | `DetailAndPlayerCatalogueTests/testCatalogue07FullPlayer` | `DetailAndPlayerCatalogueTests/07-full-player` | `testCatalogue07And08Player` | see lighter-visual-check 2.2 |
-| 08 | Compact player bar | `DetailAndPlayerCatalogueTests/testCatalogue08CompactPlayerBar` | `DetailAndPlayerCatalogueTests/08-compact-player-bar` | `testCatalogue07And08Player` | see lighter-visual-check 2.2 |
-| 09 | Settings root | `SettingsCatalogueTests/testCatalogue09SettingsRoot` | `SettingsCatalogueTests/09-settings-root` | `testCatalogue09To11SettingsAndSources` | see lighter-visual-check 2.2 |
-| 10 | Sources list | `SettingsCatalogueTests/testCatalogue10SourcesList` | `SettingsCatalogueTests/10-sources-list` | `testCatalogue09To11SettingsAndSources` | see lighter-visual-check 2.2 |
-| 11 | Source detail | `SettingsCatalogueTests/testCatalogue11SourceDetail` | `SettingsCatalogueTests/11-source-detail` | `testCatalogue09To11SettingsAndSources` | see lighter-visual-check 2.2 |
-| 12 | The sync section of settings | `SettingsCatalogueTests/testCatalogue12SettingsSync` | `SettingsCatalogueTests/12-settings-sync` | `testCatalogue12SettingsSync` | see lighter-visual-check 2.2 |
-| 13 | Downloads and storage | `SettingsCatalogueTests/testCatalogue13DownloadsAndStorage` | `SettingsCatalogueTests/13-downloads-and-storage` | `testCatalogue13Downloads`, which audits the tab and the settings group | see lighter-visual-check 2.2 |
-| 14 | Search at rest | `LibraryCatalogueTests/testCatalogue14SearchAtRest` | `LibraryCatalogueTests/14-search-at-rest` | `testCatalogue14SearchAtRest` | see lighter-visual-check 2.2 |
-| 15 | Comic or PDF reader chrome | `ReaderCatalogueTests/testCatalogue15ComicReaderChrome` | `ReaderCatalogueTests/15-comic-reader-chrome` | `testCatalogue15ReaderChrome` | see lighter-visual-check 2.2 |
-| 16 | Reading themes sheet | `ReaderCatalogueTests/testCatalogue16ThemeSheet` | `ReaderCatalogueTests/16-theme-sheet` | `testCatalogue16ThemeSheet` | see lighter-visual-check 2.2 |
-| 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | `testCatalogue03LibraryGridAndRail` | see lighter-visual-check 2.2 |
+| 01 | Home with content | `LibraryCatalogueTests/testCatalogue01HomeWithContent` | `LibraryCatalogueTests/01-home-with-content` | `testCatalogue01HomeWithContent` | `:feature:library` `Catalogue01HomeWithContentTest`, `01-home-with-content` |
+| 02 | Home on a first run | `LibraryCatalogueTests/testCatalogue02HomeFirstRun` | `LibraryCatalogueTests/02-home-first-run` | `testCatalogue02HomeFirstRun`, on a device with no library | `:feature:library` `Catalogue02HomeFirstRunTest`, `02-home-first-run` |
+| 03 | Library grid | `LibraryCatalogueTests/testCatalogue03LibraryGrid` | `LibraryCatalogueTests/03-library-grid` | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue03LibraryGridTest`, `03-library-grid` |
+| 04 | Library list | `LibraryCatalogueTests/testCatalogue04LibraryList` | `LibraryCatalogueTests/04-library-list` | `testCatalogue04LibraryList` | `:feature:library` `Catalogue04LibraryListTest`, `04-library-list` |
+| 05 | Publication page with a cover | `DetailAndPlayerCatalogueTests/testCatalogue05PublicationWithCover` | `DetailAndPlayerCatalogueTests/05-publication-with-cover` | `testCatalogue05PublicationWithCover` | `:feature:library` `Catalogue05PublicationWithCoverTest`, `05-publication-with-cover` |
+| 05b | Publication page, file not on this device | `DetailAndPlayerCatalogueTests/testCatalogue05bPublicationUnavailable` | `DetailAndPlayerCatalogueTests/05b-publication-unavailable` | not reachable: needs an unreachable source | none |
+| 06 | Publication page without a cover | `DetailAndPlayerCatalogueTests/testCatalogue06PublicationWithoutCover` | `DetailAndPlayerCatalogueTests/06-publication-without-cover` | `testCatalogue06PublicationWithoutCover` | `:feature:library` `Catalogue06PublicationWithoutCoverTest`, `06-publication-without-cover` |
+| 07 | Full player | `DetailAndPlayerCatalogueTests/testCatalogue07FullPlayer` | `DetailAndPlayerCatalogueTests/07-full-player` | `testCatalogue07And08Player` | `:app` `Catalogue07FullPlayerTest`, `07-full-player` |
+| 08 | Compact player bar | `DetailAndPlayerCatalogueTests/testCatalogue08CompactPlayerBar` | `DetailAndPlayerCatalogueTests/08-compact-player-bar` | `testCatalogue07And08Player` | `:app` `Catalogue08CompactPlayerBarTest`, `08-compact-player-bar` |
+| 09 | Settings root | `SettingsCatalogueTests/testCatalogue09SettingsRoot` | `SettingsCatalogueTests/09-settings-root` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue09SettingsRootTest`, `09-settings-root` |
+| 10 | Sources list | `SettingsCatalogueTests/testCatalogue10SourcesList` | `SettingsCatalogueTests/10-sources-list` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue10SourcesListTest`, `10-sources-list` |
+| 11 | Source detail | `SettingsCatalogueTests/testCatalogue11SourceDetail` | `SettingsCatalogueTests/11-source-detail` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue11SourceDetailTest`, `11-source-detail` |
+| 12 | The sync section of settings | `SettingsCatalogueTests/testCatalogue12SettingsSync` | `SettingsCatalogueTests/12-settings-sync` | `testCatalogue12SettingsSync` | `:feature:settings` `Catalogue12SyncSectionTest`, `12-sync-section` |
+| 13 | Downloads and storage | `SettingsCatalogueTests/testCatalogue13DownloadsAndStorage` | `SettingsCatalogueTests/13-downloads-and-storage` | `testCatalogue13Downloads`, which audits the tab and the settings group | `:app` `Catalogue13DownloadsTest`, `13-downloads` |
+| 14 | Search at rest | `LibraryCatalogueTests/testCatalogue14SearchAtRest` | `LibraryCatalogueTests/14-search-at-rest` | `testCatalogue14SearchAtRest` | `:feature:library` `Catalogue14SearchAtRestTest`, `14-search-at-rest` |
+| 15 | Comic or PDF reader chrome | `ReaderCatalogueTests/testCatalogue15ComicReaderChrome` | `ReaderCatalogueTests/15-comic-reader-chrome` | `testCatalogue15ReaderChrome` | `:feature:reader` `Catalogue15ReaderChromeTest`, `15-reader-chrome`. The comic reader only |
+| 16 | Reading themes sheet | `ReaderCatalogueTests/testCatalogue16ThemeSheet` | `ReaderCatalogueTests/16-theme-sheet` | `testCatalogue16ThemeSheet` | `:feature:epubreader` `Catalogue16ThemeSheetTest`, `16-theme-sheet`. The preview box is empty, because Robolectric does not draw a web view |
+| 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue17LibraryRailTest`, `17-library-a-to-z-rail` |
 
 Entry 05b is not in the first list of the change. It holds a fault that the snapshots found, and
 its test keeps that fault from coming back.
