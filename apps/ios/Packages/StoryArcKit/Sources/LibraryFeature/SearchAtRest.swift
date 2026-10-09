@@ -49,7 +49,14 @@ struct SearchAtRest: View {
         SearchSuggestions.of(model.publications) { model.record(of: $0) }
     }
 
+    /// The canvas Library and Home draw. Without it the screen shows the window behind it, which
+    /// is whiter than every other screen (catalogue entry 14 against 03).
     var body: some View {
+        content.background(theme.palette.surfaceCanvas)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if offer.isEmpty && model.recentSearches.isEmpty {
             SearchNothingToSuggest(
                 addFolder: addFolder,
