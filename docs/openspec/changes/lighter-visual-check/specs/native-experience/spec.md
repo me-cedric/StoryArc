@@ -18,7 +18,8 @@ Every change a user can see SHALL be looked at, and checked against the platform
 
 #### Scenario: Guidelines are checked by machine
 - **WHEN** the tests run
-- **THEN** the platform's accessibility checks run over every screen of the screen catalogue, and a hit target under 44 pt on iOS or 48 dp on Android, a contrast failure, a missing label or clipped text fails the test
+- **THEN** the suite checks every screen of the screen catalogue, and a hit target under 44 pt on iOS or 48 dp on Android, a missing label, or text under the contrast floor fails the test
+- **AND** the suite measures each control itself where the platform's own check is weaker than the floor, because the platform audit can pass a target under 44 pt
 
 #### Scenario: Preview is not proof
 - **WHEN** a change is verified

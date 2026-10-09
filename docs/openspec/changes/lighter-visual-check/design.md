@@ -23,6 +23,14 @@ The proof rule is `AGENTS.md` section 6 and the gate `scripts/preview-proof-chec
 7. **agent-device (Callstack, MIT) to drive the running app.** A CLI, an MCP server and a Node API over the same runtime. An agent opens the app, reads an accessibility snapshot with refs and element bounds, acts (`press`, `scroll --until`, `fill`), takes screenshots (402 x 874 at 1x on an iPhone 17 Pro, about 80 KB), and records video, without a UI-test walk. It claims a device per git worktree, so parallel lanes do not collide. Pinned to 0.21.22 through `pnpm device` (an `npx` call, so no lockfile change) and in `.mcp.json`. No install script and no analytics; its device-cloud connectors are optional and unused. Smoke-tested on 2026-10-09: it built its iOS runner, opened an app, and saved a screenshot on this Mac. Chosen over Mobile MCP (Apache 2.0), which needs a session restart to reach a subagent and sends anonymous telemetry unless turned off.
 8. **Not adopted.** Maestro (open source CLI) would repeat the walks the repository already has, and its iOS real-device support is not official. Paid visual services (Applitools, Percy, Maestro Cloud) are out by the owner's rule, and their cloud devices cannot reach the local Kavita and Samba fixtures. Google's Compose Preview Screenshot Testing renders `@Preview` functions only and was alpha.
 
+## Learned while building (2026-10-09)
+
+- **iOS snapshots run in an app-hosted test bundle** (`apps/ios/SnapshotTests`, target `StoryArcSnapshotTests`), not in the package's host tests. Without a window scene, Liquid Glass, blurs and `backgroundExtensionEffect` draw wrong. References are tied to one simulator and OS (iPhone 17, iOS 26.2); record again on another. 8-bit sRGB keeps them at 10 MB for 36 images.
+- **Apple's hit-region audit is lenient.** On iOS 26.2 it named an 18 pt button and passed 24 to 44 pt. `CatalogueAuditTests` measures every app-drawn button and link against 44 pt itself, and a debug launch argument draws targets of 18 to 44 pt to prove it.
+- **The Accessibility Test Framework checks nothing under Robolectric**: its hierarchy ends at `AndroidComposeView`. `:core:snapshots` reads the Compose semantics tree instead (touch bounds at least 48 dp, labels, drawn-text contrast).
+- **Roborazzi references are recorded on macOS.** The Linux CI renders fonts differently, so the comparison runs in the local gates (`pnpm test:android`, `pnpm snap:android`), not in the Linux CI step.
+- **A machine check misses a crowded row.** Four 48 dp icon actions on one row pass every size rule. The look at the image is what finds it, so AGENTS.md section 6 lists it as a fault.
+
 ## Risks
 
 - A snapshot draws a material or a blur differently from a device. Decision 5 keeps a device screenshot for those screens.
