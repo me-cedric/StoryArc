@@ -104,7 +104,8 @@ extension EpubReaderModel {
         // `nonisolated`: hands `opened` to Readium's async lookup without sending a
         // main-actor value across -- the same `nonisolated(unsafe)` escape as
         // `EpubBookmarks.markup`, passing the property through rather than a local copy.
-        return await Self.locator(for: record.position, in: opened)
+        let fallback = await Self.locator(for: record.position, in: opened)
+        return FirstVisibleElement.resume(fallback, from: record.position, digest: publication.identity.contentDigest)
     }
 
     /// The position's own locator, or the place its fraction alone names -- a
@@ -115,7 +116,7 @@ extension EpubReaderModel {
         for position: ReadingPosition,
         in opened: ReadiumShared.Publication?
     ) async -> Locator? {
-        guard case let .reflowable(progression, json) = position else { return nil }
+        guard case let .reflowable(progression, json, _) = position else { return nil }
         if !json.isEmpty,
            let value = try? JSONValue(jsonString: json, warnings: nil),
            let locator = try? Locator(json: value, warnings: nil) {
@@ -246,10 +247,12 @@ extension EpubReaderModel {
         guard let progress else { return }
         let json = (try? locator.jsonString()) ?? ""
         let total = totalProgression(of: locator)
+        let digest = publication.identity.contentDigest
+        let element = await FirstVisibleElement.capture(from: navigator, href: locator.href.string, digest: digest)
         try? await progress.save(
             ReadingProgress(
                 identity: publication.identity,
-                position: .reflowable(progression: total, locator: json),
+                position: .reflowable(progression: total, locator: json, firstVisibleElement: element),
                 // A book is finished at its end, and "the end" of a reflowable
                 // book is the last of its content rather than a page number.
                 isFinished: Self.isAtEnd(total: total, viewportUpperBound: navigator?.viewport?.progression.upperBound),
