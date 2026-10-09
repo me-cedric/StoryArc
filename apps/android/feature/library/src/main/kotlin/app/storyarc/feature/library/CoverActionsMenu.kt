@@ -5,6 +5,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.CloudUpload
@@ -32,8 +33,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.res.stringResource
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 
 /** The five things a reader can do about a cover, in the order the menu lists them. */
 internal enum class CoverAction { CHOOSE, FIND, WEB, SEND, REMOVE }
@@ -94,6 +103,22 @@ internal fun CoverChoice.menu(): CoverMenu {
 }
 
 /**
+ * How wide the cover menu may be, so that it opens inside the window with [margin] to spare.
+ *
+ * `close-the-audited-gaps` 25.3. A menu of Material's 280 dp that fits neither from the anchor's
+ * start nor ending at its end is moved flush to the window edge, where its corner is cut. It
+ * is made narrow enough to fit on the roomier side instead, and never narrower than [floor].
+ */
+internal fun coverMenuMaxWidth(
+    window: Dp,
+    anchorLeft: Dp,
+    anchorRight: Dp,
+    margin: Dp = StoryArcSpace.lg,
+    ceiling: Dp = 280.dp,
+    floor: Dp = 112.dp,
+): Dp = maxOf(window - anchorLeft - margin, anchorRight - margin).coerceIn(floor, ceiling)
+
+/**
  * A cover, with one edit button on its bottom corner and a long press, both opening [menu].
  *
  * **One menu, not a row of buttons.** Material 3 asks for a touch target of 48 dp with 8 dp
@@ -126,7 +151,20 @@ internal fun CoverActionsHost(
     }
     val edit = stringResource(R.string.cover_edit)
     var confirmingRemove by remember { mutableStateOf(false) }
-    Box(modifier) {
+    val density = LocalDensity.current
+    val windowWidth = LocalWindowInfo.current.containerSize.width
+    var anchor by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
+    val menuWidth = anchor?.let { span ->
+        with(density) {
+            coverMenuMaxWidth(windowWidth.toDp(), span.start.toDp(), span.endInclusive.toDp())
+        }
+    } ?: Dp.Unspecified
+    Box(
+        modifier.onGloballyPositioned {
+            val bounds = it.boundsInWindow()
+            anchor = bounds.left..bounds.right
+        },
+    ) {
         // A sibling of the button rather than its parent: a clickable merges its descendants
         // into one node, which would fold the button's own label and action into the cover's.
         Box(
@@ -149,7 +187,11 @@ internal fun CoverActionsHost(
         ) {
             Icon(Icons.Outlined.Edit, contentDescription = edit)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { onOpenChange(false) }) {
+        DropdownMenu(
+            expanded = open,
+            onDismissRequest = { onOpenChange(false) },
+            modifier = if (menuWidth.isSpecified) Modifier.widthIn(max = menuWidth) else Modifier,
+        ) {
             groups.forEachIndexed { index, group ->
                 if (index > 0) HorizontalDivider()
                 group.forEach { action ->

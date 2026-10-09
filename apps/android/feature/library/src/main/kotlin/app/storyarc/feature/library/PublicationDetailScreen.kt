@@ -681,7 +681,9 @@ private fun DetailPrimaryAction(
             Text(
                 text = explanation,
                 style = MaterialTheme.typography.bodySmall,
-                color = palette.textSecondary,
+                // On the hero's wash, which is dark in every appearance: the app's ink is not
+                // legible there, so the colour is derived from the wash itself.
+                color = accent?.onWash ?: palette.textSecondary,
             )
         }
     }

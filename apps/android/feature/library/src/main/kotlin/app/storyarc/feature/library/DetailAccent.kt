@@ -4,9 +4,11 @@ import android.graphics.Bitmap
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import app.storyarc.core.designsystem.theme.rememberHighContrast
 import app.storyarc.core.model.CoverAccent
 import app.storyarc.core.model.CoverColours
+import app.storyarc.core.model.ReadingContrast
 
 /**
  * The colours a page takes from its own book.
@@ -30,7 +32,15 @@ internal data class DetailAccent(
     val accent: Color,
     /** What to write *on* the accent — black or white, whichever it carries. */
     val onAccent: Color,
+    /** What to write on the wash itself: black or white, whichever reads better, never under 4.5:1. */
+    val onWash: Color = onWashOf(wash),
 )
+
+/** The text colour for a page's wash, derived from the wash and not from the app's palette. */
+internal fun onWashOf(wash: Color): Color {
+    val hex = "#%06X".format(0xFFFFFF and wash.toArgb())
+    return parseHex(ReadingContrast.bestForeground(hex).first) ?: Color.White
+}
 
 /**
  * A `#rrggbb` from the extractor as a Compose colour.
