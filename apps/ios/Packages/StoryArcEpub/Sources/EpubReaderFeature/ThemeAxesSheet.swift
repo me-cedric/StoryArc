@@ -48,6 +48,9 @@ struct ThemeAxesSheet: View {
     /// surface answering late.
     @State private var pendingColours: ReaderPalette?
 
+    /// How many axis resets there have been, so each one can fire its haptic.
+    @State var axisResets = 0
+
     var body: some View {
         NavigationStack {
             ScrollView {

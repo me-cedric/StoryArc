@@ -253,7 +253,7 @@ struct SourceDetail: View {
             return Text("sources.detail \(diagnosis.itemCount)", bundle: .module)
         }
         if let read = diagnosis.readCount, let total = diagnosis.readTotal {
-            return Text("sources.detail.progress \(read) \(total)", bundle: .module)
+            return sourceProgressText(read: read, total: total)
         }
         return Text("sources.detail.partial \(diagnosis.itemCount)", bundle: .module)
     }
@@ -319,4 +319,13 @@ struct SourceDetail: View {
             ? Text("sources.removeDownloads.title \(sourceName)", bundle: .module)
             : Text("sources.remove.title \(sourceName)", bundle: .module)
     }
+}
+
+/// "%d of %d titles", pluralized on the total: a total of one reads "1 of 1 title".
+func sourceProgressText(read: Int, total: Int) -> Text {
+    Text(verbatim: String(
+        localized: "sources.detail.progress \(read) \(total)",
+        bundle: Bundle.module.inChosenLanguage,
+        locale: .storyArc
+    ))
 }

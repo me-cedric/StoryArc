@@ -90,6 +90,30 @@ final class ThemeAxisResetUITests: XCTestCase {
         )
     }
 
+    func testALongPressOnTheThumbResetsTheAxis() throws {
+        let app = sweepLaunch()
+        try openTheReflowableBook(in: app)
+        try openTheAxes(in: app)
+        let slider = try axisSlider("Margins", in: app)
+        slider.adjust(toNormalizedSliderPosition: 0.3)
+        hold(1)
+        slider.adjust(toNormalizedSliderPosition: 0.95)
+        hold(1.5)
+        let moved = slider.value as? String
+
+        // The thumb sits half its own width in from each end of the track, so the end of the
+        // slider's frame is not on it.
+        let frame = slider.frame
+        let inset = frame.height / 2
+        let centre = frame.minX + inset + slider.normalizedSliderPosition * (frame.width - 2 * inset)
+        let thumb = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: centre, dy: frame.midY))
+        thumb.press(forDuration: 1.2)
+        hold(1.5)
+
+        XCTAssertNotEqual(slider.value as? String, moved, "A long press on the thumb did not reset the axis.")
+    }
+
     private func axisSlider(_ name: String, in app: XCUIApplication) throws -> XCUIElement {
         let slider = app.sliders[name]
         XCTAssertTrue(scrollTo(slider, in: app, swipes: 8), "The axes screen offers no \(name) slider.")

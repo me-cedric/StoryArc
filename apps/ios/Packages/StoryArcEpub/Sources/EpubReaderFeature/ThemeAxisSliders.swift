@@ -57,6 +57,14 @@ extension ThemeAxesSheet {
     /// the press rather than to the press itself.
     private static let pressTravel: CGFloat = 10
 
+    /// The reset a long press, a double tap and the accessibility action all reach, with the
+    /// haptic a reader who cannot see the thumb jump relies on. VoiceOver says the new value
+    /// itself, because the slider's value changed under focus.
+    func resetAxis(_ axis: ThemeAxis) {
+        Self.reset(axis, on: model)
+        axisResets += 1
+    }
+
     /// The sliders that need the publisher's stylesheet switched off. Exactly
     /// `ThemeAxis.allCases` with a `sliderRange`, minus margins — margins reaches the
     /// page under Original too (`ThemeAxis.requiresPublisherStylesOff` says so), so it
@@ -118,34 +126,29 @@ extension ThemeAxesSheet {
             // A reader who rests on the thumb before dragging — reading
             // the value, or deciding — therefore lost the axis they were
             // about to set, and then had to chase a thumb that had jumped
-            // out from under them. Sequencing a zero-distance drag after
-            // the press moves the decision to the lift, which is the first
-            // moment the travel is known.
-            .simultaneousGesture(
-                LongPressGesture()
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .onEnded { phase in
-                        guard case .second(true, let drag) = phase else { return }
-                        let travel = drag?.translation ?? .zero
-                        guard abs(travel.width) < Self.pressTravel,
-                              abs(travel.height) < Self.pressTravel
-                        else { return }
-                        Self.reset(axis, on: model)
-                    }
+            // out from under them. `SliderLongPress` moves the decision to
+            // the lift, which is the first moment the travel is known.
+            //
+            // **It sits on the slider itself, not on a SwiftUI gesture.** A
+            // `LongPressGesture` here reached the track only: a touch on the
+            // thumb belongs to the slider's own tracking (task 25.6).
+            .background(
+                SliderLongPress(travel: Self.pressTravel) { resetAxis(axis) }
             )
+            .storyArcFeedback(.selection, trigger: axisResets)
             // The other gesture the same sentence names. A `TapGesture` does
             // not sequence a drag after it the way the long press above does,
             // because a double tap has already lifted twice before it is
             // recognised — there is no thumb left under the finger for a
             // third drag to steal.
             .simultaneousGesture(
-                TapGesture(count: 2).onEnded { Self.reset(axis, on: model) }
+                TapGesture(count: 2).onEnded { resetAxis(axis) }
             )
             // The same reset, without the gesture. `native-experience`
             // requires a control to announce what it does, and VoiceOver,
             // Switch Control and a keyboard cannot long-press.
             .accessibilityAction(named: Text("theme.axis.reset", bundle: .module)) {
-                Self.reset(axis, on: model)
+                resetAxis(axis)
             }
             // The name belongs on the slider. The heading above it is a
             // sibling element, so VoiceOver landing on the slider would
