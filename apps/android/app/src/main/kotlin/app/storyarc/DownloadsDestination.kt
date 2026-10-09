@@ -1,6 +1,7 @@
 package app.storyarc
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -298,7 +299,10 @@ private fun InFlightHeader(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            heading()
+            // The heading takes what the three buttons leave and wraps. Left to measure first it
+            // took a whole line, and on a phone the last button was squeezed to no width and its
+            // label wrapped one letter to a line: a gap 200 dp tall with no button in it.
+            Box(Modifier.weight(1f)) { heading() }
             Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
         }
     }
