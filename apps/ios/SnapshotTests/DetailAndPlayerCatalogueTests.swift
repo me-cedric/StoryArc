@@ -94,17 +94,32 @@ final class DetailAndPlayerCatalogueTests: XCTestCase {
     /// that covers that leaves the rest of the screen checked and the two bars to a device
     /// screenshot, which is the rule for system materials.
     func testCatalogue08CompactPlayerBar() {
+        assertCatalogue("08-compact-player-bar", delay: 3, precision: 0.84) { compactPlayerBarScreen() }
+    }
+
+    private func compactPlayerBarScreen() -> some View {
         let centre = playing().centre
         let model = CatalogueLibrary.model()
-        assertCatalogue("08-compact-player-bar", delay: 3, precision: 0.84) {
-            TabView {
-                Tab("Home", systemImage: "house") { HomeScreen(model: model) }
-                Tab("Library", systemImage: "books.vertical") { LibraryView(model: model) }
-                Tab("Search", systemImage: "magnifyingglass") { LibraryView(model: model, surface: .search) }
-            }
-            .tabViewBottomAccessory {
-                PlayerDock(centre: centre, isShowingPlayer: .constant(false), onReturn: { _, _ in })
-            }
+        return TabView {
+            Tab("Home", systemImage: "house") { HomeScreen(model: model) }
+            Tab("Library", systemImage: "books.vertical") { LibraryView(model: model) }
+            Tab("Search", systemImage: "magnifyingglass") { LibraryView(model: model, surface: .search) }
+        }
+        .tabViewBottomAccessory {
+            PlayerDock(centre: centre, isShowingPlayer: .constant(false), onReturn: { _, _ in })
+        }
+    }
+
+    /// Task 27.6: the title read white on pale glass in light, 2.0 to 1 against the glass. The
+    /// rectangle is the title's line on the iPhone 17, which entry 08 fixes.
+    func testTheDockTitleReadsOnItsGlassInBothAppearances() {
+        let title = CGRect(x: 33, y: 744, width: 203, height: 16)
+        for dark in [false, true] {
+            let image = drawnCatalogue(compactPlayerBarScreen(), dark: dark, delay: 3)
+            let contrast = textContrast(in: image, rect: title, textIsDarker: !dark)
+            XCTAssertGreaterThanOrEqual(
+                contrast, 4.5, "The dock title is \(contrast) to 1 on its glass in \(dark ? "dark" : "light")."
+            )
         }
     }
 }

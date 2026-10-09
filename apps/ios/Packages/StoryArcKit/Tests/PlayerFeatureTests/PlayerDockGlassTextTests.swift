@@ -1,15 +1,17 @@
 import Foundation
 import Testing
 
-/// The bar's title and chapter caption are drawn in the glass text styles.
+/// The bar's title and chapter caption are drawn in the palette's text colours.
 ///
-/// `close-the-audited-gaps` 23.7: the accessibility audit reported "Contrast failed" on the
-/// bar's text. The bar is the system's glass over a page that scrolls beneath it, so no palette
-/// colour is right for every backdrop; the hierarchical styles resolve against the material,
-/// which is what `storyArcGlassText` states. A view cannot be composed on the host, so this
-/// reads the source, as ``PlayerDockFocusTests`` does and for the same reason. It proves the
-/// styles are declared and never what the audit measures; `PlayerAuditTests` on a simulator is
-/// that.
+/// `close-the-audited-gaps` 23.7 gave them the hierarchical glass styles, and 27.6 took them
+/// back: in the light appearance that style resolved to white on glass that is pale there
+/// (2.0 to 1 in catalogue entry 08), because the bottom accessory hands its content the tab
+/// bar's own adaptive scheme and not the app's. The palette colours follow the app's
+/// appearance, like the glass and the two buttons beside the text. A view cannot be composed on
+/// the host, so this reads the source, as ``PlayerDockFocusTests`` does and for the same
+/// reason. It proves the colours are declared and never what the eye measures:
+/// `DetailAndPlayerCatalogueTests.testTheDockTitleReadsOnItsGlassInBothAppearances` draws the
+/// bar and measures the title, and is the real proof.
 @Suite("The dock's text styles")
 struct PlayerDockGlassTextTests {
     private static let source: String = {
@@ -22,10 +24,12 @@ struct PlayerDockGlassTextTests {
         return text
     }()
 
-    @Test("The title takes the primary glass style and the chapter the secondary one")
-    func titleAndChapterUseGlassText() {
+    @Test("The title takes the primary palette colour and the chapter the secondary one")
+    func titleAndChapterUsePaletteText() {
         let text = Self.source.split(whereSeparator: \.isWhitespace).joined(separator: " ")
-        #expect(text.contains("Text(bar.label.title) .textRole(.subheadline) .storyArcGlassText(.primary)"))
-        #expect(text.contains("Text(chapter) .textRole(.caption) .storyArcGlassText(.secondary)"))
+        let title = "Text(bar.label.title) .textRole(.subheadline) .foregroundStyle(theme.palette.textPrimary)"
+        let chapter = "Text(chapter) .textRole(.caption) .foregroundStyle(theme.palette.textSecondary)"
+        #expect(text.contains(title))
+        #expect(text.contains(chapter))
     }
 }

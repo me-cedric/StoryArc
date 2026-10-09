@@ -137,18 +137,20 @@ public struct PlayerDock: View {
             }
         } label: {
             VStack(alignment: .leading, spacing: 0) {
-                // Hierarchical glass text rather than a palette colour: the bar is the system's
-                // glass over a page that scrolls beneath it, so the backdrop is unknown and only
-                // a style resolved against the material keeps the contrast the audit measures.
+                // The palette's text colours, the ones the two buttons beside it use. The
+                // hierarchical glass style resolved to white in the light appearance, on glass
+                // that is pale there (2.0 to 1 in catalogue entry 08, light), because the
+                // accessory slot gives its content the tab bar's own adaptive scheme and not the
+                // app's. The glass and the buttons follow the app's appearance; the text now does.
                 Text(bar.label.title)
                     .textRole(.subheadline)
-                    .storyArcGlassText(.primary)
+                    .foregroundStyle(theme.palette.textPrimary)
                 // The chapter is what has changed since the listener last looked, and the
                 // first thing to go when the bar has minimised and there is no room for it.
                 if let chapter = bar.label.detail, !isInline {
                     Text(chapter)
                         .textRole(.caption)
-                        .storyArcGlassText(.secondary)
+                        .foregroundStyle(theme.palette.textSecondary)
                 }
             }
             // Truncated on purpose, and `audio-playback` says so rather than forbidding it:
