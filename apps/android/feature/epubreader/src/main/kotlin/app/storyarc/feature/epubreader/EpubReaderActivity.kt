@@ -703,6 +703,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // Its own coroutine: the walk for a first word reads resources, and the theme and
         // the position below must not wait for it.
         lifecycleScope.launch { prepareReadAloud(publication) }
+        model.pageScript = navigator::evaluateJavascript
         followAndAnnounce(navigator.currentLocator)
         // Painted once the navigator exists: a decoration applied before it is on
         // screen is a decoration Readium has nowhere to put.

@@ -420,12 +420,20 @@ class EpubReaderViewModel(
         val record = progress?.progress(identity) ?: return null
         if (record.isFinished) return null // reopens at the start, like the other readers
         val position = record.position as? ReadingPosition.Reflowable ?: return null
-        if (position.locator.isEmpty()) {
+        val fallback = if (position.locator.isEmpty()) {
             // No locator to open at -- a pull-adopted position has only the fraction; still a real place Readium can open.
-            return opened?.locateProgression(position.progression)
+            opened?.locateProgression(position.progression)
+        } else {
+            runCatching { Locator.fromJSON(JSONObject(position.locator)) }.getOrNull()
         }
-        return runCatching { Locator.fromJSON(JSONObject(position.locator)) }.getOrNull()
+        return FirstVisibleElement.resume(fallback, position, identity.contentDigest)
     }
+
+    /**
+     * Runs a script on the page on screen. The activity sets it once the navigator exists, and
+     * [record] uses it to take the first visible element. Null in a test.
+     */
+    internal var pageScript: (suspend (String) -> String?)? = null
 
     /**
      * Where a read-aloud session writes the position it reaches.
@@ -742,12 +750,18 @@ class EpubReaderViewModel(
      */
     private suspend fun record(locator: Locator, total: Double, atEnd: Boolean = false) {
         val store = progress ?: return
+        val answer = pageScript?.let { run -> runCatching { run(FirstVisibleElement.script) }.getOrNull() }
         store.save(
             ReadingProgress(
                 identity = identity,
                 position = ReadingPosition.Reflowable(
                     progression = total,
                     locator = locator.toJSON().toString(),
+                    firstVisibleElement = FirstVisibleElement.parse(
+                        answer,
+                        locator.href.toString(),
+                        identity.contentDigest,
+                    ),
                 ),
                 // The end of a reflowable book is the last of its content, not a page number.
                 isFinished = atEnd || total >= 0.999,
