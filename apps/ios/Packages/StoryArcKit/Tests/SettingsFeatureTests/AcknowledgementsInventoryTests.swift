@@ -37,6 +37,12 @@ struct AcknowledgementsInventoryTests {
     private static let resolvedPath =
         "apps/ios/StoryArc.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 
+    /// The packages that only the snapshot tests link: the library, and the three it resolves.
+    private static let testOnly = [
+        "pointfreeco/swift-snapshot-testing", "pointfreeco/swift-custom-dump",
+        "pointfreeco/swift-issue-reporting", "swiftlang/swift-syntax",
+    ]
+
     /// One source's text. Missing is a failure rather than a skip, and it names the path it
     /// looked at: a guard that cannot find what it guards passes for ever after a rename.
     private func source(_ relativePath: String) throws -> String {
@@ -112,6 +118,8 @@ struct AcknowledgementsInventoryTests {
             // on that rather than on the name: a pin's identity is lower-cased and a display
             // name is not, and two of these differ in case alone.
             let repository = location.replacingOccurrences(of: ".git", with: "")
+            // Linked by `StoryArcSnapshotTests` and by nothing that ships, so no reader runs it.
+            guard !Self.testOnly.contains(where: { repository.hasSuffix($0) }) else { continue }
             #expect(
                 listed.contains { $0.url.caseInsensitiveCompare(repository) == .orderedSame },
                 """
