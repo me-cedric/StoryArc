@@ -3,7 +3,12 @@ package app.storyarc.core.persistence
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.execSQL
+import app.storyarc.core.model.ElementLocator
+import app.storyarc.core.model.PublicationIdentity
+import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.model.ReadingProgress
 import java.io.File
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -11,6 +16,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -154,4 +160,40 @@ class ProgressMigrationHostTest {
             )
         }
     }
+
+    /**
+     * `reading-progress` O27, through Room itself: a version 5 file on disk is opened by the
+     * store, so Room runs [MIGRATION_5_6] and checks the table against the entity.
+     */
+    @Test
+    fun `a reflowable position stored before the element existed reads back with none, and a new one keeps it`() =
+        runTest {
+            val context = RuntimeEnvironment.getApplication()
+            val name = "progress-v5.db"
+            val file = context.getDatabasePath(name).apply { parentFile?.mkdirs(); delete() }
+            val connection = AndroidSQLiteDriver().open(file.path)
+            try {
+                connection.execSQL(v2)
+                listOf("server_key", "content_digest", "normalized_path").forEach {
+                    connection.execSQL("CREATE INDEX IF NOT EXISTS index_progress_$it ON progress ($it)")
+                }
+                listOf(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).forEach { it.migrate(connection) }
+                connection.execSQL(
+                    "INSERT INTO progress (content_digest, page_index, page_count, progression, locator, " +
+                        "is_finished, updated_at) VALUES ('d2', -1, 0, 0.45, '{}', 0, 1000)",
+                )
+                connection.execSQL("PRAGMA user_version = 5")
+            } finally {
+                connection.close()
+            }
+
+            val store = ProgressStore.open(context, name)
+            val identity = PublicationIdentity(contentDigest = "d2")
+            assertEquals(ReadingPosition.Reflowable(0.45, "{}"), store.progress(identity)?.position)
+
+            val element = ElementLocator("OEBPS/ch1.xhtml", "body > p:nth-child(18)", "the end. ", "Paragraph", "d2")
+            val position = ReadingPosition.Reflowable(0.5, "{}", element)
+            store.save(ReadingProgress(identity, position, updatedAtEpochMillis = 2_000))
+            assertEquals(position, store.progress(identity)?.position)
+        }
 }

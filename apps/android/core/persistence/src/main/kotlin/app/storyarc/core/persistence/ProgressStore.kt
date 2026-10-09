@@ -15,6 +15,7 @@ import androidx.room.Update
 import androidx.room.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
+import app.storyarc.core.model.ElementLocator
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.ReadingProgress
@@ -22,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import java.util.UUID
 
 /**
@@ -52,6 +54,11 @@ internal data class ProgressRow(
     @ColumnInfo(name = "page_count") val pageCount: Int,
     @ColumnInfo(name = "progression") val progression: Double,
     @ColumnInfo(name = "locator") val locator: String?,
+    /**
+     * The first visible element of a reflowable position, as JSON, or null. `reading-progress`
+     * O27. One column rather than five: nothing queries it, and a resume reads it whole.
+     */
+    @ColumnInfo(name = "element_locator") val elementLocator: String? = null,
     /**
      * The part a listener is in, or -1 for a position nobody listened to.
      *
@@ -114,7 +121,7 @@ internal interface ProgressDao {
     suspend fun clear()
 }
 
-@Database(entities = [ProgressRow::class], version = 5, exportSchema = false)
+@Database(entities = [ProgressRow::class], version = 6, exportSchema = false)
 internal abstract class ProgressDatabase : RoomDatabase() {
     abstract fun progress(): ProgressDao
 }
@@ -224,6 +231,21 @@ internal val MIGRATION_4_5 = object : Migration(4, 5) {
     }
 }
 
+/**
+ * Adds the first visible element of a reflowable position, `reading-progress` O27.
+ *
+ * A nullable column: every row written before it reads back with no element, and a resume
+ * then uses the fraction, as it did before.
+ */
+internal val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(connection: SQLiteConnection) {
+        connection.execSQL("ALTER TABLE progress ADD COLUMN element_locator TEXT")
+    }
+}
+
+/** Every migration of the progress table, in order. */
+internal val PROGRESS_MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+
 class ProgressStore internal constructor(private val database: ProgressDatabase) :
     ProgressLedger {
 
@@ -243,14 +265,14 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
                     context.applicationContext,
                     ProgressDatabase::class.java,
                     name,
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build(),
+                ).addMigrations(*PROGRESS_MIGRATIONS).build(),
             )
 
         /** An in-memory store, for tests. */
         fun inMemory(context: Context): ProgressStore =
             ProgressStore(
                 Room.inMemoryDatabaseBuilder(context, ProgressDatabase::class.java)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(*PROGRESS_MIGRATIONS)
                     .build(),
             )
     }
@@ -308,6 +330,8 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             pageCount = (position as? ReadingPosition.Page)?.total ?: 0,
             progression = position.fraction,
             locator = (position as? ReadingPosition.Reflowable)?.locator,
+            elementLocator = (position as? ReadingPosition.Reflowable)?.firstVisibleElement
+                ?.let { Json.encodeToString(it) },
             partIndex = (position as? ReadingPosition.Listening)?.part ?: -1,
             partCount = (position as? ReadingPosition.Listening)?.partCount ?: 0,
             offsetMillis = (position as? ReadingPosition.Listening)?.offsetMillis ?: 0,
@@ -474,7 +498,12 @@ class ProgressStore internal constructor(private val database: ProgressDatabase)
             )
 
             row.pageIndex >= 0 -> ReadingPosition.Page(row.pageIndex, row.pageCount)
-            else -> ReadingPosition.Reflowable(row.progression, row.locator.orEmpty())
+            else -> ReadingPosition.Reflowable(
+                row.progression,
+                row.locator.orEmpty(),
+                // A value this build cannot read resumes by the fraction, as no value does.
+                row.elementLocator?.let { runCatching { Json.decodeFromString<ElementLocator>(it) }.getOrNull() },
+            )
         },
         isFinished = row.isFinished,
         finishedAtEpochMillis = row.finishedAt,
