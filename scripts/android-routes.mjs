@@ -258,6 +258,7 @@ export const ROUTES = [
     // no other. The shelf opens sorted by date added, so the sort is set first and the menu
     // dismissed — the rail is on the shelf behind it, not in the menu.
     ['Library > index rail', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back']],
+    ['Library > shelf scrolled', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', '@swipe-up']],
     ['Library > issues with index', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', named('library_grouping_chip'), named('library_grouping_issues')]],
     ['Library > series with index', [NAMES.library, named('library_sort_chip'), named('library_sort_title'), '@back', named('library_grouping_chip'), named('library_grouping_series')]],
     // The control: `library-browsing`'s *A sort no letter describes*. Under Last read the
@@ -503,6 +504,8 @@ export const ROUTES = [
     // audiobooks-and-playback 7.3: the first of two audiobooks in one series, played to its end (6 s).
     ['Player > finished series audiobook', [NAMES.search, named('library_search'), '@type dawn road', '=Dawn Road #1', NAMES.read + '|' + NAMES.listen, '@wait', '@wait', '@wait', '@wait', '@wait']],
     // audiobooks-and-playback 3.6 and 17.3: Sea Room playing, for the kill-and-resume proofs.
+    ['Audiobook page > with progress', [NAMES.search, named('library_search'), '@type with cov', '=With Cover Long']],
+    ['Player > compact bar long playing', [NAMES.search, named('library_search'), '@type with cov', '=With Cover Long', NAMES.read + '|' + NAMES.listen, '@wait', NAMES.home]],
     ['Player > Sea Room playing', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '@wait']],
     ['Player > Sea Room paused', [NAMES.search, named('library_search'), '@type sea roo', '=Sea Room', NAMES.read + '|' + NAMES.listen, '=' + named('player_pause')]],
     // audiobooks-and-playback 15.6: Sea Room paused in chapter two, then the chapter list. One chapter
@@ -550,6 +553,7 @@ export const ROUTES = [
     // an emulator reaches the Mac at 10.0.2.2. Each run of the add route adds a share: clear
     // the app's data first. The section fits the first screen of the group, so no route scrolls.
     ['Settings > Sync section', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
+    ['Settings > Your libraries scrolled', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, '@wait', '@swipe-up', '@swipe-up']],
     ['Settings > Sync off', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources]],
     ['Sources > add share sync', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sources_add'), named('sources_add_share'), '@drag-sheet-up', '=Host', '@type 10.0.2.2:4449', '@back', '=Share', '@type Sync', '@back', '=User name', '@type ' + userInfo().username, '@back', '=Password', '@type lovelace', '@back', '=Connect', '@wait', '@wait', named('smb_use_folder'), '@wait', '@wait']],
     ['Settings > Sync choose share', [NAMES.library, NAMES.more, NAMES.settings, NAMES.sources, named('sync_choose_share')]],

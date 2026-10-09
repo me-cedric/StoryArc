@@ -78,7 +78,12 @@ const LARGEST_TEXT = 'They assert the largest-text gate (docs/design.md section 
 const CORPUS_VOICE = 'Starts read-aloud in an EPUB from the shared corpus (Harbour Lights 01 or One Sentence), which `scripts/corpus.mjs` writes and a runner does not have.'
 const WAVE5_SETUP = 'Capture setup for the wave 5 frames. It reads or shelves books from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have, and it leaves state for the captures that follow it.'
 
+const WAVE6_SYNC = 'Capture setup for the wave 6 sync frames. It needs a writable SMB share (`scripts/smb-server.sh --writable`) and comics from the shared corpus, which a runner does not have, and it leaves state for the captures that follow it.'
+
 const EXCLUDED = {
+  'SweepWave6Tests/testSetupQuiet': WAVE6_SYNC,
+  'SweepWave6Tests/testSyncOnly': WAVE6_SYNC,
+  'SweepWave6Tests/testReadOffline': WAVE6_SYNC,
   'ReadAloudShellTests/testTheVoiceCarriesOnAfterTheReaderCloses': CORPUS_VOICE,
   'ReadAloudShellTests/testTheShellReservesNothingWithoutASession': CORPUS_VOICE,
   'ReadAloudShellTests/testTheEndOfThePublicationWithdrawsTheVoice': CORPUS_VOICE,

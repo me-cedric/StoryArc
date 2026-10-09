@@ -1,0 +1,19 @@
+  ok     Player
+  ok     Player > chapters
+  ok     Player > compact bar
+  ok     Player > finished with a damaged part
+  ok     Player > damaged mark as finished
+  ok     Player > compact bar long playing
+  ok     Player > Sea Room playing
+  ok     Player > Sea Room paused
+  ok     Player > chapter marks
+  ok     Player > embedded cover
+
+10/14 routes walked and survived
+
+4 could not be reached -- the route map may be stale,
+or this device has no publication in the state the route needs:
+  Player > voice stopped: could not reach "Harbour Lights 01"
+  Player > finished series audiobook: could not reach "Dawn Road #1"
+  Player > Dawn Road 2 paused: could not reach "Dawn Road #2"
+  Player > Chaptered playing: could not reach "Chaptered"
