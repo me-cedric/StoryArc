@@ -25,11 +25,18 @@ internal object FirstVisibleElement {
           var selector = found && found.locations && found.locations.cssSelector;
           var root = (selector && document.querySelector(selector)) || document.body;
           var range = document.createRange();
-          function seen(node, i) {
+          function box(node, i) {
             range.setStart(node, i);
             range.setEnd(node, i + 1);
-            var r = range.getBoundingClientRect();
-            return r.right > 0 && r.left < window.innerWidth && r.bottom > 0 && r.top < window.innerHeight;
+            return range.getBoundingClientRect();
+          }
+          function reached(node, i) {
+            var r = box(node, i);
+            return r.right > 0 && r.bottom > 0;
+          }
+          function seen(node, i) {
+            var r = box(node, i);
+            return reached(node, i) && r.left < window.innerWidth && r.top < window.innerHeight;
           }
           var text = root.textContent;
           var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -37,13 +44,14 @@ internal object FirstVisibleElement {
           var node;
           while ((node = walker.nextNode())) {
             var last = node.data.search(/\S\s*${'$'}/);
-            if (last >= 0 && seen(node, last)) {
+            if (last >= 0 && reached(node, last)) {
               var low = 0;
               var high = last;
               while (low < high) {
                 var mid = (low + high) >> 1;
-                if (seen(node, mid)) { high = mid; } else { low = mid + 1; }
+                if (reached(node, mid)) { high = mid; } else { low = mid + 1; }
               }
+              if (!seen(node, low)) { return null; }
               offset += low;
               return {
                 cssSelector: selector,
