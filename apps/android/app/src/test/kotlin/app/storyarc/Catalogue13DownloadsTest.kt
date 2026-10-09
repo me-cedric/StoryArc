@@ -15,6 +15,7 @@ import app.storyarc.core.snapshots.brandAccentText
 import app.storyarc.core.snapshots.dangerText
 import app.storyarc.core.snapshots.catalogue
 import app.storyarc.feature.library.LibraryViewModel
+import app.storyarc.feature.library.adoptDownloads
 import java.io.FileOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
