@@ -173,7 +173,7 @@ struct KavitaPullIdentityTests {
         let read = try await progress.progress(
             for: PublicationIdentity(serverIdentifier: .init(sourceID: source, remoteID: "chapter:42"))
         )
-        guard case let .reflowable(fraction, locator) = read?.position else {
+        guard case let .reflowable(fraction, locator, _) = read?.position else {
             Issue.record("expected a reflowable position, got \(String(describing: read?.position))")
             return
         }

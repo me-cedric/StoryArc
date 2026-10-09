@@ -38,7 +38,9 @@ struct LibrarySyncBoundaryTests {
                 == DocumentStamp(at: Fixture.at(500), by: Fixture.androidDevice)
         )
         // The Kavita position stayed with Kavita.
-        #expect(library.progress.map(\.changedBy) == [Fixture.androidDevice])
+        #expect(library.progress.map(\.changedBy) == [Fixture.androidDevice, Fixture.androidDevice])
+        // The first visible element travels beside the fraction.
+        #expect(library.progress.compactMap(\.position.position).contains(Fixture.novelPosition))
     }
 
     @Test func aDocumentAndroidWroteMergesHere() async throws {
@@ -51,6 +53,7 @@ struct LibrarySyncBoundaryTests {
         guard case .synced = outcome else { Issue.record("not synced: \(outcome)"); return }
         let library = device.library
         #expect(device.position(Fixture.book)?.position == .page(index: 12, of: 40))
+        #expect(device.position(Fixture.novel)?.position == Fixture.novelPosition)
         #expect(library.shelves.collections.map(\.id) == [Fixture.collectionID])
         #expect(library.shelves.collections.first?.name == "Image Comics")
         #expect(library.shelves.collections.first?.members == ["path:/a.cbz", "path:/c.cbz"])

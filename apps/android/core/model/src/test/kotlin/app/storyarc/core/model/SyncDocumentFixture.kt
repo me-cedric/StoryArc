@@ -28,6 +28,20 @@ object SyncDocumentFixture {
     val removedId: UUID = UUID.fromString("66666666-6666-6666-6666-666666666666")
 
     val book = PublicationIdentity(contentDigest = "d1")
+    val novel = PublicationIdentity(contentDigest = "d2")
+
+    /** A reflowable position with its first visible element, `reading-progress` O27. */
+    val novelPosition = ReadingPosition.Reflowable(
+        progression = 0.45,
+        locator = """{"href":"OEBPS/ch1.xhtml"}""",
+        firstVisibleElement = ElementLocator(
+            href = "OEBPS/ch1.xhtml",
+            cssSelector = "body > p:nth-child(18)",
+            textBefore = "the end of seventeen. ",
+            textAfter = "Paragraph eighteen begins",
+            publicationDigest = "d2",
+        ),
+    )
     val fontSizeField = "reflowable/|values.fontSizePercent"
 
     /** The library each platform's sync writes. */
@@ -60,6 +74,7 @@ object SyncDocumentFixture {
             themesChangedAt = mapOf(fontSizeField to at(500)),
             progress = listOf(
                 ReadingProgress(book, ReadingPosition.Page(12, 40), updatedAtEpochMillis = at(600)),
+                ReadingProgress(novel, novelPosition, updatedAtEpochMillis = at(600)),
                 ReadingProgress(
                     PublicationIdentity(serverIdentifier = PublicationIdentity.ServerIdentifier(kavitaId, "chapter:9")),
                     ReadingPosition.Page(3, 20),

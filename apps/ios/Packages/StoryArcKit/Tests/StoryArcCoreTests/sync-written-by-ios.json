@@ -35,6 +35,26 @@
           "of" : 40
         },
         "updatedAt" : "2026-01-01T00:10:00Z"
+      },
+      {
+        "changedBy" : "ios-device",
+        "identity" : {
+          "contentDigest" : "d2"
+        },
+        "isFinished" : false,
+        "position" : {
+          "firstVisibleElement" : {
+            "cssSelector" : "body > p:nth-child(18)",
+            "href" : "OEBPS/ch1.xhtml",
+            "publicationDigest" : "d2",
+            "textAfter" : "Paragraph eighteen begins",
+            "textBefore" : "the end of seventeen. "
+          },
+          "kind" : "reflowable",
+          "locator" : "{\"href\":\"OEBPS/ch1.xhtml\"}",
+          "progression" : 0.45
+        },
+        "updatedAt" : "2026-01-01T00:10:00Z"
       }
     ],
     "readingLists" : [

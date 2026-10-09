@@ -121,6 +121,37 @@
                     "of": 40,
                     "progression": null,
                     "locator": null,
+                    "firstVisibleElement": null,
+                    "part": null,
+                    "partCount": null,
+                    "offsetMillis": null,
+                    "ofMillis": null
+                },
+                "isFinished": false,
+                "finishedAt": null,
+                "updatedAt": "2026-01-01T00:10:00Z",
+                "changedBy": "android-device"
+            },
+            {
+                "identity": {
+                    "serverSourceId": null,
+                    "serverRemoteId": null,
+                    "contentDigest": "d2",
+                    "normalizedPath": null
+                },
+                "position": {
+                    "kind": "reflowable",
+                    "index": null,
+                    "of": null,
+                    "progression": 0.45,
+                    "locator": "{\"href\":\"OEBPS/ch1.xhtml\"}",
+                    "firstVisibleElement": {
+                        "href": "OEBPS/ch1.xhtml",
+                        "cssSelector": "body > p:nth-child(18)",
+                        "textBefore": "the end of seventeen. ",
+                        "textAfter": "Paragraph eighteen begins",
+                        "publicationDigest": "d2"
+                    },
                     "part": null,
                     "partCount": null,
                     "offsetMillis": null,

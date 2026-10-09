@@ -8,7 +8,10 @@ public import Foundation
 /// ADR-0006.
 public enum ReadingPosition: Sendable, Equatable, Codable {
     case page(index: Int, of: Int)
-    case reflowable(progression: Double, locator: String)
+    /// `firstVisibleElement` is where the page starts as text (``ElementLocator``). Optional,
+    /// so a position written before it existed still decodes, and one without it resumes by
+    /// the fraction.
+    case reflowable(progression: Double, locator: String, firstVisibleElement: ElementLocator? = nil)
 
     /// Where a listener stopped: an offset in time inside one part of a publication.
     ///
@@ -46,7 +49,7 @@ public enum ReadingPosition: Sendable, Equatable, Codable {
         case let .page(index, total):
             guard total > 1 else { return total == 1 && index >= 0 ? 1 : 0 }
             return min(1, max(0, Double(index) / Double(total - 1)))
-        case let .reflowable(progression, _):
+        case let .reflowable(progression, _, _):
             return min(1, max(0, progression))
         case let .listening(part, partCount, offset, total):
             // The part, plus how far into it the listener is when anything knows. With no

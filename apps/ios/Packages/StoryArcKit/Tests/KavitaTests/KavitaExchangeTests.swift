@@ -69,7 +69,7 @@ struct KavitaExchangeTests {
         // can open. Expressed as the fraction a page position already computes -- the
         // same number `KavitaExchange.pageNumber(of:in:)` converts back from.
         let position = KavitaExchange.position(readingTo: 3, of: 8, like: .reflowable(progression: 0, locator: "x"))
-        guard case let .reflowable(progression, locator) = position else {
+        guard case let .reflowable(progression, locator, _) = position else {
             Issue.record("expected a reflowable position")
             return
         }

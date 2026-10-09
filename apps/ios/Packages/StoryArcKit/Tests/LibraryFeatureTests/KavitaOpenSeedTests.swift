@@ -42,7 +42,7 @@ struct KavitaOpenSeedTests {
         await seedKavitaOpen(epub, pagesRead: 6, of: 11, into: progress)
 
         let found = try #require(try await progress.progress(for: epub.identity))
-        guard case let .reflowable(progression, locator) = found.position else {
+        guard case let .reflowable(progression, locator, _) = found.position else {
             Issue.record("an EPUB seeded as \(found.position), which its reader cannot open")
             return
         }

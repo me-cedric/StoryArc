@@ -118,6 +118,8 @@ data class DocumentPosition(
     @SerialName("of") val pageCount: Int? = null,
     val progression: Double? = null,
     val locator: String? = null,
+    /** Optional, `reading-progress` O27: a reader that cannot use it resumes by the fraction. */
+    @Serializable(with = ElementOrNull::class) val firstVisibleElement: ElementLocator? = null,
     val part: Int? = null,
     val partCount: Int? = null,
     val offsetMillis: Long? = null,
@@ -133,6 +135,7 @@ data class DocumentPosition(
         pageCount = (position as? ReadingPosition.Page)?.total,
         progression = (position as? ReadingPosition.Reflowable)?.progression,
         locator = (position as? ReadingPosition.Reflowable)?.locator,
+        firstVisibleElement = (position as? ReadingPosition.Reflowable)?.firstVisibleElement,
         part = (position as? ReadingPosition.Listening)?.part,
         partCount = (position as? ReadingPosition.Listening)?.partCount,
         offsetMillis = (position as? ReadingPosition.Listening)?.offsetMillis,
@@ -147,7 +150,7 @@ data class DocumentPosition(
      */
     fun position(): ReadingPosition? = when (kind) {
         PAGE -> ReadingPosition.Page(index ?: return null, pageCount ?: return null)
-        REFLOWABLE -> ReadingPosition.Reflowable(progression ?: return null, locator.orEmpty())
+        REFLOWABLE -> ReadingPosition.Reflowable(progression ?: return null, locator.orEmpty(), firstVisibleElement)
         LISTENING -> ReadingPosition.Listening(
             part = part ?: return null,
             partCount = partCount ?: return null,

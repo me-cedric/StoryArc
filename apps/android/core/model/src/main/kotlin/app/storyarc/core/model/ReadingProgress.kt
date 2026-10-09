@@ -10,7 +10,15 @@ package app.storyarc.core.model
  */
 sealed interface ReadingPosition {
     data class Page(val index: Int, val total: Int) : ReadingPosition
-    data class Reflowable(val progression: Double, val locator: String) : ReadingPosition
+    /**
+     * @param firstVisibleElement where the page starts as text ([ElementLocator]). Null for a
+     * position that has none, which resumes by the fraction.
+     */
+    data class Reflowable(
+        val progression: Double,
+        val locator: String,
+        val firstVisibleElement: ElementLocator? = null,
+    ) : ReadingPosition
 
     /**
      * Where a listener stopped: an offset in time inside one part of a publication.

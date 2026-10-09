@@ -70,7 +70,7 @@ public struct DocumentIdentity: Sendable, Equatable, Codable {
 /// listening position has no use for a finer unit than a millisecond.
 public enum DocumentPosition: Sendable, Equatable, Codable {
     case page(index: Int, of: Int)
-    case reflowable(progression: Double, locator: String)
+    case reflowable(progression: Double, locator: String, firstVisibleElement: ElementLocator?)
     case listening(part: Int, partCount: Int, offsetMillis: Int64, ofMillis: Int64?)
     case unreadable(kind: String)
 
@@ -78,8 +78,8 @@ public enum DocumentPosition: Sendable, Equatable, Codable {
         switch position {
         case let .page(index, total):
             self = .page(index: index, of: total)
-        case let .reflowable(progression, locator):
-            self = .reflowable(progression: progression, locator: locator)
+        case let .reflowable(progression, locator, element):
+            self = .reflowable(progression: progression, locator: locator, firstVisibleElement: element)
         case let .listening(part, partCount, offset, total):
             self = .listening(
                 part: part,
@@ -98,8 +98,8 @@ public enum DocumentPosition: Sendable, Equatable, Codable {
         switch self {
         case let .page(index, total):
             .page(index: index, of: total)
-        case let .reflowable(progression, locator):
-            .reflowable(progression: progression, locator: locator)
+        case let .reflowable(progression, locator, element):
+            .reflowable(progression: progression, locator: locator, firstVisibleElement: element)
         case let .listening(part, partCount, offset, total):
             .listening(
                 part: part,
@@ -126,6 +126,7 @@ public enum DocumentPosition: Sendable, Equatable, Codable {
         case of
         case progression
         case locator
+        case firstVisibleElement
         case part
         case partCount
         case offsetMillis
@@ -153,7 +154,10 @@ public enum DocumentPosition: Sendable, Equatable, Codable {
             else { return nil }
             return .reflowable(
                 progression: progression,
-                locator: (try? container.decodeIfPresent(String.self, forKey: .locator)) ?? ""
+                locator: (try? container.decodeIfPresent(String.self, forKey: .locator)) ?? "",
+                // Optional, and a value this build cannot read is dropped alone: the fraction
+                // still resumes the reader.
+                firstVisibleElement: try? container.decodeIfPresent(ElementLocator.self, forKey: .firstVisibleElement)
             )
         case "listening":
             guard let part = try? container.decode(Int.self, forKey: .part),
@@ -178,10 +182,11 @@ public enum DocumentPosition: Sendable, Equatable, Codable {
             try container.encode("page", forKey: .kind)
             try container.encode(index, forKey: .index)
             try container.encode(total, forKey: .of)
-        case let .reflowable(progression, locator):
+        case let .reflowable(progression, locator, element):
             try container.encode("reflowable", forKey: .kind)
             try container.encode(progression, forKey: .progression)
             try container.encode(locator, forKey: .locator)
+            try container.encodeIfPresent(element, forKey: .firstVisibleElement)
         case let .listening(part, partCount, offset, total):
             try container.encode("listening", forKey: .kind)
             try container.encode(part, forKey: .part)

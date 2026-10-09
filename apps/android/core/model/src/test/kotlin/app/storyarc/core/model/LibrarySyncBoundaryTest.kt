@@ -44,7 +44,9 @@ class LibrarySyncBoundaryTest {
             library.readingThemes.changed[SyncDocumentFixture.fontSizeField],
         )
         // The Kavita position stayed with Kavita.
-        assertEquals(listOf(IOS_DEVICE), library.progress.map { it.changedBy })
+        assertEquals(listOf(IOS_DEVICE, IOS_DEVICE), library.progress.map { it.changedBy })
+        // The first visible element travels beside the fraction.
+        assertTrue(SyncDocumentFixture.novelPosition in library.progress.mapNotNull { it.position.position() })
     }
 
     @Test
@@ -58,6 +60,7 @@ class LibrarySyncBoundaryTest {
         assertTrue(outcome is LibrarySyncOutcome.Synced)
         val library = device.library
         assertEquals(ReadingPosition.Page(12, 40), device.position(SyncDocumentFixture.book)?.position)
+        assertEquals(SyncDocumentFixture.novelPosition, device.position(SyncDocumentFixture.novel)?.position)
         assertEquals(listOf(SyncDocumentFixture.collectionId), library.shelves.collections.map { it.id })
         assertEquals("Image Comics", library.shelves.collections.single().name)
         assertEquals(setOf("path:/a.cbz", "path:/c.cbz"), library.shelves.collections.single().members)

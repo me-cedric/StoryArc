@@ -24,6 +24,20 @@ enum SyncDocumentFixture {
     static let removedID = LibraryDocumentFixture.fixed("66666666-6666-6666-6666-666666666666")
 
     static let book = PublicationIdentity(contentDigest: "d1")
+    static let novel = PublicationIdentity(contentDigest: "d2")
+
+    /// A reflowable position with its first visible element, `reading-progress` O27.
+    static let novelPosition = ReadingPosition.reflowable(
+        progression: 0.45,
+        locator: #"{"href":"OEBPS/ch1.xhtml"}"#,
+        firstVisibleElement: ElementLocator(
+            href: "OEBPS/ch1.xhtml",
+            cssSelector: "body > p:nth-child(18)",
+            textBefore: "the end of seventeen. ",
+            textAfter: "Paragraph eighteen begins",
+            publicationDigest: "d2"
+        )
+    )
     static let fontSizeField = "reflowable/|values.fontSizePercent"
 
     /// The library each platform's sync writes.
@@ -50,6 +64,7 @@ enum SyncDocumentFixture {
             themes: ShelfMemory().settingDefault(larger, for: .reflowable),
             progress: [
                 ReadingProgress(identity: book, position: .page(index: 12, of: 40), updatedAt: at(600)),
+                ReadingProgress(identity: novel, position: novelPosition, updatedAt: at(600)),
                 ReadingProgress(
                     identity: PublicationIdentity(serverIdentifier: .init(sourceID: kavitaID, remoteID: "chapter:9")),
                     position: .page(index: 3, of: 20),
