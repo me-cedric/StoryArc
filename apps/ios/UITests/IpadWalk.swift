@@ -139,10 +139,13 @@ extension XCTestCase {
     /// thumb apart, meaning different things, and this helper would have found either.
     func showSidebar(in app: XCUIApplication) throws {
         if app.buttons["All shelves"].exists { return }
+        // Already out: the toggle then says it would hide it, and tapping it takes the sidebar
+        // away before the check below looks for it (2026-10-09).
+        let alreadyOut = app.buttons["Hide Sidebar"].waitForExistence(timeout: 2)
         let toggle = app.buttons.matching(
             NSPredicate(format: "identifier CONTAINS[c] %@ OR label CONTAINS[c] %@", "sidebar", "sidebar")
         ).firstMatch
-        if toggle.waitForExistence(timeout: 5), toggle.isHittable { toggle.tap() }
+        if !alreadyOut, toggle.waitForExistence(timeout: 5), toggle.isHittable { toggle.tap() }
         hold(1.5)
         try XCTSkipUnless(
             app.buttons["All shelves"].waitForExistence(timeout: 5)
