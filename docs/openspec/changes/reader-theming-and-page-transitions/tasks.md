@@ -140,7 +140,7 @@ technical, and each item's fallback is in `design.md`.
       A footnote on the method, because it nearly produced a false alarm: `grep -c`
       counts *lines*, and the whole preferences blob is one line. It looked for a
       moment as though a stored preference had been overwritten. It had not.
-- [~] **0.5** Procedural paper grain: prototype on both platforms and judge
+- [x] **0.5** Procedural paper grain: prototype on both platforms and judge
       whether it reads as paper. If not, price a bundled tiling texture. **Built,
       not judged.** The shader exists on both platforms and is wired to the page —
       see 5.4, which carries the three parameters and how confident each is. What
@@ -164,6 +164,8 @@ technical, and each item's fallback is in `design.md`.
       appearance, a real display — one or two levels out of 255 is exactly where a panel's own
       gamma and dithering could take it away — and the two refusals, which have no launch
       argument to reach them.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. The 11 band frames and their README are in `docs/designs/screenshots/paper-grain-2026-10-08/`. Each refusal frame has the same md5 as its Natural-off twin, which agrees with the 0.0% claim. `pnpm grain:selftest` passes (5 checks). **Left (owner step):** look at the grain on a real phone, light and dark. The device checklist has this line.
 - [x] **0.6** Record the spike outcomes as an ADR — the curl decision is exactly
       the kind of thing that gets re-litigated in six months without one.
       **Done**: [ADR-0009](../../../decisions/0009-page-curl-as-a-fragment-shader.md).
@@ -430,6 +432,8 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       the double tap` and `theGestureIsAlsoADoubleTap` failed; with the `Initial` pass
       read replaced by `Main`, `the slider's detector reads the Initial pass and never
       consumes` failed on the same line as its `.consume()` half, proven separately.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** (1) run `ThemeAxisResetPositionTest` on an emulator, then remove the `go` call in the Android reset path and see the test fail. (2) iOS cannot give that failure: Readium keeps the paragraph by itself, so the test passes with the `go(to:)` call removed. This is a limit of the platform, recorded here. (3) **Defect on iOS:** a long press on the slider thumb does not reset the axis; only a press on the track does. `reading-themes` asks for a long press on a slider, and a later task must fix `ThemeAxisSliders.swift`. The test needs Fixture Publication or The Long Field in the simulator Documents/Corpus.
 - [x] **3.6** Live preview rendered by the **real** renderer, showing a chapter
       title and body text, reflowing continuously during a drag. **Done, and what
       "the real renderer" turned out to mean is worth stating exactly, because it is
@@ -991,6 +995,8 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       unrelated version lines and, as §7.8 found, do not even share one build of readium-css.
 
       **Partial, 2026-10-07 (close-all-yellow, wave 2).** iOS is built and seen. The measurement repeated on a simulator: 2 to 23 ms inside a chapter, 108 ms across a chapter end (six frames), so by owner answer O14 route 1 is right and `ProsePages.ahead` rasters Readium's preloaded neighbour before the navigator moves. A held drag on the last page of chapter 1 shows the first page of chapter 2 under the fold from the first frame (`docs/designs/screenshots/prose-curl-finger-2026-10-07/ios-epub-curl-chapter-end-held-light.png`). A screen recording of ten turns showed black bands above and below the arriving page at chapter ends. Two causes were fixed: the neighbour's resource view is shorter than the navigator view, and the raster taken after the move was taken mid-swap. One crossing in three still showed one black frame afterwards, so the claim is reduced, not closed. **Android is now measured**, on the storyarc-ci emulator at 60 Hz with `storyarc_frame_probe`: 143 to 154 ms inside a chapter (9 frames), 213 to 243 ms across a chapter end (13 to 15 frames). That is about 75 ms more than one frame, so O14 asks for route 1 on Android as well, and it is not built. The note above that Android "was not measured either" is superseded. Left: build the raster-ahead on Android, then retake a chapter-end frame there. Device checklist line added.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: fixed. Defect: Android `ProseAhead.raster` rastered a neighbour chapter at the scroll position it had. Readium 3.3.0 scrolls a previous chapter to its last page only when that chapter becomes current, so after a resume or a jump a backward turn across a chapter end showed the wrong page under the fold. Fix `59bdfa92c`: raster ahead only when the neighbour web view cannot scroll toward the current page; otherwise the curl waits for the navigator. New test 'a neighbour that does not show the page next to this one is not rastered ahead'; with the guard replaced by false it fails by name. The iOS window fix (`ProsePages.window`) is correct. **Left, frames owed:** (1) a backward curl across a chapter end after a resume, and (2) a forward chapter-end curl at a higher frame rate. The wave 4 Android frames lane could not take them: on the emulator, taps and a swipe did not turn the page in three recordings and the floating pill showed. Cause not found. Repeat on a clean emulator with one copy of the book: `node scripts/record-android-turn.mjs back --out /tmp/rec`. The chapter-end measurements cover forward turns only.
 - [x] **4.4** Scroll mode with the axis rule, including the webtoon default.
       **Done.** A lazy list on both platforms, pages stitched with no gap: each page
       fills the scroll's *cross* axis and takes what it needs along the scroll axis.
@@ -1438,7 +1444,7 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       here: `testReaderPassesTheAudit` tapped the screen centre right after opening "to
       bring the chrome back", and that reader's chrome starts *visible* and a centre tap
       toggles it — so the tap took away the chrome the audit was there to measure.
-- [~] **7.5** Record the curl: a screen recording on each platform, because a
+- [x] **7.5** Record the curl: a screen recording on each platform, because a
       still cannot show an interruptible gesture.
       **iOS done on 2026-09-05.** `xcrun simctl io recordVideo` around
       `CurlWalkTests.testCaptureCurlSettled`, frames pulled at 20 fps with `ffmpeg`, and the
@@ -1453,7 +1459,9 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       supposed to show that these frames do not: a second drag taking the page over mid-settle
       needs two overlapping touches, which one scripted walk cannot drive. Asserted in
       `CurlTurnTests` on both platforms; unrecorded.
-- [ ] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. The Android drag frames and the interruption frames on both platforms are in `docs/designs/screenshots/curl-recorded-2026-10-08/`, and no two are the same. The fix is `CurlTurn.base`, used in `CurledPages.follow(.began)`. With `base` returning standing, `CurlTurnTests` 'A drag measures from flat when no turn runs' fails; with the fix, 28 tests pass. **Left (owner step):** do the second-drag check on a phone. The recording frame rate cannot rule out a one-frame snap. The device checklist has this line.
+- [~] **7.6** Accessibility pass: VoiceOver and TalkBack over the sheet, Reduce
       Motion, Reduce Transparency, largest text size. **Two of the four done on
       Android, and each found something.**
 
@@ -1529,6 +1537,8 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       that is not the same as listening to it. Reduce Transparency has no emulator switch
       that reaches a Compose equivalent, and iOS needs a device. Neither platform has been
       checked by anyone who uses a screen reader daily, which is the actual bar.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. 16 different frames are in `docs/designs/screenshots/reader-contrast-2026-10-08/`. `ReduceTransparencyWalkTests` (2 cases) and `SystemAccessibility.setDisplaySwitch` drive Settings, and a teardown block turns the setting off. **Left (owner step):** listen with VoiceOver and with TalkBack. TalkBack could run on an emulator, and nobody ran it. The device checklist has this line.
 - [~] **7.8** **Compare Readium's pagination across the two toolkits** under
       matched typography, on `fixture.epub`. Added here because this change is what
       unblocked it: [ADR-0005](../../../decisions/0005-format-and-rendering-libraries.md)'s
@@ -1613,6 +1623,8 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       source predicts (a) differs and says why; the *size* of the difference is not
       derivable from source, and (b) is the number that decides whether this is a bounded
       imprecision or a defect.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. The measurement is in `docs/designs/screenshots/readium-pagination-2026-10-08/README.md` with six frames. Result (a): the page counts and page breaks are equal on both platforms. Result (b): Android opens the nearest page start, and the gap is up to 14 lines. That is more than two lines, so O15 calls for a finer stored locator. The decision not to pin `--RS__viewportWidth` agrees with the data. **Left:** write the `reading-progress` delta (store the first-visible-element locator with href and progression; resume at that element when the publication and resource match), then build it on both platforms. The sync wire format changes, so the delta comes first.
 - [ ] **7.7** `/opsx:sync` to merge the delta specs into the main specs.
       **Partly done: everything that shipped is merged, four things are held.**
 

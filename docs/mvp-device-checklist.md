@@ -161,6 +161,29 @@ the scene, open the iOS Simulator's CarPlay window (I/O, External Displays, CarP
 StoryArc there, and check the list, the resume row and now-playing. In a car, the owner takes
 the four steps in `audiobooks-and-playback`'s design note "The day an Apple team exists".
 
+## G. Wave 4 of close-all-yellow, 2026-10-09
+
+Each item is an owner step that an emulator or a simulator cannot answer.
+
+1. **The A to Z rail tick (both).** On a phone, drag a finger down the rail. Feel one
+   selection tick for each new letter. The unit tests prove the call, not the feel.
+   Task `close-the-audited-gaps` 24.6.
+2. **One stop in French (both).** With VoiceOver, and then with TalkBack, set to French,
+   open the list of publications that could not be opened. Swipe once on an entry. The
+   screen reader must read the file name and the French reason together. Task
+   `one-vocabulary-in-four-languages` 1.8.
+3. **The sleep-timer chips (Android).** With TalkBack, check that each chip (5, 15, 30
+   and 45 min) is read once. Tasks `close-the-audited-gaps` 24.5 and
+   `audiobooks-and-playback` 8.1.
+4. **The rotation freeze (Android).** On the phone that froze, record a Perfetto trace
+   or run `adb shell dumpsys gfxinfo` while the library page rotates. Task
+   `close-the-audited-gaps` 21.1.
+5. **The web row note (iOS).** Open the cover menu on a publication page. Check that the
+   subtitle of the web row wraps fully inside the menu. Task `close-the-audited-gaps` 24.1.
+6. **The reader proofs (both).** Look at the paper grain in light and dark (task
+   `reader-theming-and-page-transitions` 0.5). Do the second drag during a curl settle
+   (7.5). Listen with VoiceOver and with TalkBack over the theme sheet (7.6).
+
 ## Suggested order
 
 1. Section A, item 1. The accessibility audits gate every claim about whether the apps are

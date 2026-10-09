@@ -1029,7 +1029,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       Walks: `pnpm capture:android --list` names Home, Library, Downloads and Search;
       on iOS the four are tab-bar destinations plus the search icon. `pnpm kavita` or
       `pnpm opds` supplies the second source that makes case 4 meaningful.
-- [ ] **3.5** No new user-facing string ships from this change. If the provenance
+- [x] **3.5** Constraint overtaken, 31 keys handed to localization. No new user-facing string ships from this change. If the provenance
       line needs one, hand it to the vocabulary slice rather than adding it here.
 
       **The constraint was violated, and it is recorded here rather than ticked or
@@ -1156,6 +1156,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       `publication.format.displayName` at `DetailHero.kt:181`, which is a format name
       rather than a sentence. **No English literal ships from this page**, which is worth
       recording because the count above makes it look like the opposite risk was taken.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** **Constraint overtaken, 31 keys handed to localization.** The proposal of `one-vocabulary-in-four-languages` took the publication page vocabulary (its proposal names this task), and its task 4.6 reconciled the keys. The four `detail.availability.*` keys are deleted. Android `detail_gone_title` and `detail_gone_body` became `detail_gone`, and `detail_needs_download` and `detail_needs_download_sized` became `detail_unavailable` and `detail_unavailable_sized`. The finding above stays: no English literal ships from this page.
 
 ## Phase 4 — Large screens
 
@@ -1703,6 +1705,8 @@ phase's own:
 
       Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest`.
 
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial, same as the code state above. **Left:** frame 1 of 6.5.
+
 - [~] **6.2** The page draws the copy, and offers no read anywhere.
 
       **Code and tests landed**, 2026-09-10. `DetailNeedsCopyTest` composes the page for an
@@ -1719,6 +1723,8 @@ phase's own:
       this state has never been composed in a test.
 
       Validation: the same Gradle task, and the capture named in 6.5.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** frames 1 and 2 of 6.5.
 
 - [~] **6.3** A download from this page is a queued download.
 
@@ -1746,6 +1752,8 @@ phase's own:
 
       Validation: `cd apps/android && ./gradlew :feature:library:testDebugUnitTest :app:testDebugUnitTest`.
 
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** frame 4 of 6.5, the notification shade after the reader leaves the app.
+
 - [~] **6.4** One queue per source, owned in one place.
 
       **Code landed**, 2026-09-10. The queue is owned in `AppDependencies` and the catalogue
@@ -1764,6 +1772,8 @@ phase's own:
       Validation: the Gradle task above, plus the capture in 6.5, which is what
       shows the notification surviving the reader leaving the page.
 
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. One `AppDependencies` per process (`ea53e3c7`). **Left:** frame 4 of 6.5.
+
 - [ ] **6.5** Captures, Android, light and dark at the default and the largest text size.
 
       1. The page for an absent publication whose library answers — the copy as
@@ -1780,7 +1790,9 @@ phase's own:
       Filed under `docs/designs/screenshots/` with a README naming what each frame
       shows, per AGENTS.md §6.
 
-- [ ] **6.6** iOS: verify the same shape, then mirror or record why not.
+      **Wave 4 (close-all-yellow), 2026-10-09.** Not taken. The Android frames lane spent its time on other frames. Frames 1 to 4 are still owed: the absent, travelling and landed states, and the shade after the reader leaves. Take them at the default text size only.
+
+- [x] **6.6** iOS: verify the same shape, then mirror or record why not.
 
       Read `PublicationDetailView.swift` and say in the handoff whether the Swift
       page can draw a read for a publication it holds no file for. `read()` at
@@ -1791,6 +1803,8 @@ phase's own:
       putting it in the shared type rather than in a view.
 
       Validation: `pnpm test:ios`, plus the iOS captures if the fix lands there.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. iOS cannot draw Read when no source exists. `DetailActions.primary` switches on `DetailOffer.of`: Read only when an address exists, Download only when a copy can be made, otherwise nothing. The old if/else chain gave the same result. Mutation proof: `DetailOfferTests` 'With no address, Download is offered when a copy can be made' fails.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 

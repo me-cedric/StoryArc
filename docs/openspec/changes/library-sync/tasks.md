@@ -28,21 +28,31 @@ synced two real devices through a real cloud folder.
 
 ## 3. Merging
 
-- [ ] 3.1 **A write is read-merge-write, never a blind overwrite** (both). Two devices writing
+- [x] 3.1 **A write is read-merge-write, never a blind overwrite** (both). Two devices writing
   within moments of each other both survive. Each record carries which device last changed it
   and when.
-- [ ] 3.2 **Reading progress merges by ADR-0006** (both), reusing `ProgressMerge` after task 1.
-- [ ] 3.3 **Shelves merge their members** (both), reusing `ShelfMerge`.
-- [ ] 3.4 **A deletion travels** (both). A collection the reader deleted on one device does not
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Built. The reviewer fixed one defect. `LibrarySync` reads the document, merges it and each conflicted copy, writes with the version it read, retries three times, then reports Busy. A newer or unreadable document is refused and not written. `LibraryTransfer.sync` first wrote through the store save, which stamps the current moment on each value that the merge took from the other device. `LibraryArchive.apply(exactly = true)` now writes what the merge decided. Mutation proofs ran on both platforms. **For tasks 2.x and 4.x:** `SyncPlace` has no real place until 2.2 and 2.3. A screen must not write the stores while a sync runs, and it must reload its in-memory shelves after a sync. A screen that saves an old in-memory `Shelves` records a tombstone, and that deletion goes to every device.
+- [x] 3.2 **Reading progress merges by ADR-0006** (both), reusing `ProgressMerge` after task 1. **Wave 4 (close-all-yellow), 2026-10-09.** Built. The reviewer fixed one defect. The Android progress store keeps only the fraction of a watermark, so no stored position equalled its stamped copy, and each sync wrote every position back and undid a page turned during the sync. `LibraryTransfer.sync` now compares records in stored form. The new test 'a page turned while a sync runs is not put back' failed before the fix. The iOS twin passes.
+- [x] 3.3 **Shelves merge their members** (both), reusing `ShelfMerge`. **Wave 4 (close-all-yellow), 2026-10-09.** Verified. A member removed on one device comes back through the union. The spec asks only for the union.
+- [x] 3.4 **A deletion travels** (both). A collection the reader deleted on one device does not
   come back at the next sync.
-- [ ] 3.5 **Settings and themes merge last-writer-wins per field** (both), with the device and
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Built. The reviewer fixed one defect on both platforms. A member taken from the other device got the sync moment, which is later than a deletion, so the deleted shelf came back. The exact apply of task 3.1 corrects it. The new tests failed before the fix.
+- [x] 3.5 **Settings and themes merge last-writer-wins per field** (both), with the device and
   the moment recorded. A preference is not an accumulating value, so furthest-wins does not
   apply to it.
-- [ ] 3.6 **A provider's conflicted copy is merged, not ignored** (both). iCloud Drive and
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Verified. `SettingsStamps` and `ThemeStamps` merge each field by last writer, to the whole second. On a tie, the device id that sorts last wins. A field that the other platform cannot express keeps the value of this device. No sync-place setting travels.
+- [x] 3.6 **A provider's conflicted copy is merged, not ignored** (both). iCloud Drive and
   Google Drive both produce sibling files when two devices write at once; the app finds one and
   merges it.
-- [ ] 3.7 **Kavita rows are left to Kavita** (both). A test asserting the document carries no
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Verified. `isConflictedCopy` recognises the copy names of iCloud, Google Drive, Dropbox and OneDrive. A readable copy is merged and deleted. An unreadable copy is skipped and named. A copy that cannot be deleted is kept as `name@version` and is not merged twice. **Left:** the proof with copy files that a person writes in a real picked folder needs task 2.3 and a trigger from tasks 4.x.
+- [x] 3.7 **Kavita rows are left to Kavita** (both). A test asserting the document carries no
   position for a Kavita publication, so there are not two sources of truth for one fact.
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Verified. A test asserts that the document carries no position for a Kavita publication.
 
 ## 4. When it happens
 
@@ -55,8 +65,12 @@ synced two real devices through a real cloud folder.
 
 ## 5. Proof
 
-- [ ] 5.1 **Two devices, reconciled in a test** (both). Device A reads to page 40, device B to
+- [x] 5.1 **Two devices, reconciled in a test** (both). Device A reads to page 40, device B to
   page 20, both offline; after a sync both are at 40 and neither saw a conflict notice.
-- [ ] 5.2 **Cross-platform**: a document written by Android is merged by iOS and the reverse.
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Verified. Two in-memory devices share an in-memory place. Devices at 40 and 20 that never synced both reach 40 with no notice. Two devices that both moved after a shared sync get one notice that names both positions. A finished publication stays finished.
+- [x] 5.2 **Cross-platform**: a document written by Android is merged by iOS and the reverse. **Wave 4 (close-all-yellow), 2026-10-09.** Verified. Each platform commits the document that its sync path writes (`sync-written-by-android.json`, `sync-written-by-ios.json`) and merges the document of the other platform.
 - [ ] 5.3 **Frames**: choosing the place, the sync state, and a conflict notice that is real.
   Both platforms, light and dark, default and largest text.
+
+  **Wave 4 (close-all-yellow), 2026-10-09.** Not taken. The sync-engine lane changes no screen. The frames need tasks 2.x and 4.x first.

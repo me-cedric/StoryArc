@@ -195,6 +195,8 @@ format layer stops being able to hold a sentence.
         draw the same value. It runs on the host, where `String(localized:)`
         answers with the key, so it cannot hear a language.
 
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: fixed. Both notices carry the name and the reason as one element. iOS: the French `SkippedNoticeTests` passed on the simulator, but no speech was heard. Android: with the app locale `fr`, `uiautomator dump` gives one View node with two children, the name and the reason, and the English control gives the same shape. Content-desc is empty on every node, so the dump cannot show one node that holds both texts (`docs/designs/screenshots/wave4-android-2026-10-09/android-skipped-list-fr.png`, `-en.png`). **Left (owner step):** VoiceOver and TalkBack in French must read one stop for the name and the reason. The device checklist has this line.
+
 ## 2. The refused-file alert
 
 Six literals, iOS only. Android's `RefusedFileDialog.kt` is already localised and
@@ -495,6 +497,8 @@ Two literals, and the largest hidden surface behind them.
       (`library.cell.progress`), and the rest are not value edits at all — a composition,
       a convention, or a notice shape. 4.1's table carries the reason for each. A tick
       here would claim a reconciliation that has not happened.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. The capture classes that read `coversOnScreen` did not all run. On a clean install, one test each of `ScreenshotTests`, `SweepDetailTests`, `SweepEpubReaderTests` and `GrainWalkTests` passed. `SweepIpadTests`, `SweepIpadPaneTests` and `ReadAloudPlayerTests` did not pass or did not run: `testCaptureBarCarriesTheVoice` fails twice with 'The compact bar never appeared after starting read-aloud', and the cause is not found. `ReadingContinuityUITests` fails on wave 3 too and needs its own task. iOS has no singular form for `sources.detail.progress` and `shelves.promote.entries` ('1 of 1 titles'); Android has one. These two rows are not in the thirteen-row list and need a follow-up task. The two removal dialogs are framed in `docs/designs/screenshots/source-removal-ios-2026-10-09/`.
 - [x] **4.3** Reconcile the offline destination's vocabulary.
       iOS: *Nothing in your library is on this device yet*
       (`library.empty.onDevice`), *Nothing downloaded*, *%@ downloaded*.
@@ -600,7 +604,7 @@ Two literals, and the largest hidden surface behind them.
       The iOS entry is deleted, in all four languages.
       `pnpm strings:ios` — *every key resolves, in en, fr, de, es*; the iOS key count went
       from 824 to 823. `pnpm lint:android` — *BUILD SUCCESSFUL*, with nothing to remove.
-- [ ] **4.6** The publication page's vocabulary, **after `publication-detail`
+- [~] **4.6** The publication page's vocabulary, **after `publication-detail`
       archives.** iOS composes a place clause and an availability clause
       (`detail.availability.*`, `detail.provenance.alsoIn %@`); Android ships
       four whole sentences plus a wrapper (`detail_provenance_*`). The refusal
@@ -618,6 +622,8 @@ Two literals, and the largest hidden surface behind them.
       page's requirements exist. Touching those keys now would reconcile a vocabulary that
       change is still writing. The pass that closed 4.1, 4.2, 4.4 and 4.5 did not read
       this row's keys and did not change one of them.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified, the code reconciles the page. **Not proved by frames.** The iOS French frame `docs/designs/screenshots/l10n-french-ios-2026-10-09/ios-detail-provenance-device-fr.png` shows the provenance line in English ('From On this device, readable now') although `Localizable.xcstrings` holds 'De %@, lisible maintenant'. The English sentence also puts a source name after 'From'. Android French states a, b and c (with the refusal) are framed in `docs/designs/screenshots/wave4-android-2026-10-09/`; states d and e, the gone state, the open failure and the French comic matte menu are owed. Two divergences stay for the owner: iOS names a picked folder as a library ('From <folder>, readable now') and Android never does; Android `detail_needs_source` has no iOS twin.
 
 ## 5. The check that has to be able to fail
 

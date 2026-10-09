@@ -231,7 +231,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         rather than asserted.
       - Route: on Android, `pnpm capture:android Home` after a walk that opens the first
         issue and pages to its end; on iOS the equivalent walk before the shutter.
-- [~] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
+- [x] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
 
       **This is the one task in 0b that a device has to answer, and the work done here is to
@@ -288,6 +288,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         behind it at all.
       - One of each at the largest text size, where no fold claim is made and what is being
         checked is that no caption is clipped.
+
+      **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. O17 is built: on a compact height the cover box gets shorter (`homeHeroArtHeight`) and the card keeps its 200 dp width. Frames at the default text size, in `docs/designs/screenshots/home-fold-2026-10-08/`: the heading is whole on 411 x 914 dp and on 360 x 800 dp (an emulator with `wm density 480`, not a real 360 dp phone) and on the iPhone 17 Pro. The largest-text frames are not taken, by the owner rule of 2026-10-08. Mutation proof: with the full 2:3 box, 'the next heading is visible on a small phone too' fails. **Open for design.md:** section 4 must name the O17 choice (the 200 dp tier).
 - [~] 0b.5 Both: captures before and after, at default and largest text size.
       **Android needs no new hero** — it has one, first on the surface, conditional on something
       being in progress exactly as iOS is. The review reported it missing because the device had
