@@ -32,6 +32,27 @@ struct HitRegionTests {
         #expect(measured.height >= 44)
     }
 
+    @Test("A bordered button given the hit region reserves 44 by 44, and a banner's buttons use it")
+    func theButtonStyle() {
+        let measured = size(
+            of: Button {} label: { Text(verbatim: "Undo") }
+                .buttonStyle(HitRegionButtonStyle(.bordered)).controlSize(.small)
+        )
+
+        #expect(measured.width >= 44)
+        #expect(measured.height >= 44)
+        // The banner is the production view that carries the style; its strip is at least a
+        // button tall, which a 28 point capsule alone would not make it.
+        let banner = DownloadBanner(
+            download: Download(
+                id: "a", sourceID: UUID(), title: "A Title", remote: URL(filePath: "/x"),
+                mediaType: "application/x-cbz", state: .running, expectedBytes: 10, downloadedBytes: 1
+            ),
+            others: 0, onCancel: {}, onResume: {}
+        )
+        #expect(size(of: banner, width: 320).height >= 44)
+    }
+
     @Test("The edit button on a cover is a 44 point circle")
     func theEditButton() {
         let menu = CoverMenu(hasCover: true, rows: [[.choose]], act: { _ in })

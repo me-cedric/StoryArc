@@ -274,9 +274,9 @@ struct DownloadsDestination: View {
                     self.removed = nil
                     reload()
                 } label: {
-                    Text("downloads.undo").hitRegion()
+                    Text("downloads.undo")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(HitRegionButtonStyle(.bordered))
                 .controlSize(.small)
             }
             .padding(.horizontal, StoryArcSpace.gutter)

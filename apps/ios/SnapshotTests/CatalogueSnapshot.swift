@@ -83,3 +83,83 @@ func assertCatalogue<Screen: View>(
         )
     }
 }
+
+/// One appearance of a screen, drawn the way `assertCatalogue` draws it, for a test that
+/// measures the picture instead of comparing it.
+@MainActor
+func drawnCatalogue(_ screen: some View, dark: Bool, delay: TimeInterval = 0) -> UIImage {
+    draw(
+        screen, mode: dark ? .dark : .light, style: dark ? .dark : .light, for: max(delay, settleSeconds)
+    )
+}
+
+/// The WCAG contrast between a run of text and what is behind it, measured in `rect` (points).
+///
+/// The background is the median luminance of the region, and the text is its extreme: the darkest
+/// pixel when `textIsDarker`, the lightest otherwise. A glyph's stroke is a solid colour at its
+/// centre, so the extreme is the colour the text was drawn in.
+func textContrast(in image: UIImage, rect: CGRect, textIsDarker: Bool) -> Double {
+    guard let cgImage = image.cgImage else { return 0 }
+    let scale = CGFloat(cgImage.width) / phoneSize.width
+    var pixels = [UInt8](repeating: 0, count: cgImage.width * cgImage.height * 4)
+    guard let context = CGContext(
+        data: &pixels, width: cgImage.width, height: cgImage.height, bitsPerComponent: 8,
+        bytesPerRow: cgImage.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return 0 }
+    context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+    func linear(_ value: UInt8) -> Double {
+        let unit = Double(value) / 255
+        return unit <= 0.03928 ? unit / 12.92 : pow((unit + 0.055) / 1.055, 2.4)
+    }
+    var luminances: [Double] = []
+    for row in Int(rect.minY * scale)..<Int(rect.maxY * scale) {
+        for column in Int(rect.minX * scale)..<Int(rect.maxX * scale) {
+            let offset = (row * cgImage.width + column) * 4
+            let red = linear(pixels[offset])
+            let green = linear(pixels[offset + 1])
+            let blue = linear(pixels[offset + 2])
+            luminances.append(0.2126 * red + 0.7152 * green + 0.0722 * blue)
+        }
+    }
+    luminances.sort()
+    guard let text = textIsDarker ? luminances.first : luminances.last else { return 0 }
+    let background = luminances[luminances.count / 2]
+    return (max(text, background) + 0.05) / (min(text, background) + 0.05)
+}
+
+/// The box, in points, that what a view draws covers on a white page: what a reader sees of a
+/// control, not the room the layout gave it.
+///
+/// A frame or a touch area is invisible here, so this is how a test asks whether a hit region
+/// changed the drawn size of a control.
+@MainActor
+func drawnBounds(of view: some View) -> CGRect {
+    let page = ZStack(alignment: .topLeading) {
+        Color.white.ignoresSafeArea()
+        view.padding(20)
+    }
+    guard let image = draw(page, mode: .light, style: .light, for: 1).cgImage else { return .null }
+    let width = image.width
+    let height = image.height
+    var pixels = [UInt8](repeating: 0, count: width * height * 4)
+    guard let context = CGContext(
+        data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+        space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return .null }
+    context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+    var box = CGRect.null
+    for row in 0..<height {
+        for column in 0..<width {
+            let offset = (row * width + column) * 4
+            // Anything but white, with a few levels of slack for the dithering of a fill.
+            if pixels[offset] < 250 || pixels[offset + 1] < 250 || pixels[offset + 2] < 250 {
+                box = box.union(CGRect(x: column, y: row, width: 1, height: 1))
+            }
+        }
+    }
+    let scale = CGFloat(image.width) / phoneSize.width
+    return CGRect(
+        x: box.minX / scale, y: box.minY / scale, width: box.width / scale, height: box.height / scale
+    )
+}

@@ -73,15 +73,15 @@ struct DownloadBanner: View {
         switch download.state {
         case .failed, .paused:
             Button(action: onResume) {
-                Text("downloads.retry", bundle: .module).hitRegion()
+                Text("downloads.retry", bundle: .module)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(HitRegionButtonStyle(.bordered))
             .controlSize(.small)
         case .queued, .running, .finished:
             Button(role: .destructive, action: onCancel) {
-                Text("downloads.stop", bundle: .module).hitRegion()
+                Text("downloads.stop", bundle: .module)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(HitRegionButtonStyle(.bordered))
             .controlSize(.small)
         }
     }
