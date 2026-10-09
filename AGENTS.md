@@ -425,6 +425,11 @@ record it as a task:
 - Clipped, truncated or one-letter-per-line text; content under a bar or outside the
   safe area.
 - A look-alike of a system component (a hand-made menu, sheet, alert or switch).
+- A control in the other platform's idiom: a Material tonal capsule on iOS, a glass or
+  iOS-style control on Android. On iOS 26, a close action is a `Button(role: .close)`; a
+  secondary action is borderless or `.glass`, not a tinted capsule beside plain text.
+- A larger hit region that changed the drawn size of a control. The touch area grows; the
+  capsule, the chip or the icon keeps its system size.
 - A screen that is wrong in one appearance only.
 
 **2. Machines check the guidelines.** The accessibility checks run over every screen of
