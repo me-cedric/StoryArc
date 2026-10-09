@@ -1,6 +1,9 @@
 public import Foundation
 public import Observation
 public import StoryArcCore
+import os
+
+private let syncLog = Logger(subsystem: "app.storyarc.sync", category: "background")
 
 /// When a sync runs, and what the reader sees of it.
 ///
@@ -44,8 +47,16 @@ public final class LibrarySyncRunner {
 
     public private(set) var status: Status
 
+    /// iOS refused the last request for a background refresh. Settings says so in grey words:
+    /// background sync is off, and the foreground and the closing of a book still sync.
+    public private(set) var isBackgroundRefused = false
+
     /// Runs after each sync that wrote the stores, so the app reloads what it holds in memory.
     @ObservationIgnored public var onSynced: (@MainActor () -> Void)?
+
+    /// Runs after each sync that found positions both devices had moved, with those positions,
+    /// so the app shows D3's notice. A sync with none does not call it.
+    @ObservationIgnored public var onConflicts: (@MainActor ([ProgressPull.Conflict]) -> Void)?
 
     @ObservationIgnored private let places: SyncPlaceStore
     @ObservationIgnored private let placeFor: @MainActor (SyncPlaceChoice) async -> (any SyncPlace)?
@@ -133,12 +144,20 @@ public final class LibrarySyncRunner {
     /// Asks for the next background refresh while sync is on, and withdraws it while off.
     ///
     /// `library-sync` task 4.3. The app hands in the two `BGTaskScheduler` calls; the refresh
-    /// runs ``run(_:)`` with ``Trigger/background``, the entry point every trigger uses.
-    public func scheduleBackgroundRefresh(submit: (Date) -> Void, cancel: () -> Void) {
-        if places.choice() != nil {
-            submit(now().addingTimeInterval(Self.backgroundInterval))
-        } else {
+    /// runs ``run(_:)`` with ``Trigger/background``, the entry point every trigger uses. Task
+    /// 5.6: a refused request is logged and shown as ``isBackgroundRefused``, never swallowed.
+    public func scheduleBackgroundRefresh(submit: (Date) throws -> Void, cancel: () -> Void) {
+        guard places.choice() != nil else {
             cancel()
+            isBackgroundRefused = false
+            return
+        }
+        do {
+            try submit(now().addingTimeInterval(Self.backgroundInterval))
+            isBackgroundRefused = false
+        } catch {
+            syncLog.error("Background refresh refused: \(String(describing: error), privacy: .public)")
+            isBackgroundRefused = true
         }
     }
 
@@ -161,9 +180,10 @@ public final class LibrarySyncRunner {
         switch outcome {
         case nil:
             status = .unreachable
-        case .synced:
+        case let .synced(result):
             status = .synced(now())
             onSynced?()
+            if !result.merged.conflicts.isEmpty { onConflicts?(result.merged.conflicts) }
         case let .refused(reason):
             status = .refused(reason)
         case .busy:

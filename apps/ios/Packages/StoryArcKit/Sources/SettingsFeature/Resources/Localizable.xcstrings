@@ -5684,6 +5684,35 @@
         }
       }
     },
+    "sync.folderIsLibrary": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Ordner ist eine Ihrer Bibliotheken. Wählen Sie einen anderen Ordner für die Synchronisierung."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This folder is one of your libraries. Choose another folder for sync."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta carpeta es una de tus bibliotecas. Elige otra carpeta para la sincronización."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce dossier est l’une de vos bibliothèques. Choisissez un autre dossier pour la synchronisation."
+          }
+        }
+      }
+    },
     "sync.folderRefused": {
       "extractionState": "manual",
       "localizations": {
@@ -5767,6 +5796,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Emplacement"
+          }
+        }
+      }
+    },
+    "sync.status.backgroundRefused": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS hat die Synchronisierung im Hintergrund abgelehnt. StoryArc synchronisiert weiterhin, wenn Sie die App öffnen und wenn Sie ein Buch schließen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS refused background sync. StoryArc still syncs when you open the app and when you close a book."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS rechazó la sincronización en segundo plano. StoryArc sigue sincronizando cuando abres la app y cuando cierras un libro."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iOS a refusé la synchronisation en arrière-plan. StoryArc synchronise toujours quand vous ouvrez l’app et quand vous fermez un livre."
           }
         }
       }

@@ -69,13 +69,14 @@ private final class Counters {
     var now = Date(timeIntervalSince1970: 1_767_225_600)
     var placesBuilt = 0
     var reloads = 0
+    var conflicts: [[ProgressPull.Conflict]] = []
 }
 
 /// One device: real stores in a suite of its own, a clock the test moves, and a runner.
 @MainActor
 private final class SyncDevice {
     let counters = Counters()
-    let place = CountingPlace()
+    let place: CountingPlace
     let defaults = UserDefaults(suiteName: "app.storyarc.tests.\(UUID().uuidString)") ?? .standard
     let progress: ProgressStore
     let runner: LibrarySyncRunner
@@ -88,7 +89,8 @@ private final class SyncDevice {
     var placesBuilt: Int { counters.placesBuilt }
     var reloads: Int { counters.reloads }
 
-    init() throws {
+    init(place: CountingPlace = CountingPlace()) throws {
+        self.place = place
         progress = try ProgressStore.inMemory()
         let transfer = LibraryTransfer(
             archive: LibraryArchive(defaults: defaults, progress: progress),
@@ -107,13 +109,26 @@ private final class SyncDevice {
             now: { counters.now }
         )
         runner.onSynced = { counters.reloads += 1 }
+        runner.onConflicts = { counters.conflicts.append($0) }
     }
 
-    /// A position on page `index` of the book the tests read.
-    func page(_ index: Int) -> ReadingProgress {
+    var conflicts: [[ProgressPull.Conflict]] { counters.conflicts }
+
+    /// A position on page `index` of the book the tests read, or of the book `digest`.
+    func page(_ index: Int, of digest: String = "d1") -> ReadingProgress {
         ReadingProgress(
-            identity: PublicationIdentity(contentDigest: "d1"), position: .page(index: index, of: 100), updatedAt: now
+            identity: PublicationIdentity(contentDigest: digest), position: .page(index: index, of: 100), updatedAt: now
         )
+    }
+
+    /// Reads `digest` to page `index`, as the reader's save writes it: the synchronised
+    /// position stays the one the last sync left.
+    func read(_ digest: String, to index: Int) async throws {
+        let identity = PublicationIdentity(contentDigest: digest)
+        var record = try await progress.progress(for: identity) ?? page(index, of: digest)
+        record.position = .page(index: index, of: 100)
+        record.updatedAt = now
+        try await progress.save(record)
     }
 
     var shelves: ShelvesStore { ShelvesStore(defaults: defaults) }
@@ -198,6 +213,19 @@ struct LibrarySyncRunnerTests {
         #expect(cancels == 1)
     }
 
+    /// Task 5.6: a refused request is not swallowed. The runner says so until a request is taken.
+    @Test func aRefusedBackgroundRefreshIsShownAndATakenOneClearsIt() throws {
+        let device = try SyncDevice()
+        device.runner.chooseShare(UUID())
+        #expect(!device.runner.isBackgroundRefused)
+
+        device.runner.scheduleBackgroundRefresh(submit: { _ in throw URLError(.cancelled) }, cancel: {})
+        #expect(device.runner.isBackgroundRefused)
+
+        device.runner.scheduleBackgroundRefresh(submit: { _ in }, cancel: {})
+        #expect(!device.runner.isBackgroundRefused)
+    }
+
     @Test func theBackgroundRefreshRunsTheSameSyncAndIsNotThrottled() async throws {
         let device = try SyncDevice()
         device.runner.chooseShare(UUID())
@@ -227,5 +255,36 @@ struct LibrarySyncRunnerTests {
 
         #expect(device.place.writes == 2)
         #expect(try device.place.positions() == ["d1"])
+    }
+
+    /// `library-sync` task 5.4: a sync that found positions both devices had moved hands them
+    /// to the notice, and a sync that found none hands nothing.
+    @Test func positionsBothDevicesMovedReachTheNoticeAndNoneReachNothing() async throws {
+        let place = CountingPlace()
+        let first = try SyncDevice(place: place)
+        let second = try SyncDevice(place: place)
+        first.runner.chooseShare(UUID())
+        second.runner.chooseShare(UUID())
+        for digest in ["d1", "d2"] { try await first.read(digest, to: 20) }
+        #expect(await first.runner.run(.chosen))
+        #expect(await second.runner.run(.chosen))
+        #expect(first.conflicts.isEmpty)
+        #expect(second.conflicts.isEmpty)
+
+        try await first.read("d1", to: 40)
+        #expect(await first.runner.run(.leftPublication))
+        try await second.read("d1", to: 30)
+        #expect(await second.runner.run(.leftPublication))
+        let one = try #require(second.conflicts.last)
+        #expect(one.map(\.resolved.position) == [.page(index: 40, of: 100)])
+        #expect(one.map(\.discarded) == [.page(index: 30, of: 100)])
+
+        for digest in ["d1", "d2"] { try await first.read(digest, to: 60) }
+        #expect(await first.runner.run(.leftPublication))
+        for digest in ["d1", "d2"] { try await second.read(digest, to: 50) }
+        #expect(await second.runner.run(.leftPublication))
+        #expect(second.conflicts.count == 2)
+        #expect(second.conflicts.last?.count == 2)
+        #expect(first.conflicts.isEmpty)
     }
 }

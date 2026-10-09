@@ -21,7 +21,7 @@ struct SyncSettingsSection: View {
     var highlight: SettingsAnchor?
 
     @State private var isPickingFolder = false
-    @State private var isFolderRefused = false
+    @State private var folderRefusal: LocalizedStringKey?
 
     private var shares: [Source] { sources.filter { $0.kind == .networkShare } }
 
@@ -36,6 +36,11 @@ struct SyncSettingsSection: View {
                 .settingsHighlight(.sync, when: highlight)
                 if let line = Self.statusLine(runner.status, place: Self.placeName(of: choice, in: sources)) {
                     Text(line, bundle: .module)
+                        .textRole(.footnote)
+                        .foregroundStyle(theme.palette.textSecondary)
+                }
+                if runner.isBackgroundRefused {
+                    Text("sync.status.backgroundRefused", bundle: .module)
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textSecondary)
                 }
@@ -71,7 +76,10 @@ struct SyncSettingsSection: View {
             }
         }
         .fileImporter(isPresented: $isPickingFolder, allowedContentTypes: [.folder], onCompletion: picked)
-        .alert(Text("sync.folderRefused", bundle: .module), isPresented: $isFolderRefused) {}
+        .alert(
+            Text(folderRefusal ?? "sync.folderRefused", bundle: .module),
+            isPresented: Binding(get: { folderRefusal != nil }, set: { if !$0 { folderRefusal = nil } })
+        ) {}
     }
 
     private func picked(_ result: Result<URL, any Error>) {
@@ -83,8 +91,14 @@ struct SyncSettingsSection: View {
             try runner.chooseFolder(url)
             Task { await runner.run(.chosen) }
         } catch {
-            isFolderRefused = true
+            folderRefusal = Self.refusal(error)
         }
+    }
+
+    /// The sentence for a folder that cannot be the sync place. Task 5.5: a library folder is
+    /// named as one, with the sentence Android's `SyncFolderGrant` shows.
+    static func refusal(_ error: any Error) -> LocalizedStringKey {
+        error as? SyncFolderRefusal == .isLibrary ? "sync.folderIsLibrary" : "sync.folderRefused"
     }
 
     private func chose(_ choose: () -> Void) {

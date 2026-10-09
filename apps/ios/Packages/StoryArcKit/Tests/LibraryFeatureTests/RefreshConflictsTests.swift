@@ -62,4 +62,40 @@ struct RefreshConflictsTests {
 
         #expect(RefreshConflicts.shared.conflicts.isEmpty)
     }
+
+    private func synced(_ path: String, kept: Int, discarded: Int) -> ProgressPull.Conflict {
+        ProgressPull.Conflict(
+            resolved: ReadingProgress(
+                identity: PublicationIdentity(normalizedPath: path),
+                position: .page(index: kept, of: 20),
+                updatedAt: Date(timeIntervalSince1970: 0)
+            ),
+            discarded: .page(index: discarded, of: 20)
+        )
+    }
+
+    @Test("Library sync, task 5.4: one conflict reaches the notice named by its file")
+    func oneSyncConflictIsNamed() throws {
+        SyncConflicts.report([synced("/Books/Marsh Auburn.cbz", kept: 11, discarded: 4)])
+
+        let shown = try #require(RefreshConflicts.shared.conflicts.first)
+        #expect(RefreshConflicts.shared.conflicts.count == 1)
+        #expect(shown.title == "Marsh Auburn")
+        #expect(shown.resolved.position == .page(index: 11, of: 20))
+        #expect(shown.discarded == .page(index: 4, of: 20))
+        RefreshConflicts.shared.clear()
+    }
+
+    @Test("Library sync, task 5.4: several conflicts reach the notice, and none add nothing")
+    func severalSyncConflictsAreCounted() {
+        SyncConflicts.report([])
+        #expect(RefreshConflicts.shared.conflicts.isEmpty)
+
+        SyncConflicts.report([
+            synced("content://tree/primary%3ABooks%2FTide.cbz", kept: 7, discarded: 2),
+            synced("/Books/Night Market.epub", kept: 5, discarded: 1),
+        ])
+        #expect(RefreshConflicts.shared.conflicts.map(\.title) == ["Tide", "Night Market"])
+        RefreshConflicts.shared.clear()
+    }
 }

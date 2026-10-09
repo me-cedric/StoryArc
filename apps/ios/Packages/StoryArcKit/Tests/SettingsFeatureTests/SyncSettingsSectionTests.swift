@@ -57,6 +57,14 @@ struct SyncSettingsSectionTests {
         #expect(Self.line(.refused(.notALibraryDocument)) == "sync.status.notLibrary")
     }
 
+    @Test("A library folder is refused with Android's sentence, and any other failure with its own")
+    func folderRefusalIsNamed() {
+        #expect(Self.key(SyncSettingsSection.refusal(SyncFolderRefusal.isLibrary)) == "sync.folderIsLibrary")
+        #expect(Self.key(SyncSettingsSection.refusal(CocoaError(.fileReadNoPermission))) == "sync.folderRefused")
+        let english = "This folder is one of your libraries. Choose another folder for sync."
+        #expect(Self.value(of: "sync.folderIsLibrary", in: "en") == english)
+    }
+
     @Test("A chosen share is named by its source, and a folder by its own name")
     func placeIsNamed() {
         let share = Source(displayName: "Kitchen NAS", kind: .networkShare, state: .connected)

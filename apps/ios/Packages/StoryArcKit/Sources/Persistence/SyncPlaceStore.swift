@@ -9,6 +9,14 @@ public enum SyncPlaceChoice: Sendable, Equatable {
     case folder(name: String)
 }
 
+/// Why a picked folder cannot be the sync place.
+public enum SyncFolderRefusal: Error, Equatable {
+    /// The folder is a library: the app's own Documents folder or one inside it, a folder the
+    /// library reads, or the File Provider storage root that holds the app's folder. The sync
+    /// document would land among the books. Android refuses a library folder the same way.
+    case isLibrary
+}
+
 /// The sync place, on this device only.
 ///
 /// `library-sync` task 2.1. Not in `AppSettings`, because the settings travel in the sync
@@ -25,6 +33,7 @@ public struct SyncPlaceStore: @unchecked Sendable {
     private let defaults: UserDefaults
     private let key = "app.storyarc.syncPlace"
     private let resolved = Resolved()
+    private let documents: URL
 
     /// The folder, resolved once per launch. Each resolution starts the security scope, and the
     /// scope stays open while the app runs, as the library's folders do.
@@ -33,8 +42,10 @@ public struct SyncPlaceStore: @unchecked Sendable {
         var folder: URL?
     }
 
-    public init(defaults: UserDefaults = .standard) {
+    /// - Parameter documents: the app's own Documents folder, which is the library folder.
+    public init(defaults: UserDefaults = .standard, documents: URL = .documentsDirectory) {
         self.defaults = defaults
+        self.documents = documents
     }
 
     private var bookmarks: FolderBookmarks { FolderBookmarks(defaults: defaults, key: "app.storyarc.syncFolder") }
@@ -57,7 +68,10 @@ public struct SyncPlaceStore: @unchecked Sendable {
 
     /// Chooses a folder the system picker returned. The caller holds its security scope open
     /// while this runs, because the bookmark is made from it.
+    ///
+    /// - Throws: ``SyncFolderRefusal/isLibrary`` for a library folder, with nothing changed.
     public func chooseFolder(_ url: URL) throws {
+        guard !isLibrary(url) else { throw SyncFolderRefusal.isLibrary }
         forgetFolder()
         try bookmarks.add(url)
         defaults.set(Self.folder + url.lastPathComponent, forKey: key)
@@ -76,6 +90,23 @@ public struct SyncPlaceStore: @unchecked Sendable {
             resolved.folder = bookmarks.restore().folders.first
             return resolved.folder
         }
+    }
+
+    /// Whether `url` is a library folder. `library-sync` task 5.5.
+    func isLibrary(_ url: URL) -> Bool {
+        let path = Self.path(of: url)
+        let library = Self.path(of: documents)
+        return url.lastPathComponent == Self.storageRoot
+            || path == library || path.hasPrefix(library + "/")
+            || FolderBookmarks(defaults: defaults).key(for: url) != nil
+    }
+
+    /// The name of the folder the system picker opens as On My iPhone.
+    static let storageRoot = "File Provider Storage"
+
+    private static func path(of url: URL) -> String {
+        let path = url.resolvingSymlinksInPath().standardizedFileURL.path
+        return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
     }
 
     private func forgetFolder() {

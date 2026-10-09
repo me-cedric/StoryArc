@@ -30,7 +30,7 @@ extension StoryArcApp {
         let state = LibrarySyncState()
         let places = SyncPlaceStore()
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
-        return LibrarySyncRunner(
+        let runner = LibrarySyncRunner(
             places: places,
             placeFor: { choice in
                 switch choice {
@@ -45,6 +45,9 @@ extension StoryArcApp {
             },
             sync: { try await transfer.sync(with: $0, state: state, appVersion: version) }
         )
+        // Task 5.4: the positions both devices moved reach the library's notice (D3).
+        runner.onConflicts = { SyncConflicts.report($0) }
+        return runner
     }
 
     /// After a sync wrote the stores, the settings, sources, shelves and positions the app holds
@@ -88,8 +91,8 @@ extension StoryArcApp {
                 let request = BGAppRefreshTaskRequest(identifier: syncRefreshTask)
                 request.earliestBeginDate = moment
                 // A refused request leaves the foreground and the closing of a book, which is
-                // what the setting promises; the background is never promised.
-                try? BGTaskScheduler.shared.submit(request)
+                // what the setting promises. The runner logs it and Settings says so (task 5.6).
+                try BGTaskScheduler.shared.submit(request)
             },
             cancel: { BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: syncRefreshTask) }
         )
