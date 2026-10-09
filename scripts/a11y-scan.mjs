@@ -23,7 +23,8 @@
  *     exactly 48dp, and a guessed 2.75 turns that into a defect that is not there.
  *   - A node clipped by the screen or by a scrolling ancestor measures short, and can
  *     lose the label that scrolled away with it. Only a node lying fully inside its clip
- *     rectangle is judged.
+ *     rectangle is judged for a name. Size is judged on the touch target, so a node whose
+ *     short side ends on the clip edge is cut, not small (see `cutOnShortSide`).
  *
  * Usage:
  *   node scripts/a11y-scan.mjs              scan whatever is on screen now
@@ -106,6 +107,22 @@ const subtreeName = (node) =>
   nameOf(node) || node.children.map(subtreeName).find(Boolean) || ''
 
 /**
+ * True when the short side of a node ends on its clip edge, which means the clip cut it.
+ *
+ * uiautomator reports the visible part of a node, so a 48dp chip scrolled half under an edge
+ * reads 37.3dp. Android's own Accessibility Scanner judges the touch target, not the visible
+ * part. The unclipped bounds are not in the dump, so a node cut by the edge of its scroller
+ * or of the screen is not judged. Ceiling: a real small target that sits flush on an edge is
+ * missed too. Only the short axis counts, so a full-width row is never excused.
+ */
+const cutOnShortSide = (box, clip, w, h) => {
+  const edge = (a, b) => Math.abs(a - b) <= 1
+  return w < h
+    ? edge(box[0], clip[0]) || edge(box[2], clip[2])
+    : edge(box[1], clip[1]) || edge(box[3], clip[3])
+}
+
+/**
  * Every accessibility problem on one screen.
  *
  * Exported so `smoke-android.mjs` can run it at each of the sixteen routes it already
@@ -143,7 +160,7 @@ export const scan = (xml, dpi) => {
       const w = (box[2] - box[0]) / scale
       const h = (box[3] - box[1]) / scale
       // A zero dimension is a node that is not laid out, not a small target.
-      if (Math.min(w, h) > 0 && Math.min(w, h) < MIN_DP - 0.5) {
+      if (Math.min(w, h) > 0 && Math.min(w, h) < MIN_DP - 0.5 && !cutOnShortSide(box, clip, w, h)) {
         problems.push(`SMALL     ${cls} ${w.toFixed(1)}x${h.toFixed(1)}dp "${merged.slice(0, 30)}"`)
       }
     }
@@ -161,8 +178,9 @@ export const scan = (xml, dpi) => {
  * Checks that each check still fires and each exclusion still holds.
  *
  * A scanner that silently stops matching reports a clean screen, which is worse than no
- * scanner at all. The fixture holds one node per rule, including the two that must NOT be
- * reported: a node named by its child, and a node clipped by a scrolling ancestor.
+ * scanner at all. The fixture holds one node per rule, including the three that must NOT be
+ * reported: a node named by its child, a node clipped by a scrolling ancestor, and a 48dp chip
+ * whose visible part is short because its scroller cuts it.
  */
 const selfTest = () => {
   const fixture = new URL('./fixtures/a11y-probe.xml', import.meta.url)
@@ -172,11 +190,15 @@ const selfTest = () => {
     'UNNAMED   Button at [100,900][205,1026]',
     'SMALL     Button 40.0x48.0dp ""',
     'RAW-VALUE SeekBar "0.45"',
+    'SMALL     Button 48.0x37.3dp "Short chip"',
   ]
   const missing = expected.filter((line) => !problems.includes(line))
   // The scroll-clipped node measures 38dp and is unnamed, and must be reported as
   // neither: it is cut off, not small, and its label scrolled away with it.
-  const leaked = problems.filter((line) => line.includes('[0,1380]'))
+  // A 48dp chip cut to 37.3dp by the bottom edge of its scroller is cut, not small.
+  const leaked = problems.filter(
+    (line) => line.includes('[0,1380]') || line.includes('Clipped chip')
+  )
 
   for (const line of missing) console.error(`  MISSING  ${line}`)
   for (const line of leaked) console.error(`  FALSE POSITIVE  ${line}`)

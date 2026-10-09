@@ -8,5 +8,7 @@
   <node class="android.widget.SeekBar" bounds="[100,1300][1000,1320]" clickable="true" content-desc="0.45" text="" />
   <node class="android.view.View" bounds="[0,1400][1080,1500]" scrollable="true" clickable="false" content-desc="" text="">
     <node class="android.view.View" bounds="[0,1380][1080,1460]" clickable="true" content-desc="" text="" />
+    <node class="android.widget.Button" bounds="[100,1402][226,1500]" clickable="true" content-desc="Clipped chip" text="" />
   </node>
+  <node class="android.widget.Button" bounds="[100,1600][226,1698]" clickable="true" content-desc="Short chip" text="" />
 </node></hierarchy>
