@@ -36,6 +36,8 @@ enum class Look(val suffix: String, val appearance: AppearanceMode) {
  *
  * [entry] is the catalogue number and name, such as `05-publication-with-cover`.
  * [knownFaults] lists a fault that stands for now, with the reason. See [KnownFault].
+ * [act] gets the screen to the state the entry shows: a tap that opens a group, a scroll to a
+ * section. It runs once the screen has drawn, and the picture is taken after it.
  *
  * The theme is fixed: no dynamic colour and no Natural, so the picture does not depend on a
  * wallpaper that Robolectric does not have. A reference is recorded with
@@ -46,6 +48,7 @@ fun ComposeContentTestRule.catalogue(
     entry: String,
     look: Look,
     knownFaults: List<KnownFault> = emptyList(),
+    act: ComposeContentTestRule.() -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     setContent {
@@ -54,8 +57,10 @@ fun ComposeContentTestRule.catalogue(
         }
     }
     waitForIdle()
+    act()
+    waitForIdle()
     onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$entry-${look.suffix}.png")
-    assertAccessible(knownFaults)
+    assertAccessible(knownFaults.filter { it.look == null || it.look == look })
 }
 
 /** Runs [Accessibility] over what is on screen now. */

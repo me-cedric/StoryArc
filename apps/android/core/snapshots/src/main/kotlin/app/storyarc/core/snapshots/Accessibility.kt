@@ -16,9 +16,9 @@ import androidx.compose.ui.unit.sp
 /**
  * One accepted fault: the [check] that reports it, the [label] of the node it reports it on, and
  * [why] it stands. A fault listed here is not reported; one that no longer occurs is an error, so
- * the list drains.
+ * the list drains. A fault with a [look] stands in that appearance only.
  */
-class KnownFault(val check: Check, val label: String, val why: String)
+class KnownFault(val check: Check, val label: String, val why: String, val look: Look? = null)
 
 /**
  * Text drawn in `colorScheme.primary`, which is the brand accent in both appearances. It reaches
@@ -28,6 +28,14 @@ class KnownFault(val check: Check, val label: String, val why: String)
  */
 fun brandAccentText(label: String) =
     KnownFault(Check.CONTRAST, label, "primary text is the brand accent, under 4.5:1 on the canvas in both appearances")
+
+/**
+ * Text drawn in `colorScheme.error`, which is `Status.danger` in both appearances. It reaches
+ * 3.9:1 on a white card, under the 4.5:1 of body text, and passes on the dark canvas. A token
+ * decision for the same reason as [brandAccentText].
+ */
+fun dangerText(label: String) =
+    KnownFault(Check.CONTRAST, label, "error text is under 4.5:1 on a white card", Look.Light)
 
 /** The three rules a catalogue entry is held to. */
 enum class Check { TOUCH_TARGET, LABEL, CONTRAST }
