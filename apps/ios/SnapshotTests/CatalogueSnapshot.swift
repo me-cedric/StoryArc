@@ -42,6 +42,9 @@ private func draw(
     window.layoutIfNeeded()
     let format = UIGraphicsImageRendererFormat()
     format.scale = 2
+    // Standard range keeps the file 8-bit sRGB. The default is the display's extended range, a
+    // 16-bit PNG that is four times the size and says no more about a screen drawn in sRGB.
+    format.preferredRange = .standard
     let image = UIGraphicsImageRenderer(size: phoneSize, format: format).image { _ in
         window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
     }
