@@ -48,6 +48,18 @@ internal object CatalogueSettings {
         ),
     )
 
+    /**
+     * Pins the version the About row states. [BuildInfo] is process-wide state that another test
+     * sets, and a real release changes it, so a picture that drew it would change with both.
+     */
+    fun pinBuild(context: Context) {
+        val info = org.robolectric.Shadows.shadowOf(context.packageManager)
+            .getInternalMutablePackageInfo(context.packageName)
+        info.versionName = "1.0.0"
+        info.longVersionCode = 1
+        BuildInfo.read(context)
+    }
+
     /** A sync runner whose place is the folder `Sync`, which a test never reaches. */
     fun syncRunner(context: Context): LibrarySyncRunner {
         val runner = LibrarySyncRunner(
