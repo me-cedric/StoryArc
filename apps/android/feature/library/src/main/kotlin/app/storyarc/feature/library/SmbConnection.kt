@@ -8,6 +8,7 @@ import app.storyarc.core.model.Publication
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.smb.SmbAddress
 import app.storyarc.core.smb.SmbClient
@@ -265,7 +266,7 @@ data class SmbPage(val id: String, val title: String, val address: SmbAddress) {
     companion object {
         /** Null when the source is not a share, has no address, or has lost its password. */
         fun of(source: Source, credentials: CredentialStore?): SmbPage? {
-            if (source.kind != SourceKind.NETWORK_SHARE) return null
+            if (source.kind != SourceKind.NETWORK_SHARE || source.reachesOnlyAnotherDevice) return null
             val locator = source.locator ?: return null
             val password = source.credentialReference?.let { credentials?.secret(it) }
             if (source.credentialReference != null && password == null) return null

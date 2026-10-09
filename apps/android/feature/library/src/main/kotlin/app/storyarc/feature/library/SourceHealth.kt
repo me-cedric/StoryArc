@@ -8,6 +8,7 @@ import app.storyarc.core.kavita.KavitaError
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.smb.SmbClient
 import app.storyarc.core.smb.SmbError
@@ -42,6 +43,8 @@ object SourceHealth {
         unauthorizedReason: String,
         encryptionReason: String,
     ): SourceConnectionState {
+        // Task 5.8: an address from another device that names that device is never tried here.
+        if (source.reachesOnlyAnotherDevice) return SourceConnectionState.Unreachable(now)
         SmbPage.of(source, credentials)?.let { page ->
             return try {
                 SmbClient(page.address).use { it.connect() }

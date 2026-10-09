@@ -10,6 +10,7 @@ import app.storyarc.core.kavita.KavitaIdentity
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.persistence.CredentialStore
 import java.io.IOException
 import java.util.UUID
@@ -222,7 +223,7 @@ data class KavitaPage(val id: String, val title: String, val address: KavitaAddr
          * the last of which is what `unauthorized` means and needs the reader to fix.
          */
         fun of(source: Source, credentials: CredentialStore?): KavitaPage? {
-            if (source.kind != SourceKind.KAVITA_SERVER) return null
+            if (source.kind != SourceKind.KAVITA_SERVER || source.reachesOnlyAnotherDevice) return null
             val base = source.locator ?: return null
             val reference = source.credentialReference ?: return null
             val key = credentials?.secret(reference) ?: return null

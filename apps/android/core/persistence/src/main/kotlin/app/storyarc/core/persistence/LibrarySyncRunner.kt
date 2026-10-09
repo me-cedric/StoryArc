@@ -2,6 +2,7 @@ package app.storyarc.core.persistence
 
 import app.storyarc.core.model.LibraryDocumentFailure
 import app.storyarc.core.model.LibrarySyncOutcome
+import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.model.SyncPlace
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.cancellation.CancellationException
@@ -40,12 +41,15 @@ sealed interface SyncStatus {
  *
  * @param placeFor the place for a choice, or null when it cannot be built (a removed share).
  * @param sync one read, merge and write with that place: `LibraryTransfer.sync`.
+ * @param onConflicts runs after each sync that found positions both devices had moved, with
+ *   those positions, so the app shows D3's notice (task 5.4). A sync with none does not call it.
  */
 class LibrarySyncRunner(
     private val places: SyncPlaceStore,
     private val placeFor: suspend (SyncPlaceChoice) -> SyncPlace?,
     private val sync: suspend (SyncPlace) -> LibrarySyncOutcome,
     private val now: () -> Long = System::currentTimeMillis,
+    private val onConflicts: (List<ProgressPull.Conflict>) -> Unit = {},
 ) {
     enum class Trigger {
         /** The reader chose a place. */
@@ -142,6 +146,8 @@ class LibrarySyncRunner(
             // unreachable; the next trigger tries again.
             LibrarySyncOutcome.Busy -> before.takeUnless { it == SyncStatus.Syncing } ?: SyncStatus.Idle
         }
+        val conflicts = (outcome as? LibrarySyncOutcome.Synced)?.merged?.conflicts.orEmpty()
+        if (conflicts.isNotEmpty()) onConflicts(conflicts)
     }
 
     /** The outcome, or null when the place could not be built or did not answer. */

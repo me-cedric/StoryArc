@@ -9,6 +9,7 @@ import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.persistence.CredentialStore
 import app.storyarc.core.persistence.KavitaOrigin
 import app.storyarc.core.persistence.KavitaProgressStore
@@ -91,7 +92,7 @@ internal fun pageToReport(position: ReadingPosition, origin: KavitaOrigin): Int?
  * [pageToReport] gives.
  */
 internal fun kavitaAddressOf(source: Source, credentials: CredentialStore?): KavitaAddress? {
-    if (source.kind != SourceKind.KAVITA_SERVER) return null
+    if (source.kind != SourceKind.KAVITA_SERVER || source.reachesOnlyAnotherDevice) return null
     val base = source.locator ?: return null
     val reference = source.credentialReference ?: return null
     val key = credentials?.secret(reference) ?: return null

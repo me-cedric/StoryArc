@@ -334,4 +334,6 @@
     <string name="sync_folder_refused">StoryArc ne peut pas garder l’accès à ce dossier. Choisissez un autre dossier.</string>
     <string name="sync_when">StoryArc synchronise quand vous ouvrez l’app, quand vous fermez un livre, et en arrière-plan au plus toutes les 15 minutes quand un réseau est disponible.</string>
     <string name="sync_folder_is_library">Ce dossier est l’une de vos bibliothèques. Choisissez un autre dossier pour la synchronisation.</string>
+    <string name="sources_other_device">Ajoutée sur un autre appareil</string>
+    <string name="sources_other_device_loopback">Ajoutée sur un autre appareil. Son adresse désigne cet appareil, donc cet appareil-ci ne l’essaie pas.</string>
 </resources>

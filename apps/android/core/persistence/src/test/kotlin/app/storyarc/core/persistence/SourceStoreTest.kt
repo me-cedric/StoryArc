@@ -65,6 +65,19 @@ class SourceStoreTest {
     }
 
     @Test
+    fun `library sync task 5_8 - a source from another device stays marked after a relaunch`() {
+        val store = store()
+        val arrived = Source(displayName = "Simulator share", kind = SourceKind.NETWORK_SHARE, fromAnotherDevice = true)
+        val own = Source(displayName = "Kitchen NAS", kind = SourceKind.NETWORK_SHARE)
+        store.save(SourceRegistry().adding(arrived).adding(own))
+
+        val read = store.registry()
+
+        assertTrue(read[arrived.id]!!.fromAnotherDevice)
+        assertEquals(false, read[own.id]!!.fromAnotherDevice)
+    }
+
+    @Test
     fun `a tombstone survives, or the thirty-day promise would reset on every launch`() {
         val store = store()
         val only = Source(displayName = "Kavita", kind = SourceKind.KAVITA_SERVER)

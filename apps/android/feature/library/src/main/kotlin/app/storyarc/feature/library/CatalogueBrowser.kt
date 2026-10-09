@@ -14,6 +14,7 @@ import app.storyarc.core.catalogue.OpdsRefusal
 import app.storyarc.core.catalogue.OpenSearchDescription
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceKind
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.persistence.CredentialStore
 import java.io.IOException
 import java.util.UUID
@@ -294,7 +295,7 @@ data class CataloguePage(
          * folder from being opened as one.
          */
         fun of(source: Source, credentials: CredentialStore?): CataloguePage? {
-            if (source.kind != SourceKind.OPDS_CATALOG) return null
+            if (source.kind != SourceKind.OPDS_CATALOG || source.reachesOnlyAnotherDevice) return null
             val url = source.locator ?: return null
             val credential = source.credentialReference
                 ?.let { credentials?.secret(it) }

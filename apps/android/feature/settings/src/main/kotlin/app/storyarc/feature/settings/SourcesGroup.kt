@@ -53,6 +53,7 @@ import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceKind
 import app.storyarc.core.model.SourceRemovalWording
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 
 /**
  * Every configured source, and what can be done to one.
@@ -282,6 +283,13 @@ internal fun SourcesGroup(
                             color = palette.textTertiary,
                         )
                     }
+                    otherDeviceMark(source)?.let { mark ->
+                        Text(
+                            text = stringResource(mark),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = palette.textTertiary,
+                        )
+                    }
                 }
 
                 // Only where there is an order to change. One source cannot be reordered,
@@ -427,4 +435,14 @@ private fun status(state: SourceConnectionState): Int = when (state) {
     is SourceConnectionState.Connecting -> R.string.sources_state_connecting
     is SourceConnectionState.Unreachable -> R.string.sources_state_unreachable
     is SourceConnectionState.Unauthorized -> R.string.sources_state_unauthorized
+}
+
+/**
+ * `library-sync` task 5.8: the mark of a source a sync brought from another device, or null. A
+ * source whose address names that device also says that this device does not try it.
+ */
+internal fun otherDeviceMark(source: Source): Int? = when {
+    source.reachesOnlyAnotherDevice -> R.string.sources_other_device_loopback
+    source.fromAnotherDevice -> R.string.sources_other_device
+    else -> null
 }

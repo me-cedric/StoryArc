@@ -102,6 +102,11 @@ data class Source(
      * the bookmark's key is used there instead.
      */
     val locator: String? = null,
+    /**
+     * Whether a library sync brought this source from another device (`library-sync` task 5.8).
+     * Kept on this device only, and never written to the sync document. See [OtherDevice].
+     */
+    val fromAnotherDevice: Boolean = false,
 )
 
 /** Exponential backoff for an unreachable source: start at 5 s, cap at 5 min. */

@@ -29,6 +29,7 @@ import app.storyarc.core.persistence.SyncPlaceStore
 import app.storyarc.core.persistence.SyncStatus
 import app.storyarc.core.smb.SmbSyncPlace
 import app.storyarc.feature.library.SmbPage
+import app.storyarc.feature.library.SyncConflicts
 import app.storyarc.feature.library.reloadAfterImport
 import app.storyarc.feature.settings.BuildInfo
 import kotlinx.coroutines.launch
@@ -84,6 +85,8 @@ internal object LibrarySyncHub {
                 }
             },
             sync = { place -> transfer.sync(place, state, BuildInfo.version) },
+            // Task 5.4: the positions both devices moved reach the library's notice (D3).
+            onConflicts = SyncConflicts::report,
         )
     }
 }

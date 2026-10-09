@@ -33,7 +33,7 @@ object LibrarySyncMerge {
         val (progress, conflicts) = mergingProgress(document, local)
         return LibrarySyncMerged(
             snapshot = local.copy(
-                sources = LibraryImport.mergingSources(document, local.sources),
+                sources = OtherDevice.marking(LibraryImport.mergingSources(document, local.sources), local.sources),
                 certificatePins = LibraryImport.mergingPins(document, local.certificatePins),
                 shelves = shelves.shelves,
                 removedShelves = shelves.removed,

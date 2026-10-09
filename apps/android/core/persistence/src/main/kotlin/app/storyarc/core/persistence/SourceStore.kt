@@ -77,6 +77,7 @@ internal data class StoredRegistry(
                 lastSuccessfulSyncEpochMillis = entry.lastSuccessfulSyncEpochMillis,
                 credentialReference = entry.credentialReference,
                 locator = entry.locator,
+                fromAnotherDevice = entry.fromAnotherDevice,
             )
         },
         // A tombstone written before 10.12/10.14 has no `kind`. Defaulted rather than
@@ -105,6 +106,7 @@ internal data class StoredRegistry(
                     lastSuccessfulSyncEpochMillis = it.lastSuccessfulSyncEpochMillis,
                     credentialReference = it.credentialReference,
                     locator = it.locator,
+                    fromAnotherDevice = it.fromAnotherDevice,
                 )
             },
             tombstones = registry.tombstones.map {
@@ -128,6 +130,8 @@ internal data class StoredSource(
     val lastSuccessfulSyncEpochMillis: Long? = null,
     val credentialReference: String? = null,
     val locator: String? = null,
+    /** `library-sync` task 5.8: brought by a sync from another device. */
+    val fromAnotherDevice: Boolean = false,
 )
 
 @Serializable

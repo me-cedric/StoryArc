@@ -2,6 +2,7 @@ package app.storyarc.core.persistence
 
 import app.storyarc.core.model.LibraryDocumentCoder
 import app.storyarc.core.model.LibrarySync
+import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.model.PublicationCollection
 import app.storyarc.core.model.PublicationIdentity
 import app.storyarc.core.model.ReadingPosition
@@ -68,9 +69,9 @@ class LibrarySyncRunnerTest {
             .getOrThrow().library.progress
     }
 
-    private class Device {
+    private class Device(val place: Place = Place()) {
         var now = 1_767_225_600_000L
-        val place = Place()
+        val conflicts = mutableListOf<List<ProgressPull.Conflict>>()
         val places = SyncPlaceStore(FakePreferences())
         val shelves = ShelvesStore(FakePreferences()) { now }
         val progress = ProgressStore.inMemory(RuntimeEnvironment.getApplication())
@@ -96,7 +97,16 @@ class LibrarySyncRunnerTest {
             },
             sync = { transfer.sync(it, state, "1.0", now) },
             now = { now },
+            onConflicts = { conflicts += it },
         )
+
+        /** Reads [digest] to page [index], as the reader's save writes it: the watermark stays. */
+        suspend fun read(digest: String, index: Int) {
+            val identity = PublicationIdentity(contentDigest = digest)
+            val held = progress.progress(identity)
+                ?: ReadingProgress(identity, ReadingPosition.Page(index, 100), updatedAtEpochMillis = now)
+            progress.save(held.copy(position = ReadingPosition.Page(index, 100), updatedAtEpochMillis = now))
+        }
     }
 
     private val folder = SyncPlaceChoice.Folder("content://tree/Sync")
@@ -186,5 +196,35 @@ class LibrarySyncRunnerTest {
 
         assertEquals(2, device.place.writes)
         assertEquals(listOf("d1"), device.place.positions().map { it.identity.contentDigest })
+    }
+
+    /** Task 5.4: positions both devices moved reach the notice, and a sync with none hands nothing. */
+    @Test
+    fun `positions both devices moved reach the notice, and none reach nothing`() = runTest {
+        val place = Place()
+        val first = Device(place)
+        val second = Device(place)
+        first.runner.choose(folder)
+        second.runner.choose(folder)
+        for (digest in listOf("d1", "d2")) first.read(digest, 20)
+        assertTrue(first.runner.run(LibrarySyncRunner.Trigger.CHOSEN))
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.CHOSEN))
+        assertEquals(emptyList<Any>(), first.conflicts + second.conflicts)
+
+        first.read("d1", 40)
+        assertTrue(first.runner.run(LibrarySyncRunner.Trigger.LEFT_PUBLICATION))
+        second.read("d1", 30)
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.LEFT_PUBLICATION))
+        val one = second.conflicts.single()
+        assertEquals(listOf(ReadingPosition.Page(40, 100)), one.map { it.resolved.position })
+        assertEquals(listOf(ReadingPosition.Page(30, 100)), one.map { it.discarded })
+
+        for (digest in listOf("d1", "d2")) first.read(digest, 60)
+        assertTrue(first.runner.run(LibrarySyncRunner.Trigger.LEFT_PUBLICATION))
+        for (digest in listOf("d1", "d2")) second.read(digest, 50)
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.LEFT_PUBLICATION))
+        assertEquals(2, second.conflicts.size)
+        assertEquals(2, second.conflicts.last().size)
+        assertTrue(first.conflicts.isEmpty())
     }
 }
