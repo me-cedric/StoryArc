@@ -5,6 +5,16 @@
         "--mcp"
       ],
       "command": "/Applications/Konvoy.app/Contents/MacOS/konvoy"
+    },
+    "mobile-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mobilenext/mobile-mcp@1.0.9"
+      ],
+      "env": {
+        "MOBILEMCP_DISABLE_TELEMETRY": "1"
+      }
     }
   }
 }
