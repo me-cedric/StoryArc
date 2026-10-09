@@ -27,6 +27,8 @@ import org.w3c.dom.Element
 @Config(sdk = [34])
 class SyncRowsTest {
 
+    private val now = 1_760_000_000_000L
+
     private val resolver = RuntimeEnvironment.getApplication().contentResolver
     private val readWrite = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     private val tree = Uri.parse("content://com.android.externalstorage.documents/tree/primary%3ASync")
@@ -36,7 +38,8 @@ class SyncRowsTest {
         assertEquals(R.string.sync_status_unreachable to true, syncStatusLine(SyncStatus.Unreachable))
         assertNull(syncStatusLine(SyncStatus.Off))
         assertEquals(R.string.sync_status_idle to false, syncStatusLine(SyncStatus.Idle))
-        assertEquals(R.string.sync_status_synced to false, syncStatusLine(SyncStatus.Synced(1L)))
+        assertEquals(R.string.sync_status_synced_on to false, syncStatusLine(SyncStatus.Synced(1L)))
+        assertEquals(R.string.sync_status_synced_now to false, syncStatusLine(SyncStatus.Synced(now - 1_000), now))
     }
 
     @Test

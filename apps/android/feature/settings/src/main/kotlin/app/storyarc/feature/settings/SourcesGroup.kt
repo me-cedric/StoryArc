@@ -1,44 +1,34 @@
 package app.storyarc.feature.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -93,7 +83,7 @@ internal fun SourcesGroup(
     /**
      * Opens a source's own screen.
      *
-     * The row itself, not a chevron beside four other buttons: `sources` calls the detail a
+     * The row itself, not a chevron beside an overflow button: `sources` calls the detail a
      * screen a reader "opens", and a row that is already announced as one element is the
      * thing they will press.
      */
@@ -105,13 +95,10 @@ internal fun SourcesGroup(
     onAddShare: () -> Unit = {},
     modifier: Modifier = Modifier,
     /**
-     * Moves a source one place, up or down.
+     * Moves a source one place: `true` later, `false` earlier.
      *
-     * `sources` describes reordering as a drag. Compose has no drag-to-reorder, and a
-     * hand-rolled one is a long-press gesture, an auto-scroll and a set of semantics
-     * actions that a screen reader would still need spelled out — so this mirrors the
-     * download queue in the same app, which chose two buttons for the same reason. iOS gets
-     * the drag free from `List.onMove`; `STATUS.md` records the difference.
+     * Called by the row's overflow menu, by its TalkBack actions, and once for each row height
+     * a drag on its handle travels (`SourceRow`). `close-the-audited-gaps` 27.3, decision O29.
      */
     onReorder: (Source, Boolean) -> Unit = { _, _ -> },
     /**
@@ -188,7 +175,7 @@ internal fun SourcesGroup(
         )
     }
 
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(SOURCE_ROW_GAP)) {
         // Task 17.9: this is now the way in, moved here from the library toolbar per task
         // 1.2's own direction for where it belongs. The empty library keeps its own "Add a
         // library" call to action besides this one -- a reader who has never opened Settings
@@ -217,145 +204,24 @@ internal fun SourcesGroup(
         }
 
         sources.forEachIndexed { index, source ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clickable(
-                        onClickLabel = stringResource(
-                            R.string.sources_detail_open,
-                            source.displayName,
-                        ),
-                    ) { onOpen(source) }
-                    // One control per row, announced once rather than as three unrelated
-                    // pieces of text on the way past.
-                    .semantics(mergeDescendants = true) {},
-                horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(icon(source.kind), contentDescription = null, tint = palette.accent)
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(StoryArcSpace.hair),
-                ) {
-                    Text(
-                        text = source.displayName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textPrimary,
-                    )
-                    // The state and the count, which is what `sources` asks a source's own
-                    // screen to show. Downloads are absent because nothing downloads yet,
-                    // and the count is what exists in their place.
-                    //
-                    // One line, joined by a separator, rather than the state in a column of
-                    // its own. Two data fields and a separator is what `AboutGroup` does
-                    // with a licence and its reason, for the same reason: a fixed-width
-                    // column beside four icon buttons left the name a single character
-                    // wide, which an emulator showed and a preview did not.
-                    Text(
-                        text = stringResource(status(source.state)) + " · " +
-                            pluralStringResource(
-                                // *At least*, for a source read in a bounded first helping.
-                                // The detail screen says the same, and a list that stated a
-                                // slice as a total would contradict the screen it opens.
-                                if (isPartial(source)) {
-                                    R.plurals.sources_detail_partial
-                                } else {
-                                    R.plurals.sources_detail
-                                },
-                                itemCount(source),
-                                itemCount(source),
-                            ),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = palette.textTertiary,
-                    )
-
-                    // Said rather than left to be discovered. A catalogue can offer to pin a
-                    // certificate the system refuses; Kavita cannot, and a reader whose
-                    // self-signed NAS certificate was accepted for the OPDS endpoint on the
-                    // same box would otherwise read the Kavita refusal as an unreachable
-                    // server. Rank 15 of the 30 August security review.
-                    if (source.kind == SourceKind.KAVITA_SERVER) {
-                        Text(
-                            text = stringResource(R.string.sources_kavita_system_trust),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = palette.textTertiary,
-                        )
-                    }
-                    otherDeviceMark(source)?.let { mark ->
-                        Text(
-                            text = stringResource(mark),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = palette.textTertiary,
-                        )
-                    }
-                }
-
-                // Only where there is an order to change. One source cannot be reordered,
-                // and the ends of the list cannot go further — a disabled arrow on every
-                // first and last row is two permanently dead controls.
-                if (sources.size > 1) {
-                    // The tint follows `enabled`. An explicit tint overrides the one
-                    // `IconButton` would have dimmed, so the first row's up arrow and the
-                    // last row's down arrow looked live while doing nothing.
-                    val canMoveEarlier = index > 0
-                    val canMoveLater = index < sources.lastIndex
-                    IconButton(onClick = { onReorder(source, false) }, enabled = canMoveEarlier) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowUp,
-                            contentDescription = stringResource(
-                                R.string.sources_move_earlier,
-                                source.displayName,
-                            ),
-                            tint = if (canMoveEarlier) palette.textSecondary else palette.textTertiary,
-                        )
-                    }
-                    IconButton(onClick = { onReorder(source, true) }, enabled = canMoveLater) {
-                        Icon(
-                            imageVector = Icons.Filled.KeyboardArrowDown,
-                            contentDescription = stringResource(
-                                R.string.sources_move_later,
-                                source.displayName,
-                            ),
-                            tint = if (canMoveLater) palette.textSecondary else palette.textTertiary,
-                        )
-                    }
-                }
-
-                IconButton(onClick = {
-                    // Seeded with the current name rather than blank: a rename is usually a
-                    // correction, and retyping a folder's whole name to fix one letter is
-                    // not a correction.
-                    draftName = source.displayName
-                    renaming = source
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.Edit,
-                        contentDescription = stringResource(
-                            R.string.sources_rename_action,
-                            source.displayName,
-                        ),
-                        tint = palette.textSecondary,
-                    )
-                }
-
-                // "On this device" is not a source the reader added, so it is not one they
-                // can remove. `local-library` deletes an imported copy one at a time, naming
-                // the title and the space each frees; a remove here would delete every copy
-                // at once behind a sentence that could name none of them.
-                if (source.id != ImportedCopies.SOURCE_ID) {
-                    IconButton(onClick = { removing = source }) {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = stringResource(
-                                R.string.sources_remove_action,
-                                source.displayName,
-                            ),
-                            tint = palette.textSecondary,
-                        )
-                    }
-                }
+            key(source.id) {
+                SourceRow(
+                    source = source,
+                    index = index,
+                    count = sources.size,
+                    itemCount = itemCount(source),
+                    isPartial = isPartial(source),
+                    onOpen = { onOpen(source) },
+                    onRename = {
+                        // Seeded with the current name rather than blank: a rename is usually a
+                        // correction, and retyping a folder's whole name to fix one letter is
+                        // not a correction.
+                        draftName = source.displayName
+                        renaming = source
+                    },
+                    onRemove = { removing = source },
+                    onReorder = { later -> onReorder(source, later) },
+                )
             }
         }
 
@@ -377,7 +243,7 @@ internal fun SourcesGroup(
     }
 }
 
-private fun icon(kind: SourceKind): ImageVector = when (kind) {
+internal fun icon(kind: SourceKind): ImageVector = when (kind) {
     SourceKind.LOCAL_FOLDER -> Icons.Filled.Folder
     SourceKind.NETWORK_SHARE -> Icons.Filled.Storage
     SourceKind.OPDS_CATALOG -> Icons.Filled.RssFeed
@@ -430,7 +296,7 @@ private fun AddSourceItem(kind: SourceKind, labelRes: Int, onClick: () -> Unit, 
     )
 }
 
-private fun status(state: SourceConnectionState): Int = when (state) {
+internal fun status(state: SourceConnectionState): Int = when (state) {
     is SourceConnectionState.Connected -> R.string.sources_state_connected
     is SourceConnectionState.Connecting -> R.string.sources_state_connecting
     is SourceConnectionState.Unreachable -> R.string.sources_state_unreachable

@@ -4,6 +4,11 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import app.storyarc.core.model.AppSettings
+import app.storyarc.core.model.LibrarySnapshot
+import app.storyarc.core.model.LibrarySyncMerged
+import app.storyarc.core.model.LibrarySyncOutcome
+import app.storyarc.core.model.SyncFile
+import app.storyarc.core.model.SyncPlace
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceKind
@@ -11,6 +16,7 @@ import app.storyarc.core.persistence.LibrarySyncRunner
 import app.storyarc.core.persistence.ReaderPreferences
 import app.storyarc.core.persistence.SyncPlaceChoice
 import app.storyarc.core.persistence.SyncPlaceStore
+import kotlinx.coroutines.runBlocking
 
 /**
  * The settings the catalogue draws: four sources in four states, and a sync place.
@@ -60,15 +66,31 @@ internal object CatalogueSettings {
         BuildInfo.read(context)
     }
 
-    /** A sync runner whose place is the folder `Sync`, which a test never reaches. */
+    /**
+     * A sync runner whose place is the folder `Sync`, and whose one sync has already happened, at
+     * the same fixed moment as the sources above. No file is read: the place is empty and the
+     * sync merges nothing.
+     */
     fun syncRunner(context: Context): LibrarySyncRunner {
         val runner = LibrarySyncRunner(
             places = SyncPlaceStore.open(context),
-            placeFor = { null },
-            sync = { error("a catalogue test never syncs") },
+            placeFor = { EmptyPlace },
+            sync = { LibrarySyncOutcome.Synced(LibrarySyncMerged(LibrarySnapshot())) },
+            now = { 1_760_000_000_000L },
         )
         runner.choose(SyncPlaceChoice.Folder("content://com.android.externalstorage.documents/tree/primary%3ASync"))
+        runBlocking { runner.run(LibrarySyncRunner.Trigger.CHOSEN) }
         return runner
+    }
+
+    private object EmptyPlace : SyncPlace {
+        override suspend fun names(): List<String> = emptyList()
+
+        override suspend fun read(name: String): SyncFile? = null
+
+        override suspend fun write(name: String, text: String, replacing: String?) = true
+
+        override suspend fun delete(name: String) = true
     }
 
     /** The settings screen over these sources, opening at the list of groups. */

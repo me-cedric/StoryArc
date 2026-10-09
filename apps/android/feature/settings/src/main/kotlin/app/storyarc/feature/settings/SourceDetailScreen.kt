@@ -39,7 +39,6 @@ import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
-import app.storyarc.core.model.SourceConnectionState
 import app.storyarc.core.model.SourceDiagnosis
 import app.storyarc.core.model.SourceFailure
 import app.storyarc.core.model.SourceRemovalWording
@@ -339,13 +338,6 @@ private fun Field(label: String, value: String) {
 internal fun moment(locale: Locale, epochMillis: Long, is24Hour: Boolean): String {
     val pattern = DateFormat.getBestDateTimePattern(locale, if (is24Hour) "yMMMdHm" else "yMMMdhm")
     return SimpleDateFormat(pattern, locale).format(Date(epochMillis))
-}
-
-private fun status(state: SourceConnectionState): Int = when (state) {
-    is SourceConnectionState.Connected -> R.string.sources_state_connected
-    is SourceConnectionState.Connecting -> R.string.sources_state_connecting
-    is SourceConnectionState.Unreachable -> R.string.sources_state_unreachable
-    is SourceConnectionState.Unauthorized -> R.string.sources_state_unauthorized
 }
 
 private fun label(action: SourceAction): Int = when (action) {

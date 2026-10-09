@@ -113,6 +113,10 @@
     <string name="sources_remove_action">Remove %1$s</string>
     <string name="sources_move_earlier">Move “%1$s” earlier</string>
     <string name="sources_move_later">Move “%1$s” later</string>
+    <string name="sources_menu_more">More actions for %1$s</string>
+    <string name="sources_menu_move_up">Move up</string>
+    <string name="sources_menu_move_down">Move down</string>
+    <string name="sources_menu_rename">Rename</string>
     <!-- one-vocabulary 4.2/15.11, D31: both confirmation titles name the source here and on
          iOS (sources.remove.title, sources.removeDownloads.title). -->
     <string name="sources_remove_title">Remove %1$s?</string>
@@ -343,7 +347,10 @@
     <string name="sync_place">Place</string>
     <string name="sync_status_idle">Not synced yet</string>
     <string name="sync_status_syncing">Syncing…</string>
-    <string name="sync_status_synced">Synced at %1$s</string>
+    <string name="sync_status_synced_now">Synced just now</string>
+    <string name="sync_status_synced_ago">Synced %1$s</string>
+    <string name="sync_status_synced_today">Synced today at %1$s</string>
+    <string name="sync_status_synced_on">Synced on %1$s</string>
     <string name="sync_status_unreachable">%1$s cannot be reached. StoryArc syncs again when it can reach it.</string>
     <string name="sync_status_newer">The sync file comes from a newer version of StoryArc. Update StoryArc on this device. Nothing was changed.</string>
     <string name="sync_status_not_library">The sync file is not a StoryArc library. Nothing was changed.</string>

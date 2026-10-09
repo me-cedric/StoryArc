@@ -104,6 +104,10 @@
     <string name="sources_remove_action">%1$s entfernen</string>
     <string name="sources_move_earlier">„%1$s“ nach oben verschieben</string>
     <string name="sources_move_later">„%1$s“ nach unten verschieben</string>
+    <string name="sources_menu_more">Weitere Aktionen für %1$s</string>
+    <string name="sources_menu_move_up">Nach oben</string>
+    <string name="sources_menu_move_down">Nach unten</string>
+    <string name="sources_menu_rename">Umbenennen</string>
     <string name="sources_remove_title">%1$s entfernen?</string>
     <string name="sources_state_connected">Verfügbar</string>
     <string name="sources_kavita_system_trust">Benötigt ein Zertifikat, dem Ihr Gerät bereits vertraut.</string>
@@ -325,7 +329,10 @@
     <string name="sync_place">Ort</string>
     <string name="sync_status_idle">Noch nicht synchronisiert</string>
     <string name="sync_status_syncing">Wird synchronisiert …</string>
-    <string name="sync_status_synced">Synchronisiert um %1$s</string>
+    <string name="sync_status_synced_now">Gerade synchronisiert</string>
+    <string name="sync_status_synced_ago">Synchronisiert %1$s</string>
+    <string name="sync_status_synced_today">Heute um %1$s synchronisiert</string>
+    <string name="sync_status_synced_on">Am %1$s synchronisiert</string>
     <string name="sync_status_unreachable">%1$s ist nicht erreichbar. StoryArc synchronisiert wieder, sobald der Ort erreichbar ist.</string>
     <string name="sync_status_newer">Die Synchronisierungsdatei stammt aus einer neueren Version von StoryArc. Aktualisieren Sie StoryArc auf diesem Gerät. Es wurde nichts geändert.</string>
     <string name="sync_status_not_library">Die Synchronisierungsdatei ist keine StoryArc-Bibliothek. Es wurde nichts geändert.</string>

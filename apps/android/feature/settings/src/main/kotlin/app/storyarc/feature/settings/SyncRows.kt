@@ -3,7 +3,6 @@ package app.storyarc.feature.settings
 import android.content.ContentResolver
 import android.content.Intent
 import android.net.Uri
-import android.text.format.DateUtils
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -120,7 +119,7 @@ internal fun SyncRows(
             val shown = status
             syncStatusLine(shown)?.let { (line, needsPlace) ->
                 val text = when {
-                    shown is SyncStatus.Synced -> stringResource(line, syncedAt(context, shown.atEpochMillis))
+                    shown is SyncStatus.Synced -> syncedSentence(context, shown.atEpochMillis)
                     needsPlace -> stringResource(line, place)
                     else -> stringResource(line)
                 }
@@ -172,23 +171,16 @@ private fun SyncRow(
  * The status line's sentence, and whether it names the place. Null when there is nothing to say.
  * Lifted out of the rows so a test reads which sentence each state draws.
  */
-internal fun syncStatusLine(status: SyncStatus): Pair<Int, Boolean>? = when (status) {
+internal fun syncStatusLine(status: SyncStatus, now: Long = System.currentTimeMillis()): Pair<Int, Boolean>? = when (status) {
     SyncStatus.Off -> null
     SyncStatus.Idle -> R.string.sync_status_idle to false
     SyncStatus.Syncing -> R.string.sync_status_syncing to false
-    is SyncStatus.Synced -> R.string.sync_status_synced to false
+    is SyncStatus.Synced -> syncAge(status.atEpochMillis, now).sentence to false
     SyncStatus.Unreachable -> R.string.sync_status_unreachable to true
     is SyncStatus.Refused -> when (status.reason) {
         is LibraryDocumentFailure.NewerThanThisApp -> R.string.sync_status_newer to false
         else -> R.string.sync_status_not_library to false
     }
-}
-
-/** The time of today's sync, or the date and time of an older one. */
-private fun syncedAt(context: android.content.Context, atEpochMillis: Long): String {
-    val today = DateUtils.isToday(atEpochMillis)
-    val flags = DateUtils.FORMAT_SHOW_TIME or if (today) 0 else DateUtils.FORMAT_SHOW_DATE or DateUtils.FORMAT_ABBREV_MONTH
-    return DateUtils.formatDateTime(context, atEpochMillis, flags)
 }
 
 /** What the chosen place is called: the share's name, or the folder's. */
