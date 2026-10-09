@@ -53,6 +53,8 @@
     "why:ios:ui": "xcrun xcresulttool get test-results summary --path .build/xcresult/ui.xcresult",
     "why:ios:epub": "xcrun xcresulttool get test-results summary --path .build/xcresult/epub.xcresult",
     "test:android": "node scripts/gradle.mjs test",
+    "snap:android": "node scripts/snap-android.mjs",
+    "snap:android:record": "node scripts/snap-android.mjs --record",
     "test:android:instrumented": "node scripts/gradle.mjs :core:format:connectedDebugAndroidTest",
     "build:android:tests": "node scripts/gradle.mjs assembleAndroidTest",
     "build:ios": "cd apps/ios && xcodegen generate && xcodebuild build -project StoryArc.xcodeproj -scheme StoryArc -destination 'generic/platform=iOS Simulator' -quiet",

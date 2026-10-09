@@ -73,6 +73,10 @@ turbine = "1.2.1"
 # has no device to compose on; Robolectric supplies the Android runtime the
 # composition needs. Test-only, and only where a layout claim has to be pinned.
 robolectric = "4.16.1"
+# Screenshots of Compose on Robolectric, with no emulator (`lighter-visual-check`). Apache 2.0.
+# Test-only. A snapshot test records a reference image under `src/test/snapshots/` and a later
+# run fails when the picture changes. 1.76.0 is the latest stable release.
+roborazzi = "1.76.0"
 materialIcons = "1.7.8"
 kotlinxSerialization = "1.11.0"
 # The home-screen widget (ADR-0011). Resolved against the material3 alpha pin before it was
@@ -137,10 +141,13 @@ androidx-test-runner = { group = "androidx.test", name = "runner", version.ref =
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
 # `network-share` needs SMB 2/3, which Android has no API for. ADR-0010, ADR-0019.
 smbj = { group = "com.hierynomus", name = "smbj", version.ref = "smbj" }
 
 [plugins]
+roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }

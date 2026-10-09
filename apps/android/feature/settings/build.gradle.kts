@@ -3,6 +3,7 @@ import javax.inject.Inject
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -94,6 +95,8 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+roborazzi { outputDir.set(layout.projectDirectory.dir("src/test/snapshots")) }
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
@@ -106,6 +109,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    testImplementation(project(":core:snapshots"))
     // A composition on the JVM, for layout claims the unit gate has to be able to check.
     // See `DownloadLimitWrapTest`.
     testImplementation(libs.robolectric)

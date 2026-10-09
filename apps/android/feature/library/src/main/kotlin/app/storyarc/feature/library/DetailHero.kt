@@ -234,7 +234,9 @@ private fun CoverSurface(
         if (cover != null) {
             Image(
                 bitmap = cover.asImageBitmap(),
-                contentDescription = null,
+                // The cover is a button when the page offers a choice, and a button with no
+                // name is the one thing a screen reader cannot say. Named by the title.
+                contentDescription = if (decorative) null else publication.displayTitle,
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.fillMaxSize(),
             )

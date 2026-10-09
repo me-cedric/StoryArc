@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 // The release lane hands these in — `-PversionName=0.2.0 -PversionCode=12`. Absent, they
@@ -104,6 +105,8 @@ android {
     }
 }
 
+roborazzi { outputDir.set(layout.projectDirectory.dir("src/test/snapshots")) }
+
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
@@ -143,6 +146,7 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
 
     testImplementation(libs.junit)
+    testImplementation(project(":core:snapshots"))
     testImplementation(libs.kotlinx.coroutines.test)
     // A composition on the JVM, so this module's own cells can be asserted in the unit gate.
     //
