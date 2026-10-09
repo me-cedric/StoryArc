@@ -97,6 +97,8 @@ const EXCLUDED = {
     'Starts read-aloud inside an EPUB from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have. The walk skips there, which would pass for nothing.',
   'ThemeAxisResetUITests/testTheReadingPositionSurvivesAnAxisChangeAndItsReset':
     'Opens `Fixture Publication` or `The Long Field` from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have, and takes about 140 seconds. With no reflowable book it fails to open one, which says nothing about the reset. Run it on a local simulator with the corpus.',
+  'ThemeAxisResetUITests/testALongPressOnTheThumbResetsTheAxis':
+    'Opens a reflowable book from the shared corpus, which `scripts/corpus.mjs` writes and a runner does not have. With no reflowable book it fails to open one, which says nothing about the reset. `SliderLongPressTests` holds the press rule on the host. Run it on a local simulator with the corpus.',
   'AddMockKavitaTests/testAddTheMockServer':
     'Adds the mock Kavita server through the real form. It needs `node scripts/kavita-server.mjs --port 5001` running, which a runner does not start. It is capture setup: the source it adds is what the Shelves captures photograph.',
   'SweepLibraryTests/testTheIndexIsOneScrubber':
