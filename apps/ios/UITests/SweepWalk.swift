@@ -89,7 +89,11 @@ extension XCTestCase {
         recents: String = "(\"Harbour\", \"Vermillion\", \"Fine Print\")",
         /// Every shelf at the reader's built-in settings. A walk that picks a reading
         /// direction persists it for the shelf, and the next walk on that shelf inherits it.
-        freshShelfSettings: Bool = false
+        freshShelfSettings: Bool = false,
+        /// Pass the transfer record as a launch argument. A walk that downloads something
+        /// turns this off: the argument domain outranks the standard one, so a pinned `[]`
+        /// hides the record the app has just written and the page never leaves "Download".
+        pinDownloads: Bool = true
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += [
@@ -97,7 +101,6 @@ extension XCTestCase {
             "-storyarc.appearance.natural", natural ? "YES" : "NO",
             // The transfer record. `[]` rather than absent, so a queue one walk injected is
             // not still in the frame of the next one.
-            "-app.storyarc.downloads", asPlistData(downloads),
             "-app.storyarc.libraryQuery", asPlistData(queryJSON(formats: formats, sort: sort)),
             "-app.storyarc.libraryAvailability", availability,
             "-app.storyarc.searchScope", searchScope,
@@ -132,6 +135,9 @@ extension XCTestCase {
             // inheritance; a walk that names an issue passes `issues`.
             "-app.storyarc.libraryGrouping", grouping,
         ]
+        if pinDownloads {
+            app.launchArguments += ["-app.storyarc.downloads", asPlistData(downloads)]
+        }
         if let sources {
             app.launchArguments += ["-app.storyarc.sources", asPlistData(sources)]
         }
@@ -199,7 +205,31 @@ extension XCTestCase {
     /// Overloading it is not an option: `XCTestCase` is an Objective-C class, so
     /// `shutter(_:named:)` twice is one selector twice and the compiler refuses.
     func shutter(_ app: XCUIApplication, named name: String) {
+        if hostShotActive {
+            hostShot(name)
+            return
+        }
         shutter(shot: app.screenshot(), named: name)
+    }
+
+    /// Whether a host script is taking the frames. See ``hostShot(_:)``.
+    var hostShotActive: Bool { FileManager.default.fileExists(atPath: "/tmp/w5hs/active") }
+
+    /// Asks the host to photograph the simulator with `simctl io screenshot`, and waits.
+    ///
+    /// **Why.** On a headless simulator without Simulator.app, an iPad held in landscape hands
+    /// `XCUIScreenshot` a canvas that is rotated a quarter turn and cropped, so every landscape
+    /// attachment is wrong. `simctl io screenshot` reads the framebuffer itself and is right.
+    /// The test writes `/tmp/w5hs/req-<name>`; the watcher in the run script takes the
+    /// picture and writes `/tmp/w5hs/done-<name>`.
+    func hostShot(_ name: String) {
+        let dir = "/tmp/w5hs"
+        FileManager.default.createFile(atPath: "\(dir)/req-\(name)", contents: Data())
+        let deadline = Date().addingTimeInterval(40)
+        while !FileManager.default.fileExists(atPath: "\(dir)/done-\(name)"), Date() < deadline {
+            hold(0.3)
+        }
+        try? FileManager.default.removeItem(atPath: "\(dir)/done-\(name)")
     }
 
     func shutter(shot: XCUIScreenshot, named name: String) {

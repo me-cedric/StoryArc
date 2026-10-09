@@ -47,6 +47,16 @@ final class SweepSourceRemovalTests: XCTestCase {
         )
     }
 
+    /// The confirmation raised by *Remove downloads*, which keeps the library and deletes only
+    /// what was fetched from it: "Remove downloads from <source>?" as its own frame.
+    func testCaptureRemoveDownloadsConfirmation() throws {
+        try captureRemovalConfirmation(
+            named: "settings-source-remove-downloads-only",
+            holding: .aDownload,
+            action: "Remove downloads"
+        )
+    }
+
     /// What the removal walk finds on the device: its own sources, or an injected one.
     private enum Holding {
         /// The three mock catalogues, injected. It used to be the device's own sources, which
@@ -93,7 +103,8 @@ final class SweepSourceRemovalTests: XCTestCase {
 
     private func captureRemovalConfirmation(
         named name: String,
-        holding: Holding = .theMockCatalogues
+        holding: Holding = .theMockCatalogues,
+        action: String = "Remove"
     ) throws {
         let app = sweepLaunch(downloads: holding.downloads, sources: holding.sources)
         try open("Your libraries", in: app)
@@ -108,9 +119,9 @@ final class SweepSourceRemovalTests: XCTestCase {
         // the first version of this walk failed there with "offers no Remove row" while
         // passing at the default size. `testCaptureSettingsResetConfirmation` scrolls for the
         // same reason.
-        _ = scrollTo(app.buttons["Remove"], in: app, swipes: 4)
+        _ = scrollTo(app.buttons[action], in: app, swipes: 4)
         let remove = try XCTUnwrap(
-            hittable("Remove", in: app, timeout: 8),
+            hittable(action, in: app, timeout: 8),
             "The source page offers no Remove row, even after scrolling."
         )
         remove.tap()
@@ -122,12 +133,12 @@ final class SweepSourceRemovalTests: XCTestCase {
         // so a wait on them proved nothing about the dialog, and passed here for that reason.
         XCTAssertTrue(
             app.staticTexts.matching(
-                NSPredicate(format: "label BEGINSWITH %@", "This removes")
+                NSPredicate(format: "label BEGINSWITH %@ OR label BEGINSWITH %@", "This removes", "Remove downloads from")
             ).firstMatch.waitForExistence(timeout: 5),
             "Remove raised no confirmation stating what it removes. On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(12).map(\.label))"
         )
-        if case .aDownload = holding {
+        if case .aDownload = holding, action == "Remove" {
             // The branch, not merely the dialog: a body that stayed on the titles-only sentence
             // would pass the wait above and photograph the wrong claim.
             XCTAssertTrue(

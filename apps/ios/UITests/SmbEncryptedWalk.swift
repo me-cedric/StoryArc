@@ -29,6 +29,13 @@ final class SmbEncryptedWalkTests: XCTestCase {
     "kind":"networkShare","locator":"smb://127.0.0.1:4999/Comics"}],"tombstones":[]}
     """
 
+    /// 4446 by default. A file at `/tmp/w5hs/smbport` holding `4445` aims the walk at the signed,
+    /// unencrypted fixture of `scripts/smb-server.sh` instead.
+    static var port: String {
+        (try? String(contentsOfFile: "/tmp/w5hs/smbport", encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? "4446"
+    }
+
     override nonisolated func setUp() {
         super.setUp()
         continueAfterFailure = false
@@ -39,7 +46,7 @@ final class SmbEncryptedWalkTests: XCTestCase {
     }
 
     func testCaptureShareDetailEncrypted() throws {
-        try detail(named: "ios-share-detail-encrypted")
+        try detail(named: Self.port == "4446" ? "ios-share-detail-encrypted" : "ios-share-detail-signed-4445")
     }
 
     func testCaptureShareDetailNotConnected() throws {
@@ -115,7 +122,7 @@ final class SmbEncryptedWalkTests: XCTestCase {
         let host = app.textFields["Host"]
         XCTAssertTrue(host.waitForExistence(timeout: 8), "The share sheet has no Host field.")
         host.tap()
-        host.typeText("127.0.0.1:4446")
+        host.typeText("127.0.0.1:\(Self.port)")
         let share = app.textFields["Share"]
         share.tap()
         share.typeText("Comics")
