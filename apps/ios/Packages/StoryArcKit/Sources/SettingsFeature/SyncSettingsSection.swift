@@ -116,22 +116,21 @@ struct SyncSettingsSection: View {
 
     /// The status line, or nil when there is nothing to say. Lifted out of the view so a test
     /// reads which sentence each state draws.
-    static func statusLine(_ status: LibrarySyncRunner.Status, place: String) -> LocalizedStringKey? {
+    static func statusLine(
+        _ status: LibrarySyncRunner.Status, place: String, now: Date = .now
+    ) -> LocalizedStringKey? {
         switch status {
         case .off: nil
         case .idle: "sync.status.idle"
         case .syncing: "sync.status.syncing"
         case let .synced(moment):
-            "sync.status.synced \(Self.time(of: moment))"
+            switch SyncMoment.of(moment, now: now, locale: .storyArc) {
+            case let .recent(words): "sync.status.synced.recent \(words)"
+            case let .older(words): "sync.status.synced.on \(words)"
+            }
         case .unreachable: "sync.status.unreachable \(place)"
         case .refused(.newerThanThisApp): "sync.status.newer"
         case .refused: "sync.status.notLibrary"
         }
-    }
-
-    /// The time of today's sync, or the date and time of an older one, in the app's language.
-    private static func time(of moment: Date) -> String {
-        let date: Date.FormatStyle.DateStyle = Calendar.current.isDateInToday(moment) ? .omitted : .abbreviated
-        return moment.formatted(Date.FormatStyle(date: date, time: .shortened).locale(.storyArc))
     }
 }

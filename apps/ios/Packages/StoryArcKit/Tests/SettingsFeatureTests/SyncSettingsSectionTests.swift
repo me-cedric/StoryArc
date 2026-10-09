@@ -48,7 +48,7 @@ struct SyncSettingsSectionTests {
         #expect(Self.line(.unreachable) == "sync.status.unreachable %@")
         #expect(Self.line(.off) == nil)
         #expect(Self.line(.idle) == "sync.status.idle")
-        #expect(Self.line(.synced(Date())) == "sync.status.synced %@")
+        #expect(Self.line(.synced(Date())) == "sync.status.synced.recent %@")
     }
 
     @Test("A document the app cannot read is named for why")

@@ -5916,31 +5916,62 @@
         }
       }
     },
-    "sync.status.synced %@": {
+    "sync.status.synced.on %@": {
+      "comment": "When the last sync ran, more than a day ago. The argument is the date and time from the system in the reader's language, hour cycle included.",
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisiert um %@"
+            "value": "Synchronisiert am %@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synced at %@"
+            "value": "Synced on %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sincronizado a las %@"
+            "value": "Sincronizado el %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synchronisé à %@"
+            "value": "Synchronisé le %@"
+          }
+        }
+      }
+    },
+    "sync.status.synced.recent %@": {
+      "comment": "When the last sync ran, within a day. The argument is a relative phrase from the system, such as 2 hours ago, so each language keeps its own small words.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisiert %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sincronizado %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synchronisé %@"
           }
         }
       }
