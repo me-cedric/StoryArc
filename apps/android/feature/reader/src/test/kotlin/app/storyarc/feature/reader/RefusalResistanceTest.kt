@@ -48,7 +48,7 @@ class RefusalResistanceTest {
     fun `the refusal branch plays the response over the page surface`() {
         val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
             ?: error("$MODULE_DIRECTORY is unset. Run this through Gradle.")
-        val screen = File(module, "src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt").readText()
+        val screen = readerScreenSource(module)
         val refusal = screen.indexOf("haptics.play(StoryArcFeedback.REFUSAL)")
         val play = screen.indexOf("scope.launch { resistance.play(response) }")
         assertTrue("A refused turn no longer plays the resistance beside its haptic.", refusal in 0 until play)

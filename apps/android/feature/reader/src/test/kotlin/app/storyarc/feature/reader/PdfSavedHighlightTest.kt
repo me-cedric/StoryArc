@@ -118,7 +118,7 @@ class PdfSavedHighlightTest {
 
     @Test
     fun `the page composable resolves the marks of the page it draws`() {
-        val source = File(androidRoot, SCREEN).readText()
+        val source = readerScreenSource(File(androidRoot, "feature/reader"))
         assertTrue(
             "SinglePage no longer resolves its page's marks, so no saved highlight is drawn.",
             source.contains("ResolvePageMarks(pdfText, index)"),
@@ -154,7 +154,6 @@ class PdfSavedHighlightTest {
         const val PUBLICATION = "fixture-pdf"
         const val PAGE = 2
         const val OTHER_PAGE = 3
-        const val SCREEN = "feature/reader/src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt"
 
         val androidRoot: File = generateSequence(File("").absoluteFile) { it.parentFile }
             .firstOrNull { File(it, "settings.gradle.kts").isFile }

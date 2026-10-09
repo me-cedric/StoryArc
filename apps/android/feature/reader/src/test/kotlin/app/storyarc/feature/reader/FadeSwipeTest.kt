@@ -36,7 +36,7 @@ class FadeSwipeTest {
     fun `only the fade container carries the swipe`() {
         val module = System.getProperty(MODULE_DIRECTORY)?.let(::File)
             ?: error("$MODULE_DIRECTORY is unset. Run this through Gradle.")
-        val screen = File(module, "src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt").readText()
+        val screen = readerScreenSource(module)
         val fade = screen.indexOf("is Paging.Indexed -> AnimatedContent(")
         val swipe = screen.indexOf("modifier = keyboard.fadeSwipe { turn(paging.current + it) },")
         assertTrue("The fade container is gone from ReaderScreen.kt.", fade >= 0)

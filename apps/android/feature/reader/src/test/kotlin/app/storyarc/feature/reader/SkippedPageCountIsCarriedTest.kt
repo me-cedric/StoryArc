@@ -96,7 +96,7 @@ class SkippedPageCountIsCarriedTest {
     fun `the screen still hands the count to the menu`() {
         // The third link, and the one a refactor is likeliest to drop: the view model
         // publishes, the sheet renders, and this is what joins them.
-        val text = source("ReaderScreen.kt")
+        val text = READER_SCREEN_FILES.joinToString("\n") { source(it) }
 
         assertTrue(
             "ReaderScreen no longer collects the skipped count from the view model.",

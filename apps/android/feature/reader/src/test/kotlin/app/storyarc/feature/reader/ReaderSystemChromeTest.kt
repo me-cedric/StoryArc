@@ -51,7 +51,7 @@ class ReaderSystemChromeTest {
             error("$SCREEN_SOURCE is not under ${module.absolutePath} — has the screen moved?")
         }
         val withoutBlocks = Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL)
-            .replace(file.readText(), "")
+            .replace(readerScreenSource(module), "")
         withoutBlocks.lineSequence().joinToString("\n") { line ->
             val comment = line.indexOf("//")
             if (comment >= 0) line.substring(0, comment) else line

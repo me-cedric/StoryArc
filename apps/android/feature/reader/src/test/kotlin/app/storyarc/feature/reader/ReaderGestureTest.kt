@@ -47,7 +47,7 @@ class ReaderGestureTest {
             error("$relative is not under ${module.absolutePath} — has it moved?")
         }
         val withoutBlocks = Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL)
-            .replace(file.readText(), "")
+            .replace(if (relative == "ReaderScreen.kt") readerScreenSource(module) else file.readText(), "")
         return withoutBlocks.lineSequence().joinToString("\n") { line ->
             val comment = line.indexOf("//")
             if (comment >= 0) line.substring(0, comment) else line

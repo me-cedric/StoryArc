@@ -29,7 +29,7 @@ class HingeWiringTest {
     private val readerScreen: String by lazy {
         val file = File(module, "src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt")
         if (!file.isFile) error("ReaderScreen.kt is not under ${module.absolutePath} — has it moved?")
-        file.readText()
+        readerScreenSource(module)
     }
 
     /** Just `Page()`'s own body, bracket-matched so a call elsewhere in the file cannot pass this. */

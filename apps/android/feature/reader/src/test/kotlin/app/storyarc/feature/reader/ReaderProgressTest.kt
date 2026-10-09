@@ -101,6 +101,6 @@ class ReaderProgressTest {
         /** Set by this module's `build.gradle.kts`, from its own `projectDir`. */
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"
 
-        val SOURCES = listOf("ReaderMenuSheet.kt", "ReaderScreen.kt")
+        val SOURCES = listOf("ReaderMenuSheet.kt") + READER_SCREEN_FILES
     }
 }

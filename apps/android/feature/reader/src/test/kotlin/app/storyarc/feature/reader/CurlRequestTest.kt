@@ -107,7 +107,7 @@ class CurlRequestTest {
         assertTrue(
             "The curl's completed turn goes back through an animated move. It is called" +
                 " after the fold has finished, so the move would roll the same page again.",
-            sourceOf("ReaderScreen.kt").contains(
+            readerScreenSource(module).contains(
                 "onTurn = { step -> scope.launch { paging.goTo(paging.current + step, animate = false) } },",
             ),
         )

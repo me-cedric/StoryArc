@@ -100,7 +100,7 @@ class PageTurnSemanticsTest {
                     " (`pnpm gradle :feature:reader:testDebugUnitTest`), which sets the" +
                     " property from the module directory.",
             )
-        val source = File(module, SCREEN).readText()
+        val source = readerScreenSource(module)
 
         assertTrue(
             "`ReaderScreen` builds no page surface with `pageTurnSemantics`. Without it the" +
@@ -120,6 +120,5 @@ class PageTurnSemanticsTest {
 
     private companion object {
         const val MODULE_DIRECTORY = "storyarc.reader.projectDir"
-        const val SCREEN = "src/main/kotlin/app/storyarc/feature/reader/ReaderScreen.kt"
     }
 }

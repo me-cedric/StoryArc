@@ -51,7 +51,7 @@ class CurlOverImagePagesTest {
             error("$relative is not under ${module.absolutePath} — has the curl moved?")
         }
         val withoutBlocks = Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL)
-            .replace(file.readText(), "")
+            .replace(if (relative == SCREEN_SOURCE) readerScreenSource(module) else file.readText(), "")
         return withoutBlocks.lineSequence().joinToString("\n") { line ->
             val comment = line.indexOf("//")
             if (comment >= 0) line.substring(0, comment) else line
