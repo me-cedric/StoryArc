@@ -3,7 +3,7 @@
 - [x] 1.1 Write this change: proposal, design, the `native-experience` delta and these tasks.
 - [x] 1.2 Rewrite `AGENTS.md` section 6 to the new rule: the builder looks at its own screen; snapshot tests and accessibility checks; a device screenshot only where a snapshot cannot show the screen; downscale. Point `docs/design.md` section 11 at it.
 - [ ] 1.3 `pnpm preview:proof` accepts a snapshot reference (`__Snapshots__/` on iOS, `src/test/snapshots/` on Android) as proof, with self-test cases for both.
-- [x] 1.5 Mobile MCP in `.mcp.json`, pinned to 1.0.9, telemetry off.
+- [x] 1.5 agent-device in `.mcp.json` and `pnpm device`, pinned to 0.21.22, smoke-tested on an iOS simulator.
 - [ ] 1.4 `pnpm frames:shrink` downscales new frames with `sips` to 1200 px on the long side.
 
 ## 2. Android

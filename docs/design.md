@@ -586,7 +586,7 @@ section 6 holds the rule and the commands (change `lighter-visual-check`, 2026-1
 - The accessibility checks run over every screen of `docs/designs/screen-catalogue.md`
   and fail on a target under 44 pt or 48 dp, a contrast failure, a missing label or
   clipped text. The largest text size (section 10) is checked there, not by a frame.
-- A device screenshot, driven with Mobile MCP or `simctl` and `adb`, is kept only for
+- A device screenshot, driven with agent-device (`pnpm device`) or `simctl` and `adb`, is kept only for
   what a snapshot cannot draw: navigation, system materials, insets, system interface
   and web view content. One light and one dark per changed screen, downscaled.
 

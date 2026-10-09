@@ -397,9 +397,17 @@ light and dark, at the default text size, and fix what is wrong before you commi
   `pnpm snap:android:record`) — record only after you looked.
 - **The running app where a snapshot cannot show it**: navigation, system materials (Liquid
   Glass over content), insets, system interface (shade, widgets, CarPlay), and the content of
-  a web view. Drive it with **Mobile MCP** (`.mcp.json`): launch, tap, swipe,
-  `mobile_take_screenshot`, and `mobile_list_elements_on_screen` for the real size of each
-  element. Without it, `xcrun simctl io <id> screenshot` and `adb exec-out screencap -p`.
+  a web view. Drive it with **agent-device** (Callstack, MIT), pinned in `pnpm device`:
+  `pnpm device open com.mecedric.storyarc --platform ios --udid <lane simulator> --session
+  <lane> --foreground` prints an accessibility snapshot with `@refs`; `settings appearance
+  dark` (and `light`) switches the appearance, `settings animations off` lets a screen settle;
+  then `press @e12
+  --settle`, `scroll down --until <selector>`, `snapshot -i` (element bounds, for hit sizes),
+  `screenshot /tmp/<lane>/<screen>-light.png`, and `close`. Android uses
+  `com.mecedric.storyarc.debug --platform android --serial <emulator>`. It claims the device
+  for your worktree, so parallel lanes do not take each other's. `.mcp.json` exposes the same
+  commands as MCP tools. Without it, `xcrun simctl io <id> screenshot` and
+  `adb exec-out screencap -p`.
 - **One emulator at a time** on this machine. A snapshot needs none.
 
 **2. Machines check the guidelines.** The accessibility checks run over every screen of
