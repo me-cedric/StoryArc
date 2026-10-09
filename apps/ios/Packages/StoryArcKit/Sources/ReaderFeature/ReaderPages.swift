@@ -63,6 +63,9 @@ extension ReaderView {
                 pageReturn = pageReturn.moved(to: index)
                 Task { await model.go(to: index) }
             }
+            // A resume lands after the pager is up whenever the archive opens second, and
+            // `onAppear` alone then left the pager on page one over a model on page two.
+            .onChange(of: model.openCount) { _, _ in displayIndex = displayIndex(forModel: model.currentIndex) }
             // And once, the other way, when the publication opens on a page that is
             // not the first — a ComicInfo cover, or a resumed position later.
             .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }

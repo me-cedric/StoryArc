@@ -26,6 +26,8 @@ public final class ReaderModel {
     // `internal(set)`, not `private(set)`: `go(to:)` sets it from `ReaderDecoding.swift`
     // now, beside the tracking a page turn resets — this file is at its line cap.
     public internal(set) var currentIndex = 0
+    /// Counts the opens that have settled `currentIndex`, so the pager can follow a resume.
+    public internal(set) var openCount = 0
     /// Set when the publication could not be opened at all.
     ///
     /// `internal(set)`: ``ReaderAdoption.swift`` clears this when the local copy it was
@@ -323,6 +325,7 @@ public final class ReaderModel {
                pages.indices.contains(index) {
                 currentIndex = index
             }
+            openCount += 1
             await warm(around: currentIndex)
             await deriveCoverColours()
         } catch {

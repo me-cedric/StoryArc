@@ -37,7 +37,7 @@ final class SweepDetailTests: XCTestCase {
     /// page then draws the title again underneath. Whether that reads as a considered
     /// fallback or as the same word twice is the question this frame is for.
     func testCaptureDetailWithoutCover() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(grouping: "issues")
         try openDetail(named: "Harbour Lights 01", in: app)
         hold(1.5)
         shutter(app, named: "detail-no-cover")
@@ -48,7 +48,7 @@ final class SweepDetailTests: XCTestCase {
     /// Harbour Lights has two members in the corpus; a single-issue publication draws no
     /// shelf at all, which is why this and `detail-bare` are two frames rather than one.
     func testCaptureDetailWithSeries() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(grouping: "issues")
         try openDetail(named: "Harbour Lights 02", in: app)
         // The series shelf is below the fold on a phone at any text size.
         _ = scrollTo(app.staticTexts["Other issues in this series"], in: app, swipes: 4)
@@ -105,8 +105,9 @@ final class SweepDetailTests: XCTestCase {
     /// `PrimaryAction` carries four wordings and only two of them have ever been
     /// photographed. This is the surface that decides which a listener sees.
     func testCaptureDetailAudiobook() throws {
-        let app = sweepLaunch()
-        try openDetail(named: "Sea Room", in: app)
+        let app = sweepLaunch(grouping: "issues")
+        // By format as well: the shelf holds an audiobook folder of the same name beside the M4B.
+        try openDetail(named: "Sea Room, M4B", in: app)
         hold(1.5)
         shutter(app, named: "detail-audiobook")
     }
@@ -136,11 +137,9 @@ final class SweepDetailTests: XCTestCase {
     /// the whole label. The shelf is a lazy grid, so a cover below the fold does not exist
     /// rather than existing off-screen.
     private func find(_ title: String, in app: XCUIApplication) throws -> XCUIElement {
-        let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
-        for _ in 0..<8 {
-            if let hit = wanted.allElementsBoundByIndex.first(where: \.isHittable) { return hit }
-            app.swipeUp()
-        }
+        // Clear of the tab bar: a cover half under it answers `isHittable` and a tap at its middle
+        // lands on the bar (`tappableCover`).
+        if let hit = tappableCover(titled: title, in: app) { return hit }
         throw XCTSkip("This device's shelf never showed a cover for “\(title)”.")
     }
 

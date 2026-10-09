@@ -148,6 +148,7 @@ extension ReaderModel {
            pages.indices.contains(index) {
             currentIndex = index
         }
+        openCount += 1
         await warm(around: currentIndex)
         await deriveCoverColours()
     }

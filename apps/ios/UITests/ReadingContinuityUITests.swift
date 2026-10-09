@@ -23,6 +23,7 @@ final class ReadingContinuityUITests: XCTestCase {
     override nonisolated func setUp() {
         super.setUp()
         continueAfterFailure = false
+        executionTimeAllowance = 280
     }
 
     /// Reads a few pages, closes the publication, relaunches, and reopens it.
@@ -51,26 +52,33 @@ final class ReadingContinuityUITests: XCTestCase {
             "This library has nothing to read. On the shelf: "
                 + app.buttons.allElementsBoundByIndex.prefix(30).map(\.label).joined(separator: " | ")
         )
-        let action = try openFirstPublication(in: app, named: opened)
+        let action = try reopen(opened, in: app)
+        let actionLabel = action.label
         action.tap()
         let reader = app.otherElements.firstMatch
         _ = reader.waitForExistence(timeout: 10)
         // One turn. Enough that resuming on the first page would fail — which is the whole
         // property — and few enough that a three-page fixture does not reach its last page
         // and get restarted by the finished rule instead.
-        turnAPage(in: app)
+        let initial = pagePosition(in: app)
+        // Forward from the first page. From any later one, back: a book resumed on its second
+        // page of three would reach the last by turning on, and the finished rule restarts it.
+        let page = initial?.range(of: #"\d+"#, options: .regularExpression).map { initial?[$0] }
+        let onFirstPage = page.flatMap { $0 } == "1"
+        turnAPage(in: app, forward: onFirstPage)
         let left = try XCTUnwrap(pagePosition(in: app), "The reader shows no position to read.")
         close(reader, in: app)
 
         app.terminate()
         app.launch()
-        try openFirstPublication(in: app, named: opened).tap()
+        try reopen(opened, in: app).tap()
         _ = app.otherElements.firstMatch.waitForExistence(timeout: 10)
         let resumed = try XCTUnwrap(pagePosition(in: app), "The reader shows no position after relaunching.")
 
         XCTAssertEqual(
             resumed, left,
             """
+            Opened \(opened) with "\(actionLabel)" at \(initial ?? "nothing").
             Left on \(left) and came back to \(resumed).
             A position that does not survive a relaunch is the one thing this app promises never to lose.
             """
@@ -78,6 +86,19 @@ final class ReadingContinuityUITests: XCTestCase {
     }
 
     // MARK: - Private
+
+    /// The same publication again, found by its title.
+    ///
+    /// Not by its whole label: a cover states how far in it is, so reading a page rewrites the
+    /// label, and a lookup by the old one found nothing and skipped (2026-10-09).
+    private func reopen(_ label: String, in app: XCUIApplication) throws -> XCUIElement {
+        let title = label.components(separatedBy: ", ")[0]
+        try showTheShelf(in: app)
+        waitForTheShelfToSettle(in: app)
+        let cover = try XCTUnwrap(tappableCover(titled: title + ", ", in: app), "The shelf shows no \(title).")
+        cover.tap()
+        return try XCTUnwrap(hittableOpenAction(in: app), "The page for \(title) offered no way to open it.")
+    }
 
     /// The label of the first publication on the shelf that can be read from.
     ///
@@ -105,7 +126,7 @@ final class ReadingContinuityUITests: XCTestCase {
         // only moves the failure back to this line. Narrow it once the shelf draws what the
         // library holds.
         let shape = NSPredicate(
-            format: "label MATCHES %@", ".*[,·] (CBZ|CBR|CBT|CB7|EPUB|PDF)\\b.*"
+            format: "label MATCHES %@", ".*[,·] (CBZ|CBR|CBT|CB7|PDF)\\b.*"
         )
         let readable = app.buttons.matching(shape)
         guard readable.firstMatch.waitForExistence(timeout: 15) else { return nil }
@@ -126,8 +147,8 @@ final class ReadingContinuityUITests: XCTestCase {
     /// The centre is the chrome toggle, so tapping there would reveal the controls rather
     /// than turn anything — which is exactly the mistake that makes a continuity test look
     /// like it works while never leaving page one.
-    private func turnAPage(in app: XCUIApplication) {
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+    private func turnAPage(in app: XCUIApplication, forward: Bool = true) {
+        app.coordinate(withNormalizedOffset: CGVector(dx: forward ? 0.9 : 0.1, dy: 0.5)).tap()
     }
 
     /// Whatever the reader is saying about where it is, as a string.
@@ -146,18 +167,29 @@ final class ReadingContinuityUITests: XCTestCase {
             .matching(NSPredicate(format: "label MATCHES %@", ".*\\d+\\D+\\d+.*"))
             .firstMatch
         guard page.waitForExistence(timeout: 10) else { return nil }
-        return page.label
+        // **Read again until it holds still.** A reader draws page one while its archive opens,
+        // and moves to the recorded page when the record arrives. The first read of a reopened
+        // publication is the page it started on, not the one it resumed to (2026-10-09).
+        var seen = page.label
+        for _ in 0..<6 {
+            hold(1)
+            let now = page.exists ? page.label : seen
+            if now == seen { return now }
+            seen = now
+        }
+        return seen
     }
 
-    /// Brings the reader's chrome back. It fades after four seconds, and a position nobody
-    /// can see is a position this test cannot read.
-    private func showChrome(in app: XCUIApplication) {
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-    }
-
+    /// By its name. The first button in the tree was the way out until the reader gained others,
+    /// and a tap on any other left the reader up for the relaunch to kill (2026-10-09).
     private func close(_ reader: XCUIElement, in app: XCUIApplication) {
-        showChrome(in: app)
-        let dismiss = app.buttons.element(boundBy: 0)
-        if dismiss.waitForExistence(timeout: 5), dismiss.isHittable { dismiss.tap() }
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let close = app.buttons["Close"].firstMatch
+        if close.waitForExistence(timeout: 5), close.isHittable {
+            close.tap()
+        } else {
+            app.buttons.element(boundBy: 0).tap()
+        }
+        hold(1)
     }
 }

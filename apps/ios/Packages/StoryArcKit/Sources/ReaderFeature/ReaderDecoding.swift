@@ -214,8 +214,10 @@ extension ReaderModel {
         // itself for a read it starts.
         pageFailingSince = nil
         pageWaitStarted = url.scheme == "smb" && reading.contains(index) ? Date() : nil
-        await warm(around: index)
+        // Written down before the pages ahead are read: the read takes seconds on a large
+        // archive, and a reader closed or killed inside it lost the turn (2026-10-09).
         await record(index)
+        await warm(around: index)
     }
 
     /// Writes the position down.

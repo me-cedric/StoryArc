@@ -160,6 +160,11 @@ final class SweepEpubReaderTests: XCTestCase {
         let app = sweepLaunch()
         try openReader(in: app)
         try openMenu(in: app)
+        // The row is the last of the menu's second section, below the fold on a phone.
+        for _ in 0..<4 where hittableRow("Read aloud", in: app, timeout: 1) == nil {
+            app.swipeUp()
+            hold(0.5)
+        }
         guard let start = hittableRow("Read aloud", in: app, timeout: 3) else {
             throw XCTSkip(
                 "The menu offers no read-aloud row on this publication. Buttons: "
