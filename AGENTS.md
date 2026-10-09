@@ -410,6 +410,23 @@ light and dark, at the default text size, and fix what is wrong before you commi
   `adb exec-out screencap -p`.
 - **One emulator at a time** on this machine. A snapshot needs none.
 
+**What to check in each image.** Each of these is a fault, not a remark, so fix it or
+record it as a task:
+
+- A hit target under 44 x 44 pt (iOS) or 48 x 48 dp (Android), or two Android targets
+  less than 8 dp apart.
+- **Two or more related actions drawn side by side or stacked** (for example up, down,
+  edit and delete on a row). They become one menu (`Menu`, `DropdownMenu`) or a
+  platform pattern (swipe actions, a drag handle to reorder). A row whose title wraps
+  because its actions take the width is this fault, even when each target passes.
+- A destructive action that is not last, alone, in the destructive style, and confirmed
+  (unless it can be undone).
+- Text under 4.5:1 against what is behind it (3:1 for large text), in light or dark.
+- Clipped, truncated or one-letter-per-line text; content under a bar or outside the
+  safe area.
+- A look-alike of a system component (a hand-made menu, sheet, alert or switch).
+- A screen that is wrong in one appearance only.
+
 **2. Machines check the guidelines.** The accessibility checks run over every screen of
 `docs/designs/screen-catalogue.md`: `performAccessibilityAudit` (hit region, contrast,
 clipped text, Dynamic Type) in the iOS UI tests, and the Accessibility Test Framework
