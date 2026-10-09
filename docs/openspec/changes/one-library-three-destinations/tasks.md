@@ -1736,7 +1736,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       `Formats/ComicArchive.swift` — so the margin is now zero lines on three files rather
       than one line on one, and `HomeHero.swift` is this change's own. The next edit to any
       of the three has to split it.
-- [~] **6.3** Android: `./gradlew test lint`. No Kotlin file over 800 lines —
+- [x] **6.3** Android: `./gradlew test lint`. No Kotlin file over 800 lines —
       `MainActivity.kt` and `LibraryScreen.kt` both start over it.
       **Both files the task named are fixed, and the previous note's replacement
       list was wrong in two ways.** `MainActivity.kt` is 179 lines and
@@ -1815,6 +1815,18 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       file and is a slice of its own, needing a `LibraryViewModelTest` in front of the split
       because Kotlin cannot extend a class across files and the seams have to become real
       collaborators. `ReaderScreen.kt` at 1727 is not this change's file at all.
+
+      *Closed 2026-10-09 (close-all-yellow wave 7).* The three files are split at real seams and
+      no Kotlin file is over 800 lines: `ReaderScreen.kt` 262, `LibraryViewModel.kt` 739 and
+      `EpubReaderActivity.kt` 781. The largest Kotlin main file is 798 lines. The `ALLOWED`
+      record in `scripts/line-cap.mjs` is empty, so any file over 800 now fails `pnpm lines:check`.
+      The reviewer checked that every changed line is a move: a declaration, a visibility change,
+      a parameter hand-over or a comment. Three mutations each failed a test. Tests pass in
+      `epubreader`, `library`, `reader` and `app`. Frames: Library, EPUB reader with chrome and
+      comic reader with chrome match the wave 6 frames with 0 pixels different, so no frame is
+      committed. The PDF reader and Settings frames were not taken. One non-behavioural change
+      stays: `rememberHingeSurface()` runs inside `ReaderPageSurface`, so a window-width change
+      that toggles the thumbnail pane makes a new `HingeSurface`.
 - [x] **6.4** `corepack pnpm lint`. **Green**, 2026-08-31 at `6c931e61`, exit 0:
       tokens contrast, `spec:validate`, tokens in sync, the fixture corpus, third-party
       notices, the libarchive pin, the iOS lockfile, the corpus self-test, the Kavita

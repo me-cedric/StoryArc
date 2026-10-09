@@ -289,6 +289,16 @@ does not try it; a folder audiobook has no content digest, so its position follo
 Owed frames: Finish on the Home hero, '1 of 1 title', the other provenance states, a page inside a long
 paragraph, and one document compared on both platforms. Frames are at the default text size only.
 
+**Wave 7 of the close-all-yellow goal landed on 2026-10-09** (the last wave of the goal; one lane, the line
+cap). Closed: `one-library-three-destinations` 6.3. `ReaderScreen.kt` is 262 lines, `LibraryViewModel.kt` is
+739 and `EpubReaderActivity.kt` is 781, split at real seams with no change of behaviour. No Kotlin file is
+over 800 lines, and the record in `scripts/line-cap.mjs` is empty. Frames of the Library, the EPUB reader and
+the comic reader match the wave 6 frames with 0 pixels different. Nothing else stays open from this wave. The
+frames found no product defect. They found a harness race: the route `Comic reader > chrome` in
+`scripts/android-routes.mjs` hides the chrome in about 3 runs of 4, so one capture is not proof. The route
+`EPUB reader > chrome` cannot reach `Harbour Lights 01` under Series grouping. The goal ends here, and the
+docs pass follows.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
