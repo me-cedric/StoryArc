@@ -63,6 +63,9 @@ internal object PlayingBook {
      */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    /** Every book started in this process, by id, so a displaced one still has its position written. */
+    private val started = mutableMapOf<String, Publication>()
+
     private val _following = MutableStateFlow<Publication?>(null)
 
     /**
@@ -209,14 +212,20 @@ internal object PlayingBook {
         _lastPlayed.value = publication
         _damagedEnd.value = null
         this.store = store
+        started[publication.id] = publication
         PlaybackHost.recordPosition = { id, position, parts, endedOnFailure ->
-            val known = _following.value
             // A book started before this process was, resumed by the notification-shade
             // carousel, reaches here with an id nothing in the app has seen. Writing the
             // position against the wrong publication is worse than not writing it, so it
             // is dropped — and that is the honest state of resumption after process death.
-            if (known != null && known.id == id) {
-                if (endedOnFailure) _damagedEnd.value = DamagedEnd(known)
+            //
+            // **Looked up by id, not compared with [following].** [play] points [following]
+            // at the new book before the host starts it, and the host writes the outgoing
+            // book's position while it starts the new one. A guard on [following] dropped
+            // that write, so a book another source displaced began again from the start.
+            val known = started[id]
+            if (known != null) {
+                if (endedOnFailure && _following.value?.id == id) _damagedEnd.value = DamagedEnd(known)
                 scope.launch { write(store, known, position, parts, endedOnFailure) }
             }
         }
