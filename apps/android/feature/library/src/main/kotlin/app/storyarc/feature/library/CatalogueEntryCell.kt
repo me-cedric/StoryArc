@@ -137,7 +137,7 @@ internal fun CatalogueEntryCell(
             Text(
                 text = stringResource(R.string.catalogue_entry_downloaded),
                 style = MaterialTheme.typography.labelSmall,
-                color = palette.accent,
+                color = palette.accentText,
             )
         }
 

@@ -339,6 +339,10 @@ private fun NavigationControl(
  * one accent for the brand, so the label reads `primary` whichever scheme supplied it —
  * Material You keeps its wallpaper, and the label agrees with the pill and the buttons.
  *
+ * **The label is text, so it reads `accentText` and not `primary`.** `primary` is the brand accent,
+ * 4.4:1 on the light canvas and 4.1:1 on the dark one. `accentText` is that hue at 4.5:1 or better
+ * (`close-the-audited-gaps` 27.4), and under dynamic colour it is the wallpaper scheme's `primary`.
+ *
  * `defaults` is passed in rather than read here because the bar and the rail each have their
  * own — `ShortNavigationBarItemDefaults.colors()` and `WideNavigationRailItemDefaults.colors()`
  * — and a helper that chose one would hand the other control the wrong resting tones.
@@ -347,7 +351,7 @@ private fun NavigationControl(
  */
 @Composable
 internal fun accentedItemColours(defaults: NavigationItemColors): NavigationItemColors =
-    defaults.copy(selectedTextColorTopIconPosition = MaterialTheme.colorScheme.primary)
+    defaults.copy(selectedTextColorTopIconPosition = LocalStoryArcPalette.current.accentText)
 
 /**
  * The control that opens and closes the rail.

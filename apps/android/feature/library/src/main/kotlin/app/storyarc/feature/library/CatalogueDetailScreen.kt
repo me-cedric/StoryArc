@@ -21,7 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -273,7 +273,7 @@ private fun Headline(entry: OpdsEntry, isDownloaded: Boolean) {
             Text(
                 text = stringResource(R.string.catalogue_entry_downloaded),
                 style = MaterialTheme.typography.labelSmall,
-                color = palette.accent,
+                color = palette.accentText,
             )
         }
 

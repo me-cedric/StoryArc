@@ -11,6 +11,7 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRailItemDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import app.storyarc.core.designsystem.navigation.accentedItemColours
@@ -122,18 +123,20 @@ class AccentReachesTheControlsTest {
         }
 
     @Test
-    fun `the selected navigation label is the accent, on every brand scheme`() {
+    fun `the selected navigation label is the accent as text, on every brand scheme`() {
         // One composition, three themes side by side: a compose rule accepts `setContent`
         // once, and the schemes are siblings rather than a nesting so none inherits another's
         // roles. Both controls, because each hands the helper its own Material defaults.
         val drawn = mutableMapOf<String, NavigationItemColors>()
         compose.setContent {
             for ((name, scheme) in schemes()) {
-                MaterialExpressiveTheme(colorScheme = scheme) {
-                    drawn["$name bar"] =
-                        accentedItemColours(ShortNavigationBarItemDefaults.colors())
-                    drawn["$name rail"] =
-                        accentedItemColours(WideNavigationRailItemDefaults.colors())
+                CompositionLocalProvider(LocalStoryArcPalette provides palettes.getValue(name)) {
+                    MaterialExpressiveTheme(colorScheme = scheme) {
+                        drawn["$name bar"] =
+                            accentedItemColours(ShortNavigationBarItemDefaults.colors())
+                        drawn["$name rail"] =
+                            accentedItemColours(WideNavigationRailItemDefaults.colors())
+                    }
                 }
             }
             Text("")
@@ -150,10 +153,14 @@ class AccentReachesTheControlsTest {
                 val label =
                     colours.textColor(selected = true, enabled = true, isIconPositionTop = true)
                 assertEquals(
-                    "$name $control: the selected label", StoryArcColor.Brand.accent, label,
+                    "$name $control: the selected label is the palette's accent text",
+                    palettes.getValue(name).accentText,
+                    label,
                 )
-                assertEquals(
-                    "$name $control: the label is the scheme's primary", scheme.primary, label,
+                assertNotEquals(
+                    "$name $control: the label is the accent fill, which is under 4.5:1 as text",
+                    scheme.primary,
+                    label,
                 )
                 assertNotEquals(
                     "$name $control: the label is still Material's read of secondary",
@@ -223,6 +230,12 @@ class AccentReachesTheControlsTest {
             )
         }
     }
+
+    private val palettes = mapOf(
+        "dark" to StoryArcPalette.Dark,
+        "true black" to StoryArcPalette.OledDark,
+        "light" to StoryArcPalette.Light,
+    )
 
     private fun schemes(): List<Pair<String, ColorScheme>> = listOf(
         "dark" to brandDarkScheme(),

@@ -378,7 +378,7 @@ private fun ThumbnailCell(
             if (badgeText != null) {
                 Badge(
                     containerColor = palette.surfaceRaised.copy(alpha = 0.85f),
-                    contentColor = palette.accent,
+                    contentColor = palette.accentText,
                     modifier = Modifier.align(Alignment.TopStart).padding(StoryArcSpace.hair),
                 ) { Text(badgeText) }
             }
@@ -390,7 +390,7 @@ private fun ThumbnailCell(
             // The number's weight, not only the border: `native-experience` forbids
             // colour as the only signal, and a border is only colour.
             fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-            color = if (isCurrent) palette.accent else numberColor,
+            color = if (isCurrent) palette.accentText else numberColor,
         )
     }
 }

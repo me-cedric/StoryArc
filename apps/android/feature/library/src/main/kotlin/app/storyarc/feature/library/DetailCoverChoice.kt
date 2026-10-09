@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -194,7 +194,7 @@ internal fun CoverChoiceControls(
 ) {
     if (choice.onChoose == null) return
     val palette = LocalStoryArcPalette.current
-    val content = accent?.accent ?: MaterialTheme.colorScheme.primary
+    val content = accent?.accent ?: palette.accentText
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,

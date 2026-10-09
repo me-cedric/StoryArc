@@ -20,24 +20,6 @@ import androidx.compose.ui.unit.sp
  */
 class KnownFault(val check: Check, val label: String, val why: String, val look: Look? = null)
 
-/**
- * Text drawn in `colorScheme.primary`, which is the brand accent in both appearances. It reaches
- * 4.4:1 on the light canvas and 4.1:1 on the dark one, under the 4.5:1 that WCAG asks of body
- * text. Changing the accent is a design-token decision and not a fix to one screen, so each node
- * that draws it is listed on its own entry until the token moves.
- */
-fun brandAccentText(label: String, look: Look? = null) =
-    KnownFault(Check.CONTRAST, label, "primary text is the brand accent, under 4.5:1 on the canvas in both appearances", look)
-
-/**
- * Text drawn in `colorScheme.error`, which is `Status.danger` in both appearances. It reaches
- * 3.9:1 on a white card and 3.6:1 on the light canvas, and 3.7:1 on a dark card, all under the
- * 4.5:1 of body text. It passes on the dark canvas. A token decision for the same reason as
- * [brandAccentText].
- */
-fun dangerText(label: String, look: Look = Look.Light) =
-    KnownFault(Check.CONTRAST, label, "error text is under 4.5:1 on a card or canvas", look)
-
 /** The three rules a catalogue entry is held to. */
 enum class Check { TOUCH_TARGET, LABEL, CONTRAST }
 

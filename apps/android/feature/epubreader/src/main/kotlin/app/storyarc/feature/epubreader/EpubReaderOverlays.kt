@@ -93,7 +93,7 @@ internal fun EpubReaderOverlays(
                 Text(
                     text = stringResource(R.string.epub_return),
                     style = MaterialTheme.typography.labelLarge,
-                    color = palette.accent,
+                    color = palette.accentText,
                     modifier = Modifier.padding(
                         horizontal = StoryArcSpace.md,
                         vertical = StoryArcSpace.xs,

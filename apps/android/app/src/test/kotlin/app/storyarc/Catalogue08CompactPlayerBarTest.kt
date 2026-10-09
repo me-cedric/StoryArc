@@ -13,7 +13,6 @@ import app.storyarc.core.designsystem.navigation.RailMenuLabels
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Fixtures
 import app.storyarc.core.snapshots.Look
-import app.storyarc.core.snapshots.brandAccentText
 import app.storyarc.core.snapshots.catalogue
 import app.storyarc.feature.library.HomeEntry
 import app.storyarc.feature.library.HomeScreen
@@ -50,7 +49,7 @@ class Catalogue08CompactPlayerBarTest {
             .map { HomeEntry(Fixtures.publication(it), isReadableNow = true, pagesRemaining = null, fraction = 0.0) },
     )
 
-    private fun draw(look: Look) = compose.catalogue("08-compact-player-bar", look, listOf(brandAccentText("Home", Look.Dark))) {
+    private fun draw(look: Look) = compose.catalogue("08-compact-player-bar", look) {
         AdaptiveNavigationShell(
             entries = entries,
             menu = RailMenuLabels(expand = "Expand", collapse = "Collapse"),

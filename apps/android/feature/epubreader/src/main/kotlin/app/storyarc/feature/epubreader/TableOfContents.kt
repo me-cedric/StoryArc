@@ -170,7 +170,7 @@ private fun ContentsRow(
             Text(
                 text = here,
                 style = MaterialTheme.typography.labelLarge,
-                color = palette.accent,
+                color = palette.accentText,
                 modifier = Modifier.clearAndSetSemantics {},
             )
         }

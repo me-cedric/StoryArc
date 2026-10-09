@@ -41,6 +41,13 @@ data class StoryArcPalette(
     val scrim: Color,
     val accent: Color,
     val accentMuted: Color,
+    /**
+     * The accent drawn as text, at 4.5:1 or better on every surface of the palette. `accent`
+     * itself is a mark and a fill, not a label colour: see `close-the-audited-gaps` 27.4.
+     */
+    val accentText: Color,
+    /** `Status.danger` drawn as text, at 4.5:1 or better on every surface of the palette. */
+    val dangerText: Color,
 ) {
     /**
      * The same palette with the roles Increase Contrast asks to strengthen.
@@ -74,6 +81,8 @@ data class StoryArcPalette(
             scrim = StoryArcColor.Dark.scrim,
             accent = StoryArcColor.Brand.accent,
             accentMuted = StoryArcColor.Brand.accentMuted,
+            accentText = StoryArcColor.Dark.accentText,
+            dangerText = StoryArcColor.Dark.dangerText,
         )
 
         /**
@@ -97,6 +106,8 @@ data class StoryArcPalette(
             scrim = StoryArcColor.Light.scrim,
             accent = StoryArcColor.Brand.accent,
             accentMuted = StoryArcColor.Brand.accentMuted,
+            accentText = StoryArcColor.Light.accentText,
+            dangerText = StoryArcColor.Light.dangerText,
         )
 
         /**
@@ -120,6 +131,8 @@ data class StoryArcPalette(
             scrim = StoryArcColor.OledDark.scrim,
             accent = StoryArcColor.Brand.accent,
             accentMuted = StoryArcColor.Brand.accentMuted,
+            accentText = StoryArcColor.OledDark.accentText,
+            dangerText = StoryArcColor.OledDark.dangerText,
         )
     }
 }
@@ -310,7 +323,7 @@ internal fun brandDarkScheme() = darkColorScheme(
     onSurfaceVariant = StoryArcColor.Dark.textSecondary,
     outline = StoryArcColor.Dark.borderStrong,
     outlineVariant = StoryArcColor.Dark.borderSubtle,
-    error = StoryArcColor.Status.danger,
+    error = StoryArcColor.Dark.dangerText,
     scrim = StoryArcColor.Dark.scrim,
 ).groundedInChrome(StoryArcPalette.Dark, isDark = true)
 
@@ -332,7 +345,7 @@ internal fun brandOledDarkScheme() = darkColorScheme(
     onSurfaceVariant = StoryArcColor.OledDark.textSecondary,
     outline = StoryArcColor.OledDark.borderStrong,
     outlineVariant = StoryArcColor.OledDark.borderSubtle,
-    error = StoryArcColor.Status.danger,
+    error = StoryArcColor.OledDark.dangerText,
     scrim = StoryArcColor.OledDark.scrim,
 ).groundedInChrome(StoryArcPalette.OledDark, isDark = true)
 
@@ -360,7 +373,7 @@ internal fun brandLightScheme() = lightColorScheme(
     onSurfaceVariant = StoryArcColor.Light.textSecondary,
     outline = StoryArcColor.Light.borderStrong,
     outlineVariant = StoryArcColor.Light.borderSubtle,
-    error = StoryArcColor.Status.danger,
+    error = StoryArcColor.Light.dangerText,
     scrim = StoryArcColor.Light.scrim,
 ).groundedInChrome(StoryArcPalette.Light, isDark = false)
 
@@ -404,9 +417,9 @@ fun StoryArcTheme(
     // every screen below inherits the answer rather than each one asking the system and
     // deciding for itself what to do about it.
     val isHighContrast = rememberHighContrast()
-    val palette = if (isHighContrast) base.strengthened() else base
-
     val context = LocalContext.current
+    val isDynamic = !appearance.isTrueBlack && !isNatural &&
+        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val chrome = when {
         // Dynamic colour and true black are incompatible asks: Material You derives its
         // surfaces from the wallpaper, and a wallpaper-tinted "true black" is neither.
@@ -416,10 +429,21 @@ fun StoryArcTheme(
         // wallpaper-derived wash beside a clay accent is not a coherent theme, and
         // `design.md` asks Natural's accents to reach the whole app precisely so it is.
         isNatural -> if (darkTheme) naturalDarkScheme() else naturalLightScheme()
-        useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+        isDynamic ->
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         darkTheme -> brandDarkScheme()
         else -> brandLightScheme()
+    }
+
+    // A label drawn in the accent or the danger colour reads `accentText` and `dangerText`: the
+    // brand hue at the lightness that reaches 4.5:1 (`close-the-audited-gaps` 27.4). Under
+    // dynamic colour the wallpaper scheme owns both roles and Material keeps them legible, so
+    // the text colours follow the scheme.
+    val strengthened = if (isHighContrast) base.strengthened() else base
+    val palette = if (isDynamic) {
+        strengthened.copy(accentText = chrome.primary, dangerText = chrome.error)
+    } else {
+        strengthened
     }
 
     // Dynamic colour dresses the chrome; the ground under the artwork stays StoryArc's.

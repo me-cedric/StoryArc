@@ -143,6 +143,8 @@ private val naturalLightPalette = StoryArcPalette(
     scrim = StoryArcColor.NaturalLight.scrim,
     accent = StoryArcColor.Brand.clayStrong,
     accentMuted = StoryArcColor.Brand.clayStrong,
+    accentText = StoryArcColor.NaturalLight.accentText,
+    dangerText = StoryArcColor.NaturalLight.dangerText,
 )
 
 /**
@@ -166,6 +168,8 @@ private val naturalDarkPalette = StoryArcPalette(
     scrim = StoryArcColor.NaturalDark.scrim,
     accent = StoryArcColor.Brand.clay,
     accentMuted = StoryArcColor.Brand.clayStrong,
+    accentText = StoryArcColor.NaturalDark.accentText,
+    dangerText = StoryArcColor.NaturalDark.dangerText,
 )
 
 /** @see naturalLightPalette */
@@ -221,7 +225,7 @@ internal fun naturalLightScheme(): ColorScheme = lightColorScheme(
     onSurfaceVariant = StoryArcColor.NaturalLight.textSecondary,
     outline = StoryArcColor.NaturalLight.borderStrong,
     outlineVariant = StoryArcColor.NaturalLight.borderSubtle,
-    error = StoryArcColor.Status.danger,
+    error = StoryArcColor.NaturalLight.dangerText,
     scrim = StoryArcColor.NaturalLight.scrim,
 ).groundedInChrome(StoryArcPalette.NaturalLight, isDark = false)
 
@@ -237,6 +241,6 @@ internal fun naturalDarkScheme(): ColorScheme = darkColorScheme(
     onSurfaceVariant = StoryArcColor.NaturalDark.textSecondary,
     outline = StoryArcColor.NaturalDark.borderStrong,
     outlineVariant = StoryArcColor.NaturalDark.borderSubtle,
-    error = StoryArcColor.Status.danger,
+    error = StoryArcColor.NaturalDark.dangerText,
     scrim = StoryArcColor.NaturalDark.scrim,
 ).groundedInChrome(StoryArcPalette.NaturalDark, isDark = true)

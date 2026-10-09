@@ -3,7 +3,6 @@ package app.storyarc.feature.library
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Look
-import app.storyarc.core.snapshots.brandAccentText
 import app.storyarc.core.snapshots.catalogue
 import org.junit.Rule
 import org.junit.Test
@@ -21,7 +20,7 @@ class Catalogue06PublicationWithoutCoverTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun draw(look: Look) = compose.catalogue("06-publication-without-cover", look, listOf(brandAccentText("Add a cover"))) {
+    private fun draw(look: Look) = compose.catalogue("06-publication-without-cover", look) {
         val book = CatalogueShelf.publications[0]
         val model = CatalogueShelf.viewModel(withCovers = false)
         PublicationDetailScreen(

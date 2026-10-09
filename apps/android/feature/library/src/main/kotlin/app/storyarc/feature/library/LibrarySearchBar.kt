@@ -38,7 +38,7 @@ import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.material3.rememberSearchBarWithGapState
 import androidx.compose.runtime.Composable

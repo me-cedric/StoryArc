@@ -48,7 +48,7 @@ internal fun KavitaSearchOffer(
     Text(
         text = stringResource(R.string.library_search_on_server, server.displayName),
         style = MaterialTheme.typography.bodySmall,
-        color = palette.accent,
+        color = palette.accentText,
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onSearchOnServer(server, query.search) }

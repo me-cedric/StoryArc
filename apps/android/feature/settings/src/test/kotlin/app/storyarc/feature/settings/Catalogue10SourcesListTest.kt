@@ -8,8 +8,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Look
-import app.storyarc.core.snapshots.brandAccentText
-import app.storyarc.core.snapshots.dangerText
 import app.storyarc.core.snapshots.catalogue
 import org.junit.Rule
 import org.junit.Test
@@ -32,7 +30,6 @@ class Catalogue10SourcesListTest {
     private fun draw(look: Look) = compose.catalogue(
         "10-sources-list",
         look,
-        listOf(brandAccentText("Add a library")),
         act = {
             onNodeWithText(context.getString(R.string.settings_sources)).performClick()
         },

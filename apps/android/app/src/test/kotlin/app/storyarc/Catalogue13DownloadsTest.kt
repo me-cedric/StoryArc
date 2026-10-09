@@ -11,8 +11,6 @@ import app.storyarc.core.model.Download
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Fixtures
 import app.storyarc.core.snapshots.Look
-import app.storyarc.core.snapshots.brandAccentText
-import app.storyarc.core.snapshots.dangerText
 import app.storyarc.core.snapshots.catalogue
 import app.storyarc.feature.library.LibraryViewModel
 import app.storyarc.feature.library.adoptDownloads
@@ -113,16 +111,6 @@ class Catalogue13DownloadsTest {
         compose.catalogue(
             "13-downloads",
             look,
-            // Accent and error text, listed for the reason `brandAccentText` and `dangerText` give.
-            listOf(
-                brandAccentText("Pause all"),
-                brandAccentText("Resume all"),
-                brandAccentText("Cancel all"),
-                brandAccentText("Resume", Look.Dark),
-                brandAccentText("Retry", Look.Dark),
-                dangerText("Remove download", Look.Dark),
-                dangerText("Failed after 3 attempts"),
-            ),
             act = {
                 waitUntil(timeoutMillis = 10_000) { host.library.publications.value.size == finished.size }
                 // Covers decode off the main thread: the well that says CBZ goes when they land.

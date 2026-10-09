@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Look
-import app.storyarc.core.snapshots.dangerText
 import app.storyarc.core.snapshots.catalogue
 import org.junit.Rule
 import org.junit.Test
@@ -31,7 +30,6 @@ class Catalogue11SourceDetailTest {
     private fun draw(look: Look) = compose.catalogue(
         "11-source-detail",
         look,
-        listOf(dangerText("Remove")),
         act = {
             onNodeWithText(context.getString(R.string.settings_sources)).performClick()
             onNodeWithText("Living room NAS", useUnmergedTree = true).performClick()

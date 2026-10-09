@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
 import app.storyarc.core.snapshots.Look
 import app.storyarc.core.snapshots.catalogue
-import app.storyarc.core.snapshots.dangerText
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -27,7 +26,7 @@ class Catalogue09SettingsRootTest {
 
     private fun draw(look: Look) {
         CatalogueSettings.pinBuild(context)
-        compose.catalogue("09-settings-root", look, listOf(dangerText("Reset settings"))) {
+        compose.catalogue("09-settings-root", look) {
             CatalogueSettings.Screen(withSync = false)
         }
     }
