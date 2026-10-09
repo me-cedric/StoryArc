@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Inventory2
@@ -13,6 +14,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
@@ -55,35 +57,41 @@ internal fun LibraryTopBar(
     onOpenShelves: (() -> Unit)?,
     /** Null on a window wide enough that the navigation rail already carries settings. */
     onOpenSettings: (() -> Unit)?,
+    /** A window under [COMPACT_HEIGHT_DP] tall: the small bar, which hides as the shelf scrolls. */
+    compactHeight: Boolean = false,
 ) {
     val palette = LocalStoryArcPalette.current
-
-    MediumFlexibleTopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.library_title),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = palette.surfaceCanvas,
-            scrolledContainerColor = palette.surfaceRaised,
-            titleContentColor = palette.textPrimary,
-        ),
-        scrollBehavior = scrollBehavior,
-        actions = {
-            // Task 17.9: adding used to be a button of its own here. It moved to Settings'
-            // "Your libraries" screen, task 1.2's own direction for where it belongs -- an
-            // almost-empty library still has its own "Add a library" call to action on the
-            // shelf itself, drawn by `EmptyLibrary`.
-            LibraryOverflowMenu(
-                onSelect = onSelect,
-                onOpenShelves = onOpenShelves,
-                onOpenSettings = onOpenSettings,
-            )
-        },
+    val title = @Composable {
+        Text(
+            text = stringResource(R.string.library_title),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+    val colors = TopAppBarDefaults.topAppBarColors(
+        containerColor = palette.surfaceCanvas,
+        scrolledContainerColor = palette.surfaceRaised,
+        titleContentColor = palette.textPrimary,
     )
+    // Task 17.9: adding used to be a button of its own here. It moved to Settings'
+    // "Your libraries" screen, task 1.2's own direction for where it belongs -- an
+    // almost-empty library still has its own "Add a library" call to action on the
+    // shelf itself, drawn by `EmptyLibrary`.
+    val actions: @Composable RowScope.() -> Unit = {
+        LibraryOverflowMenu(
+            onSelect = onSelect,
+            onOpenShelves = onOpenShelves,
+            onOpenSettings = onOpenSettings,
+        )
+    }
+
+    if (compactHeight) {
+        // `close-the-audited-gaps` 25.2: Material's small bar, 64 dp, for a window under 480 dp
+        // tall. The medium bar's second row alone took more than the shelf was left with.
+        TopAppBar(title = title, colors = colors, scrollBehavior = scrollBehavior, actions = actions)
+    } else {
+        MediumFlexibleTopAppBar(title = title, colors = colors, scrollBehavior = scrollBehavior, actions = actions)
+    }
 }
 
 /**

@@ -32,6 +32,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -180,10 +181,14 @@ fun LibraryScreen(
 
     // Hide-on-scroll, not pinned. `native-experience` asks for a scroll edge effect where
     // content meets chrome; on Material that is the flexible bar collapsing as the shelf
-    // passes under it, which is Android's answer to getting chrome out of the artwork's
-    // way. The controls a reader needs mid-scroll do not go with it -- they sit below the
-    // bar in their own row, which is the whole point of moving them out of it.
-    val topBarScroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    // passes under it. A window under 480 dp tall (25.2) takes the small bar, and the strip
+    // of chips under it scrolls away too: [LibraryFrame].
+    val compactHeight = isCompactHeight(LocalConfiguration.current.screenHeightDp)
+    val topBarScroll = if (compactHeight) {
+        TopAppBarDefaults.enterAlwaysScrollBehavior()
+    } else {
+        TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    }
 
     var restarting by remember { mutableStateOf<Publication?>(null) }
 
@@ -455,6 +460,7 @@ fun LibraryScreen(
                     // that repeated them would be two ways to one place.
                     onOpenShelves = if (windowClass.showsSidebar) null else onOpenShelves,
                     onOpenSettings = if (windowClass.showsSidebar) null else onOpenSettings,
+                    compactHeight = compactHeight,
                 )
             }
         },
@@ -473,77 +479,70 @@ fun LibraryScreen(
                 // library again, and the one that never answered is the one this line names.
                 onRetrySources = { onProbeSources(SourceRefreshOrigin.AUTOMATIC) },
             )
-            // The bare count that stood here is gone. It named no publication, offered no
-            // action, and sat at the foot of the shelf on every surface this screen draws —
-            // `SkippedNotice`, above the shelf, is what `library-browsing` asks for instead.
         },
     ) { insets ->
-        Column(modifier = Modifier.fillMaxSize().padding(insets)) {
-            // No strip of per-source chips above the shelf. `library-browsing` presents
-            // every source as one library and takes origin off the browse path entirely, and
-            // task 2.4 of `one-library-three-destinations` asked for the chips to go with
-            // the per-source destinations. A reader who wants a server's own pages reaches
-            // it from Settings, where the connection lives. iOS removed its equivalent in
-            // the same slice.
+        LibraryFrame(compactHeight, Modifier.fillMaxSize().padding(insets)) {
+            // No strip of per-source chips: `library-browsing` presents every source as one library.
+            header {
+                // Above the shelf and inside the layout, so it takes its own space rather than
+                // floating over artwork. `library-browsing`: the notice "does not float over the
+                // shelf's content in a way that obscures a cover".
+                if (viewModel != null) {
+                    SkippedNotice(skipped = skipped, onDismiss = viewModel::dismissSkipped)
+                }
 
-            // Above the shelf and inside the layout, so it takes its own space rather than
-            // floating over artwork. `library-browsing`: the notice "does not float over the
-            // shelf's content in a way that obscures a cover".
-            if (viewModel != null) {
-                SkippedNotice(skipped = skipped, onDismiss = viewModel::dismissSkipped)
-            }
+                KavitaSearchOffer(registry, query, onSearchOnServer)
 
-            KavitaSearchOffer(registry, query, onSearchOnServer)
-
-            // Above the refreshable area, not inside it: pulling on a search field means
-            // nothing, and an indicator that comes down over the controls hides the two
-            // chips saying what the shelf underneath is narrowed to.
-            if (viewModel != null && publications.isNotEmpty()) {
-                // **The search bar is gone from here, and that is the change.** It used to sit
-                // above these controls, and the comment that held its place explained how to
-                // keep it from collapsing itself — "one bar, above the branch rather than
-                // inside it", because a bar rebuilt with the branch threw away every remote
-                // answer that had arrived. The advice was right and the placement was the
-                // problem: a field belonging to this screen made searching something a reader
-                // does *to* the shelf, and `navigation-shell` now says search "SHALL be a place
-                // a reader arrives at, and no control SHALL change shape or position to become
-                // it". The bar is `SearchScreen`'s, one tap away in the navigation bar from
-                // here and from Home.
-                //
-                // What stays is the narrowing below, which is a different job: these chips
-                // filter the shelf a reader is looking at. Search spans every source.
-                LibraryControls(
-                    query = query,
-                    registry = registry,
-                    layout = layout,
-                    availability = availability,
-                    downloads = downloads,
-                    grouping = grouping,
-                    onAvailabilityChange = chooseAvailability,
-                    onQueryChange = viewModel::setQuery,
-                    onDownloadsChange = chooseDownloads,
-                    onGroupingChange = chooseGrouping,
-                    onLayoutChange = viewModel::setLayout,
-                    // One action, everything it undoes. The library filter and the download
-                    // group are cleared with the rest of them, so there is no state a reader
-                    // can be left in without noticing. [LibraryNarrowing] decides what "all
-                    // of them" means, and the badge beside this button counts the same value.
-                    onClearFilters = {
-                        val cleared = LibraryNarrowing(query, downloads, availability).cleared()
-                        chooseAvailability(cleared.availability)
-                        chooseDownloads(cleared.downloads)
-                        viewModel.setQuery(cleared.query)
-                    },
-                    viewModel = viewModel,
-                )
-                LibraryNotices(
-                    cachedAt,
-                    refreshing,
-                    registry,
-                    publications,
-                    scanningFound = (scanState as? LibraryScanState.Scanning)?.found,
-                    onCancelScan = { viewModel.cancelScan() },
-                )
+                // Above the refreshable area, not inside it: pulling on a search field means
+                // nothing, and an indicator that comes down over the controls hides the two
+                // chips saying what the shelf underneath is narrowed to.
+                if (viewModel != null && publications.isNotEmpty()) {
+                    // **The search bar is gone from here, and that is the change.** It used to sit
+                    // above these controls, and the comment that held its place explained how to
+                    // keep it from collapsing itself — "one bar, above the branch rather than
+                    // inside it", because a bar rebuilt with the branch threw away every remote
+                    // answer that had arrived. The advice was right and the placement was the
+                    // problem: a field belonging to this screen made searching something a reader
+                    // does *to* the shelf, and `navigation-shell` now says search "SHALL be a place
+                    // a reader arrives at, and no control SHALL change shape or position to become
+                    // it". The bar is `SearchScreen`'s, one tap away in the navigation bar from
+                    // here and from Home.
+                    //
+                    // What stays is the narrowing below, which is a different job: these chips
+                    // filter the shelf a reader is looking at. Search spans every source.
+                    LibraryControls(
+                        query = query,
+                        registry = registry,
+                        layout = layout,
+                        availability = availability,
+                        downloads = downloads,
+                        grouping = grouping,
+                        onAvailabilityChange = chooseAvailability,
+                        onQueryChange = viewModel::setQuery,
+                        onDownloadsChange = chooseDownloads,
+                        onGroupingChange = chooseGrouping,
+                        onLayoutChange = viewModel::setLayout,
+                        // One action, everything it undoes. The library filter and the download
+                        // group are cleared with the rest of them, so there is no state a reader
+                        // can be left in without noticing. [LibraryNarrowing] decides what "all
+                        // of them" means, and the badge beside this button counts the same value.
+                        onClearFilters = {
+                            val cleared = LibraryNarrowing(query, downloads, availability).cleared()
+                            chooseAvailability(cleared.availability)
+                            chooseDownloads(cleared.downloads)
+                            viewModel.setQuery(cleared.query)
+                        },
+                        viewModel = viewModel,
+                    )
+                    LibraryNotices(
+                        cachedAt,
+                        refreshing,
+                        registry,
+                        publications,
+                        scanningFound = (scanState as? LibraryScanState.Scanning)?.found,
+                        onCancelScan = { viewModel.cancelScan() },
+                    )
+                }
             }
 
             // Pull to refresh, and no refresh button. Android was the only platform
