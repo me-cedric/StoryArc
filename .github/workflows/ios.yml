@@ -46,7 +46,8 @@ jobs:
       # build step. The runner's Xcode was 26.6 (Swift 6.3.3) and the machine the
       # tests passed on was Xcode 27.0 (Swift 6.4) — the newer toolchain compiles
       # them, so a green local run proved nothing about this runner.
-      # `pnpm test:ios` runs the same command for that reason.
+      # `pnpm test:ios:host` runs the same command for that reason. `pnpm test:ios`
+      # runs it, then the snapshot tests on a simulator, which this job does not run.
       - name: Test
         working-directory: apps/ios/Packages/StoryArcKit
         run: xcodebuild test -scheme StoryArcKit-Package -destination 'platform=macOS' -quiet

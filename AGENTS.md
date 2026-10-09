@@ -89,8 +89,8 @@ and made the CLI answer `No changes exist` on a repository with six active chang
 handoff.**
 
 **Neither `pnpm test:ios` nor `pnpm build:ios` compiles the UI tests.** `test:ios` runs
-`StoryArcKit`'s host suites and `build:ios` builds the app target; `StoryArcUITests` is
-neither. So roughly three hundred lines of `apps/ios/UITests` — the accessibility audits,
+`StoryArcKit`'s host suites, then the snapshot tests on a simulator; `build:ios` builds the
+app target; `StoryArcUITests` is neither. So roughly three hundred lines of `apps/ios/UITests` — the accessibility audits,
 the reader audits, the screenshot captures and the walk they all share — were compiled by
 no gate at all, and a syntax error in any of them would have surfaced only when somebody
 ran the tests by hand.
@@ -261,7 +261,7 @@ change** — never the whole repository when one module moved.
 
 | Changed | Run |
 | --- | --- |
-| `apps/ios/Packages/StoryArcKit` | `pnpm test:ios` (host, no simulator) |
+| `apps/ios/Packages/StoryArcKit` | `pnpm test:ios:host` (host tests only, no simulator). `pnpm test:ios` runs the host tests, then the snapshot tests (`pnpm snap:ios`) on a simulator |
 | `apps/ios/Packages/StoryArcEpub` | `pnpm test:ios:epub` — **needs a booted simulator**, because Readium is iOS-only and `swift test` cannot build this package at all. The script is what CI's `epub` job runs, so the two cannot drift. Keep its `-collect-test-diagnostics never`: without that flag a failure sends `xcodebuild` to collect a sysdiagnose, which times out after 600 seconds and turns a 30-second answer into an 11-minute one. `PublicationEgressTests` guards [ADR-0015](docs/decisions/0015-epub-webview-network-egress.md) and sets the floor at about 13 seconds of testing |
 | `packages/test-fixtures` | `pnpm fixtures:build`, then **commit the regenerated corpus and manifest**, then run both platforms' format tests |
 | `apps/ios` app target or `project.yml` | `pnpm build:ios` |
