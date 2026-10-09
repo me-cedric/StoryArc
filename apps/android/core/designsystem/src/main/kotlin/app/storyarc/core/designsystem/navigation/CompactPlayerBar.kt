@@ -126,6 +126,9 @@ fun CompactPlayerBar(
                     imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                     contentDescription = if (isPlaying) labels.pause else labels.play,
                     modifier = Modifier.size(24.dp),
+                    // No Surface sits above this bar, so the icon would take black from
+                    // LocalContentColor and vanish on the dark container.
+                    tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
         }
