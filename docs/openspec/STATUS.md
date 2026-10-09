@@ -271,6 +271,24 @@ accepts the storage root and its own library folder as the sync place; a displac
 2 to 3 seconds; the publication page keeps the NOT_DOWNLOADED provenance while a source does not answer;
 the page shows no progress while a copy travels. Frames are at the default text size only.
 
+**Wave 6 of the close-all-yellow goal landed on 2026-10-09** (four lanes, then frames on the iOS simulator
+and the Android emulator). Closed: `close-the-audited-gaps` 24.5 and 25.1 to 25.4, 25.6 and 25.7 (the iOS
+French provenance line; the Android landscape Library with a strip that scrolls away; four Android
+contrast and edge faults; the accessibility scan and the iOS Kavita cover audit now reach their screens;
+the slider reset and singular counts; a label colour made for the accent, gated by `pnpm tokens:verify`);
+`reader-theming-and-page-transitions` 7.9 (a resume goes to the first visible element, and the sync
+document carries it); and `library-sync` 5.3 to 5.8 (the conflict notice is real, iOS refuses a library
+folder as the sync place, a refused background refresh shows in grey, a source that answered keeps its
+state through a sync, a source from another device is marked). Partial: `close-the-audited-gaps` 24.4 (no
+test covers the other controls) and 25.5 (one voice test does not fail here, no corpus with duplicate
+server titles); `audiobooks-and-playback` 6.1 (a book that was finished once still restarts at 0); 15.10
+and `one-vocabulary-in-four-languages` 4.6 (French frames of the other provenance states). Product
+defects the frames found: an Android conflict notice is lost when a later sync with no conflict runs
+before the Library shows; a loopback source reads 'Not answering' beside a sentence that says the device
+does not try it; a folder audiobook has no content digest, so its position follows the container path.
+Owed frames: Finish on the Home hero, '1 of 1 title', the other provenance states, a page inside a long
+paragraph, and one document compared on both platforms. Frames are at the default text size only.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit

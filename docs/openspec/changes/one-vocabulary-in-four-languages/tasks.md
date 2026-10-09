@@ -633,6 +633,8 @@ Two literals, and the largest hidden surface behind them.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `fr-detail-e-also-in` (state e, a copy on the device and a second place, in French) and `comic-adjustments-fr` (the comic matte menu in French). **Left:** French state d (a source removed, no copy) and the French gone state could not be staged on Android, because they need a stale route. The iOS frames are not taken: they need a Kavita mock, a stopped mock and a stale route, and the iOS French page still shows its provenance line in English (defect 25.1), so the frames would repeat it.
 
+      **Wave 6 (close-all-yellow), 2026-10-09.** The iOS provenance line is fixed (25.1) and framed in French for the device state: `docs/designs/screenshots/wave6-ios-2026-10-09/ios-provenance-fr.png`. **Left:** French states d and e on iOS, the gone state on both platforms, and the Android state d have no frame. The two divergences for the owner stay.
+
 ## 5. The check that has to be able to fail
 
 Last, because a gate that fails on pre-existing code blocks eight in-flight

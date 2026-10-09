@@ -1136,7 +1136,7 @@ creep — see [`design.md`](design.md).
 
 ## 6. Playback outlives the publication
 
-- [x] 6.1 Both: leaving the reader while playing does not stop it, and the compact
+- [~] 6.1 Both: leaving the reader while playing does not stop it, and the compact
       bar is the one action back.
       **Android: true for a narrated audiobook, and photographed.** The audio is the
       service's, not a screen's, so leaving the player leaves it playing;
@@ -1222,6 +1222,8 @@ creep — see [`design.md`](design.md).
       `ios-compact-player.png`.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** The eight steps ran on the Android emulator: `docs/designs/screenshots/playback-proofs-android-2026-10-09/README.md` records each step as a session fact. No sound was made on this emulator. **Defect leads:** a book displaced by another source restarts at about 2 to 3 seconds, not where it stopped (steps 5 and 7, defect 1 in that README), and step 8 differs from the task text. The device checklist has the step (section H).
+
+      **Wave 6 (close-all-yellow), 2026-10-09.** Reviewer: partial. The displaced-book write is kept: the guard looked at the followed book, and the outgoing book was dropped (`DisplacedBookKeepsItsPositionTest`). Emulator proof with a never-finished two-minute book, steps 5 and 7: the reopened book was at 46136 ms against a stored 46095 ms, and at 68414 ms against 68373 ms. **Left (defect):** a book that was finished once still restarts at 0 on Continue listening, although a newer position is stored (`With Cover Long`: `is_finished` 1, offset 42128 ms). Trace `PlayingBook.play`, `ListenedPosition.resume` and the finished flag on that path.
 - [x] 6.2 Both: returning to a read-aloud session resumes at the sentence being
       spoken **then**, not where the reader left.
       **iOS: written, and blocked from being seen by a defect older than this change.** The

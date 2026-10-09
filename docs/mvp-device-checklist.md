@@ -206,8 +206,9 @@ what the emulator or simulator proved.
    narrator stops), start read-aloud (one voice), take a call, end the call, and confirm that
    only the voice speaks. Emulator steps 1 to 7 passed. In step 8 the voice could not start
    while the call held the audio focus. Also check that the displaced audiobook comes back
-   where it stopped: on the emulator it restarted at 2 to 3 seconds. Task
-   `audiobooks-and-playback` 6.1.
+   where it stopped: on the emulator a never-finished book now resumes (46136 ms against a
+   stored 46095 ms, and 68414 ms against 68373 ms), but a book that was finished once still
+   restarts at 0. Task `audiobooks-and-playback` 6.1.
 5. **Reopen an audiobook after a force quit (iOS).** Play a book for two minutes, force quit
    the app, reopen the book, and confirm the same minute. Simulator: chapter Two at 0:01.
    Task `audiobooks-and-playback` 13.3.
