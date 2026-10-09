@@ -76,6 +76,20 @@ final class CatalogueAuditTests: XCTestCase {
         try auditCatalogue(app, named: "14 Search at rest")
     }
 
+    /// 18. The library with the notice about files that could not be opened. Each of its two
+    /// controls is a button of its own, 44 points high, which `auditCatalogue` measures.
+    func testCatalogue18LibrarySkippedNotice() throws {
+        let app = sweepLaunch()
+        try showTheShelf(in: app)
+        let show = app.buttons["Show"]
+        try XCTSkipUnless(
+            show.waitForExistence(timeout: 10),
+            "This device's library skipped no file, so it shows no notice."
+        )
+        XCTAssertTrue(app.buttons["Dismiss"].exists, "The notice has no close button.")
+        try auditCatalogue(app, named: "18 Library with the skipped notice")
+    }
+
     // MARK: - The publication page
 
     /// 5. A publication page with a cover.

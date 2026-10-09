@@ -2,6 +2,7 @@ import CoreGraphics
 import Foundation
 import UIKit
 
+import Formats
 @testable import LibraryFeature
 import StoryArcCore
 
@@ -100,10 +101,12 @@ enum CatalogueLibrary {
     static func model(
         entries chosen: [Entry]? = nil,
         withCovers: Bool = true,
-        layout: LibraryLayout = .grid
+        layout: LibraryLayout = .grid,
+        skipped: [SkippedPublications.Entry] = []
     ) -> LibraryModel {
         let used = chosen ?? entries
         let model = LibraryModel()
+        model.skipped = SkippedPublications().settling(skipped)
         // A folder in the model is what stops `restoreFolders()` scanning the host's own
         // Documents, which would replace the fixtures a moment after they are drawn.
         model.folders = [URL(fileURLWithPath: "/fixtures")]

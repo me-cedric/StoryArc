@@ -155,7 +155,7 @@ struct SkippedNoticeAnnouncementTests {
         #expect(!said.contains(Self.sevenZipReasonKey))
         #expect(!said.contains(Self.protectedReasonKey))
         // The control for the two negatives: the walk still sees strings, elsewhere in the tree.
-        #expect(tree.strings.contains("library.skipped.list"))
+        #expect(tree.strings.contains("library.skipped.show"))
     }
 
     @Test("The way to the list is a button with a name, and not the notice itself")
@@ -164,16 +164,20 @@ struct SkippedNoticeAnnouncementTests {
         let buttons = Self.buttons(in: tree)
 
         #expect(
-            buttons.contains { $0.strings.contains("library.skipped.list") },
-            "no button is labelled with the list's name"
+            buttons.contains { $0.strings.contains("library.skipped.show") },
+            "no button is labelled Show"
         )
-        // Every control in the notice carries a name — `ViewThatFits` builds each of the two
-        // twice, and none of the four is a glyph.
-        for button in buttons {
-            let named = button.strings.contains("library.skipped.list")
-                || button.strings.contains("library.skipped.dismiss")
-            #expect(named, "a control in the notice carries no name")
-        }
+        // Two controls and no more: Show, and the system's close button. The close button draws
+        // its own glyph, so its name for a screen reader is the accessibility label put on it,
+        // and the tree holds that word.
+        #expect(buttons.count == 2, "expected Show and the close button, found \(buttons.count) buttons")
+        #expect(tree.strings.contains("library.skipped.dismiss"), "the close button has no name")
+        // Task 27.2, decision O28: no tinted capsule. `.bordered` is the Material tonal shape
+        // that Android keeps and this platform does not draw.
+        #expect(
+            !tree.descendants.contains { $0.typeName.contains("BorderedButtonStyle") },
+            "the notice draws a bordered capsule"
+        )
 
         // "not the whole notice": no button encloses the announced element, the element holds
         // no button, and nothing else here is made tappable. A banner that is itself a button

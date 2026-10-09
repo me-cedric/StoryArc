@@ -2051,6 +2051,36 @@
         }
       }
     },
+    "cover.picture": {
+      "comment": "A reading list's own cover, read by a screen reader as a picture beside its edit button.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titelbild"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couverture"
+          }
+        }
+      }
+    },
     "cover.remove": {
       "extractionState": "manual",
       "localizations": {
@@ -8782,6 +8812,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "StoryArc ne lit pas le format %@"
+          }
+        }
+      }
+    },
+    "library.skipped.show": {
+      "comment": "The borderless control in the notice about files that could not be opened. It opens the list.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzeigen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mostrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Afficher"
           }
         }
       }

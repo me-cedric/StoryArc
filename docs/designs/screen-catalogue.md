@@ -69,6 +69,7 @@ accessibility audit.
 | 15 | Comic or PDF reader chrome | `ReaderCatalogueTests/testCatalogue15ComicReaderChrome` | `ReaderCatalogueTests/15-comic-reader-chrome` | `testCatalogue15ReaderChrome` | `:feature:reader` `Catalogue15ReaderChromeTest`, `15-reader-chrome`. The comic reader only |
 | 16 | Reading themes sheet | `ReaderCatalogueTests/testCatalogue16ThemeSheet` | `ReaderCatalogueTests/16-theme-sheet` | `testCatalogue16ThemeSheet` | `:feature:epubreader` `Catalogue16ThemeSheetTest`, `16-theme-sheet`. The preview box is empty, because Robolectric does not draw a web view |
 | 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue17LibraryRailTest`, `17-library-a-to-z-rail` |
+| 18 | Library with the skipped notice | `LibraryCatalogueTests/testCatalogue18LibrarySkippedNotice` | `LibraryCatalogueTests/18-library-skipped-notice` | `testCatalogue18LibrarySkippedNotice`, on a device whose scan skipped a file | none yet. Android keeps its Material notice, and its snapshot is owed to the Android lane |
 
 Entry 05b is not in the first list of the change. It holds a fault that the snapshots found, and
 its test keeps that fault from coming back.

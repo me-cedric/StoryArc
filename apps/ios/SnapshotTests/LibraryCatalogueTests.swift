@@ -1,3 +1,4 @@
+import Formats
 @testable import LibraryFeature
 import SwiftUI
 import XCTest
@@ -31,6 +32,13 @@ final class LibraryCatalogueTests: XCTestCase {
     func testCatalogue14SearchAtRest() {
         assertCatalogue("14-search-at-rest", delay: 1.5) {
             LibraryView(model: CatalogueLibrary.model(), surface: .search)
+        }
+    }
+
+    func testCatalogue18LibrarySkippedNotice() {
+        let one = SkippedPublications.Entry(name: "Broken Transfer.cbz", reason: .archiveUnreadable)
+        assertCatalogue("18-library-skipped-notice", delay: 1.5) {
+            LibraryView(model: CatalogueLibrary.model(skipped: [one]))
         }
     }
 

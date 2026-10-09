@@ -360,6 +360,8 @@ targets:
         product: Playback
       - package: StoryArcKit
         product: PlayerFeature
+      - package: StoryArcKit
+        product: Formats
       - package: StoryArcEpub
         product: EpubReaderFeature
     settings:

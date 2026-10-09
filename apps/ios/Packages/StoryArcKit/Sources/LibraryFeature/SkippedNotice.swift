@@ -25,6 +25,7 @@ internal import Formats
 /// Android draws the same three states from `SkippedNotice`.
 struct SkippedNotice: View {
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let skipped: SkippedPublications
     let dismiss: () -> Void
@@ -55,7 +56,7 @@ struct SkippedNotice: View {
             // come back to it" — and "the count is not shown again for the same
             // publications", which is why this one carries no number.
             HStack {
-                openList
+                openReachableList
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, StoryArcSpace.gutter)
@@ -63,95 +64,111 @@ struct SkippedNotice: View {
         }
     }
 
-    /// The notice itself: what happened, and the two things a reader can do about it.
+    /// The notice in the iOS 26 idiom: a warning symbol, the sentence, a borderless *Show*
+    /// and the system's own close button. No tinted capsule: that is Android's Material tonal
+    /// button, and this platform draws a secondary action as plain tinted text.
     ///
-    /// **The controls sit under the sentence, and a capture at the largest text size is why.**
-    /// The first version put them beside it in an `HStack`; at
-    /// `accessibility-extra-extra-extra-large` the sentence took three lines in half the
-    /// window and the named control was truncated to *"What couldn’t be open…"*. A control
-    /// whose name is cut off is not the named control `library-browsing` asks for, and no unit
-    /// test can see it — the width that did the truncating belongs to the window.
+    /// **The controls drop under the sentence at the accessibility text sizes, and a capture at
+    /// the largest one is why.** At `accessibility-extra-extra-extra-large` the sentence takes
+    /// three lines in half the window and a named control beside it is cut off. A control whose
+    /// name is truncated is not the named control `library-browsing` asks for, and no unit test
+    /// can see it, because the width that truncates it is the window's. At the ordinary sizes
+    /// the sentence wraps beside the controls. `ViewThatFits` chose the stacked form for any
+    /// long file name, because it measures a sentence on one line.
     private func banner(sentence: Text, reason: SkipReason?) -> some View {
-        VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-            VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
-                sentence
-                    .textRole(.footnote)
-                    .foregroundStyle(theme.palette.textPrimary)
-                // `publication-formats`' refusal, in the reader's language: the scan hands
-                // over a case and `SkipReasonWords` says what it means. Shown here only when
-                // there is one publication to attribute it to; several reasons belong in the
-                // list, where each sits beside its own name.
-                if let reason {
-                    reason.sentence
-                        .textRole(.caption)
-                        .foregroundStyle(theme.palette.textSecondary)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
+                    HStack(alignment: .top, spacing: StoryArcSpace.sm) {
+                        warning
+                        message(sentence, reason: reason)
+                        close
+                    }
+                    show
+                }
+            } else {
+                HStack(spacing: StoryArcSpace.sm) {
+                    warning
+                    message(sentence, reason: reason)
+                    show
+                    close
                 }
             }
-            // One stop for a screen reader rather than two, so the notice is announced once
-            // and says both halves. `library-browsing`: "it is announced once, naming the
-            // publication where there is one and the count where there are several".
-            .accessibilityElement(children: .combine)
-
-            actions
         }
         .padding(.horizontal, StoryArcSpace.gutter)
-        .padding(.vertical, StoryArcSpace.sm)
+        .padding(.vertical, StoryArcSpace.xs)
         .frame(maxWidth: .infinity, alignment: .leading)
         // Opaque, and this is the point of the view. The material this used to draw on let
         // the cover behind it through.
         .background(theme.palette.surfaceRaised)
     }
 
-    /// Both controls side by side while they fit, stacked when they do not.
-    ///
-    /// `ViewThatFits` rather than a fixed choice, because the two are the same shape at every
-    /// ordinary text size and are two full-width capsules at the accessibility ones. Android's
-    /// equivalent is a `FlowRow`, which is the same rule its own chip row already follows.
-    private var actions: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: StoryArcSpace.sm) {
-                openList
-                dismissal
-                Spacer(minLength: 0)
-            }
-            VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
-                openList
-                dismissal
-            }
-        }
+    /// Decoration: the sentence already says what failed, so a screen reader skips the symbol.
+    private var warning: some View {
+        Image(systemName: "exclamationmark.triangle.fill")
+            .foregroundStyle(StoryArcColor.Status.danger)
+            .accessibilityHidden(true)
     }
 
-    private var dismissal: some View {
-        Button(action: dismiss) {
-            Text("library.skipped.dismiss", bundle: .module)
-                .textRole(.caption)
-                .hitRegion()
+    private func message(_ sentence: Text, reason: SkipReason?) -> some View {
+        VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            sentence
+                .textRole(.footnote)
+                .foregroundStyle(theme.palette.textPrimary)
+            // `publication-formats`' refusal, in the reader's language: the scan hands over a
+            // case and `SkipReasonWords` says what it means. Shown here only when there is one
+            // publication to attribute it to; several reasons belong in the list, where each
+            // sits beside its own name.
+            if let reason {
+                reason.sentence
+                    .textRole(.caption)
+                    .foregroundStyle(theme.palette.textSecondary)
+            }
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(theme.palette.textSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // One stop for a screen reader rather than two, so the notice is announced once and
+        // says both halves. `library-browsing`: "it is announced once, naming the publication
+        // where there is one and the count where there are several".
+        .accessibilityElement(children: .combine)
     }
 
     /// The way to the list, and it is a control with a name.
     ///
     /// `library-browsing`: "the way to the list is a control with a name, not the whole
-    /// notice". Nothing here carries a tap gesture, which is what makes that true rather
-    /// than merely stated — a banner that is itself a button is announced as one, and a
-    /// reader who wanted to dismiss it opens a sheet instead.
-    private var openList: some View {
+    /// notice". Nothing here carries a tap gesture, which is what makes that true rather than
+    /// merely stated: a banner that is itself a button is announced as one, and a reader who
+    /// wanted to dismiss it opens a sheet instead.
+    private var show: some View {
         Button { isListShown = true } label: {
-            Text("library.skipped.list", bundle: .module)
-                .textRole(.caption)
-                // A bordered button's label truncates on one line by default, and at
-                // `accessibility-extra-extra-extra-large` this one read *"What couldn’t b…"*
-                // — a control whose name is cut off is not the named control the spec asks
-                // for. Wrapping is what a picture at that size asked for; nothing smaller
-                // could have said so, because the width that truncated it is the window's.
-                .fixedSize(horizontal: false, vertical: true)
-                .multilineTextAlignment(.leading)
+            Text("library.skipped.show", bundle: .module)
+                .textRole(.subheadline)
                 .hitRegion()
         }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
+        .buttonStyle(.borderless)
+    }
+
+    /// The system's close button. Its role names it and draws it; the label is for a screen
+    /// reader, which hears the same word the notice always used.
+    private var close: some View {
+        Button(role: .close, action: dismiss)
+            .labelStyle(.iconOnly)
+            .buttonStyle(HitRegionButtonStyle(.glass))
+            .buttonBorderShape(.circle)
+            .accessibilityLabel(Text("library.skipped.dismiss", bundle: .module))
+    }
+
+    /// What is left after a dismissal: no sentence, so the control carries the whole name.
+    private var openReachableList: some View {
+        Button { isListShown = true } label: {
+            Label {
+                Text("library.skipped.list", bundle: .module)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle")
+            }
+            .textRole(.footnote)
+            .hitRegion(alignment: .leading)
+        }
+        .buttonStyle(.borderless)
     }
 }
 
