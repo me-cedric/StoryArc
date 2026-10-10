@@ -186,9 +186,9 @@ export function selector(platform, words) {
 /**
  * The walk for one device and one language, as one list of steps.
  *
- * Frames 01 to 04 follow one path. The app then starts again: the themes sheet of frame 04
- * is not in the iOS accessibility snapshot, so no step can close it, and a new launch leaves
- * the reader on every platform. Frame 05 opens the audiobook, and frame 06 is Home, whose
+ * Frames 01 to 04 follow one path. The app then starts again: the iOS themes sheet is not in
+ * the accessibility snapshot, so no step can close it, and the agent-device runner refused
+ * steps for seconds after it. Frame 05 opens the audiobook, and frame 06 is Home, whose
  * *Continue reading* holds the comic, the ebook and the audiobook that the walk opened.
  *
  * Each chunk is one frame: the steps that reach it and take it, what it `needs` (the chunks
@@ -258,7 +258,9 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
       needs: [],
       steps: [
         ...toLibrary, { tap: `${lib.ebook},`, scroll: true }, { wait: s('read') }, { press: s('read') },
-        { wait: s('epubMenu') }, ...turns(lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
+        // The iOS reader shows its chrome about two seconds before it draws the book, under a
+        // spinner, and a turn in that time is lost.
+        { wait: s('epubMenu') }, ...(ios ? [{ waitAbsent: 'role=activity-indicator' }] : []), ...turns(lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
         ...themes, { shot: '04' },
       ],
       exit: [{ relaunch: true }, launched],
@@ -457,7 +459,7 @@ function selfTest() {
     ['frame 04 alone skips the comic', () => !taps(walk(context('ios', ['04'])), 'The Boys #1,')],
     ['frame 05 alone skips the comic and the ebook', () => { const w = walk(context('ios', ['05'])); return !taps(w, 'The Boys #1,') && !taps(w, 'The Secret Diary of Laura Palmer,') }],
     ['frame 06 alone opens all three first', () => { const w = walk(context('android', ['06'])); return shots(w).join() === '06' && ['The Boys #1,', 'The Secret Diary of Laura Palmer,', 'Dungeon Crawler Carl,'].every((t) => taps(w, t)) }],
-    ['the walk starts the app again after the ebook', () => walk(context('ios', ['04', '05'])).some((st) => st.relaunch)],
+    ['the walk starts the app again after the ebook', () => ['ios', 'android'].every((p) => walk(context(p, ['04', '05'])).some((st) => st.relaunch))],
     ['the walk ends at its last shot', () => walk(context('android', ['01'])).at(-1).shot === '01'],
     ['a frame after the comic leaves the reader', () => walk(context('android', ['03', '04'])).some((st) => st.press === selector('android', labels('android', 'de').close))],
     ['a fixed wait carries its reason', () => ['ios', 'android'].every((p) => walk(context(p, all)).every((st) => !st.pause || st.why))],

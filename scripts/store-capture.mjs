@@ -117,11 +117,20 @@ const CONTROLS = new Set(['button', 'group', 'cell', 'link', 'tab', 'menu-item']
 /** Bars that float over content: a tap whose centre falls in one presses the bar. */
 const BARS = new Set(['tab-bar', 'navigation-bar'])
 
-/** The centre of the first node with these words that is on screen and not under a bar. */
+/**
+ * The centre of the first node with these words that is on screen and not under a bar.
+ *
+ * A node that carries the same label as its parent comes back with no label and
+ * `inheritsLabel`. An iOS scroll area takes the label of its first cell, so without the
+ * parent's label the walk would press the middle of the shelf instead of that cell.
+ */
 function find(nodes, viewport, words, exact) {
   const inside = (r, p) => p.x >= r.x && p.x <= r.x + r.width && p.y >= r.y && p.y <= r.y + r.height
+  const byIndex = new Map(nodes.map((n) => [n.index, n]))
+  const labelOf = (node) => (node.label || !node.inheritsLabel ? node.label : labelOf(byIndex.get(node.parentIndex) ?? {}))
   const bars = nodes.filter((n) => BARS.has(n.kind) && n.rect).map((n) => n.rect)
   const centres = nodes
+    .map((node) => ({ ...node, label: labelOf(node) }))
     .filter(({ label, rect }) => label && rect && (exact ? words.includes(label.trim()) : words.some((w) => label.includes(w))))
     .filter(({ rect }) => rect.x >= 0 && rect.y >= 0 && rect.x + rect.width <= viewport.width && rect.y + rect.height <= viewport.height)
     .map((node) => ({ node, x: Math.round(node.rect.x + node.rect.width / 2), y: Math.round(node.rect.y + node.rect.height / 2) }))
@@ -229,6 +238,7 @@ async function run(lane, locale, steps) {
     else if (step.scroll) batch.push({ command: 'scroll', input: { direction: 'down', amount: step.scroll } })
     else if (step.relaunch) {
       await flush()
+      await lane.beforeRelaunch?.()
       await open(lane, locale)
     }
     else if (step.shot) {
@@ -486,6 +496,13 @@ async function iosLane(name, failures) {
       for (const dir of ['Library/Application Support', 'Library/Saved Application State']) rmSync(join(lane.container, dir), { recursive: true, force: true })
       for (const dir of ['Library/Application Support', 'Widget']) rmSync(join(lane.group, dir), { recursive: true, force: true })
       await simctl('spawn', device.udid, 'defaults', 'delete', join(lane.container, 'Library/Preferences', BUNDLE)).catch(() => {})
+    },
+    // The registry records when the libraries last answered, and after a new launch the iPad
+    // library says so at its foot, beside the player of frame 05. Without the registry the app
+    // starts it again as on a first launch, with the same library and no such line.
+    beforeRelaunch: async () => {
+      await simctl('terminate', device.udid, BUNDLE).catch(() => {})
+      await simctl('spawn', device.udid, 'defaults', 'delete', join(lane.container, 'Library/Preferences', BUNDLE), 'app.storyarc.sources').catch(() => {})
     },
   }
   try {

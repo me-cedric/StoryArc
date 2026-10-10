@@ -89,18 +89,22 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
    file the library does not name moves to a parking folder; nothing is deleted.
 3. For each language, the lane resets the app's state, keeps the library, and walks the
    frames in one path (`walk()` in `scripts/store-walk.mjs`). After frame 04 the walk starts
-   the app again, because no step can close the iOS themes sheet. Frame 05 opens the
-   audiobook. Frame 06 then goes to Home, so *Continue reading* holds the three books that the
-   walk opened. `--frames 06` alone still opens all three first.
-   Each page turn waits until the screen is still: after quick turns, the Android EPUB reader
-   did not record the position, and the ebook was missing from *Continue reading*.
-4. Each step waits for its screen before the screenshot: a selector, a text, or a quiet
+   the app again, because no step can close the iOS themes sheet. Before that launch, the iOS
+   lane deletes the app's registry of libraries. The registry records when the libraries last
+   answered, and after a new launch the iPad library shows that line beside the player of
+   frame 05. Frame 05 opens the audiobook. Frame 06 then goes to Home, so *Continue reading*
+   holds the three books that the walk opened. `--frames 06` alone still opens all three first.
+4. Each page turn waits until the screen is still: after quick turns, the Android EPUB reader
+   did not record the position, and the ebook was missing from *Continue reading*. The iOS
+   EPUB reader shows its chrome about two seconds before the book, under a spinner, so the
+   first turn waits until the spinner is gone.
+5. Each step waits for its screen before the screenshot: a selector, a text, or a quiet
    screen. Two waits on iOS are fixed, and the walk says why: agent-device does not see the
    EPUB reader's menu sheet, so the walk taps its *Reading themes* row by position.
-5. Every label is the app's own word: Android `strings.xml` through `namedIn()` in
+6. Every label is the app's own word: Android `strings.xml` through `namedIn()` in
    `scripts/android-routes.mjs`, iOS `Localizable.xcstrings`. A renamed key fails the run by
    name before a device boots. `pnpm store:selftest`, part of `pnpm lint`, checks the walk.
-6. The Android status bar is agent-device's demo mode. iOS shows 9:41 through
+7. The Android status bar is agent-device's demo mode. iOS shows 9:41 through
    `simctl status_bar`, cleared at the end. The time is a full ISO date, so the iPad shows
    Sun 9 Jan and not the date of the run. The date is a Tuesday: simctl draws the wrong
    weekday. The run shuts down the devices it booted.
