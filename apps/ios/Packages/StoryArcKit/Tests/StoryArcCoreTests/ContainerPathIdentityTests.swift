@@ -28,7 +28,7 @@ struct ContainerPathIdentityTests {
 
     @Test("A document with seven copies of one book merges to one record with the device's identity")
     func sevenCopiesBecomeOne() {
-        let copies = (1...7).map { index in
+        let copies = (1...7).reversed().map { index in
             ReadingProgress(
                 identity: PublicationIdentity(normalizedPath: before.replacingOccurrences(
                     of: "0B6E1F5C-2C2E-4C59-8E44-0D6C0A1E2B1", with: "0B6E1F5C-2C2E-4C59-8E44-0D6C0A1E2B\(index)"
@@ -54,5 +54,9 @@ struct ContainerPathIdentityTests {
         #expect(merged.count == 1)
         #expect(merged.first?.identity == mine)
         #expect(merged.first?.position == .listening(part: 7, partCount: 9, offset: 10, of: 60))
+
+        let fresh = LibrarySyncMerge.merging(document, into: LibrarySnapshot(), device: "new").snapshot.progress
+        #expect(fresh.count == 1, "a device with no record of the book takes one, not seven")
+        #expect(fresh.first?.position == .listening(part: 7, partCount: 9, offset: 10, of: 60))
     }
 }
