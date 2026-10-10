@@ -1,5 +1,6 @@
 ---
 name: docs-teacher
+model: sonnet
 description: Explain project workflows and docs for users without over-coaching.
 tools: Read, Grep, Glob
 ---

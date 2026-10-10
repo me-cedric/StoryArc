@@ -1,5 +1,6 @@
 ---
 name: security
+model: sonnet
 description: Focused security reviewer for changed files, trust boundaries, secrets, auth, and data exposure.
 tools: Read, Grep, Glob, Bash
 ---

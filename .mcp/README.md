@@ -12,6 +12,7 @@ This project may use MCP servers for agent tools and context.
 | figma-mcp-go | Figma plugin bridge for free/local design reads | See `.mcp/figma-mcp-go.md` and `.mcp/figma-mcp-go.example.json` | none; requires Figma Desktop plugin running and edit role on the Figma file |
 | headroom | Context compression (compress/retrieve/stats) | See `.mcp/headroom.example.json` | none or local only |
 | angular-cli | Angular CLI tools + live best practices/doc search | See `.mcp/angular-cli.example.json` (ships `--read-only`) | none |
+| agent-device | Drive and inspect a running iOS or Android app (screens, element bounds, screenshots) | See `.mcp/agent-device.example.json` + `docs/tooling/device-automation.md`; pin the version | none |
 | research (context7, sequential-thinking, fetch, playwright) | Live docs, reasoning, web pages, browser | See `.mcp/recommended.example.json` + `docs/tooling/mcp-servers.md` | none |
 
 Gemini CLI reads MCP servers from `.gemini/settings.json` instead of `.mcp/`

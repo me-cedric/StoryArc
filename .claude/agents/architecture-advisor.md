@@ -1,5 +1,6 @@
 ---
 name: architecture-advisor
+model: sonnet
 description: Help choose and justify the architecture for a new project — research-first, technology-neutral, no unlabeled guesses. Produces ADR, mermaid diagrams, risks, assumptions, open questions, and optionally a backlog and meeting list.
 tools: Read, Grep, Glob, Bash, WebSearch, WebFetch, Write, Edit
 ---
