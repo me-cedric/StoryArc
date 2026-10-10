@@ -71,12 +71,10 @@ jobs:
 
       - name: Read the reader's notes of this version
         # `pnpm release` filed them under the version. Play reads `<versionCode>.txt` from the
-        # changelogs folder of each language; the GitHub release reads the same text.
+        # changelogs folder of each listing language; the GitHub release reads the en-US text.
         run: |
-          DIR="$RUNNER_TEMP/play/en-US/changelogs"
-          mkdir -p "$DIR"
+          node scripts/release.mjs --play-notes "${{ steps.version.outputs.name }}" "${{ steps.version.outputs.code }}" "$RUNNER_TEMP/play"
           node scripts/release.mjs --notes "${{ steps.version.outputs.name }}" > "$RUNNER_TEMP/notes.txt"
-          cp "$RUNNER_TEMP/notes.txt" "$DIR/${{ steps.version.outputs.code }}.txt"
 
       - uses: actions/setup-java@v5
         with:

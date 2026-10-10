@@ -741,15 +741,20 @@ notes are for readers.
 - **Write the line in the same commit as the change.** Each change that a reader notices
   adds one line under `## Unreleased`: a feature, a fix of a visible defect, a changed
   behaviour. A refactor, a test, a CI or a docs change adds nothing.
-- **Write for a reader, not a developer.** Plain English, one short sentence for each line,
-  starting with `- `. Say what the reader can do now or what works now. Do not name files,
-  modules, libraries, tests, task numbers or platforms' internals.
+- **Write for a reader, not a developer.** One short sentence for each line, starting with
+  `- `. Say what the reader can do now or what works now. Do not name files, modules,
+  libraries, tests, task numbers or platforms' internals.
+- **Write each line in the four languages of the Play listing.** `### en-US`, `### de-DE`,
+  `### es-ES` and `### fr-FR` under `## Unreleased`, the same lines in the same order. Use
+  the app's own words for a feature: its `strings.xml` in `values`, `values-de`, `values-es`
+  and `values-fr`. `LANGUAGES` in `scripts/release.mjs` lists the languages; change it when
+  the listing changes.
 - **Describe the Android app.** Only it ships today. Leave out a change that only iOS or a
   desktop app has.
-- **Keep the section short.** Play takes at most 500 characters. Merge small fixes into one
-  line, such as "- Fixes for reading and playback."
-- **`pnpm release` checks this.** It refuses an empty `## Unreleased` section and one over
-  500 characters, before it changes anything. Then it files the section under the version.
+- **Keep the section short.** Play takes at most 500 characters in each language. Merge
+  small fixes into one line, such as "- Fixes for reading and playback."
+- **`pnpm release` checks this.** It refuses a language with no notes and notes over 500
+  characters, before it changes anything. Then it files the section under the version.
 
 **Check the result, do not assume it.** The lane can fail after the tag is pushed —
 a rejected version code, an expired key.

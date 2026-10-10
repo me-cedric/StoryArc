@@ -3,7 +3,8 @@
 // Usage: pnpm release patch|minor|major   bump, commit, tag, push
 //        pnpm release 0.4.0               the same, with the version named outright
 //        pnpm release patch --dry         print what it would do and change nothing
-//        node scripts/release.mjs --notes 0.4.0   print the reader's notes of one release
+//        node scripts/release.mjs --notes 0.4.0   print the en-US notes of one release
+//        node scripts/release.mjs --play-notes 0.4.0 12 <dir>   write <dir>/<language>/changelogs/12.txt
 //        node scripts/release.mjs --self-test
 //
 // **What it does here.** Writes the new version into `apps/android/gradle.properties` and
@@ -20,27 +21,37 @@
 // refusal arrives after the build, so the increment happens here where it is cheap.
 
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 const GRADLE_PROPERTIES = 'apps/android/gradle.properties'
 const PACKAGE_JSON = 'package.json'
 const NOTES = 'RELEASE_NOTES.md'
 /** Play refuses "What's new" text longer than this, per language. */
 const PLAY_NOTES_LIMIT = 500
+/** The languages of the Play listing. Each release has notes in each of them. */
+export const LANGUAGES = ['en-US', 'de-DE', 'es-ES', 'fr-FR']
+
+/** The body of one heading's section, up to the next heading of the same or a higher level. */
+function section(text, level, heading) {
+  const lines = text.split('\n')
+  const start = lines.findIndex((line) => line.trim() === `${'#'.repeat(level)} ${heading}`)
+  if (start < 0) return ''
+  const next = new RegExp(`^#{1,${level}} `)
+  const end = lines.findIndex((line, index) => index > start && next.test(line))
+  return lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim()
+}
 
 /**
- * The body of one `## <heading>` section of the notes, trimmed. Empty when there is none.
+ * The notes of one release in one language, trimmed. Empty when there are none.
  *
  * @param {string} text the whole notes file
  * @param {string} heading `Unreleased` or a version such as `0.3.1`
+ * @param {string} language one of `LANGUAGES`
  * @returns {string}
  */
-export function notesFor(text, heading) {
-  const lines = text.split('\n')
-  const start = lines.findIndex((line) => line.trim() === `## ${heading}`)
-  if (start < 0) return ''
-  const end = lines.findIndex((line, index) => index > start && line.startsWith('## '))
-  return lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim()
+export function notesFor(text, heading, language = 'en-US') {
+  return section(section(text, 2, heading), 3, language)
 }
 
 /**
@@ -54,12 +65,17 @@ export function notesFor(text, heading) {
  * @returns {string} the whole notes file, filed
  */
 export function fileNotes(text, version) {
-  const notes = notesFor(text, 'Unreleased')
-  if (!notes) throw new Error(`${NOTES} has nothing under "## Unreleased". Write what a reader notices, then release.`)
-  if (notes.length > PLAY_NOTES_LIMIT) {
-    throw new Error(`The notes are ${notes.length} characters and Play takes ${PLAY_NOTES_LIMIT}. Shorten them.`)
+  for (const language of LANGUAGES) {
+    const notes = notesFor(text, 'Unreleased', language)
+    if (!notes) {
+      throw new Error(`${NOTES} has no ${language} notes under "## Unreleased". Write what a reader notices, then release.`)
+    }
+    if (notes.length > PLAY_NOTES_LIMIT) {
+      throw new Error(`The ${language} notes are ${notes.length} characters and Play takes ${PLAY_NOTES_LIMIT}. Shorten them.`)
+    }
   }
-  return text.replace(/^## Unreleased[ \t]*$/m, `## Unreleased\n\n## ${version}`)
+  const empty = LANGUAGES.map((language) => `### ${language}\n\n`).join('')
+  return text.replace(/^## Unreleased[ \t]*$/m, `## Unreleased\n\n${empty}## ${version}`)
 }
 
 /**
@@ -144,11 +160,14 @@ function selfTest() {
   const read = readVersion(raised)
   assert(read.versionName === '0.2.0' && read.versionCode === 2, 'what was written reads back')
 
-  const notes = '# What is new\n\n## Unreleased\n\n- A thing a reader sees.\n\n## 0.1.0\n\n- The first.\n'
+  const block = (line) => LANGUAGES.map((language) => `### ${language}\n\n- ${line} (${language})\n`).join('\n')
+  const notes = `# What is new\n\n## Unreleased\n\n${block('A thing a reader sees.')}\n## 0.1.0\n\n${block('The first.')}`
   const filed = fileNotes(notes, '0.2.0')
-  assert(notesFor(filed, 'Unreleased') === '', 'filing leaves an empty Unreleased section')
-  assert(notesFor(filed, '0.2.0') === '- A thing a reader sees.', 'filing moves the notes under the version')
-  assert(notesFor(filed, '0.1.0') === '- The first.', 'an older section survives')
+  assert(LANGUAGES.every((l) => notesFor(filed, 'Unreleased', l) === ''), 'filing leaves an empty Unreleased section')
+  assert(filed.includes('## Unreleased\n\n### en-US\n\n### de-DE'), 'filing leaves a heading for each language')
+  assert(notesFor(filed, '0.2.0', 'fr-FR') === '- A thing a reader sees. (fr-FR)', 'filing moves the notes under the version')
+  assert(notesFor(filed, '0.2.0', 'de-DE') === '- A thing a reader sees. (de-DE)', 'each language reads its own block')
+  assert(notesFor(filed, '0.1.0') === '- The first. (en-US)', 'an older section survives')
 
   const refuses = (text) => {
     try {
@@ -158,8 +177,9 @@ function selfTest() {
     }
     return false
   }
-  assert(refuses('## Unreleased\n\n## 0.1.0\n\n- The first.\n'), 'empty notes are refused')
-  assert(refuses(`## Unreleased\n\n- ${'x'.repeat(PLAY_NOTES_LIMIT)}\n`), 'notes over the Play limit are refused')
+  assert(refuses(`## Unreleased\n\n## 0.1.0\n\n${block('The first.')}`), 'empty notes are refused')
+  assert(refuses(notes.replace('### es-ES\n\n- A thing a reader sees. (es-ES)\n', '')), 'a missing language is refused')
+  assert(refuses(notes.replace('A thing a reader sees. (de-DE)', 'x'.repeat(PLAY_NOTES_LIMIT))), 'notes over the Play limit are refused')
 
   console.log('release.mjs self-test: all pass')
 }
@@ -170,8 +190,19 @@ function main() {
   if (args.includes('--notes')) {
     const version = args[args.indexOf('--notes') + 1]
     const notes = notesFor(readFileSync(NOTES, 'utf8'), version)
-    if (!notes) throw new Error(`${NOTES} has no notes for ${version}.`)
+    if (!notes) throw new Error(`${NOTES} has no en-US notes for ${version}.`)
     return console.log(notes)
+  }
+  if (args.includes('--play-notes')) {
+    const [version, code, dir] = args.slice(args.indexOf('--play-notes') + 1)
+    const text = readFileSync(NOTES, 'utf8')
+    for (const language of LANGUAGES) {
+      const notes = notesFor(text, version, language)
+      if (!notes) throw new Error(`${NOTES} has no ${language} notes for ${version}.`)
+      mkdirSync(join(dir, language, 'changelogs'), { recursive: true })
+      writeFileSync(join(dir, language, 'changelogs', `${code}.txt`), `${notes}\n`)
+    }
+    return
   }
 
   const dry = args.includes('--dry')
@@ -197,7 +228,7 @@ function main() {
 
   console.log(`${current.versionName} (${current.versionCode}) -> ${versionName} (${versionCode})`)
   if (dry) {
-    console.log(`Notes for ${versionName}:\n${notesFor(filedNotes, versionName)}`)
+    for (const language of LANGUAGES) console.log(`${language}:\n${notesFor(filedNotes, versionName, language)}`)
     console.log(`Would commit, tag ${tag}, and push. Nothing was changed.`)
     return
   }
