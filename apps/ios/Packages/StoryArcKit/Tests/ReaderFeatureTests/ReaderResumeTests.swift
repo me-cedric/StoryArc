@@ -16,22 +16,25 @@ struct ReaderResumeTests {
         while dir.path != "/" {
             let candidate = dir.appending(path: "packages/test-fixtures")
             if FileManager.default.fileExists(atPath: candidate.appending(path: "manifest.json").path) {
-                return candidate.appending(path: "comics/natural-sort.cbz")
+                return candidate.appending(path: "comics")
             }
             dir = dir.deletingLastPathComponent()
         }
         fatalError("fixture corpus not found above \(#filePath)")
     }()
 
-    private func model(_ store: ProgressStore) -> ReaderModel {
-        ReaderModel(
+    private func model(
+        _ store: ProgressStore, file: String = "natural-sort.cbz", format: PublicationFormat = .cbz
+    ) -> ReaderModel {
+        let url = Self.location.appending(path: file)
+        return ReaderModel(
             publication: Publication(
-                identity: PublicationIdentity(normalizedPath: Self.location.path),
-                format: .cbz,
-                displayTitle: "natural-sort.cbz",
+                identity: PublicationIdentity(normalizedPath: url.path),
+                format: format,
+                displayTitle: file,
                 origin: .inferred
             ),
-            url: Self.location,
+            url: url,
             progress: store
         )
     }
@@ -47,6 +50,21 @@ struct ReaderResumeTests {
         await second.open(maxPixelSize: 256)
 
         #expect(second.currentIndex == 2, "reopened on \(second.currentIndex)")
+        #expect(second.openCount == 1, "the pager is told once, after the resume has landed")
+    }
+
+    /// Task 25.5: the PDF open path settles `openCount` too, and no test held it.
+    @Test("A PDF reopens on the page it was left on, and the pager is told once")
+    func aPdfReopensWhereItWasLeft() async throws {
+        let store = try ProgressStore.inMemory()
+        let first = model(store, file: "text-pages.pdf", format: .pdf)
+        await first.open(maxPixelSize: 256)
+        await first.go(to: 1)
+
+        let second = model(store, file: "text-pages.pdf", format: .pdf)
+        await second.open(maxPixelSize: 256)
+
+        #expect(second.currentIndex == 1, "reopened on \(second.currentIndex)")
         #expect(second.openCount == 1, "the pager is told once, after the resume has landed")
     }
 }
