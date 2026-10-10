@@ -54,7 +54,7 @@ extension XCTestCase {
             // that size and passed at the default one.
             var swipes = 0
             while !audiobook.waitForExistence(timeout: 3), swipes < 6 {
-                app.scrollViews.firstMatch.swipeUp()
+                app.swipeUp()
                 swipes += 1
             }
             found = audiobook.exists
