@@ -122,16 +122,15 @@ with the next language.
 
 ## How long a run takes
 
-Measured on 2026-10-10 with the showcase library, from shut-down devices, builds included:
+Measured on 2026-10-11 with the showcase library, from shut-down devices, builds included:
 
 | Run | Frames | Time |
 | --- | --- | --- |
-| `pnpm store:capture` | 120 | 11 min 14 s |
-| `pnpm store:capture --locales fr --frames 04` | 5 | 2 min 1 s |
-| `pnpm store:capture --buckets phone --locales fr --frames 01` | 1 | 30 s |
+| `pnpm store:capture` | 120 | 11 min 2 s |
 
 The Android lane sets the pace: its three sizes share one emulator. In the full run the
-iPhone lane ended at 6 min 0 s and the iPad lane at 7 min 48 s.
+iPhone lane ended at 6 min 5 s and the iPad lane at 7 min 47 s. A filtered run still pays for
+the boots and the builds, about one minute.
 
 ## The library
 
