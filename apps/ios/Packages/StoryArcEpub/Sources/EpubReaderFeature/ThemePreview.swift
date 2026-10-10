@@ -81,7 +81,7 @@ struct ThemePreview: View {
             values: values,
             title: title,
             body: excerpt.isEmpty
-                ? String(localized: "theme.preview.sample", bundle: .module, locale: .storyArc)
+                ? String(localized: "theme.preview.sample", bundle: .module.inChosenLanguage, locale: .storyArc)
                 : excerpt
         )
     }

@@ -83,7 +83,8 @@ public final class KavitaConnection {
         guard let address = KavitaAddress.fromOpds(self.address)
             ?? KavitaAddress.from(base: self.address, apiKey: apiKey)
         else {
-            step = .failed(String(localized: "kavita.error.notAnAddress", bundle: .module, locale: .storyArc))
+            step = .failed(String(localized: "kavita.error.notAnAddress",
+                                  bundle: .module.inChosenLanguage, locale: .storyArc))
             return
         }
 
@@ -113,7 +114,8 @@ public final class KavitaConnection {
             credentials: credentials,
             replacing: replacing
         ) else {
-            step = .failed(String(localized: "kavita.error.keyNotStored", bundle: .module, locale: .storyArc))
+            step = .failed(String(localized: "kavita.error.keyNotStored",
+                                  bundle: .module.inChosenLanguage, locale: .storyArc))
             return nil
         }
         return source
@@ -128,20 +130,20 @@ public final class KavitaConnection {
     static func describe(_ error: KavitaError) -> String {
         switch error {
         case .routeMissing:
-            String(localized: "kavita.error.tooOldForRequest", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.error.tooOldForRequest", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .keyRejected:
-            String(localized: "kavita.error.keyRejected", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.error.keyRejected", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .badAddress:
-            String(localized: "kavita.error.notAnAddress", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.error.notAnAddress", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unexpectedResponse:
-            String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.error.notKavita", bundle: .module.inChosenLanguage, locale: .storyArc)
         // The reader chose a picture the client will not send. The only action either case
         // leaves them is to choose another, so both say so in one sentence.
         case .imageTooLarge, .imageRejected:
-            String(localized: "kavita.error.coverRefused", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.error.coverRefused", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .http(status):
             String(
-                format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
+                format: String(localized: "catalogue.error.http", bundle: .module.inChosenLanguage, locale: .storyArc),
                 status
             )
         }

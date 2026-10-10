@@ -199,10 +199,10 @@ struct KavitaChapterList: View {
     /// sentinel. Only a real volume is headed by what the server called it.
     private func heading(_ volume: KavitaVolume) -> String {
         if volume.isLooseChapters {
-            return String(localized: "kavita.looseChapters", bundle: .module, locale: .storyArc)
+            return String(localized: "kavita.looseChapters", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         if volume.isSpecials {
-            return String(localized: "kavita.specials", bundle: .module, locale: .storyArc)
+            return String(localized: "kavita.specials", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         return volume.properName ?? "\(volume.number)"
     }
@@ -210,18 +210,18 @@ struct KavitaChapterList: View {
     private func label(_ chapter: KavitaChapter) -> String {
         let name = chapter.displayName
         guard name.isEmpty else { return name }
-        return String(localized: "kavita.chapter.unnumbered", bundle: .module, locale: .storyArc)
+        return String(localized: "kavita.chapter.unnumbered", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 
     /// What a screen reader hears. The tick and the spinner carry no text of their own.
     private func spoken(_ chapter: KavitaChapter) -> String {
         if fetching == chapter.id {
             return "\(label(chapter)), " +
-                String(localized: "kavita.fetching", bundle: .module, locale: .storyArc)
+                String(localized: "kavita.fetching", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         if chapter.isFinished {
             return "\(label(chapter)), " +
-                String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
+                String(localized: "library.readState.finished", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         return label(chapter)
     }

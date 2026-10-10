@@ -61,4 +61,20 @@ struct ProvenanceFrenchTests {
         #expect(line.availability == .offline)
         #expect(line.sentence == "On this device, readable with no network")
     }
+
+    /// Task 26.7: about 170 `String(localized:)` calls took the device language.
+    @Test("A sentence built in code reads in French on an English device")
+    func codeBuiltSentenceFollowsTheChosenLanguage() {
+        let solid = Publication(
+            identity: PublicationIdentity(contentDigest: "solid"),
+            format: .cbr,
+            displayTitle: "Solid",
+            origin: .inferred
+        )
+        #expect(solid.refusalSentence == "This comic uses solid compression, which StoryArc cannot open.")
+        let french = "Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir."
+        InterfaceLanguage.$scoped.withValue("fr") {
+            #expect(solid.refusalSentence == french)
+        }
+    }
 }

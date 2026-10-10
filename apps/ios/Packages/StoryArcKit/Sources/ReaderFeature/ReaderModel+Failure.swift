@@ -25,13 +25,14 @@ extension ReaderModel {
     static func sentence(for error: ComicArchiveError) -> String {
         switch error {
         case let .unsupportedContainer(container):
-            String(localized: "reader.unsupported \(container.displayName)", bundle: .module, locale: .storyArc)
+            String(localized: "reader.unsupported \(container.displayName)",
+                   bundle: .module.inChosenLanguage, locale: .storyArc)
         case .passwordProtected:
-            String(localized: "reader.passwordProtected", bundle: .module, locale: .storyArc)
+            String(localized: "reader.passwordProtected", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .solidArchive:
-            String(localized: "reader.solidArchive", bundle: .module, locale: .storyArc)
+            String(localized: "reader.solidArchive", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unreadable, .unrecognisedContainer:
-            String(localized: "reader.damaged", bundle: .module, locale: .storyArc)
+            String(localized: "reader.damaged", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 

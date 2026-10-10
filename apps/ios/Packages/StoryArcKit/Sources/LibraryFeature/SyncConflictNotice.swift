@@ -109,11 +109,11 @@ struct SyncConflictNotice: ViewModifier {
     /// percentage where there is no page count to name.
     func label(_ position: ReadingPosition) -> String {
         if case let .page(index, total) = position, total > 0 {
-            let format = String(localized: "sync.position.page", bundle: .module, locale: .storyArc)
+            let format = String(localized: "sync.position.page", bundle: .module.inChosenLanguage, locale: .storyArc)
             return String(format: format, index + 1, total)
         }
         let percent = Int((position.fraction * 100).rounded())
-        let format = String(localized: "sync.position.percent", bundle: .module, locale: .storyArc)
+        let format = String(localized: "sync.position.percent", bundle: .module.inChosenLanguage, locale: .storyArc)
         return String(format: format, percent)
     }
 }

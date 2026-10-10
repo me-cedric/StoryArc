@@ -75,7 +75,7 @@ enum PrimaryAction: Hashable, Sendable {
         switch name {
         case let .given(title): title
         case let .numbered(number):
-            String(localized: "detail.chapter.number \(number)", bundle: .module, locale: .storyArc)
+            String(localized: "detail.chapter.number \(number)", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

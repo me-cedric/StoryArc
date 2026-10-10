@@ -154,7 +154,7 @@ extension LibraryModel {
             Source(
                 id: ImportedCopies.sourceID,
                 displayName: String(
-                    localized: "source.onThisDevice", bundle: .module, locale: .storyArc
+                    localized: "source.onThisDevice", bundle: .module.inChosenLanguage, locale: .storyArc
                 ),
                 kind: .localFolder,
                 state: .connected,

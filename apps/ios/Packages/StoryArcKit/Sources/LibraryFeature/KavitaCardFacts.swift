@@ -80,13 +80,13 @@ extension KavitaPublicationStatus {
     /// and a missing translation in any of the four languages fails `pnpm lint`.
     var name: String {
         switch self {
-        case .ongoing: String(localized: "kavita.status.ongoing", bundle: .module, locale: .storyArc)
-        case .hiatus: String(localized: "kavita.status.hiatus", bundle: .module, locale: .storyArc)
+        case .ongoing: String(localized: "kavita.status.ongoing", bundle: .module.inChosenLanguage, locale: .storyArc)
+        case .hiatus: String(localized: "kavita.status.hiatus", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .completed:
-            String(localized: "kavita.status.completed", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.status.completed", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .cancelled:
-            String(localized: "kavita.status.cancelled", bundle: .module, locale: .storyArc)
-        case .ended: String(localized: "kavita.status.ended", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.status.cancelled", bundle: .module.inChosenLanguage, locale: .storyArc)
+        case .ended: String(localized: "kavita.status.ended", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

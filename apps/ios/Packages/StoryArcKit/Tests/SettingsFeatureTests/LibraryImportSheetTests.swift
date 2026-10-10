@@ -307,4 +307,13 @@ struct LibraryImportSheetTests {
         let percent = ConflictWords.label(.reflowable(progression: 0.375, locator: "{}"))
         #expect(percent.contains("38") && !percent.contains("40"))
     }
+
+    /// Task 26.7: the words took the device language, not the one chosen in the app.
+    @Test("A position reads in French on an English device")
+    func positionWordsFollowTheChosenLanguage() {
+        #expect(ConflictWords.label(.page(index: 11, of: 40)) == "Page 12 of 40")
+        InterfaceLanguage.$scoped.withValue("fr") {
+            #expect(ConflictWords.label(.page(index: 11, of: 40)) == "Page 12 sur 40")
+        }
+    }
 }

@@ -2,6 +2,7 @@ import Foundation
 import Testing
 
 @testable import ReaderFeature
+import StoryArcCore
 
 /// That both readers name their page turns and say where a turn landed.
 ///
@@ -95,5 +96,14 @@ struct PageTurnAccessibilityTests {
             speaks that same rule — a position phrased twice is two positions.
             """
         )
+    }
+
+    /// Task 26.7: the sentence took the device language, not the one chosen in the app.
+    @Test("The page a turn landed on is announced in French on an English device")
+    func arrivalFollowsTheChosenLanguage() {
+        #expect(readerPositionSentence(page: 3, of: 12) == "Page 3 of 12")
+        InterfaceLanguage.$scoped.withValue("fr") {
+            #expect(readerPositionSentence(page: 3, of: 12) == "Page 3 sur 12")
+        }
     }
 }

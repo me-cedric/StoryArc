@@ -97,7 +97,7 @@ extension ReaderModel {
         }
         guard !Self.isAwaitingDownload(for: url, store: store) else { return false }
         isWaitingForDownload = false
-        failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+        failure = String(localized: "reader.cannotOpen", bundle: .module.inChosenLanguage, locale: .storyArc)
         return true
     }
 
@@ -111,7 +111,7 @@ extension ReaderModel {
     private func openLocalCopyAfterWaiting(_ local: URL) async {
         defer { isWaitingForDownload = false }
         guard let opened = try? await ComicArchiveOpener.open(fileAt: local) else {
-            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+            failure = String(localized: "reader.cannotOpen", bundle: .module.inChosenLanguage, locale: .storyArc)
             return
         }
         await applyOpenedArchive(opened)

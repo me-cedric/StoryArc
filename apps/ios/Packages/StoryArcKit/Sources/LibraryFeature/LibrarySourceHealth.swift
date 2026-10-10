@@ -173,7 +173,7 @@ extension LibraryModel {
                 return .connected
             } catch KavitaError.keyRejected {
                 return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                    bundle: .module, locale: .storyArc))
+                                                    bundle: .module.inChosenLanguage, locale: .storyArc))
             } catch {
                 return .unreachable(since: Date())
             }
@@ -186,7 +186,7 @@ extension LibraryModel {
             } catch let error as OpdsError {
                 if case .unauthorized = error {
                     return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                                        bundle: .module, locale: .storyArc))
+                                                        bundle: .module.inChosenLanguage, locale: .storyArc))
                 }
                 return .unreachable(since: Date())
             } catch {
@@ -196,7 +196,7 @@ extension LibraryModel {
 
         // Neither page could be built, so the secret this source needs has gone.
         return .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                            bundle: .module, locale: .storyArc))
+                                            bundle: .module.inChosenLanguage, locale: .storyArc))
     }
 }
 
@@ -369,15 +369,15 @@ enum SmbSourceState {
         switch error {
         case .authenticationRejected:
             .unauthorized(reason: String(localized: "source.state.unauthorized",
-                                         bundle: .module, locale: .storyArc))
+                                         bundle: .module.inChosenLanguage, locale: .storyArc))
         case .encryptionRequired:
             .unauthorized(reason: String(localized: "smb.error.encryption",
-                                         bundle: .module, locale: .storyArc))
+                                         bundle: .module.inChosenLanguage, locale: .storyArc))
         case .localNetworkDenied:
             // Actionable, the way a refused password is: a reader who turns the permission
             // back on in Settings can fix this without touching the server at all.
             .unauthorized(reason: String(localized: "smb.error.localNetworkDenied",
-                                         bundle: .module, locale: .storyArc))
+                                         bundle: .module.inChosenLanguage, locale: .storyArc))
         case .hostUnreachable, .shareNotFound, .protocolUnsupported, .protocolTooNew, .unexpected:
             .unreachable(since: moment)
         }

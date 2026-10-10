@@ -88,7 +88,7 @@ final class CarSceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
     private func list(continuing playing: SpokenBook?) -> CPListTemplate {
         let rows = CarShelf.rows(continuing: playing, onDevice: CarScene.onDevice?() ?? [])
         return CPListTemplate(
-            title: String(localized: "car.audiobooks", bundle: .main, locale: .storyArc),
+            title: String(localized: "car.audiobooks", bundle: .main.inChosenLanguage, locale: .storyArc),
             sections: [CPListSection(items: rows.map(item(for:)))]
         )
     }

@@ -97,13 +97,13 @@ enum SettingsGroup: String, CaseIterable, Identifiable {
             localized: String.LocalizationValue(
                 readingDefaults.default(for: .reflowable).theme.preset.settingsTitleStringKey
             ),
-            bundle: .module, locale: .storyArc
+            bundle: .module.inChosenLanguage, locale: .storyArc
         )
         let comics = String(
             localized: String.LocalizationValue(
                 matteSummaryKey(for: readingDefaults.default(for: .fixedLayout).theme.custom?.background)
             ),
-            bundle: .module, locale: .storyArc
+            bundle: .module.inChosenLanguage, locale: .storyArc
         )
         return "settings.reading.summary.values \(books) \(comics)"
     }

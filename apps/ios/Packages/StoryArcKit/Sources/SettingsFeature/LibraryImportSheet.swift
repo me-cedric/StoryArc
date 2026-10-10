@@ -214,11 +214,12 @@ enum ConflictWords {
 
     static func label(_ position: ReadingPosition) -> String {
         if case let .page(index, total) = position, total > 0 {
-            let format = String(localized: "transfer.position.page", bundle: .module, locale: .storyArc)
+            let format = String(localized: "transfer.position.page",
+                                bundle: .module.inChosenLanguage, locale: .storyArc)
             return String(format: format, index + 1, total)
         }
         let percent = Int((position.fraction * 100).rounded())
-        let format = String(localized: "transfer.position.percent", bundle: .module, locale: .storyArc)
+        let format = String(localized: "transfer.position.percent", bundle: .module.inChosenLanguage, locale: .storyArc)
         return String(format: format, percent)
     }
 }

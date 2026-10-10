@@ -87,9 +87,10 @@ struct ReadAloudVoiceLineView: View {
     private func text(for fact: ReadAloudVoiceFact) -> String {
         switch fact {
         case let .named(voice):
-            String(localized: "detail.readAloud.voice \(voice)", bundle: .module, locale: .storyArc)
+            String(localized: "detail.readAloud.voice \(voice)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .missing(language):
-            String(localized: "detail.readAloud.noVoice \(language)", bundle: .module, locale: .storyArc)
+            String(localized: "detail.readAloud.noVoice \(language)",
+                   bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

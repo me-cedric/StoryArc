@@ -146,12 +146,13 @@ struct CatalogueFormatChoice: View {
     /// `opds-catalog` requires both places to say it the same way — see 11.6.
     static func name(of kind: OpdsAcquisition.Kind) -> String {
         switch kind {
-        case .borrow: String(localized: "catalogue.acquire.kind.borrow", bundle: .module, locale: .storyArc)
-        case .buy: String(localized: "catalogue.acquire.kind.buy", bundle: .module, locale: .storyArc)
+        case .borrow: String(localized: "catalogue.acquire.kind.borrow",
+                             bundle: .module.inChosenLanguage, locale: .storyArc)
+        case .buy: String(localized: "catalogue.acquire.kind.buy", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .subscribe:
-            String(localized: "catalogue.acquire.kind.subscribe", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.acquire.kind.subscribe", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .open, .direct, .sample, .indirect:
-            String(localized: "catalogue.acquire.kind.indirect", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.acquire.kind.indirect", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

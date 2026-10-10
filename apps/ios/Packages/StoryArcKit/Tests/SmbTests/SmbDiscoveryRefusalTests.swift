@@ -3,6 +3,7 @@ import Network
 import Testing
 
 @testable import Smb
+import StoryArcCore
 
 /// A refused local-network permission is noticed, and explained once.
 ///
@@ -155,5 +156,14 @@ struct SmbDiscoveryRefusalTests {
         let unit = (localizations[language] as? [String: Any])?["stringUnit"] as? [String: Any]
         #expect(unit?["state"] as? String == "translated", "not translated into \(language)")
         #expect((unit?["value"] as? String)?.isEmpty == false, "empty in \(language)")
+    }
+
+    /// Task 26.7: the sentence took the device language, not the one chosen in the app.
+    @Test("The sentence reads in French on an English device")
+    func theSentenceFollowsTheChosenLanguage() {
+        let discovery = SmbDiscovery()
+        InterfaceLanguage.$scoped.withValue("fr") { _ = discovery.noteRefusal() }
+        let advice = discovery.advice ?? ""
+        #expect(advice.hasPrefix("L’accès au réseau local est désactivé"), "\(advice)")
     }
 }

@@ -141,7 +141,8 @@ struct KavitaSeriesCell: View {
     private var spoken: String {
         guard let read else { return series.name }
         let percent = Int(read * 100)
-        let progress = String(localized: "library.cell.progress \(percent)", bundle: .module, locale: .storyArc)
+        let progress = String(localized: "library.cell.progress \(percent)",
+                              bundle: .module.inChosenLanguage, locale: .storyArc)
         return "\(series.name), \(progress)"
     }
 

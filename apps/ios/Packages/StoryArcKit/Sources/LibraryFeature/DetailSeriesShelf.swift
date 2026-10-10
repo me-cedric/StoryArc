@@ -162,12 +162,12 @@ private struct DetailSeriesEntry: View {
         var parts = [publication.displayTitle]
         if isRead {
             parts.append(
-                String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
+                String(localized: "library.readState.finished", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         if isOnDevice {
             parts.append(
-                String(localized: "catalogue.entry.downloaded", bundle: .module, locale: .storyArc)
+                String(localized: "catalogue.entry.downloaded", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         return parts.joined(separator: ", ")

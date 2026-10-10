@@ -250,12 +250,12 @@ struct PageColourSection: View {
                 localized: String.LocalizationValue(
                     ReadingComfort.band(for: candidate.contrast).key
                 ),
-                bundle: .module,
+                bundle: .module.inChosenLanguage,
                 locale: .storyArc
             )
             let refusal = String(
                 localized: "theme.pageColour.refused \(ratio) \(aa)",
-                bundle: .module,
+                bundle: .module.inChosenLanguage,
                 locale: .storyArc
             )
             AccessibilityNotification.Announcement("\(band) \(refusal)").post()

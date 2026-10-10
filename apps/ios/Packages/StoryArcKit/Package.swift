@@ -153,7 +153,7 @@ let package = Package(
         .testTarget(
             name: "SmbTests",
             // The vendored client too, so its SMB 3 ciphers and dialects are tested directly.
-            dependencies: ["Smb", .product(name: "SMBClient", package: "SMBClient")]
+            dependencies: ["Smb", "StoryArcCore", .product(name: "SMBClient", package: "SMBClient")]
         ),
         .testTarget(name: "DesignSystemTests", dependencies: ["DesignSystem"]),
         .testTarget(
@@ -163,7 +163,7 @@ let package = Package(
             exclude: ["sync-written-by-ios.json"]
         ),
         .testTarget(name: "FormatsTests", dependencies: ["Formats"]),
-        .testTarget(name: "PlaybackTests", dependencies: ["Playback"]),
+        .testTarget(name: "PlaybackTests", dependencies: ["Playback", "StoryArcCore"]),
         // `StoryArcCore` is explicit rather than left to transitive visibility:
         // `PlayerLabelsTests` moves the interface language, because the spoken position is
         // the one player label a screen reader reads in the reader's own words.
@@ -173,11 +173,11 @@ let package = Package(
         .testTarget(name: "KavitaTests", dependencies: ["Kavita"]),
         // `Playback`, for `ReaderVoiceHandoverTests`: D18 needs a `PlaybackSource` double and
         // a `PlayerCentre` of the suite's own to assert the comic and PDF reader's handover.
-        .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature", "Playback"]),
+        .testTarget(name: "ReaderFeatureTests", dependencies: ["ReaderFeature", "Playback", "StoryArcCore"]),
         // `Persistence` is explicit rather than left to transitive visibility:
         // `SourceProgressNoteTests` names `ImportedCopies.sourceID`, which is the source the
         // detail screen has to *not* say "kept on this device only" about.
-        .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature", "Persistence"]),
+        .testTarget(name: "SettingsFeatureTests", dependencies: ["SettingsFeature", "Persistence", "StoryArcCore"]),
         // The adaptive layout decides what a sidebar holds, and there is no simulator in
         // this repository's loop. What can be asserted without one is asserted here.
         // `Catalogue` and `Kavita` are here because what the library does with an address

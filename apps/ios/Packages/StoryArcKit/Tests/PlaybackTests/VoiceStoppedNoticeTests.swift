@@ -1,6 +1,7 @@
 import Testing
 
 @testable import Playback
+import StoryArcCore
 
 /// Being told **once** that the voice stopped.
 ///
@@ -79,5 +80,14 @@ struct VoiceStoppedNoticeTests {
     func pendingIsNamed() {
         #expect(VoiceStoppedNotice.none.sentence == nil)
         #expect(VoiceStoppedNotice.displacing(aVoice: true, of: "The Long Field").sentence != nil)
+    }
+
+    /// Task 26.7: the sentence took the device language, not the one chosen in the app.
+    @Test("The sentence reads in French on an English device")
+    func sentenceFollowsTheChosenLanguage() {
+        let notice = VoiceStoppedNotice.displacing(aVoice: true, of: "Tales")
+        InterfaceLanguage.$scoped.withValue("fr") {
+            #expect(notice.sentence == "Lecture à voix haute de « Tales » arrêtée.")
+        }
     }
 }

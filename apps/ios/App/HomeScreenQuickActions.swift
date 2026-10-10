@@ -37,7 +37,8 @@ enum HomeScreenActions {
             // a menu row out.
             UIApplicationShortcutItem(
                 type: action.id,
-                localizedTitle: String(localized: "shortcut.continue", bundle: .main, locale: .storyArc),
+                localizedTitle: String(localized: "shortcut.continue",
+                                       bundle: .main.inChosenLanguage, locale: .storyArc),
                 localizedSubtitle: title,
                 icon: UIApplicationShortcutIcon(systemImageName: "book.pages"),
                 userInfo: [publicationKey: id as NSString]
@@ -45,7 +46,8 @@ enum HomeScreenActions {
         case .library:
             UIApplicationShortcutItem(
                 type: action.id,
-                localizedTitle: String(localized: "shortcut.library", bundle: .main, locale: .storyArc),
+                localizedTitle: String(localized: "shortcut.library",
+                                       bundle: .main.inChosenLanguage, locale: .storyArc),
                 localizedSubtitle: nil,
                 icon: UIApplicationShortcutIcon(systemImageName: "books.vertical"),
                 userInfo: nil
@@ -53,7 +55,8 @@ enum HomeScreenActions {
         case .downloads:
             UIApplicationShortcutItem(
                 type: action.id,
-                localizedTitle: String(localized: "shortcut.downloads", bundle: .main, locale: .storyArc),
+                localizedTitle: String(localized: "shortcut.downloads",
+                                       bundle: .main.inChosenLanguage, locale: .storyArc),
                 localizedSubtitle: nil,
                 icon: UIApplicationShortcutIcon(systemImageName: "arrow.down.circle"),
                 userInfo: nil

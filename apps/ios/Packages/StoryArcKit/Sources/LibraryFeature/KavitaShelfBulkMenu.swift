@@ -109,16 +109,18 @@ struct KavitaShelfBulkActions: ViewModifier {
         switch size {
         case let .known(bytes):
             String(
-                format: String(localized: "library.bulk.download.size %@", bundle: .module, locale: .storyArc),
+                format: String(localized: "library.bulk.download.size %@",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 DownloadStore.formatted(bytes)
             )
         case let .atLeast(bytes):
             String(
-                format: String(localized: "kavita.bulk.size.atLeast %@", bundle: .module, locale: .storyArc),
+                format: String(localized: "kavita.bulk.size.atLeast %@",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 DownloadStore.formatted(bytes)
             )
         case .unstated:
-            String(localized: "kavita.bulk.size.unknown", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.bulk.size.unknown", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 

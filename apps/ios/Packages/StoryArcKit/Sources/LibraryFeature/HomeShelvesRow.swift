@@ -144,7 +144,7 @@ struct HomeShelvesRow: View {
 func shelfSubtitle(count: Int?, sourceName: String?) -> String {
     let items = count.map { count in
         String(
-            format: String(localized: "shelves.count \(count)", bundle: .module, locale: .storyArc),
+            format: String(localized: "shelves.count \(count)", bundle: .module.inChosenLanguage, locale: .storyArc),
             count
         )
     }

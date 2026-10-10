@@ -126,7 +126,8 @@ public final class CatalogueConnection {
         case let .feed(url):
             await attempt(url, credential: accepted)
         case .unusable:
-            step = .failed(String(localized: "catalogue.error.notAURL", bundle: .module, locale: .storyArc))
+            step = .failed(String(localized: "catalogue.error.notAURL",
+                                  bundle: .module.inChosenLanguage, locale: .storyArc))
         }
     }
 
@@ -181,7 +182,8 @@ public final class CatalogueConnection {
                 replacing: replacing
             ) else {
                 step = .failed(
-                    String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
+                    String(localized: "catalogue.error.secretNotStored",
+                           bundle: .module.inChosenLanguage, locale: .storyArc)
                 )
                 return nil
             }
@@ -208,7 +210,8 @@ public final class CatalogueConnection {
             let stored = replacing?.credentialReference ?? CredentialStore.reference(for: id)
             guard let credentials, credentials.save(credential.stored, for: stored) else {
                 step = .failed(
-                    String(localized: "catalogue.error.secretNotStored", bundle: .module, locale: .storyArc)
+                    String(localized: "catalogue.error.secretNotStored",
+                           bundle: .module.inChosenLanguage, locale: .storyArc)
                 )
                 return nil
             }

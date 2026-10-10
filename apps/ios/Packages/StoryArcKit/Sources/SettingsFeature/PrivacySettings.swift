@@ -69,7 +69,8 @@ struct PrivacySettings: View {
     /// only the first view of its message, and a second `Text` there is never drawn.
     nonisolated static func clearHistoryMessage(hasSynchronizingSource: Bool) -> String {
         clearHistoryMessageKeys(hasSynchronizingSource: hasSynchronizingSource)
-            .map { String(localized: String.LocalizationValue($0), bundle: .module, locale: .storyArc) }
+            .map { String(localized: String.LocalizationValue($0),
+                          bundle: .module.inChosenLanguage, locale: .storyArc) }
             .joined(separator: " ")
     }
 
@@ -103,7 +104,7 @@ struct PrivacySettings: View {
                         AccessibilityNotification.Announcement(
                             String(
                                 localized: "privacy.cache \(formattedBytes(cacheBytes))",
-                                bundle: .module,
+                                bundle: .module.inChosenLanguage,
                                 locale: .storyArc
                             )
                         ).post()
@@ -143,7 +144,7 @@ struct PrivacySettings: View {
                     AccessibilityNotification.Announcement(
                         String(
                             localized: "privacy.history \(formattedBytes(historyBytes))",
-                            bundle: .module,
+                            bundle: .module.inChosenLanguage,
                             locale: .storyArc
                         )
                     ).post()
@@ -168,7 +169,7 @@ struct PrivacySettings: View {
                 AccessibilityNotification.Announcement(
                     String(
                         localized: "privacy.downloads \(formattedDownloads(0))",
-                        bundle: .module,
+                        bundle: .module.inChosenLanguage,
                         locale: .storyArc
                     )
                 ).post()

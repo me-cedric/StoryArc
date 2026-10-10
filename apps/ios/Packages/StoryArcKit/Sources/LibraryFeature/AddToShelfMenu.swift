@@ -56,8 +56,8 @@ struct AddToShelfMenu: View {
         } label: {
             Label(
                 marksRead
-                    ? String(localized: "library.mark.read", bundle: .module, locale: .storyArc)
-                    : String(localized: "library.mark.unread", bundle: .module, locale: .storyArc),
+                    ? String(localized: "library.mark.read", bundle: .module.inChosenLanguage, locale: .storyArc)
+                    : String(localized: "library.mark.unread", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: marksRead ? "checkmark.circle" : "circle"
             )
         }
@@ -83,7 +83,7 @@ struct AddToShelfMenu: View {
                 onRestart()
             } label: {
                 Label(
-                    String(localized: "library.restart", bundle: .module, locale: .storyArc),
+                    String(localized: "library.restart", bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "arrow.counterclockwise"
                 )
             }

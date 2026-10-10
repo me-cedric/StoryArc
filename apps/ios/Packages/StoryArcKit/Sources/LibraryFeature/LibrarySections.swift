@@ -259,6 +259,6 @@ enum LibrarySections {
     /// A localized string rather than a symbol, because it is the one heading that is a word
     /// rather than data off a file.
     private static var unknown: String {
-        String(localized: "library.section.other", bundle: .module, locale: .storyArc)
+        String(localized: "library.section.other", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 }

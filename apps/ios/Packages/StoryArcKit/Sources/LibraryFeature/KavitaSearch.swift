@@ -188,7 +188,7 @@ struct KavitaHits: View {
         guard hit.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return hit.title
         }
-        return String(localized: "kavita.chapter.unnumbered", bundle: .module, locale: .storyArc)
+        return String(localized: "kavita.chapter.unnumbered", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 
     /// Opens what a row names: the download when the row came from the cache, the series on

@@ -55,8 +55,8 @@ struct NetworkNotice: View {
     private func notice(_ stage: NoticeStage) -> some View {
         let isLong = stage == .long
         let message = isLong
-            ? String(localized: "reader.offline.long", bundle: .module, locale: .storyArc)
-            : String(localized: "reader.offline.brief", bundle: .module, locale: .storyArc)
+            ? String(localized: "reader.offline.long", bundle: .module.inChosenLanguage, locale: .storyArc)
+            : String(localized: "reader.offline.brief", bundle: .module.inChosenLanguage, locale: .storyArc)
 
         VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
             Text(message)

@@ -10,7 +10,7 @@ internal import SwiftUI
 /// cannot put a SwiftUI hierarchy in front of VoiceOver, and the sentence is the part a test
 /// can hold to.
 func readerPositionSentence(page: Int, of count: Int) -> String {
-    String(localized: "reader.pageLabel \(page) \(count)", bundle: .module, locale: .storyArc)
+    String(localized: "reader.pageLabel \(page) \(count)", bundle: .module.inChosenLanguage, locale: .storyArc)
 }
 
 /// A named page turn, and the position the turn arrived at.

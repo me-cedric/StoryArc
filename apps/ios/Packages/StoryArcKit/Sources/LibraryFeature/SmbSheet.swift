@@ -93,7 +93,7 @@ public struct SmbSheet: View {
 
         Section {
             TextField(
-                String(localized: "smb.host.label", bundle: .module, locale: .storyArc),
+                String(localized: "smb.host.label", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: Binding(get: { connection.host }, set: { connection.host = $0 })
             )
             #if os(iOS)
@@ -102,7 +102,7 @@ public struct SmbSheet: View {
             .autocorrectionDisabled()
 
             TextField(
-                String(localized: "smb.share.label", bundle: .module, locale: .storyArc),
+                String(localized: "smb.share.label", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: Binding(get: { connection.share }, set: { connection.share = $0 })
             )
             #if os(iOS)
@@ -115,7 +115,7 @@ public struct SmbSheet: View {
 
         Section {
             TextField(
-                String(localized: "smb.user.label", bundle: .module, locale: .storyArc),
+                String(localized: "smb.user.label", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: Binding(get: { connection.username }, set: { connection.username = $0 })
             )
             #if os(iOS)
@@ -124,7 +124,7 @@ public struct SmbSheet: View {
             .autocorrectionDisabled()
 
             SecureField(
-                String(localized: "smb.password.label", bundle: .module, locale: .storyArc),
+                String(localized: "smb.password.label", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: Binding(get: { connection.password }, set: { connection.password = $0 })
             )
         } footer: {
@@ -186,7 +186,7 @@ public struct SmbSheet: View {
                     Task { await connection.enter(parent) }
                 } label: {
                     Label(
-                        String(localized: "smb.up", bundle: .module, locale: .storyArc),
+                        String(localized: "smb.up", bundle: .module.inChosenLanguage, locale: .storyArc),
                         systemImage: "arrow.up.left"
                     )
                 }
@@ -199,7 +199,8 @@ public struct SmbSheet: View {
                 }
             }
         } header: {
-            Text(path.isEmpty ? String(localized: "smb.root", bundle: .module, locale: .storyArc) : path)
+            Text(path.isEmpty ? String(localized: "smb.root",
+                                       bundle: .module.inChosenLanguage, locale: .storyArc) : path)
         } footer: {
             // `network-share`: the detail screen states whether the connection is
             // encrypted. Said here too, because this is the moment a reader decides

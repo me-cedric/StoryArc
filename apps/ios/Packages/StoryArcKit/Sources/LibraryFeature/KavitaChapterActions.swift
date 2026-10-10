@@ -30,7 +30,7 @@ extension KavitaChapterList {
             Task { await open(chapter) }
         } label: {
             Label(
-                String(localized: "library.action.open", bundle: .module, locale: .storyArc),
+                String(localized: "library.action.open", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: "arrow.up.forward.app"
             )
         }
@@ -45,7 +45,7 @@ extension KavitaChapterList {
             Task { await keep(chapter) }
         } label: {
             Label(
-                String(localized: "kavita.keep", bundle: .module, locale: .storyArc),
+                String(localized: "kavita.keep", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: "arrow.down.circle"
             )
         }
@@ -58,8 +58,8 @@ extension KavitaChapterList {
         } label: {
             Label(
                 chapter.isFinished
-                    ? String(localized: "library.mark.unread", bundle: .module, locale: .storyArc)
-                    : String(localized: "library.mark.read", bundle: .module, locale: .storyArc),
+                    ? String(localized: "library.mark.unread", bundle: .module.inChosenLanguage, locale: .storyArc)
+                    : String(localized: "library.mark.read", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: chapter.isFinished ? "circle" : "checkmark.circle"
             )
         }
@@ -75,7 +75,8 @@ extension KavitaChapterList {
             } label: {
                 Label(
                     String(
-                        format: String(localized: "kavita.addToList %@", bundle: .module, locale: .storyArc),
+                        format: String(localized: "kavita.addToList %@",
+                                       bundle: .module.inChosenLanguage, locale: .storyArc),
                         list.title
                     ),
                     systemImage: "text.append"
@@ -99,7 +100,7 @@ extension KavitaChapterList {
                     restarting = known
                 } label: {
                     Label(
-                        String(localized: "library.restart", bundle: .module, locale: .storyArc),
+                        String(localized: "library.restart", bundle: .module.inChosenLanguage, locale: .storyArc),
                         systemImage: "arrow.counterclockwise"
                     )
                 }
@@ -107,7 +108,8 @@ extension KavitaChapterList {
 
             NavigationLink(value: PublicationRoute(known)) {
                 Label(
-                    String(localized: "library.action.showDetails", bundle: .module, locale: .storyArc),
+                    String(localized: "library.action.showDetails",
+                           bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "info.circle"
                 )
             }

@@ -386,6 +386,6 @@ public final class PlayerCentre {
         guard parts.indices.contains(index) else { return nil }
         if let title = parts[index].title, !title.isEmpty { return title }
         guard parts.count > 1 else { return nil }
-        return String(localized: "player.part.number \(index + 1)", bundle: .module, locale: .storyArc)
+        return String(localized: "player.part.number \(index + 1)", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 }

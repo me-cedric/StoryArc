@@ -183,7 +183,7 @@ struct SourcesSettings: View {
             presenting: renaming
         ) { source in
             TextField(
-                String(localized: "sources.rename.field", bundle: .module, locale: .storyArc),
+                String(localized: "sources.rename.field", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: $draftName
             )
             Button {

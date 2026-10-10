@@ -103,7 +103,7 @@ extension View {
             presenting: draft.wrappedValue
         ) { asked in
             TextField(
-                String(localized: "shelves.new.field", bundle: .module, locale: .storyArc),
+                String(localized: "shelves.new.field", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: name
             )
             Button(role: .cancel) {} label: { Text("shelves.cancel", bundle: .module) }

@@ -44,9 +44,9 @@ extension LibraryModel {
     func remaining(of publication: Publication) -> String? {
         switch HomeShelves.remainder(of: publication, record: record(of: publication)) {
         case let .pages(count):
-            String(localized: "home.pagesLeft \(count)", bundle: .module, locale: .storyArc)
+            String(localized: "home.pagesLeft \(count)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .percent(left):
-            String(localized: "home.percentLeft \(left)", bundle: .module, locale: .storyArc)
+            String(localized: "home.percentLeft \(left)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .nothingToSay:
             nil
         }

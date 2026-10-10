@@ -36,14 +36,14 @@ extension EpubReaderModel {
         )
 
         guard let asset = await Self.asset(for: url, retriever: assetRetriever) else {
-            failure = String(localized: "epub.failure.unreachable", bundle: .module, locale: .storyArc)
+            failure = String(localized: "epub.failure.unreachable", bundle: .module.inChosenLanguage, locale: .storyArc)
             return
         }
         switch await opener.open(asset: asset, allowUserInteraction: false) {
         case let .success(opened):
             await start(opened)
         case .failure:
-            failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
+            failure = String(localized: "epub.failure.unreadable", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 
@@ -92,7 +92,7 @@ extension EpubReaderModel {
             await prepareReadAloud(opened)
             await deriveCoverColours()
         } catch {
-            failure = String(localized: "epub.failure.unreadable", bundle: .module, locale: .storyArc)
+            failure = String(localized: "epub.failure.unreadable", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 

@@ -23,16 +23,17 @@ struct ReadingListRowState: Equatable {
         guard isAvailable else {
             return ReadingListRowState(
                 drawn: nil,
-                spoken: String(localized: "shelves.list.unavailable", bundle: .module, locale: .storyArc)
+                spoken: String(localized: "shelves.list.unavailable",
+                               bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         let drawn: String? =
             if isFinished {
-                String(localized: "library.cell.finished", bundle: .module, locale: .storyArc)
+                String(localized: "library.cell.finished", bundle: .module.inChosenLanguage, locale: .storyArc)
             } else if let fraction {
                 String(
                     localized: "library.cell.progress \(Int(fraction * 100))",
-                    bundle: .module,
+                    bundle: .module.inChosenLanguage,
                     locale: .storyArc
                 )
             } else {
@@ -40,7 +41,7 @@ struct ReadingListRowState: Equatable {
             }
         let spoken = drawn ?? String(
             localized: "library.readState.unread",
-            bundle: .module,
+            bundle: .module.inChosenLanguage,
             locale: .storyArc
         )
         return ReadingListRowState(drawn: drawn, spoken: spoken)

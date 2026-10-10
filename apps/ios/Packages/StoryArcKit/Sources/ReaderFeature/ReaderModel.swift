@@ -288,7 +288,7 @@ public final class ReaderModel {
                 isWaitingForDownload = true
             } else {
                 readerOpenLog.error("open failed: \(error, privacy: .public)")
-                failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+                failure = String(localized: "reader.cannotOpen", bundle: .module.inChosenLanguage, locale: .storyArc)
             }
         }
         noteIfEmpty()
@@ -302,7 +302,7 @@ public final class ReaderModel {
     /// rather than a spinner that never stops.
     private func noteIfEmpty() {
         guard failure == nil, !isWaitingForDownload, pages.isEmpty else { return }
-        failure = String(localized: "reader.empty", bundle: .module, locale: .storyArc)
+        failure = String(localized: "reader.empty", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 
     /// Opens a PDF.
@@ -330,7 +330,7 @@ public final class ReaderModel {
             await deriveCoverColours()
         } catch {
             readerOpenLog.error("open failed: \(error, privacy: .public)")
-            failure = String(localized: "reader.cannotOpen", bundle: .module, locale: .storyArc)
+            failure = String(localized: "reader.cannotOpen", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 

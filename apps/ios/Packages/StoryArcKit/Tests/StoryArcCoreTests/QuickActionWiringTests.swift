@@ -121,9 +121,11 @@ struct QuickActionWiringTests {
         arguments: ["shortcut.continue", "shortcut.library", "shortcut.downloads"]
     )
     func eachEntryIsNamedInEveryLanguage(key: String) throws {
-        let actions = try source("App/HomeScreenQuickActions.swift")
+        // One space for each run of white space, so a call wrapped at the line cap still reads
+        // as one call. The bundle is the chosen language's own (task 26.7).
+        let actions = try source("App/HomeScreenQuickActions.swift").replacing(/\s+/, with: " ")
         #expect(
-            actions.contains("String(localized: \"\(key)\", bundle: .main, locale: .storyArc)"),
+            actions.contains("String(localized: \"\(key)\", bundle: .main.inChosenLanguage, locale: .storyArc)"),
             "no entry looks up `\(key)`, so one of the three is drawn with a raw key or nothing"
         )
 

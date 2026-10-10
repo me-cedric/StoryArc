@@ -38,7 +38,7 @@ extension View {
                 Button {
                     // The offer the spec asks for: a local list can hold anything.
                     model.create(
-                        list: String(localized: "shelves.new.list", bundle: .module, locale: .storyArc)
+                        list: String(localized: "shelves.new.list", bundle: .module.inChosenLanguage, locale: .storyArc)
                     )
                     if let made = model.shelves.lists.last {
                         model.append(refused.wrappedValue.publications.map(\.id), toList: made.id)

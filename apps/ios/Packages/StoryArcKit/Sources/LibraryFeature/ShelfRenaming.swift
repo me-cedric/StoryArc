@@ -50,7 +50,7 @@ extension View {
             presenting: target.wrappedValue
         ) { asked in
             TextField(
-                String(localized: "shelves.new.field", bundle: .module, locale: .storyArc),
+                String(localized: "shelves.new.field", bundle: .module.inChosenLanguage, locale: .storyArc),
                 text: Binding(
                     get: { asked.name },
                     set: { target.wrappedValue?.name = $0 }

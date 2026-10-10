@@ -14,14 +14,14 @@ internal import StoryArcCore
 func epubPositionSentence(_ position: ReadingPositionLine) -> String {
     let through = String(
         localized: "epub.progress \(position.percentThrough)",
-        bundle: .module,
+        bundle: .module.inChosenLanguage,
         locale: .storyArc
     )
     guard let chapter = position.chapter else { return through }
     guard let remainder = position.chapterRemainder else { return "\(through) · \(chapter)" }
     let left = String(
         localized: String.LocalizationValue(remainder.titleKey),
-        bundle: .module,
+        bundle: .module.inChosenLanguage,
         locale: .storyArc
     )
     return "\(through) · \(chapter), \(left)"

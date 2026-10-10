@@ -254,7 +254,7 @@ private struct HomeHeroCard: View {
             Task { await model.mark(publication, read: true) }
         } label: {
             Label(
-                String(localized: "home.finish", bundle: .module, locale: .storyArc),
+                String(localized: "home.finish", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: "checkmark"
             )
             .textRole(.footnote)
@@ -272,7 +272,7 @@ private struct HomeHeroCard: View {
             onOpen(next)
         } label: {
             Label(
-                String(localized: "home.nextInSeries", bundle: .module, locale: .storyArc),
+                String(localized: "home.nextInSeries", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: "forward.fill"
             )
             .textRole(.footnote)
@@ -305,7 +305,7 @@ private struct HomeHeroCard: View {
             onOpen(publication)
         } label: {
             Label(
-                String(localized: "home.resume", bundle: .module, locale: .storyArc),
+                String(localized: "home.resume", bundle: .module.inChosenLanguage, locale: .storyArc),
                 systemImage: "play.fill"
             )
             .textRole(.footnote)
@@ -356,7 +356,7 @@ private struct HomeHeroCard: View {
     /// What is left to read, or why it cannot be read right now.
     private var line: String? {
         guard isReadable else {
-            return String(localized: "home.unavailable", bundle: .module, locale: .storyArc)
+            return String(localized: "home.unavailable", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         return model.remaining(of: publication)
     }

@@ -107,18 +107,18 @@ struct CatalogueEntryCell: View {
             let formats = localizedJoin(unreadable)
             return String(
                 localized: "catalogue.entry.unreadable \(formats)",
-                bundle: .module,
+                bundle: .module.inChosenLanguage,
                 locale: .storyArc
             )
         }
         if let kind = CatalogueAcquisition.unsupported(in: entry).first {
             return String(
                 localized: "catalogue.detail.unsupported \(CatalogueFormatChoice.name(of: kind))",
-                bundle: .module,
+                bundle: .module.inChosenLanguage,
                 locale: .storyArc
             )
         }
-        return String(localized: "catalogue.entry.noDownload", bundle: .module, locale: .storyArc)
+        return String(localized: "catalogue.entry.noDownload", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 
     @ViewBuilder

@@ -207,7 +207,7 @@ struct SearchResultsView: View {
     private static func label(_ origin: SearchOrigin) -> String {
         switch origin {
         case let .library(_, name):
-            String(localized: "library.cell.source \(name)", bundle: .module, locale: .storyArc)
+            String(localized: "library.cell.source \(name)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .thisDevice:
             DetailStrings.text("source.onThisDevice")
         }

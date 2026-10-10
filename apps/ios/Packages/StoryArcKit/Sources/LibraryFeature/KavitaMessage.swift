@@ -19,7 +19,8 @@ enum KavitaMessage {
     static func of(_ error: any Error, source: String) -> String {
         guard let kavita = error as? KavitaError else {
             return String(
-                format: String(localized: "source.offline.body %@", bundle: .module, locale: .storyArc),
+                format: String(localized: "source.offline.body %@",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 source
             )
         }
@@ -29,7 +30,8 @@ enum KavitaMessage {
         case .keyRejected:
             return String(
                 format: String(
-                    localized: "source.unauthorized.refused.body %@", bundle: .module, locale: .storyArc
+                    localized: "source.unauthorized.refused.body %@",
+                    bundle: .module.inChosenLanguage, locale: .storyArc
                 ),
                 source
             )
@@ -38,19 +40,20 @@ enum KavitaMessage {
             // it names an API a reader never chose, and the sentence they need is that the
             // server is too old rather than which request went unanswered.
             return String(
-                localized: "kavita.error.tooOldForRequest", bundle: .module, locale: .storyArc
+                localized: "kavita.error.tooOldForRequest", bundle: .module.inChosenLanguage, locale: .storyArc
             )
         case .badAddress, .unexpectedResponse:
-            return String(localized: "kavita.error.notKavita", bundle: .module, locale: .storyArc)
+            return String(localized: "kavita.error.notKavita", bundle: .module.inChosenLanguage, locale: .storyArc)
         // The reader chose a picture the client will not send. The only action either case
         // leaves them is to choose another, so both say so in one sentence.
         case .imageTooLarge, .imageRejected:
-            return String(localized: "kavita.error.coverRefused", bundle: .module, locale: .storyArc)
+            return String(localized: "kavita.error.coverRefused", bundle: .module.inChosenLanguage, locale: .storyArc)
         // Any other status is the server being unwell rather than the reader being wrong,
         // and `sources` makes that a grey state with an offer to try again.
         case .http:
             return String(
-                format: String(localized: "source.offline.body %@", bundle: .module, locale: .storyArc),
+                format: String(localized: "source.offline.body %@",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 source
             )
         }

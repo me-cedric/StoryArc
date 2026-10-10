@@ -311,11 +311,11 @@ private struct DetailTransferLine: View {
             DownloadFailureWords.sentence(stored: reason)
         case .paused:
             String(
-                format: String(localized: "downloads.pausedTitle", bundle: .module, locale: .storyArc),
+                format: String(localized: "downloads.pausedTitle", bundle: .module.inChosenLanguage, locale: .storyArc),
                 title
             )
         default:
-            String(localized: "detail.download.working", bundle: .module, locale: .storyArc)
+            String(localized: "detail.download.working", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }
@@ -331,7 +331,7 @@ extension Publication {
     /// compression. Android's `refusalSentence` makes the same choice.
     var refusalSentence: String {
         format == .cb7
-            ? String(localized: "library.cell.cannotOpen.cb7", bundle: .module, locale: .storyArc)
-            : String(localized: "library.cell.cannotOpen", bundle: .module, locale: .storyArc)
+            ? String(localized: "library.cell.cannotOpen.cb7", bundle: .module.inChosenLanguage, locale: .storyArc)
+            : String(localized: "library.cell.cannotOpen", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 }

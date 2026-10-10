@@ -42,7 +42,7 @@ public final class PdfTextModel {
     /// chapter a locator falls "inside". The page is what a reader would name, and it is what
     /// the export groups under.
     public static func chapter(ofPage index: Int) -> String {
-        String(localized: "reader.pdf.page \(index + 1)", bundle: .module, locale: .storyArc)
+        String(localized: "reader.pdf.page \(index + 1)", bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 
     private let renderer: PdfPageRenderer

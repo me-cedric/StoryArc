@@ -58,9 +58,9 @@ enum KavitaEntryOpening: Sendable {
         switch self {
         case .opened: nil
         case .notSent:
-            String(localized: "kavita.open.notSent \(server)", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.open.notSent \(server)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unreadable:
-            String(localized: "kavita.open.unreadable \(server)", bundle: .module, locale: .storyArc)
+            String(localized: "kavita.open.unreadable \(server)", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

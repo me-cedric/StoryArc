@@ -96,7 +96,7 @@ public final class SmbDiscovery {
     @discardableResult
     func noteRefusal() -> Bool {
         guard advice == nil else { return false }
-        advice = String(localized: "smb.discovery.denied", bundle: .module, locale: .storyArc)
+        advice = String(localized: "smb.discovery.denied", bundle: .module.inChosenLanguage, locale: .storyArc)
         return true
     }
 

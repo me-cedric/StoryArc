@@ -308,7 +308,7 @@ struct CoverCell: View {
         series.map {
             String(
                 localized: "shelves.count \($0.count)",
-                bundle: .module,
+                bundle: .module.inChosenLanguage,
                 locale: .storyArc
             )
         }
@@ -348,12 +348,12 @@ struct CoverCell: View {
                 model.readFraction(of: publication).map {
                     String(
                         localized: "library.cell.progress \(Int($0 * 100))",
-                        bundle: .module,
+                        bundle: .module.inChosenLanguage,
                         locale: .storyArc
                     )
                 },
                 publication.pageCount.map {
-                    String(localized: "library.cell.pages \($0)", bundle: .module, locale: .storyArc)
+                    String(localized: "library.cell.pages \($0)", bundle: .module.inChosenLanguage, locale: .storyArc)
                 },
             ],
             isOnDevice: model.isOnDevice(publication),

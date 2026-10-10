@@ -225,7 +225,7 @@ public final class CatalogueBrowser {
                     String(
                         format: String(
                             localized: "catalogue.error.changedCertificate",
-                            bundle: .module,
+                            bundle: .module.inChosenLanguage,
                             locale: .storyArc
                         ),
                         certificate.host

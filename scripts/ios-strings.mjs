@@ -214,6 +214,8 @@ export const localizedCalls = (source) => {
         calls.push({
             line: text.slice(0, match.index).split('\n').length,
             hasLocale: /\blocale:/.test(arguments_),
+            // The locale gives the formatting, and the bundle gives the language (task 26.7).
+            hasChosenBundle: /\bbundle:[^,]*\binChosenLanguage\b/.test(arguments_),
         })
     }
     return calls
@@ -292,11 +294,11 @@ export const check = (root) => {
             const seen = new Set()
             const text = readFileSync(source, 'utf8')
             for (const call of localizedCalls(text)) {
-                if (call.hasLocale) continue
+                if (call.hasLocale && call.hasChosenBundle) continue
                 problems.push(
                     `UNLOCALISED  ${relative(root, source)}:${call.line}\n` +
-                        '  String(localized:) is handed no locale:, so it resolves against the device language\n' +
-                        '  rather than the one the reader chose. Pass `locale: .storyArc`.',
+                        '  String(localized:) resolves against the device language rather than the one the\n' +
+                        '  reader chose. Pass `bundle: .module.inChosenLanguage, locale: .storyArc`.',
                 )
             }
             for (const [, interpolated, staticKey] of text.matchAll(LOOKUP)) {
@@ -378,6 +380,18 @@ const selfTest = () => {
         const got = localizedCalls(source).map((call) => call.hasLocale)
         if (JSON.stringify(got) !== JSON.stringify(expected)) {
             fail(`localizedCalls over ${JSON.stringify(source)} = ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`)
+        }
+    }
+    // Task 26.7: a locale alone gives French numbers and device-language words.
+    for (const [source, expected] of [
+        ['String(localized: "a.b", bundle: .module, locale: .storyArc)', [false]],
+        ['String(localized: "a.b", bundle: .module.inChosenLanguage, locale: .storyArc)', [true]],
+        ['String(localized: "a.b",\n    bundle: Bundle.module.inChosenLanguage, locale: .storyArc)', [true]],
+        ['String(localized: "a.inChosenLanguage", bundle: .module, locale: .storyArc)', [false]],
+    ]) {
+        const got = localizedCalls(source).map((call) => call.hasChosenBundle)
+        if (JSON.stringify(got) !== JSON.stringify(expected)) {
+            fail(`hasChosenBundle over ${JSON.stringify(source)} = ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`)
         }
     }
     if (localizedCalls('String(localized: "a.b")\nString(localized: "c.d")')[1]?.line !== 2) {

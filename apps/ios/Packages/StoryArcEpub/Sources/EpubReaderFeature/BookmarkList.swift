@@ -47,7 +47,7 @@ struct BookmarkList: View {
     private func row(_ bookmark: Bookmark) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
             Text(bookmark.chapter.isEmpty
-                ? String(localized: "bookmarks.unnamed", bundle: .module, locale: .storyArc)
+                ? String(localized: "bookmarks.unnamed", bundle: .module.inChosenLanguage, locale: .storyArc)
                 : bookmark.chapter)
                 .foregroundStyle(theme.palette.textPrimary)
                 .lineLimit(1)

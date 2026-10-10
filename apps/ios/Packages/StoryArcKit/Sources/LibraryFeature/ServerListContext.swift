@@ -107,7 +107,8 @@ public enum ServerListContext {
             from: client ?? KavitaClient(address: place.serverAddress)
         )
         guard case let .opened(publication, url) = opening else {
-            let reason = String(localized: "kavita.open.failed \(item.displayName)", bundle: .module, locale: .storyArc)
+            let reason = String(localized: "kavita.open.failed \(item.displayName)",
+                                bundle: .module.inChosenLanguage, locale: .storyArc)
             return .failed(reason)
         }
         if let index = place.entries.firstIndex(where: { $0.chapterId == item.chapterId }) {

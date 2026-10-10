@@ -258,10 +258,10 @@ struct ShelfCoverPicker: View {
     ) -> String {
         switch option {
         case .composite:
-            String(localized: "shelves.cover.composite", bundle: .module, locale: .storyArc)
+            String(localized: "shelves.cover.composite", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .member:
             publication?.displayTitle
-                ?? String(localized: "shelves.list.unavailable", bundle: .module, locale: .storyArc)
+                ?? String(localized: "shelves.list.unavailable", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 

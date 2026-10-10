@@ -74,7 +74,8 @@ public final class SmbConnection {
     /// Connects and lists the share's root, which is the first thing a reader chooses from.
     public func connect() async {
         guard let target = typedAddress() else {
-            step = .failed(String(localized: "smb.error.notAnAddress", bundle: .module, locale: .storyArc))
+            step = .failed(String(localized: "smb.error.notAnAddress",
+                                  bundle: .module.inChosenLanguage, locale: .storyArc))
             return
         }
 
@@ -87,7 +88,8 @@ public final class SmbConnection {
         } catch let error as SmbError {
             step = .failed(Self.describe(error))
         } catch {
-            step = .failed(String(localized: "smb.error.unexpected", bundle: .module, locale: .storyArc))
+            step = .failed(String(localized: "smb.error.unexpected",
+                                  bundle: .module.inChosenLanguage, locale: .storyArc))
         }
     }
 
@@ -125,7 +127,8 @@ public final class SmbConnection {
         if !rooted.isGuest {
             let key = replacing?.credentialReference ?? CredentialStore.reference(for: id)
             guard credentials?.save(rooted.password ?? "", for: key) == true else {
-                step = .failed(String(localized: "smb.error.keyNotStored", bundle: .module, locale: .storyArc))
+                step = .failed(String(localized: "smb.error.keyNotStored",
+                                      bundle: .module.inChosenLanguage, locale: .storyArc))
                 return nil
             }
             reference = key
@@ -183,21 +186,21 @@ public final class SmbConnection {
     private static func describe(_ error: SmbError) -> String {
         switch error {
         case .hostUnreachable:
-            String(localized: "smb.error.hostUnreachable", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.hostUnreachable", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .shareNotFound:
-            String(localized: "smb.error.shareNotFound", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.shareNotFound", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .authenticationRejected:
-            String(localized: "smb.error.authentication", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.authentication", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .protocolUnsupported:
-            String(localized: "smb.error.smb1", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.smb1", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .protocolTooNew:
-            String(localized: "smb.error.smbNewer", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.smbNewer", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .encryptionRequired:
-            String(localized: "smb.error.encryption", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.encryption", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .localNetworkDenied:
-            String(localized: "smb.error.localNetworkDenied", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.localNetworkDenied", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unexpected:
-            String(localized: "smb.error.unexpected", bundle: .module, locale: .storyArc)
+            String(localized: "smb.error.unexpected", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

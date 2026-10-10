@@ -289,7 +289,7 @@ struct CatalogueEntryLink: View {
                 detail
             } label: {
                 Label(
-                    String(localized: "library.action.open", bundle: .module, locale: .storyArc),
+                    String(localized: "library.action.open", bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "arrow.up.forward.app"
                 )
             }

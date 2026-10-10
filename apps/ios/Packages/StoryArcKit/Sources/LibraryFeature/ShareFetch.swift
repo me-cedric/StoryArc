@@ -76,7 +76,8 @@ struct ShareFetchBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
             Text(String(
-                format: String(localized: "catalogue.acquire.fetching", bundle: .module, locale: .storyArc),
+                format: String(localized: "catalogue.acquire.fetching",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 title
             ))
             .textRole(.footnote)

@@ -23,9 +23,11 @@ enum SourceRemovalBody {
             // The two counts are inflected fragments resolved first, because a catalogue entry
             // can inflect one argument and not two; the sentence then takes them as words. The
             // titles fragment is the one the detail field and the list row already draw.
-            let titles = String(localized: "sources.detail \(titleCount)", bundle: .module, locale: .storyArc)
+            let titles = String(localized: "sources.detail \(titleCount)",
+                                bundle: .module.inChosenLanguage, locale: .storyArc)
             let downloads = String(
-                localized: "sources.remove.downloads \(downloadCount)", bundle: .module, locale: .storyArc
+                localized: "sources.remove.downloads \(downloadCount)",
+                bundle: .module.inChosenLanguage, locale: .storyArc
             )
             let space = DownloadStore.formatted(downloadedBytes)
             return Text("sources.remove.bodyWithDownloads \(titles) \(downloads) \(space)", bundle: .module)

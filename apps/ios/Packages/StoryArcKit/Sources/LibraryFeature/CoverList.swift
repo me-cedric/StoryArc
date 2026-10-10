@@ -352,7 +352,7 @@ struct ListRow: View {
                 model.readFraction(of: publication).map {
                     String(
                         localized: "library.cell.progress \(Int($0 * 100))",
-                        bundle: .module,
+                        bundle: .module.inChosenLanguage,
                         locale: .storyArc
                     )
                 },
@@ -373,7 +373,8 @@ struct ListRow: View {
         // What the series holds, where the row stands for one. ``CoverCell/seriesCaption``
         // states the same count under a cover, from the same string.
         if let series {
-            return String(localized: "shelves.count \(series.count)", bundle: .module, locale: .storyArc)
+            return String(localized: "shelves.count \(series.count)",
+                          bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         var parts: [String] = []
         if !publication.isOpenable {

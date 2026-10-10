@@ -241,7 +241,7 @@ private struct HomeShelfCard: View {
     /// The second line: what tells this card from its neighbours, or why it is dimmed.
     private var subtitle: String? {
         guard isReadable else {
-            return String(localized: "home.unavailable", bundle: .module, locale: .storyArc)
+            return String(localized: "home.unavailable", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
         // ``seriesLine(for:)`` rather than the composition written out again. This card was
         // the one surface that had always got this right, and the rule was lifted out of it;

@@ -33,44 +33,47 @@ public enum DownloadFailureWords {
         switch failure {
         case let .unsupportedFormat(format):
             String(
-                format: String(localized: "catalogue.acquire.unsupported", bundle: .module, locale: .storyArc),
+                format: String(localized: "catalogue.acquire.unsupported",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 format
             )
         case .unreadable:
-            String(localized: "catalogue.acquire.unreadable", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.acquire.unreadable", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unauthorized:
-            String(localized: "catalogue.error.unauthorized", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.unauthorized", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .empty:
-            String(localized: "catalogue.error.empty", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.empty", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .refusedAddress:
-            String(localized: "catalogue.error.refusedAddress", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.refusedAddress", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .redirect:
-            String(localized: "catalogue.error.redirect", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.redirect", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .notAWebPage:
-            String(localized: "catalogue.error.html", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.html", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .notAFeed(contentType):
             String(
-                format: String(localized: "catalogue.error.notAFeed", bundle: .module, locale: .storyArc),
+                format: String(localized: "catalogue.error.notAFeed",
+                               bundle: .module.inChosenLanguage, locale: .storyArc),
                 contentType
-                    ?? String(localized: "catalogue.error.unknownType", bundle: .module, locale: .storyArc)
+                    ?? String(localized: "catalogue.error.unknownType",
+                              bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         case .malformed:
-            String(localized: "catalogue.error.malformed", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.malformed", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .http(status):
             String(
-                format: String(localized: "catalogue.error.http", bundle: .module, locale: .storyArc),
+                format: String(localized: "catalogue.error.http", bundle: .module.inChosenLanguage, locale: .storyArc),
                 status
             )
         case .noHost:
-            String(localized: "catalogue.error.noHost", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.noHost", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .timedOut:
-            String(localized: "catalogue.error.timedOut", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.timedOut", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .offline:
-            String(localized: "catalogue.error.offline", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.offline", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unreachable:
-            String(localized: "catalogue.error.unreachable", bundle: .module, locale: .storyArc)
+            String(localized: "catalogue.error.unreachable", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unknown:
-            String(localized: "downloads.failure.unknown", bundle: .module, locale: .storyArc)
+            String(localized: "downloads.failure.unknown", bundle: .module.inChosenLanguage, locale: .storyArc)
         }
     }
 }

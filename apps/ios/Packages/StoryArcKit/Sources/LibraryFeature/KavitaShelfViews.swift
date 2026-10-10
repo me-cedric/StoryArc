@@ -279,9 +279,9 @@ struct KavitaListView: View {
         let series = entry?.seriesName.flatMap { $0 == entry?.displayName ? nil : $0 }
         let drawn: String? = switch progress(row) {
         case .finished:
-            String(localized: "library.readState.finished", bundle: .module, locale: .storyArc)
+            String(localized: "library.readState.finished", bundle: .module.inChosenLanguage, locale: .storyArc)
         case let .part(percent):
-            String(localized: "library.cell.progress \(percent)", bundle: .module, locale: .storyArc)
+            String(localized: "library.cell.progress \(percent)", bundle: .module.inChosenLanguage, locale: .storyArc)
         case .unread, .unknown:
             nil
         }
@@ -298,7 +298,7 @@ struct KavitaListView: View {
             parts.append(beneath)
         } else if progress(row) == .unread {
             parts.append(
-                String(localized: "library.readState.unread", bundle: .module, locale: .storyArc)
+                String(localized: "library.readState.unread", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         return parts.joined(separator: " ")

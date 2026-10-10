@@ -128,7 +128,8 @@ struct PublicationActionMenu: View {
         if let onRemoveFromShelf {
             Button(role: .destructive, action: onRemoveFromShelf) {
                 Label(
-                    String(localized: "library.action.removeFromShelf", bundle: .module, locale: .storyArc),
+                    String(localized: "library.action.removeFromShelf",
+                           bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "minus.circle"
                 )
             }
@@ -145,7 +146,7 @@ struct PublicationActionMenu: View {
     @ViewBuilder
     private var openAction: some View {
         let label = Label(
-            String(localized: "library.action.open", bundle: .module, locale: .storyArc),
+            String(localized: "library.action.open", bundle: .module.inChosenLanguage, locale: .storyArc),
             systemImage: "arrow.up.forward.app"
         )
         if let openRoute {
@@ -163,7 +164,7 @@ struct PublicationActionMenu: View {
     @ViewBuilder
     private var showDetails: some View {
         let label = Label(
-            String(localized: "library.action.showDetails", bundle: .module, locale: .storyArc),
+            String(localized: "library.action.showDetails", bundle: .module.inChosenLanguage, locale: .storyArc),
             systemImage: "info.circle"
         )
         if let openRoute {
@@ -189,7 +190,8 @@ struct PublicationActionMenu: View {
                 }
             } label: {
                 Label(
-                    String(localized: "catalogue.acquire.download", bundle: .module, locale: .storyArc),
+                    String(localized: "catalogue.acquire.download",
+                           bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "arrow.down.circle"
                 )
             }
@@ -199,7 +201,7 @@ struct PublicationActionMenu: View {
                 model.forgetKept([publication.id])
             } label: {
                 Label(
-                    String(localized: "downloads.remove", bundle: .module, locale: .storyArc),
+                    String(localized: "downloads.remove", bundle: .module.inChosenLanguage, locale: .storyArc),
                     systemImage: "trash"
                 )
             }

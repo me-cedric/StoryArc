@@ -71,7 +71,8 @@ public struct VoiceStoppedNotice: Equatable, Sendable {
     /// one both surfaces can reach. On the host the lookup answers with the key itself, which
     /// is why every test asserts ``title`` and never this.
     public var sentence: String? {
-        title.map { String(localized: "player.voice.stopped \($0)", bundle: .module, locale: .storyArc) }
+        title.map { String(localized: "player.voice.stopped \($0)",
+                           bundle: .module.inChosenLanguage, locale: .storyArc) }
     }
 
     private init(title: String?) {

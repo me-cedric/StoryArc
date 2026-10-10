@@ -59,21 +59,21 @@ enum LibraryMarks {
         var spoken = parts.compactMap { $0 }
         if isFinished {
             spoken.append(
-                String(localized: "library.cell.finished", bundle: .module, locale: .storyArc)
+                String(localized: "library.cell.finished", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         // The wording the catalogue already uses for the same state, in the four languages
         // it is already translated into.
         if isOnDevice {
             spoken.append(
-                String(localized: "catalogue.entry.downloaded", bundle: .module, locale: .storyArc)
+                String(localized: "catalogue.entry.downloaded", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         // Last, as on Android: it is the exception rather than the description, and a reader
         // skimming a shelf hears the title first either way.
         if !isReadableNow {
             spoken.append(
-                String(localized: "library.cell.unavailable", bundle: .module, locale: .storyArc)
+                String(localized: "library.cell.unavailable", bundle: .module.inChosenLanguage, locale: .storyArc)
             )
         }
         return spoken.joined(separator: ", ")

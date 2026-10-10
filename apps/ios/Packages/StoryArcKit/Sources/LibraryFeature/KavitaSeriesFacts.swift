@@ -68,6 +68,6 @@ struct KavitaSeriesFacts: View {
         case .cancelled: "kavita.status.cancelled"
         case .ended: "kavita.status.ended"
         }
-        return String(localized: key, bundle: .module, locale: .storyArc)
+        return String(localized: key, bundle: .module.inChosenLanguage, locale: .storyArc)
     }
 }

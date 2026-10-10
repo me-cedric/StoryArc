@@ -15,8 +15,14 @@ public enum InterfaceLanguage {
 
     private static let chosen = Mutex<String?>(nil)
 
+    /// A language for the work inside one task only, which wins over ``choose(_:)``.
+    ///
+    /// A test that sets the language for every lookup changes it for the tests that run
+    /// beside it too. This one changes it for its own task and nothing else.
+    @TaskLocal public static var scoped: String?
+
     /// What the reader picked, or nil for the device's own.
-    public static var tag: String? { chosen.withLock { $0 } }
+    public static var tag: String? { scoped ?? chosen.withLock { $0 } }
 
     /// Changes the language for every lookup made after this returns.
     public static func choose(_ tag: String?) {
