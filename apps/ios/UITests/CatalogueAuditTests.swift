@@ -208,11 +208,11 @@ final class CatalogueAuditTests: XCTestCase {
     func testCatalogue16ThemeSheet() throws {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
-        let menu = app.buttons["Menu"]
-        if !menu.waitForExistence(timeout: 5) {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Hittable, not only present: the chrome hides after four seconds, and on 2026-10-10 two
+        // runs found the button and then tapped a chrome that had gone. `revealed` waits it out.
+        guard let menu = revealed("Menu", in: app) else {
+            throw XCTSkip("The EPUB reader drew no menu button.")
         }
-        try XCTSkipUnless(menu.waitForExistence(timeout: 5), "The EPUB reader drew no menu button.")
         menu.tap()
         for _ in 0..<5 where hittableRow("Reading themes", in: app, timeout: 1) == nil {
             app.swipeUp()
