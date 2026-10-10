@@ -28,6 +28,20 @@ struct EpubPositionSentenceTests {
         #expect(epubPositionSentence(position) == "42% read · Chapter Three, about half left")
     }
 
+    /// Task 26.7: the line took the device language, not the one chosen in the app.
+    @Test("The line reads in French on an English device")
+    func theLineFollowsTheChosenLanguage() {
+        let position = ReadingPositionLine(
+            percentThrough: 42,
+            chapter: "Chapter Three",
+            chapterRemainder: .aboutHalfLeft
+        )
+
+        InterfaceLanguage.$scoped.withValue("fr") {
+            #expect(epubPositionSentence(position) == "42% lu · Chapter Three, environ la moitié restante")
+        }
+    }
+
     @Test("A publication that names no chapter says only how far through")
     func noChapter() {
         let position = ReadingPositionLine(percentThrough: 7, chapter: nil, chapterRemainder: nil)
