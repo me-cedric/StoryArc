@@ -287,19 +287,27 @@ extension XCTestCase {
     /// A control that the screen cuts is left out too, because its frame is the visible part and
     /// not the control. Hittability is not asked: it records a failure for a cover that scrolled
     /// half away.
+    ///
+    /// Each step has its own typed constant. The Xcode of the CI runner could not type-check
+    /// the one chained expression this was before, and failed the build.
     fileprivate func smallTargets(in app: XCUIApplication) -> [XCUIElement] {
-        let window = app.windows.firstMatch.frame.insetBy(dx: 1, dy: 1)
-        let bars = [app.navigationBars, app.toolbars, app.tabBars, app.segmentedControls]
-            .flatMap { $0.descendants(matching: .button).allElementsBoundByIndex }
-            .map { $0.frame }
-        let rows = app.cells.allElementsBoundByIndex.map { $0.frame }.filter { $0.height >= minimumTarget }
-        return [XCUIElement.ElementType.button, .link]
-            .flatMap { app.descendants(matching: $0).allElementsBoundByIndex }
-            .filter { $0.exists && $0.label != "Sheet Grabber" }
-            .filter { !$0.frame.isEmpty && window.contains($0.frame) }
-            .filter { min($0.frame.width, $0.frame.height) < minimumTarget - 0.5 }
-            .filter { target in !bars.contains(target.frame) }
-            .filter { target in !rows.contains { $0.contains(target.frame) } }
+        let window: CGRect = app.windows.firstMatch.frame.insetBy(dx: 1, dy: 1)
+        let barQueries: [XCUIElementQuery] = [app.navigationBars, app.toolbars, app.tabBars, app.segmentedControls]
+        var bars: [CGRect] = []
+        for query in barQueries {
+            bars += query.descendants(matching: .button).allElementsBoundByIndex.map(\.frame)
+        }
+        let rows: [CGRect] = app.cells.allElementsBoundByIndex.map(\.frame).filter { $0.height >= minimumTarget }
+        var controls: [XCUIElement] = app.descendants(matching: .button).allElementsBoundByIndex
+        controls += app.descendants(matching: .link).allElementsBoundByIndex
+        return controls.filter { control in
+            guard control.exists, control.label != "Sheet Grabber" else { return false }
+            let frame: CGRect = control.frame
+            guard !frame.isEmpty, window.contains(frame) else { return false }
+            guard min(frame.width, frame.height) < minimumTarget - 0.5 else { return false }
+            guard !bars.contains(frame) else { return false }
+            return !rows.contains { $0.contains(frame) }
+        }
     }
 
     /// The catalogue's gate.

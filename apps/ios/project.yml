@@ -92,6 +92,13 @@ targets:
         product: Playback
       - package: StoryArcKit
         product: PlayerFeature
+      # The app imports `Formats` itself. Without this line it links `Formats` only through
+      # the Swift autolink entries in its object files. `StoryArcSnapshotTests` also links
+      # `Formats`, so Xcode builds it as a dynamic framework, and an app object compiled
+      # before that change has no `-framework Formats` entry. The link then fails with
+      # "Undefined symbols" for `Formats` until a clean build.
+      - package: StoryArcKit
+        product: Formats
       - package: StoryArcEpub
         product: EpubReaderFeature
       # Embedded in the app, which is the only way WidgetKit finds a widget.
