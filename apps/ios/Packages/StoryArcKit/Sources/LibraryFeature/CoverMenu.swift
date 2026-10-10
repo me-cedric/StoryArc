@@ -152,6 +152,9 @@ struct CoverAddMenu: View {
         } label: {
             Label { Text("cover.add", bundle: .module) } icon: { Image(systemName: "photo.badge.plus") }
                 .hitRegion()
+                // Named on the label, as the edit button is: in a list row the menu answered
+                // with the symbol's name, "photo.badge.plus" (task 26.6).
+                .accessibilityLabel(Text("cover.add", bundle: .module))
         }
         .textRole(.subheadline)
     }

@@ -81,7 +81,9 @@ extension XCTestCase {
     /// belongs to a fixture this test cannot start.
     func openTheKavitaList(_ name: String, in app: XCUIApplication) throws {
         try XCTUnwrap(destination("Home", in: app)).tap()
-        let card = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name)).firstMatch
+        // The card's label goes on with its source ("Start here, ada · 127.0.0.1"). A Home row
+        // heading of the same name opens the list's titles and not the list (task 26.6).
+        let card = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "\(name),")).firstMatch
         _ = card.waitForExistence(timeout: 5)
         // Once the Shelves screen has heard from the server, Home remembers its lists and draws
         // them as cards, and the way in is the card.

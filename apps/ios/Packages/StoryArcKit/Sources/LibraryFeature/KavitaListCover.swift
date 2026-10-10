@@ -163,6 +163,9 @@ struct KavitaListCoverControls: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("cover.picture", bundle: .module))
         .accessibilityAddTraits(.isImage)
+        // With no cover yet, "Add a cover" below is the one stop, and an empty well is not a
+        // picture (task 26.6: the well answered as a second button named Cover).
+        .accessibilityHidden(chosen == nil)
     }
 
     private func adopt(_ item: PhotosPickerItem?, as list: Publication) async {
