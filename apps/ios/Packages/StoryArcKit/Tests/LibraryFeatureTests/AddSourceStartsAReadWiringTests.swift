@@ -29,9 +29,11 @@ struct AddSourceStartsAReadWiringTests {
     @Test("Each add-a-source sheet reads every server right after adding")
     func eachSheetReadsAfterAdding() throws {
         let code = try source("Packages/StoryArcKit/Sources/LibraryFeature/AddingSources.swift")
-        let calls = code.components(separatedBy: "model.add($0); readServers()").count - 1
-        let explanation = "AddingSources.swift calls model.add($0); readServers()" +
+        let calls = code.components(separatedBy: "{ added($0) }").count - 1
+        let explanation = "AddingSources.swift calls added($0)" +
             " \(calls) time(s); expected 3 (the catalogue, Kavita and share sheets)."
         #expect(calls == 3, "\(explanation)")
+        let added = "model.add(source, credentials: CredentialStore())\n        Task { await model.readServers() }"
+        #expect(code.contains(added), "added(_:) does not read every server after adding.")
     }
 }

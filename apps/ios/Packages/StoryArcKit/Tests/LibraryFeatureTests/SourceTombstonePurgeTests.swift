@@ -86,6 +86,29 @@ struct SourceTombstonePurgeTests {
         #expect(model.registry[first.id]?.displayName == "My comics")
     }
 
+    @Test("Adding a place again with a new sign-in removes the old secret")
+    func addingTheSamePlaceAgainRemovesTheOldSecret() throws {
+        let model = LibraryModel(sourceStore: sourceStore())
+        let credentials = credentialStore()
+        let first = Source(
+            displayName: "Comics", kind: .opdsCatalog, state: .connected,
+            credentialReference: "old", locator: "https://example.com/feed"
+        )
+        let again = Source(
+            displayName: "Comics", kind: .opdsCatalog, state: .connected,
+            credentialReference: "new", locator: "https://example.com/feed"
+        )
+        #expect(credentials.save("old-token", for: "old"))
+        #expect(credentials.save("new-token", for: "new"))
+        model.add(first, credentials: credentials)
+
+        model.add(again, credentials: credentials)
+
+        #expect(credentials.secret(for: "old") == nil)
+        #expect(credentials.secret(for: "new") == "new-token")
+        #expect(model.registry[first.id]?.credentialReference == "new")
+    }
+
     @Test("Adding an unrelated catalogue does not take over another source's tombstone")
     func addingAnUnrelatedSourceMintsItsOwnIdentifier() throws {
         let model = LibraryModel(sourceStore: sourceStore())

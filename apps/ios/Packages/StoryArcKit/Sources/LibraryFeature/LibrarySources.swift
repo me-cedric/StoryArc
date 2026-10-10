@@ -84,9 +84,11 @@ extension LibraryModel {
     /// in under a fresh identifier — `sources` promises "re-adding the same source restores
     /// where the user stopped", and a server that cannot sync its own position (an OPDS
     /// catalogue, unlike Kavita) has no way to keep that promise except this one.
-    public func add(_ source: Source) {
+    public func add(_ source: Source, credentials: CredentialStore? = nil) {
         guard registry[source.id] == nil else { return }
         if let same = registry.sameLocation(as: source) {
+            // The new sign-in replaces the old one, so the old secret goes with it.
+            if let old = same.credentialReference, old != source.credentialReference { credentials?.remove(old) }
             registry = registry.replacing(source.rekeyed(to: same.id))
         } else if let tombstone = registry.tombstone(for: source) {
             registry = registry.readding(source.rekeyed(to: tombstone.sourceID))
