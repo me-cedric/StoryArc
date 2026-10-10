@@ -1,6 +1,6 @@
 {
   "name": "storyarc",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Monorepo tooling for StoryArc — native comic, manga and ebook readers for iOS and Android.",
   "license": "MIT",
