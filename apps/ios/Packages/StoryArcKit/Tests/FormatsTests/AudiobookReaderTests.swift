@@ -81,6 +81,22 @@ struct AudiobookReaderTests {
         )
     }
 
+    /// Every download is kept in a folder of its own, so a downloaded M4B reaches the reader as
+    /// a folder that holds one file. Its chapter markers still are its chapters.
+    @Test("A folder that holds one chaptered file has that file's chapters")
+    func folderOfOneChapteredFile() async throws {
+        let folder = try scratchFolder()
+        try FileManager.default.copyItem(
+            at: corpus.appending(path: "chaptered.m4b"),
+            to: folder.appending(path: "Sea Room.m4b")
+        )
+
+        let book = await AudiobookReader.read(folderAt: folder)
+        #expect(book.parts.map(\.title) == ["One", "Two", "Three"])
+        #expect(book.parts.map(\.start) == [0, 2, 4])
+        #expect(book.unreadablePartCount == 0)
+    }
+
     /// The image in `mixed-folder` is not a part. `FolderKind` has already decided the folder
     /// is an audiobook; this is the other half — what plays once it has.
     @Test("A mixed folder plays only its audio")
