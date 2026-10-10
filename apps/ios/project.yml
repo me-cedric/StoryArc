@@ -369,6 +369,8 @@ targets:
         product: PlayerFeature
       - package: StoryArcKit
         product: Formats
+      - package: StoryArcKit
+        product: Catalogue
       - package: StoryArcEpub
         product: EpubReaderFeature
     settings:

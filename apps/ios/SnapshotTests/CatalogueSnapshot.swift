@@ -73,13 +73,14 @@ func assertCatalogue<Screen: View>(
     _ slug: String,
     delay: TimeInterval = 0,
     precision: Float = 0.99,
+    largest: Bool = true,
     file: StaticString = #filePath,
     line: UInt = #line,
     @ViewBuilder _ screen: () -> Screen
 ) {
     NSTimeZone.default = .gmt
     let view = screen()
-    for name in ["light", "dark", "largest"] {
+    for name in largest ? ["light", "dark", "largest"] : ["light", "dark"] {
         let isDark = name == "dark"
         let textSize: UIContentSizeCategory? = name == "largest" ? .accessibilityExtraExtraExtraLarge : nil
         let image = draw(
