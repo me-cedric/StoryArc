@@ -41,13 +41,15 @@ extension ProgressStore {
         onto identity: PublicationIdentity,
         in context: ModelContext
     ) throws -> (keeper: StoredProgress, changed: Bool) {
-        let all = try context.fetch(
-            FetchDescriptor<StoredProgress>(sortBy: [SortDescriptor(\.updatedAt, order: .reverse)])
-        )
-        let twins = all.filter { other in
-            other === record || (identity.contentDigest != nil && other.contentDigest == identity.contentDigest)
-                || PublicationIdentity(normalizedPath: other.normalizedPath).sharesContainerPath(with: identity)
+        // Fetched by key, not the whole table: the scan links every publication on each launch.
+        var twins = try containerTwins(of: identity, in: context) + [record]
+        if let digest = identity.contentDigest {
+            twins += try context.fetch(
+                FetchDescriptor<StoredProgress>(predicate: #Predicate { $0.contentDigest == digest })
+            )
         }
+        var seen = Set<ObjectIdentifier>()
+        twins = twins.filter { seen.insert(ObjectIdentifier($0)).inserted }.sorted { $0.updatedAt > $1.updatedAt }
         let keeper = twins.first ?? record
         var changed = false
         for twin in twins where twin !== keeper {
