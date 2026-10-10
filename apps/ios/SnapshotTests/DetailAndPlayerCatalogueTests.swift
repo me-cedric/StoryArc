@@ -79,6 +79,17 @@ final class DetailAndPlayerCatalogueTests: XCTestCase {
         }
     }
 
+    /// Task 26.5: a finished title opens at its start, so its primary action says Read.
+    func testPublicationFinishedSaysRead() {
+        let model = CatalogueLibrary.model()
+        let publication = model.publications[6]
+        assertCatalogue("05c-publication-finished", delay: 2) {
+            NavigationStack {
+                PublicationDetailView(publication: publication, model: model, onOpen: { _, _ in })
+            }
+        }
+    }
+
     func testCatalogue07FullPlayer() {
         let playing = playing()
         assertCatalogue("07-full-player", delay: 1.5) {
