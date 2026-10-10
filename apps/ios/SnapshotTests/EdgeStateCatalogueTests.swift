@@ -70,7 +70,9 @@ final class EdgeStateCatalogueTests: XCTestCase {
             ),
             CoverCandidate(
                 title: "Long Field", subtitle: "Manga · 2021",
-                imageURL: try XCTUnwrap(URL(string: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/103.jpg")),
+                imageURL: try XCTUnwrap(
+                    URL(string: "https://s4.anilist.co/file/anilistcdn/media/manga/cover/large/103.jpg")
+                ),
                 provider: .aniList
             ),
         ]
