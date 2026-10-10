@@ -14,7 +14,7 @@
  * that is tedious rather than interesting.
  *
  * Usage:
- *   node scripts/capture-ios.mjs --out docs/designs/screenshots/after-x
+ *   node scripts/capture-ios.mjs --out .build/screens/after-x
  *   node scripts/capture-ios.mjs --out /tmp/shots --only testCaptureDownloads
  *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests
  *   node scripts/capture-ios.mjs --out /tmp/shots --only SweepLibraryTests/testCaptureCoverGrid

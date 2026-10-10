@@ -545,7 +545,7 @@ walks to the screen rather than photographing whatever happens to be in front of
 ```bash
 pnpm capture:android --list                                          # the routes
 pnpm capture:android Downloads --out shot.png --dark                    # one frame, and it puts the device back
-pnpm capture:ios --out docs/designs/screenshots/after-x --appearance dark   # drives ScreenshotTests, lifts every frame out of the result bundle
+pnpm capture:ios --out .build/screens/after-x --appearance dark   # drives ScreenshotTests, lifts every frame out of the result bundle
 ```
 
 `--out` is a file on Android and a directory on iOS, because one drives a route and

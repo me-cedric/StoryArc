@@ -32,8 +32,10 @@
  *    change is committed, so the strict reading buys nothing and would refuse work in
  *    progress that cannot yet carry a commit message.
  *
- * **A frame is an image file under `docs/designs/screenshots/`.** That tree holds 1000 `.png`
- * files and 53 `.md` files today, so a README added beside the frames is not a frame.
+ * **A frame is an image file under `docs/designs/screenshots/`.** Since 2026-10-10 that tree
+ * keeps only the 128 images that lasting documents show, so a README added beside the frames
+ * is not a frame. A frame there is still proof, but it is rarely the right proof: a screenshot
+ * that checks a change is deleted after the check (`Visual-proof: checked`).
  *
  * **A snapshot reference is proof too** (`lighter-visual-check`). A snapshot test draws the
  * screen with fixture data, in light and dark, and compares it with the `.png` beside the
@@ -42,15 +44,17 @@
  * where a changed frame does not, because a reference that moved is exactly what a drawing
  * change does to a snapshot test.
  *
- * **Two exceptions, and no third.** `AGENTS.md` §6 names them: code behind a flag that nothing
- * renders yet, and a pure refactor whose screenshots are byte-identical. It also says the
- * handoff must name which one applies. Name it in a commit message, the way
+ * **Three markers, and no fourth.** `AGENTS.md` §6 names them: code behind a flag that nothing
+ * renders yet, a pure refactor whose screenshots are byte-identical, and a screen that no
+ * snapshot test can draw, checked on a simulator or a device with the screenshot deleted after
+ * the check. Name the one that applies in a commit message, the way
  * `scripts/commitlint-guard.mjs` treats commit text as the place a claim is recorded:
  *
  *     Visual-proof: flag        code behind a flag that nothing renders yet
  *     Visual-proof: identical   a pure refactor whose screenshots are byte-identical
+ *     Visual-proof: checked     a screen checked on a simulator or device, screenshot deleted
  *
- * Any other word after `Visual-proof:` is refused, because a third exception does not exist.
+ * Any other word after `Visual-proof:` is refused.
  *
  * **The gate passes when it cannot see the branch.** No `main`, no merge base, or no git at
  * all means no verdict, not a failure. This runs inside `pnpm lint`, which runs at pre-push,
@@ -77,6 +81,7 @@ const MARKER = /^[ \t]*Visual-proof:[ \t]*(\w+)/im
 const EXCEPTIONS = {
   flag: 'code behind a flag that nothing renders yet',
   identical: 'a pure refactor whose screenshots are byte-identical',
+  checked: 'a screen no snapshot test can draw, checked on a simulator or a device, with the screenshot deleted after the check',
 }
 
 /** A test source. Drawing code in a test draws for the test, and no reader sees it. */
@@ -334,17 +339,18 @@ data, real insets, real system materials or a real Dynamic Type setting.
 Look at the screen in light and dark. Either record a snapshot reference, which a snapshot
 test compares on every run (\`pnpm snap:ios:record\`, \`pnpm snap:android:record\`), or capture
 from a booted simulator or emulator at the default text size. A reference is a \`.png\` under
-\`__Snapshots__/\` (iOS) or \`src/test/snapshots/\` (Android). Put a frame in \`${FRAMES}<topic>-<yyyy-mm-dd>/\`:
+\`__Snapshots__/\` (iOS) or \`src/test/snapshots/\` (Android). A screenshot that checks a
+change goes to \`.build/screens/\`, and you delete it after you look at it:
 
-  xcrun simctl io booted screenshot shot.png
-  pnpm capture:android --list
-  pnpm capture:android <route> --out shot.png --dark
+  xcrun simctl io booted screenshot .build/screens/shot.png
+  pnpm device screenshot .build/screens/shot.png
+  pnpm capture:android <route> --out .build/screens/shot.png --dark
 
-AGENTS.md §6 allows two exceptions, and no third. Name the one that applies in a commit
-message on this branch:
+Then name the marker that applies in a commit message on this branch (AGENTS.md §6):
 
   Visual-proof: flag        ${EXCEPTIONS.flag}
   Visual-proof: identical   ${EXCEPTIONS.identical}
+  Visual-proof: checked     ${EXCEPTIONS.checked}
 `)
   return 1
 }
@@ -503,8 +509,11 @@ function selfTest() {
   got = run({ diffText: swiftBody, messages: ['refactor(ios): a shelf\n\nVisual-proof: identical\n'] })
   cases.push(['the byte-identical exception is honoured', got.ok && got.exception === 'identical'])
 
+  got = run({ diffText: swiftBody, messages: ['feat(ios): a shelf\n\nVisual-proof: checked\n'] })
+  cases.push(['a screen checked on a device and deleted is honoured', got.ok && got.exception === 'checked'])
+
   got = run({ diffText: swiftBody, messages: ['feat(ios): a shelf\n\nVisual-proof: later\n'] })
-  cases.push(['a word that is not one of the two exceptions is refused', !got.ok && got.exception === null])
+  cases.push(['a word that is not one of the three markers is refused', !got.ok && got.exception === null])
 
   got = run({ diffText: swiftBody, messages: ['feat(ios): a shelf', 'chore(ios): tidy\n\nVisual-proof: flag\n'] })
   cases.push(['any commit on the branch may carry the marker', got.ok])

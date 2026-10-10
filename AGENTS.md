@@ -497,11 +497,19 @@ seed and the corpus. The iOS workflow runs it in the step *Catalogue audit*.
 the one open gap (`lighter-visual-check` is archived). **A new screen adds its catalogue entry**: a snapshot test in light and
 dark, and an audit.
 
-**3. Commit little.** A snapshot reference is the proof for a screen state. A device
-screenshot is committed only for what a snapshot cannot draw: one light and one dark per
-changed screen, at the default text size, downscaled with `pnpm frames:shrink`, under
-`docs/designs/screenshots/<topic>-<yyyy-mm-dd>/`. No separate frames agent and no
-photo per task.
+**3. Commit no screenshot by default.** A snapshot reference is the proof for a screen
+state. For a screen that a snapshot cannot draw, take the screenshots in `.build/screens/`
+(git ignores it), look at them, then delete them. Write `Visual-proof: checked` in the
+commit message. The owner asked for this on 2026-10-10, after `docs/designs/screenshots/`
+reached 1,645 images and 476 MB.
+
+- Delete a screenshot run when its check ends: `rm -rf .build/screens/<run>`. Do this in
+  the same turn, also when the check failed.
+- Commit a screenshot only when a lasting document shows it: the README, an ADR, a design
+  document, `docs/mvp-device-checklist.md` or `docs/openspec/STATUS.md`. Then commit one
+  light and one dark image of the screen, downscaled with `pnpm frames:shrink`.
+- Never commit a sweep, a dated proof folder, or one image for each task. A task cites its
+  snapshot test or its commit, not an image.
 
 The largest text size, all four languages and the guideline checks are not committed as
 frames. The snapshot tests and the audits cover them. Both platforms draw each catalogue
@@ -511,38 +519,23 @@ screen in light at the largest text size too (iOS `<NN>-<name>.largest.png` at A
 `pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses a branch
 that adds a line inside a `View` or a `@Composable` and adds neither a frame under
 `docs/designs/screenshots/` nor a snapshot reference (`__Snapshots__/` on iOS,
-`src/test/snapshots/` on Android). Two exceptions, named in a commit message on the branch:
-`Visual-proof: flag` (code behind a flag that nothing renders yet) and `Visual-proof:
-identical` (a pure refactor whose snapshots or screenshots are byte-identical). It reads
+`src/test/snapshots/` on Android). Three markers, named in a commit message on the branch:
+`Visual-proof: flag` (code behind a flag that nothing renders yet), `Visual-proof:
+identical` (a pure refactor whose snapshots or screenshots are byte-identical) and
+`Visual-proof: checked` (a screen checked on a simulator or a device, with the screenshots
+deleted after the check). It reads
 added lines only, cuts out every preview block, and stays quiet on a comment, an import or
 a test source. `scripts/preview-proof-check.mjs` says why each of those is deliberate.
 
 A SwiftUI `#Preview` and a Compose `@Preview` are development aids, not proof: neither runs
 in the test suite with fixture data.
 
-**A frame is kept while something still needs it, and removed the day nothing does.**
-`docs/designs/screenshots/` reached 268 megabytes and 1128 files, of which **14** were cited
-by any document. It was pruned to 196 megabytes on 2026-09-07. The rule that pruned it, and
-the rule to apply next time:
-
-| Keep | Why |
-| --- | --- |
-| The latest full sweep for each platform | It is the current baseline every later frame is compared against |
-| One prior comparison set | So a regression can be seen rather than argued about |
-| Any frame a document or a task list cites by path | Removing it breaks the page that cites it |
-| Topic evidence for a change that has not archived | The frame is that task's proof |
-| Nothing else | |
-
-A `before-*` / `after-*` pair is a comparison for one change. When that change archives the
-pair has done its work, and the newest such pair is the only one worth holding.
-
-Before you remove one, grep every `.md` for its path. Three frames in the 2026-09-07 prune
-were cited by changes still in flight and were kept, with their set's README rewritten to say
-what was pruned and why — a README describing frames that are gone is worse than no README.
-
-**Git holds every removed frame**, so a comparison is always recoverable and does not need to
-sit in the working tree. Never commit an archive of them: a 242 megabyte `Archive.zip` was
-staged once and caught before it landed.
+**`docs/designs/screenshots/` keeps only what a lasting document shows.** On 2026-10-10 it
+went from 1,645 images (476 MB) to 128 images (42 MB). The snapshot references are the
+baseline now, not a sweep. When a lasting document stops showing an image, delete the image
+in the same commit. Task lists and archived changes still name some removed images; the
+folder's README says how to get one back from git history. Never commit an archive of
+screenshots: a 242 MB `Archive.zip` was staged once and caught before it landed.
 
 **A screenshot that could look the same for a boring reason needs a control.**
 The EPUB reader's chrome photographed in cream proves nothing on its own — the
