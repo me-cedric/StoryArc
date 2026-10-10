@@ -299,6 +299,20 @@ frames found no product defect. They found a harness race: the route `Comic read
 `EPUB reader > chrome` cannot reach `Harbour Lights 01` under Series grouping. The goal ends here, and the
 docs pass follows.
 
+**Wave 8 of the close-all-yellow goal landed on 2026-10-10** (the polish wave; two lanes, iOS and Android; no
+frames agent, because the first visual check in `AGENTS.md` section 6 uses the catalogue snapshots). Closed:
+`close-the-audited-gaps` 27.1 to 27.8. A larger hit region on iOS no longer draws a larger control. The
+"could not be opened" notice uses the iOS 26 idiom. "Your libraries" has swipe actions on iOS and one overflow
+menu per row on Android. Accent and danger text reach 4.5:1 on both platforms, and `pnpm tokens:check` holds the
+pairs. The Kavita list cover is one labelled control. The player dock title and the Search canvas follow the
+palette. The sync status is one whole sentence per language. Stays open: one run of
+`CoverMenuAudit.testKavitaListCoverPassesTheHitRegionAudit` against the mock Kavita server; the chapter line
+of the player dock (4.65 to 1 in light) has no test; the open Android menu and the drag were not driven on a
+device; Remove download on Android is an accent text button, and its style belongs to the Downloads layout
+task. One iOS snapshot reference (Home, light and dark) moved with the new text tint and was recorded again.
+The owner reports that Play shows "not compatible with your device" for 0.1.1 on Android 16. No wave 8 lane
+touched the manifest, `minSdk`, `targetSdk` or the ABI filters, so that question needs its own investigation.
+
 **What this pass changes in the records below.**
 
 - **`offline-downloads` *Reading while downloading* is still Android-only.** Commit
