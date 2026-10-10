@@ -15,6 +15,7 @@ import app.storyarc.core.model.AppearanceMode
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
+import org.robolectric.RuntimeEnvironment
 
 /**
  * The one Robolectric qualifier every catalogue snapshot uses: a phone at xhdpi.
@@ -24,10 +25,14 @@ import com.github.takahirom.roborazzi.roborazziSystemPropertyOutputDirectory
  */
 const val CATALOGUE_QUALIFIERS = "w411dp-h891dp-xhdpi"
 
-/** The two appearances every catalogue entry is drawn in. */
-enum class Look(val suffix: String, val appearance: AppearanceMode) {
+/**
+ * The looks every catalogue entry is drawn in: light and dark at the default text size, and
+ * light at the largest text size the system offers (font scale 2.0, `lighter-visual-check` 5.2).
+ */
+enum class Look(val suffix: String, val appearance: AppearanceMode, val fontScale: Float = 1f) {
     Light("light", AppearanceMode.LIGHT),
     Dark("dark", AppearanceMode.DARK),
+    Largest("largest", AppearanceMode.LIGHT, fontScale = 2f),
 }
 
 /**
@@ -51,6 +56,9 @@ fun ComposeContentTestRule.catalogue(
     act: ComposeContentTestRule.() -> Unit = {},
     content: @Composable () -> Unit,
 ) {
+    // Before the content, so the activity's configuration carries it, and Compose scales text
+    // with the platform's own non-linear curve rather than a plain multiplier.
+    RuntimeEnvironment.setFontScale(look.fontScale)
     setContent {
         StoryArcTheme(appearance = look.appearance, useDynamicColor = false, natural = false) {
             Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content() }

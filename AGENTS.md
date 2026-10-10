@@ -449,8 +449,9 @@ changed screen, at the default text size, downscaled with `pnpm frames:shrink`, 
 photo per task.
 
 The largest text size, all four languages and the guideline checks are not committed as
-frames. The snapshot tests and the audits cover them. The snapshot tests do not draw the
-largest text size yet, and `lighter-visual-check` task 5.2 holds that gap.
+frames. The snapshot tests and the audits cover them. The Android snapshot tests draw each
+catalogue screen at font scale 2.0 too (`<NN>-<name>-largest.png`). The iOS snapshot tests do
+not draw the largest text size yet, and `lighter-visual-check` task 5.2 holds that gap.
 
 `pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses a branch
 that adds a line inside a `View` or a `@Composable` and adds neither a frame under

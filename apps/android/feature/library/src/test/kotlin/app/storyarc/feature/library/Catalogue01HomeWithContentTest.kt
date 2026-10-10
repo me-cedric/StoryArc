@@ -58,4 +58,7 @@ class Catalogue01HomeWithContentTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

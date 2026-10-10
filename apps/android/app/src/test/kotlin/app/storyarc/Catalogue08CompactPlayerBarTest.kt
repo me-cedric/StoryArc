@@ -86,4 +86,7 @@ class Catalogue08CompactPlayerBarTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

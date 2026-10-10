@@ -36,4 +36,7 @@ class Catalogue09SettingsRootTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

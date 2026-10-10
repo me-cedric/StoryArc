@@ -126,4 +126,7 @@ class Catalogue13DownloadsTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

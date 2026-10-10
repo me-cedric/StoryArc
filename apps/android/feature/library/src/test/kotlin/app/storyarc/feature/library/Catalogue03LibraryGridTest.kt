@@ -32,4 +32,7 @@ class Catalogue03LibraryGridTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

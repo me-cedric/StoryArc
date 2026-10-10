@@ -3,6 +3,7 @@ package app.storyarc
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -294,7 +295,9 @@ private fun InFlightHeader(
     if (LocalDensity.current.fontScale >= 1.5f) {
         Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
             heading()
-            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
+            // A flow, not a row: at font scale 2.0 the three labels are wider than a phone, and
+            // a row squeezed the last one to "Ca / nce / l all".
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
         }
     } else {
         Row(

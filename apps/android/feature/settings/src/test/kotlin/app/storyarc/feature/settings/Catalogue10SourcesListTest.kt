@@ -40,4 +40,7 @@ class Catalogue10SourcesListTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

@@ -77,6 +77,10 @@ internal fun Specimen(
     // system text size the words grew and the card clipped them, which is a specimen
     // that shows less of the face the larger the reader needs it.
     val fixed = with(LocalDensity.current) { SPECIMEN_DP.dp.toSp() }
+    // The line height too: left to the style it stayed in `sp`, doubled at font scale 2.0, and
+    // pushed the second line out of the card.
+    val body = MaterialTheme.typography.bodyMedium
+    val lineHeight = fixed * (body.lineHeight.value / body.fontSize.value)
 
     Column(
         // One picture, and not a sentence a screen reader should read twice per card.
@@ -85,8 +89,7 @@ internal fun Specimen(
         listOf(R.string.theme_specimen, R.string.theme_specimen_second).forEach { line ->
             Text(
                 text = stringResource(line),
-                style = MaterialTheme.typography.bodyMedium
-                    .copy(fontFamily = family, fontSize = fixed),
+                style = body.copy(fontFamily = family, fontSize = fixed, lineHeight = lineHeight),
                 // Always explicit. A variable font's default instance is whatever its
                 // `fvar` says, and upstream Bitter's is Thin — a specimen that let the
                 // default stand would show a hairline and call it Bitter.

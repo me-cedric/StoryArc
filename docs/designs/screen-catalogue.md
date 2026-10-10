@@ -37,8 +37,10 @@ accessibility audit.
     it finds.
 - **Android snapshots.** Each screen module has a Robolectric test `Catalogue<number><Name>Test`
   that draws the real Compose screen with fixture data through `catalogue()` in `:core:snapshots`,
-  in light and in dark, at `w411dp-h891dp-xhdpi` (822 by 1782 pixels). Roborazzi writes the
-  reference images to `src/test/snapshots/<number>-<name>-<light|dark>.png` in that module.
+  in light and in dark, at `w411dp-h891dp-xhdpi` (822 by 1782 pixels). A third test draws it in
+  light at font scale 2.0, the largest text size the system offers. Roborazzi writes the
+  reference images to `src/test/snapshots/<number>-<name>-<light|dark|largest>.png` in that
+  module.
   - `pnpm snap:android` compares each image with its reference. A changed image fails the test.
     `pnpm test:android` also compares them. A plain `./gradlew test`, as the Linux CI runs it,
     does not compare them, because the references are recorded on macOS.
@@ -89,5 +91,6 @@ parts that a snapshot does not draw. Take one for each appearance, and shrink it
   the theme sheet, which has no web view; the page behind it is a device screenshot case.
 - **System interface.** The status bar and the Dynamic Island, the keyboard, share sheets, file
   and folder pickers, the lock screen, widgets and CarPlay.
-- **The largest text size.** The snapshot tests do not draw it. The accessibility audit and the
-  review gate in `docs/design.md` section 10 cover it.
+- **The largest text size on iOS.** The iOS snapshot tests do not draw it. The accessibility
+  audit and the review gate in `docs/design.md` section 10 cover it. Android draws it: see the
+  Android snapshots above.

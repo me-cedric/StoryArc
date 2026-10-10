@@ -81,4 +81,7 @@ class Catalogue15ReaderChromeTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

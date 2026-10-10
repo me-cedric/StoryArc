@@ -43,4 +43,7 @@ class Catalogue12SyncSectionTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

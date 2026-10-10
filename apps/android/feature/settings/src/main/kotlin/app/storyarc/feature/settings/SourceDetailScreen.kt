@@ -5,6 +5,7 @@ import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -298,21 +299,23 @@ private fun itemsText(diagnosis: SourceDiagnosis): String {
 @Composable
 private fun Field(label: String, value: String) {
     val palette = LocalStoryArcPalette.current
-    Row(
+    // A flow, so a value too long to share the line goes under its label. In a row the value
+    // measured first and left the label one letter wide at font scale 2.0.
+    FlowRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             // One row, announced once rather than as two unrelated pieces of text on the
             // way past.
             .semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
-        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textPrimary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.padding(end = StoryArcSpace.md),
         )
         Text(
             text = value,

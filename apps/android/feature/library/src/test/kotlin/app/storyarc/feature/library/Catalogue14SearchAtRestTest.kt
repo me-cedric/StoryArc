@@ -55,4 +55,7 @@ class Catalogue14SearchAtRestTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }
