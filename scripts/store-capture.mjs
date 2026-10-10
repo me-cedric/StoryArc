@@ -165,6 +165,25 @@ async function isVisible(session, target) {
   }
 }
 
+/**
+ * One batch of steps. The iOS runner refuses every step while a slow accessibility capture
+ * of an earlier step still runs, as on the iPad player once in a full run. The steps before
+ * the refused one are done, so the batch goes on from there. No event says that the runner is
+ * free again, so it tries every three seconds, for half a minute at most.
+ */
+async function runBatch(session, steps) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await ad(['batch', '--steps', JSON.stringify(steps), '--on-error', 'stop', '--session', session])
+    } catch (error) {
+      const at = Number(error.message.match(/failed at step (\d+)/)?.[1])
+      if (attempt === 10 || !at || !error.message.includes('still finishing a previous command')) throw error
+      steps = steps.slice(at - 1)
+      await new Promise((done) => setTimeout(done, 3000))
+    }
+  }
+}
+
 /** Runs the steps of one walk. `lane` knows the screen size and where each frame goes. */
 async function run(lane, locale, steps) {
   const [width, height] = lane.points
@@ -174,7 +193,7 @@ async function run(lane, locale, steps) {
   let shots = []
   const flush = async () => {
     if (batch.length === 0) return
-    await ad(['batch', '--steps', JSON.stringify(batch), '--on-error', 'stop', '--session', lane.session])
+    await runBatch(lane.session, batch)
     for (const { id, file } of shots) {
       const size = pngFileSize(file).join('x')
       if (size !== lane.size.join('x')) throw new Error(`frame ${id} came out ${size}, not ${lane.size.join('x')}`)

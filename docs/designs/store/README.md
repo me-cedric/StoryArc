@@ -100,7 +100,10 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
    first turn waits until the spinner is gone.
 5. Each step waits for its screen before the screenshot: a selector, a text, or a quiet
    screen. Two waits on iOS are fixed, and the walk says why: agent-device does not see the
-   EPUB reader's menu sheet, so the walk taps its *Reading themes* row by position.
+   EPUB reader's menu sheet, so the walk taps its *Reading themes* row by position. The iOS
+   runner can refuse steps while a slow accessibility capture still runs (seen once on the
+   iPad player). The walk then goes on from the refused step every three seconds, for half
+   a minute at most.
 6. Every label is the app's own word: Android `strings.xml` through `namedIn()` in
    `scripts/android-routes.mjs`, iOS `Localizable.xcstrings`. A renamed key fails the run by
    name before a device boots. `pnpm store:selftest`, part of `pnpm lint`, checks the walk.
