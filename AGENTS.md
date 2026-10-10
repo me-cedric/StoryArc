@@ -766,3 +766,29 @@ gh release view v0.2.0            # the APK is attached, or it is not
 
 **iOS is not wired into this yet.** `pnpm release` touches the Android version only. Do not
 claim a release covers iOS.
+
+**Store listing.** The listing is the texts, screenshots, feature graphic and icon that the
+stores show. Updating it is outward-facing, so the owner decides it, as with a release.
+
+- **Run `pnpm store:publish` only when the owner asks.** It checks the files, zips them,
+  attaches the zip to the draft release `store-assets` and starts `android-listing.yml` with
+  `validateOnly=true`. Play validates the listing and changes nothing. `pnpm store:publish
+  --dry` checks and zips, and sends nothing.
+- **Use `--publish` only when the owner asks for it outright.** It starts the same workflow
+  with `validateOnly=false`. Play then shows the new listing to everyone.
+- **The App Store takes two steps.** `pnpm store:publish --platform appstore` writes and
+  zips the layout, then stops. `--upload` starts `ios-listing.yml` with `upload=true`, which
+  writes the texts and screenshots to the editable version. Without it, the workflow only
+  proves that the key works. It never submits for review and never uploads a binary.
+- **The inputs are files on this Mac.** The texts are `docs/designs/store/{android,ios}/listing/*.md`.
+  The images are in `.build/store/`, where the screenshot run writes them. The script refuses
+  a text over its store limit and an image of the wrong size, and it names the language and
+  the field. Fix the file and run it again. `pnpm store:publish:selftest` proves the checks.
+- **The store keys never come to this Mac.** Both workflows run in CI and shred the key.
+  The owner sets up two things once. For Play, the service account of
+  `PLAY_SERVICE_ACCOUNT_JSON` needs the Play Console permission to edit the store listing.
+  For the App Store, the repository secrets `ASC_KEY_ID`, `ASC_ISSUER_ID` and `ASC_KEY_P8`
+  hold an App Store Connect API key with the App Manager role. The workflow stops with a
+  message when one is missing.
+- **`android-listing.yml` needs a track that already holds a release.** Its default is
+  `internal`. `supply` looks for a release even when it uploads only a listing.
