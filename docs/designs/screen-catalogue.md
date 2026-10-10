@@ -2,7 +2,8 @@
 
 The screens that both platforms name the same way, and the test that draws each one.
 `lighter-visual-check` decision 4 defines the list. A change that alters one of these screens
-records its reference again, looks at the new image in light and dark, and commits both.
+records its reference again, looks at the new images in light, in dark and (on iOS) at the
+largest text size, and commits them.
 
 A person who adds a screen adds its row here, a snapshot test on each platform, and a step in the
 accessibility audit.
@@ -11,8 +12,10 @@ accessibility audit.
 
 - **iOS snapshots.** `StoryArcSnapshotTests` is a unit-test bundle that the app hosts
   (`apps/ios/project.yml`). Each test draws the real SwiftUI view with fixture data, in light and
-  in dark, on an iPhone 17 at scale 2 (402 by 874 points, iOS 26.2). The reference images sit in
-  `apps/ios/SnapshotTests/__Snapshots__/<Class>/<number>-<name>.<light|dark>.png`.
+  in dark, on an iPhone 17 at scale 2 (402 by 874 points, iOS 26.2). It also draws the light
+  appearance at the largest text size, AX5 (`accessibilityExtraExtraExtraLarge`). The reference
+  images sit in `apps/ios/SnapshotTests/__Snapshots__/<Class>/<number>-<name>.<light|dark|largest>.png`.
+  An image shows the first screen only. Text below the fold is not in it.
   - `pnpm snap:ios` compares each image with its reference. A changed image fails the test.
   - `pnpm snap:ios:record` records every reference again. Run it, open each changed image, and
     fix what is wrong before the commit.
@@ -25,8 +28,19 @@ accessibility audit.
     a whole bar. Record again on that version.
 - **iOS accessibility audit.** `CatalogueAuditTests` in the UI-test target walks the real app to
   each screen that a UI test can reach and runs Apple's `performAccessibilityAudit` over all
-  kinds. A control under 44 points, a hit region that the platform names and an element with no
-  description fail the test. Contrast, clipped text, Dynamic Type and the other kinds are printed.
+  kinds. A control under 44 points, a hit region that the platform names, an element with no
+  description and a contrast finding on an element that the audit names fail the test. Clipped
+  text, Dynamic Type and the other kinds are printed.
+  - A contrast finding is printed and does not fail when it names no element, or when its element
+    is cut by the window or covered by a tab bar, a toolbar or a navigation bar.
+  - A contrast fault that stands for now is in `knownContrastFaults`
+    (`apps/ios/UITests/CatalogueVerdict.swift`), with its reason. A steady entry that no longer
+    occurs fails the test, so the list drains. `testFaintTextFails` proves that the gate fails a
+    faint label, which the debug argument `-storyarc.audit.targets` draws.
+  - `pnpm test:ios:audit` runs the class on a local simulator: build, install and seed, the
+    corpus, then the tests. The iOS workflow runs the same class in its step *Catalogue audit*,
+    after the other UI tests. Entry 02 is skipped in both, because the seed gives the device a
+    library.
   - Apple's hit-region check has a floor near 24 points: it named an 18 point button and passed
     24, 30, 36, 40 and 44 on iOS 26.2. So the suite measures every button, switch, slider, stepper
     and link on the screen against 44 points itself.
@@ -49,27 +63,27 @@ accessibility audit.
 
 ## The catalogue
 
-| No. | Screen | iOS snapshot test | iOS images (light and dark) | iOS audit | Android |
-| --- | --- | --- | --- | --- | --- |
-| 01 | Home with content | `LibraryCatalogueTests/testCatalogue01HomeWithContent` | `LibraryCatalogueTests/01-home-with-content` | `testCatalogue01HomeWithContent` | `:feature:library` `Catalogue01HomeWithContentTest`, `01-home-with-content` |
-| 02 | Home on a first run | `LibraryCatalogueTests/testCatalogue02HomeFirstRun` | `LibraryCatalogueTests/02-home-first-run` | `testCatalogue02HomeFirstRun`, on a device with no library | `:feature:library` `Catalogue02HomeFirstRunTest`, `02-home-first-run` |
-| 03 | Library grid | `LibraryCatalogueTests/testCatalogue03LibraryGrid` | `LibraryCatalogueTests/03-library-grid` | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue03LibraryGridTest`, `03-library-grid` |
-| 04 | Library list | `LibraryCatalogueTests/testCatalogue04LibraryList` | `LibraryCatalogueTests/04-library-list` | `testCatalogue04LibraryList` | `:feature:library` `Catalogue04LibraryListTest`, `04-library-list` |
-| 05 | Publication page with a cover | `DetailAndPlayerCatalogueTests/testCatalogue05PublicationWithCover` | `DetailAndPlayerCatalogueTests/05-publication-with-cover` | `testCatalogue05PublicationWithCover` | `:feature:library` `Catalogue05PublicationWithCoverTest`, `05-publication-with-cover` |
-| 05b | Publication page, file not on this device | `DetailAndPlayerCatalogueTests/testCatalogue05bPublicationUnavailable` | `DetailAndPlayerCatalogueTests/05b-publication-unavailable` | not reachable: needs an unreachable source | none |
-| 06 | Publication page without a cover | `DetailAndPlayerCatalogueTests/testCatalogue06PublicationWithoutCover` | `DetailAndPlayerCatalogueTests/06-publication-without-cover` | `testCatalogue06PublicationWithoutCover` | `:feature:library` `Catalogue06PublicationWithoutCoverTest`, `06-publication-without-cover` |
-| 07 | Full player | `DetailAndPlayerCatalogueTests/testCatalogue07FullPlayer` | `DetailAndPlayerCatalogueTests/07-full-player` | `testCatalogue07And08Player` | `:app` `Catalogue07FullPlayerTest`, `07-full-player` |
-| 08 | Compact player bar | `DetailAndPlayerCatalogueTests/testCatalogue08CompactPlayerBar` | `DetailAndPlayerCatalogueTests/08-compact-player-bar` | `testCatalogue07And08Player` | `:app` `Catalogue08CompactPlayerBarTest`, `08-compact-player-bar` |
-| 09 | Settings root | `SettingsCatalogueTests/testCatalogue09SettingsRoot` | `SettingsCatalogueTests/09-settings-root` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue09SettingsRootTest`, `09-settings-root` |
-| 10 | Sources list | `SettingsCatalogueTests/testCatalogue10SourcesList` | `SettingsCatalogueTests/10-sources-list` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue10SourcesListTest`, `10-sources-list` |
-| 11 | Source detail | `SettingsCatalogueTests/testCatalogue11SourceDetail` | `SettingsCatalogueTests/11-source-detail` | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue11SourceDetailTest`, `11-source-detail` |
-| 12 | The sync section of settings | `SettingsCatalogueTests/testCatalogue12SettingsSync` | `SettingsCatalogueTests/12-settings-sync` | `testCatalogue12SettingsSync` | `:feature:settings` `Catalogue12SyncSectionTest`, `12-sync-section` |
-| 13 | Downloads and storage | `SettingsCatalogueTests/testCatalogue13DownloadsAndStorage` | `SettingsCatalogueTests/13-downloads-and-storage` | `testCatalogue13Downloads`, which audits the tab and the settings group | `:app` `Catalogue13DownloadsTest`, `13-downloads` |
-| 14 | Search at rest | `LibraryCatalogueTests/testCatalogue14SearchAtRest` | `LibraryCatalogueTests/14-search-at-rest` | `testCatalogue14SearchAtRest` | `:feature:library` `Catalogue14SearchAtRestTest`, `14-search-at-rest` |
-| 15 | Comic or PDF reader chrome | `ReaderCatalogueTests/testCatalogue15ComicReaderChrome` | `ReaderCatalogueTests/15-comic-reader-chrome` | `testCatalogue15ReaderChrome` | `:feature:reader` `Catalogue15ReaderChromeTest`, `15-reader-chrome`. The comic reader only |
-| 16 | Reading themes sheet | `ReaderCatalogueTests/testCatalogue16ThemeSheet` | `ReaderCatalogueTests/16-theme-sheet` | `testCatalogue16ThemeSheet` | `:feature:epubreader` `Catalogue16ThemeSheetTest`, `16-theme-sheet`. The preview box is empty, because Robolectric does not draw a web view |
-| 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue17LibraryRailTest`, `17-library-a-to-z-rail` |
-| 18 | Library with the skipped notice | `LibraryCatalogueTests/testCatalogue18LibrarySkippedNotice` | `LibraryCatalogueTests/18-library-skipped-notice` | `testCatalogue18LibrarySkippedNotice`, on a device whose scan skipped a file | none yet. Android keeps its Material notice, and its snapshot is owed to the Android lane |
+| No. | Screen | iOS snapshot test | iOS images (light and dark) | iOS at the largest text size, `.largest.png` (2026-10-10) | iOS audit | Android |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 | Home with content | `LibraryCatalogueTests/testCatalogue01HomeWithContent` | `LibraryCatalogueTests/01-home-with-content` | No fault. The Home card stops growing at AX1 | `testCatalogue01HomeWithContent` | `:feature:library` `Catalogue01HomeWithContentTest`, `01-home-with-content` |
+| 02 | Home on a first run | `LibraryCatalogueTests/testCatalogue02HomeFirstRun` | `LibraryCatalogueTests/02-home-first-run` | No fault | `testCatalogue02HomeFirstRun`, on a device with no library | `:feature:library` `Catalogue02HomeFirstRunTest`, `02-home-first-run` |
+| 03 | Library grid | `LibraryCatalogueTests/testCatalogue03LibraryGrid` | `LibraryCatalogueTests/03-library-grid` | No fault since titles wrap. The grid is a list at this size | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue03LibraryGridTest`, `03-library-grid` |
+| 04 | Library list | `LibraryCatalogueTests/testCatalogue04LibraryList` | `LibraryCatalogueTests/04-library-list` | No fault since titles wrap | `testCatalogue04LibraryList` | `:feature:library` `Catalogue04LibraryListTest`, `04-library-list` |
+| 05 | Publication page with a cover | `DetailAndPlayerCatalogueTests/testCatalogue05PublicationWithCover` | `DetailAndPlayerCatalogueTests/05-publication-with-cover` | No fault | `testCatalogue05PublicationWithCover` | `:feature:library` `Catalogue05PublicationWithCoverTest`, `05-publication-with-cover` |
+| 05b | Publication page, file not on this device | `DetailAndPlayerCatalogueTests/testCatalogue05bPublicationUnavailable` | `DetailAndPlayerCatalogueTests/05b-publication-unavailable` | No fault on the first screen | not reachable: needs an unreachable source | none |
+| 06 | Publication page without a cover | `DetailAndPlayerCatalogueTests/testCatalogue06PublicationWithoutCover` | `DetailAndPlayerCatalogueTests/06-publication-without-cover` | No fault | `testCatalogue06PublicationWithoutCover` | `:feature:library` `Catalogue06PublicationWithoutCoverTest`, `06-publication-without-cover` |
+| 07 | Full player | `DetailAndPlayerCatalogueTests/testCatalogue07FullPlayer` | `DetailAndPlayerCatalogueTests/07-full-player` | No fault | `testCatalogue07And08Player` | `:app` `Catalogue07FullPlayerTest`, `07-full-player` |
+| 08 | Compact player bar | `DetailAndPlayerCatalogueTests/testCatalogue08CompactPlayerBar` | `DetailAndPlayerCatalogueTests/08-compact-player-bar` | Fault: the bar cuts the title to one line | `testCatalogue07And08Player` | `:app` `Catalogue08CompactPlayerBarTest`, `08-compact-player-bar` |
+| 09 | Settings root | `SettingsCatalogueTests/testCatalogue09SettingsRoot` | `SettingsCatalogueTests/09-settings-root` | No fault | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue09SettingsRootTest`, `09-settings-root` |
+| 10 | Sources list | `SettingsCatalogueTests/testCatalogue10SourcesList` | `SettingsCatalogueTests/10-sources-list` | No fault since the status goes under the name | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue10SourcesListTest`, `10-sources-list` |
+| 11 | Source detail | `SettingsCatalogueTests/testCatalogue11SourceDetail` | `SettingsCatalogueTests/11-source-detail` | No fault | `testCatalogue09To11SettingsAndSources` | `:feature:settings` `Catalogue11SourceDetailTest`, `11-source-detail` |
+| 12 | The sync section of settings | `SettingsCatalogueTests/testCatalogue12SettingsSync` | `SettingsCatalogueTests/12-settings-sync` | No fault | `testCatalogue12SettingsSync` | `:feature:settings` `Catalogue12SyncSectionTest`, `12-sync-section` |
+| 13 | Downloads and storage | `SettingsCatalogueTests/testCatalogue13DownloadsAndStorage` | `SettingsCatalogueTests/13-downloads-and-storage` | Fault: the large title ends in an ellipsis. The system draws the bar | `testCatalogue13Downloads`, which audits the tab and the settings group | `:app` `Catalogue13DownloadsTest`, `13-downloads` |
+| 14 | Search at rest | `LibraryCatalogueTests/testCatalogue14SearchAtRest` | `LibraryCatalogueTests/14-search-at-rest` | Fault: the titles under the covers end in an ellipsis after two lines | `testCatalogue14SearchAtRest` | `:feature:library` `Catalogue14SearchAtRestTest`, `14-search-at-rest` |
+| 15 | Comic or PDF reader chrome | `ReaderCatalogueTests/testCatalogue15ComicReaderChrome` | `ReaderCatalogueTests/15-comic-reader-chrome` | No fault | `testCatalogue15ReaderChrome` | `:feature:reader` `Catalogue15ReaderChromeTest`, `15-reader-chrome`. The comic reader only |
+| 16 | Reading themes sheet | `ReaderCatalogueTests/testCatalogue16ThemeSheet` | `ReaderCatalogueTests/16-theme-sheet` | No fault | `testCatalogue16ThemeSheet` | `:feature:epubreader` `Catalogue16ThemeSheetTest`, `16-theme-sheet`. The preview box is empty, because Robolectric does not draw a web view |
+| 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | No fault since titles wrap | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue17LibraryRailTest`, `17-library-a-to-z-rail` |
+| 18 | Library with the skipped notice | `LibraryCatalogueTests/testCatalogue18LibrarySkippedNotice` | `LibraryCatalogueTests/18-library-skipped-notice` | No fault since the notice wraps. It fills most of the first screen | `testCatalogue18LibrarySkippedNotice`, on a device whose scan skipped a file | none yet. Android keeps its Material notice, and its snapshot is owed to the Android lane |
 
 Entry 05b is not in the first list of the change. It holds a fault that the snapshots found, and
 its test keeps that fault from coming back.
@@ -89,5 +103,5 @@ parts that a snapshot does not draw. Take one for each appearance, and shrink it
   the theme sheet, which has no web view; the page behind it is a device screenshot case.
 - **System interface.** The status bar and the Dynamic Island, the keyboard, share sheets, file
   and folder pickers, the lock screen, widgets and CarPlay.
-- **The largest text size.** The snapshot tests do not draw it. The accessibility audit and the
-  review gate in `docs/design.md` section 10 cover it.
+- **The largest text size on Android.** The Android catalogue tests do not set `fontScale` yet
+  (`lighter-visual-check` task 5.2). On iOS the snapshot tests draw it.
