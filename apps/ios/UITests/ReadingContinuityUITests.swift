@@ -38,11 +38,11 @@ final class ReadingContinuityUITests: XCTestCase {
         // `sweepLaunch(_:)`'s own note says they do. Measured on a runner on 2026-09-12: the
         // shelf held one cover, an audiobook marked *100% read*, and this walk
         // reported "This library has nothing to read" about a device holding two
-        // publications. `sweepLaunch()` passes every key, so the shelf is at rest.
+        // publications. `sweepLaunch(availability: "onThisDevice")` passes every key, so the shelf is at rest.
         //
         // The relaunch below keeps them: `launch()` re-applies the arguments already set on
         // this instance, so the second launch starts in the same state as the first.
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
 
         // Remembered, so the relaunch reopens the *same* publication.
         // The shelf is named in the failure, because "nothing to read" reads like a missing

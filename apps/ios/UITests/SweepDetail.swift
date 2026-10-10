@@ -25,7 +25,7 @@ final class SweepDetailTests: XCTestCase {
 
     /// A comic with real artwork: the hero at its fullest.
     func testCaptureDetailWithCover() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openDetail(named: "Fine Print", in: app)
         hold(1.5)
         shutter(app, named: "detail-with-cover")
@@ -37,7 +37,7 @@ final class SweepDetailTests: XCTestCase {
     /// page then draws the title again underneath. Whether that reads as a considered
     /// fallback or as the same word twice is the question this frame is for.
     func testCaptureDetailWithoutCover() throws {
-        let app = sweepLaunch(grouping: "issues")
+        let app = sweepLaunch(availability: "onThisDevice", grouping: "issues")
         try openDetail(named: "Harbour Lights 01", in: app)
         hold(1.5)
         shutter(app, named: "detail-no-cover")
@@ -48,7 +48,7 @@ final class SweepDetailTests: XCTestCase {
     /// Harbour Lights has two members in the corpus; a single-issue publication draws no
     /// shelf at all, which is why this and `detail-bare` are two frames rather than one.
     func testCaptureDetailWithSeries() throws {
-        let app = sweepLaunch(grouping: "issues")
+        let app = sweepLaunch(availability: "onThisDevice", grouping: "issues")
         try openDetail(named: "Harbour Lights 02", in: app)
         // The series shelf is below the fold on a phone at any text size.
         _ = scrollTo(app.staticTexts["Other issues in this series"], in: app, swipes: 4)
@@ -59,7 +59,7 @@ final class SweepDetailTests: XCTestCase {
     /// A publication with no series, no description and no other issue: the page at its
     /// emptiest, which is what most of a folder library looks like.
     func testCaptureDetailBare() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openDetail(named: "The Long Field", in: app)
         hold(1.5)
         shutter(app, named: "detail-bare")
@@ -67,7 +67,7 @@ final class SweepDetailTests: XCTestCase {
 
     /// The overflow menu, which is where everything that is not *open it* lives.
     func testCaptureDetailMoreActions() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openDetail(named: "Fine Print", in: app)
         try XCTUnwrap(hittable("More actions", in: app), "The page offers no overflow menu.").tap()
         hold(0.75)
@@ -80,7 +80,7 @@ final class SweepDetailTests: XCTestCase {
     /// is where the app promises the file itself is untouched. It is one of the few
     /// destructive-sounding sentences in the app and it has no picture.
     func testCaptureDetailRestartConfirmation() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openDetail(named: "Fine Print", in: app)
         guard let restart = hittable("Start from the beginning", in: app)
             ?? menuEntry("Start from the beginning", in: app) else {
@@ -105,7 +105,7 @@ final class SweepDetailTests: XCTestCase {
     /// `PrimaryAction` carries four wordings and only two of them have ever been
     /// photographed. This is the surface that decides which a listener sees.
     func testCaptureDetailAudiobook() throws {
-        let app = sweepLaunch(grouping: "issues")
+        let app = sweepLaunch(availability: "onThisDevice", grouping: "issues")
         // By format as well: the shelf holds an audiobook folder of the same name beside the M4B.
         try openDetail(named: "Sea Room, M4B", in: app)
         hold(1.5)

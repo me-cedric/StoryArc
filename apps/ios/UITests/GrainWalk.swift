@@ -26,14 +26,14 @@ final class GrainWalkTests: XCTestCase {
 
     /// The reflowable page with the grain on, which is the surface §5.4 draws it over.
     func testCaptureReaderGrainOn() throws {
-        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        let app = sweepLaunch(natural: true, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         shutter(app, named: "ios-reader-grain-on")
     }
 
     /// The same page with Natural off: the twin the texture is measured against.
     func testCaptureReaderGrainOff() throws {
-        let app = sweepLaunch(natural: false, freshShelfSettings: true)
+        let app = sweepLaunch(natural: false, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         shutter(app, named: "ios-reader-grain-off")
     }
@@ -43,14 +43,14 @@ final class GrainWalkTests: XCTestCase {
     /// The page is the Quiet preset, chosen through the theme sheet, so the pair differs in
     /// Natural alone.
     func testCaptureReaderGrainOnQuiet() throws {
-        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        let app = sweepLaunch(natural: true, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         try chooseQuiet(in: app)
         shutter(app, named: "ios-reader-grain-on-quiet")
     }
 
     func testCaptureReaderGrainOffQuiet() throws {
-        let app = sweepLaunch(natural: false, freshShelfSettings: true)
+        let app = sweepLaunch(natural: false, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         try chooseQuiet(in: app)
         shutter(app, named: "ios-reader-grain-off-quiet")
@@ -61,7 +61,7 @@ final class GrainWalkTests: XCTestCase {
     func testCaptureReaderGrainRefusedByReduceTransparency() throws {
         try setDisplaySwitch("Reduce Transparency", on: true)
         addTeardownBlock { @MainActor in try? self.setDisplaySwitch("Reduce Transparency", on: false) }
-        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        let app = sweepLaunch(natural: true, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         shutter(app, named: "ios-reader-grain-refused")
     }
@@ -70,7 +70,7 @@ final class GrainWalkTests: XCTestCase {
     func testCaptureReaderGrainRefusedByReduceTransparencyOnQuiet() throws {
         try setDisplaySwitch("Reduce Transparency", on: true)
         addTeardownBlock { @MainActor in try? self.setDisplaySwitch("Reduce Transparency", on: false) }
-        let app = sweepLaunch(natural: true, freshShelfSettings: true)
+        let app = sweepLaunch(natural: true, availability: "onThisDevice", freshShelfSettings: true)
         try openReflowable(in: app)
         try chooseQuiet(in: app)
         shutter(app, named: "ios-reader-grain-refused-quiet")
