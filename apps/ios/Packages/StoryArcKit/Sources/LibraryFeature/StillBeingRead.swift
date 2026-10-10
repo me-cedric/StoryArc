@@ -38,7 +38,7 @@ struct StillBeingReadNotice: View {
     var body: some View {
         Text("library.stillBeingRead \(waiting)", bundle: .module)
             .textRole(.footnote)
-            .storyArcGlassText()
+            .storyArcGlassText(.primary)
             .padding(.horizontal, StoryArcSpace.md)
             .padding(.vertical, StoryArcSpace.xs)
             .storyArcGlass()

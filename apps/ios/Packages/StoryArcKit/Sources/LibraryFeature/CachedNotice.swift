@@ -29,7 +29,7 @@ struct CachedNotice: View {
         .textRole(.footnote)
         // On glass, so the material decides rather than a fixed palette colour —
         // ``View/storyArcGlassText(_:)`` carries what a constant costs over cover art.
-        .storyArcGlassText()
+        .storyArcGlassText(.primary)
         .padding(.horizontal, StoryArcSpace.md)
         .padding(.vertical, StoryArcSpace.xs)
         // A capsule that hugs the sentence, like every other piece of chrome in this app.

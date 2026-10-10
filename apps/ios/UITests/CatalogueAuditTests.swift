@@ -7,11 +7,11 @@ import XCTest
 /// each one a UI test can reach, and asks the platform's audit about it.
 ///
 /// **What fails and what is reported.** The audit has many kinds of finding, and the older
-/// audits in this target print all of them and fail on none, because contrast under the glass
-/// bar is measured against a material that no token gates (see `AccessibilityAuditTests`).
-/// Two kinds are not in doubt, and `native-experience` names them: a control under 44 points and
-/// an element with no description. Those fail here. Contrast, clipped text, Dynamic Type and the
-/// rest are printed for a reader of the log, as the older audits print them. `auditCatalogue`
+/// audits in this target print all of them and fail on none (see `AccessibilityAuditTests`).
+/// Here a control under 44 points, an element with no description and text under the contrast
+/// floor on an element the audit names fail (`lighter-visual-check`, "Guidelines are checked by
+/// machine"). A contrast fault that stands for now is on `knownContrastFaults` with its reason.
+/// Clipped text, Dynamic Type and the rest are printed for a reader of the log. `auditCatalogue`
 /// says why clipped text is among them, and `testAThirtyPointTargetFails` says why the 44 points
 /// are measured here and not left to Apple's audit.
 ///
@@ -262,7 +262,35 @@ final class CatalogueAuditTests: XCTestCase {
         XCTAssertTrue(measured.contains("audit.target.40"), "The measure let a 40 point target pass: \(measured)")
         XCTAssertFalse(measured.contains("audit.target.44"), "The measure failed a 44 point target: \(measured)")
     }
+
+    /// Text under the contrast floor fails the gate, and a known fault does not.
+    ///
+    /// The same debug build draws one label at about 1.5 to 1 (`App/AuditTargets.swift`). The
+    /// platform audit must name it, and `catalogueVerdict` must fail it on a screen with no known
+    /// fault for it, and pass it on the screen that lists it.
+    func testFaintTextFails() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-storyarc.audit.targets"]
+        app.launch()
+        let faint = app.staticTexts["audit.contrast"]
+        XCTAssertTrue(faint.waitForExistence(timeout: 15), "The debug build drew no faint label.")
+
+        var verdicts: [CatalogueVerdict] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            if issue.element?.identifier == "audit.contrast" {
+                verdicts.append(catalogueVerdict(for: issue, on: "any screen"))
+                verdicts.append(catalogueVerdict(for: issue, on: faintFault.screen, known: [faintFault]))
+            }
+            return true
+        }
+        XCTAssertEqual(verdicts, [.fail, .known("Faint on purpose")], "The gate did not fail the faint label.")
+    }
 }
+
+/// The known fault `testFaintTextFails` lists, to prove that a listed fault is passed.
+private let faintFault = KnownContrastFault(
+    screen: "Audit targets", element: "Faint on purpose", why: "Faint on purpose."
+)
 
 /// The points a finger needs, from the Human Interface Guidelines.
 private let minimumTarget: CGFloat = 44
@@ -312,34 +340,49 @@ extension XCTestCase {
 
     /// The catalogue's gate.
     ///
-    /// **Fails:** a control under 44 points on either side, a hit region the platform names, and
-    /// an element with no description. **Reported:** every other finding, contrast and clipped
-    /// text among them. Contrast depends on what is behind the element, and untinted glass takes
-    /// its luminance from the cover beneath it. Clipped text is reported because the audit cannot
-    /// tell text that a scroll view cuts at its edge from text that a layout clips, and it names
-    /// no element for most of what it finds.
+    /// **Fails:** a control under 44 points on either side, a hit region the platform names, an
+    /// element with no description, and text under the contrast floor on an element the audit
+    /// names (`catalogueVerdict`). A steady known fault that no longer occurs fails too, so the
+    /// list drains. **Reported:** every other finding. Clipped text is reported because the audit
+    /// cannot tell text that a scroll view cuts at its edge from text that a layout clips, and it
+    /// names no element for most of what it finds.
     fileprivate func auditCatalogue(_ app: XCUIApplication, named screen: String) throws {
         var failing: [String] = []
         var reported: [String] = []
+        var knownSeen: Set<String> = []
+        let window: CGRect = app.windows.firstMatch.frame
+        var bars: [CGRect] = app.tabBars.allElementsBoundByIndex.map(\.frame)
+        bars += app.toolbars.allElementsBoundByIndex.map(\.frame)
+        bars += app.navigationBars.allElementsBoundByIndex.map(\.frame)
         try app.performAccessibilityAudit(for: .all) { issue in
-            let element = issue.element?.debugDescription ?? "no element reported"
-            let line = "  • \(issue.compactDescription)\n    \(element)"
-            switch issue.auditType {
-            case .hitRegion, .sufficientElementDescription:
+            // The first line of the description names the element: type, frame, identifier, label.
+            let element = issue.element?.debugDescription.split(separator: "\n").first.map(String.init)
+            let line = "\(issue.compactDescription). \(element ?? "No element reported.")"
+            switch catalogueVerdict(for: issue, on: screen, window: window, bars: bars) {
+            case .fail:
                 failing.append(line)
-                return false
-            default:
-                reported.append(line)
-                return true
+            case .known(let name):
+                knownSeen.insert(name)
+                reported.append("  • known fault: \(line)")
+            case .report:
+                reported.append("  • \(line)")
             }
+            return true
         }
         if !reported.isEmpty {
             print("Catalogue audit — \(screen): \(reported.count) finding(s) reported, not failed")
             for line in reported { print(line) }
         }
-        if !failing.isEmpty {
-            print("Catalogue audit — \(screen): \(failing.count) finding(s) that fail")
-            for line in failing { print(line) }
+        // XCTFail, not `return false`: the message the platform records names no element.
+        for line in failing {
+            XCTFail("\(screen): \(line)")
+        }
+        let gone = knownContrastFaults.filter { $0.screen == screen && $0.isSteady && !knownSeen.contains($0.element) }
+        for fault in gone {
+            XCTFail(
+                "\(screen): the known contrast fault on “\(fault.element)” no longer occurs. "
+                    + "Remove it from knownContrastFaults."
+            )
         }
 
         for target in smallTargets(in: app) {

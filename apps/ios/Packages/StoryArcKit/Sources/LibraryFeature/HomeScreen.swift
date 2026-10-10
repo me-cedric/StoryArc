@@ -372,6 +372,9 @@ public struct HomeScreen: View {
             .foregroundStyle(theme.palette.textPrimary)
             .padding(.horizontal, StoryArcSpace.gutter)
             .frame(minHeight: 44)
+            // The whole row is the target, for a finger and for the accessibility frame. Without
+            // it the frame was the text alone, 20 pt high (`CatalogueAuditTests`, entry 01).
+            .contentShape([.interaction, .accessibility], .rect)
             // §3.11's `maxContentWidth`, and the one row on Home that needed it. Every
             // other thing here is a shelf that scrolls, so it *should* run to the window's
             // edge; this is a label with a chevron pushed to the far side of it, and on a
