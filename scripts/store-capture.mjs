@@ -236,6 +236,16 @@ async function run(lane, locale, steps) {
       ]), '--on-error', 'stop', '--session', lane.session])
       await reveal().catch(reveal)
       if (pressed.length > 0) index += 1
+    } else if (step.turnUntil) {
+      // A dropped turn leaves the same page, so the walk looks for the words before each turn.
+      // `find` matches part of a label: a page's text is one long label, or one per paragraph.
+      await flush()
+      const shows = (ms) => ad(['find', step.turnUntil, 'wait', String(ms), '--session', lane.session])
+      const edge = at([0.93, 0.5])
+      for (let turn = 0; turn < step.most && !(await shows(1500).then(() => true, () => false)); turn += 1) {
+        await ad(['press', String(edge.x), String(edge.y), '--settle', '--session', lane.session])
+      }
+      await shows(15000)
     } else if (step.until) {
       await flush()
       for (let attempt = 0; attempt < 4 && !(await isVisible(lane.session, step.until)); attempt += 1) {
@@ -246,7 +256,7 @@ async function run(lane, locale, steps) {
     } else if (step.press) batch.push({ command: 'press', input: { target: { kind: 'selector', selector: step.press } } })
     else if (step.point) batch.push({ command: 'press', input: { target: at(step.point), ...(step.settle ? { settle: true } : {}) } })
     else if (step.wait) batch.push(wait({ selector: step.wait, ...(step.timeoutMs ? { timeoutMs: step.timeoutMs } : {}) }))
-    else if (step.waitAbsent) batch.push(wait({ absent: step.waitAbsent }))
+    else if (step.waitAbsent) batch.push(wait({ absent: step.waitAbsent, ...(step.timeoutMs ? { timeoutMs: step.timeoutMs } : {}) }))
     else if (step.waitText) batch.push(wait({ text: step.waitText }))
     else if (step.stable) batch.push(wait({ stable: true, quietMs: 500 }))
     else if (step.pause) batch.push({ command: 'wait', input: { durationMs: step.pause } })

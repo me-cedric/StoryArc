@@ -69,10 +69,11 @@ const CORPUS_FILES = [
 /**
  * What each frame opens, per library. `landmark` is words that the first screen of the
  * shelf shows at every size. `comicTurns` and `ebookTurns` are page turns before
- * the frame: page 2 of *The Boys #1* is its cast page, and the third turn in the Laura
- * Palmer EPUB shows the first page of its foreword. On the 10-inch window and the iPad,
- * Readium sets two columns and one turn moves two pages. There a fourth turn shows the
- * short last page of a letter: one column of text and three empty quarters.
+ * the frame: page 2 of *The Boys #1* is its cast page. `ebookPage` is words on the ebook
+ * page of frame 04, and the walk turns until they show: a reader can drop a turn, as the
+ * German iPhone did once. The first page of the Laura Palmer foreword is the third turn on
+ * every device. On the 10-inch window and the iPad, Readium sets two columns and one turn
+ * moves two pages, so a fourth turn shows the short last page of a letter.
  */
 export const LIBRARIES = {
   showcase: {
@@ -83,7 +84,8 @@ export const LIBRARIES = {
     comic: 'The Boys #1',
     comicTurns: 1,
     ebook: 'The Secret Diary of Laura Palmer',
-    ebookTurns: 3,
+    // The iOS reader sets the italic *Twin Peaks* before it as a label of its own.
+    ebookPage: 'feels like a dream now, a dream',
     audiobook: 'Dungeon Crawler Carl',
   },
   corpus: {
@@ -200,7 +202,8 @@ export function selector(platform, words) {
  * Step kinds: `tap` (find a node by its words and press its centre; when absent, `scroll`),
  * `press` (a selector), `point` (a fraction of the screen), `wait`, `waitAbsent`,
  * `waitText`, `reveal` (show the reader chrome when it is hidden), `until` (press until a
- * selector shows), `scroll`, `swipe`, `stable` (the screen stops moving), `relaunch` (start
+ * selector shows), `turnUntil` (turn pages until a text shows), `scroll`, `swipe`, `stable`
+ * (the screen stops moving), `relaunch` (start
  * the app again), `pause` (a fixed wait, only with a `why`) and `shot`.
  */
 export function walk({ platform, bucket, library: lib, labels: L, frames }) {
@@ -261,7 +264,7 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
         ...toLibrary, { tap: `${lib.ebook},`, scroll: true }, { wait: s('read') }, { press: s('read') },
         // The iOS reader shows its chrome about two seconds before it draws the book, under a
         // spinner, and a turn in that time is lost.
-        { wait: s('epubMenu') }, ...(ios ? [{ waitAbsent: 'role=activity-indicator' }] : []), ...turns(lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
+        { wait: s('epubMenu') }, ...(ios ? [{ waitAbsent: 'role=activity-indicator' }] : []), ...(lib.ebookPage ? [{ turnUntil: lib.ebookPage, most: 6 }] : turns(lib.ebookTurns)), { reveal: s('epubMenu') }, { press: s('epubMenu') },
         ...themes, { shot: '04' },
       ],
       exit: [{ relaunch: true }, launched],
@@ -284,8 +287,11 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
       needs: ['03', '04', '05'],
       steps: [
         // The iOS player is a sheet over the tab bar, and a drag down closes it. Android
-        // draws its navigation beside the player.
-        ...(ios ? [{ swipe: [[0.5, 0.3], [0.5, 0.95]] }, { waitAbsent: s('speed') }] : []),
+        // draws its navigation beside the player. The Android emulator has no sound device,
+        // and its player can stand at 0:00 for half a minute. A pause there records no
+        // position, and the audiobook then missed Continue reading on the German phone once.
+        // A tap on the scrub bar moves the book to the middle of its part and records it.
+        ...(ios ? [{ swipe: [[0.5, 0.3], [0.5, 0.95]] }, { waitAbsent: s('speed') }] : [{ press: 'role=seekbar' }]),
         { tap: L.home, exact: true }, { waitText: L.keepReading[0] }, { stable: true }, { shot: '06' },
       ],
       exit: [],

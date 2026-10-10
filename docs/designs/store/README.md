@@ -58,7 +58,8 @@ Two frames differ by window size:
   height that leaves the page in view. It shows the live preview but not the six themes. The
   full height covers the page.
 - Frame 04 on the 10-inch Android window and the iPad: Readium sets two columns of text, and
-  one turn moves two pages. The walk turns three pages on every device. A fourth turn there
+  one turn moves two pages. The walk turns until the first page of the foreword shows, which
+  is the third turn on every device. A fourth turn there
   shows the short last page of a letter: one column of text and three empty quarters.
 - Frame 04 on the tablets: the themes are a popover over the page.
 
@@ -97,7 +98,11 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
 4. Each page turn waits until the screen is still: after quick turns, the Android EPUB reader
    did not record the position, and the ebook was missing from *Continue reading*. The iOS
    EPUB reader shows its chrome about two seconds before the book, under a spinner, so the
-   first turn waits until the spinner is gone.
+   first turn waits until the spinner is gone. A reader can still drop a turn, so the walk
+   turns until the words of the foreword show. The Android emulator has no sound device, and
+   its player can stand at 0:00 for half a minute. A pause there records no position, and the
+   audiobook then misses *Continue reading*. So after frame 05 the walk taps the middle of the
+   scrub bar, which moves the book and records it.
 5. Each step waits for its screen before the screenshot: a selector, a text, or a quiet
    screen. Two waits on iOS are fixed, and the walk says why: agent-device does not see the
    EPUB reader's menu sheet, so the walk taps its *Reading themes* row by position. The iOS
