@@ -510,6 +510,8 @@ reached 1,645 images and 476 MB.
   light and one dark image of the screen, downscaled with `pnpm frames:shrink`.
 - Never commit a sweep, a dated proof folder, or one image for each task. A task cites its
   snapshot test or its commit, not an image.
+- Store screenshots come from `pnpm store:capture`. They go to `.build/store/` and are never
+  committed ([`docs/designs/store/README.md`](docs/designs/store/README.md)).
 
 The largest text size, all four languages and the guideline checks are not committed as
 frames. The snapshot tests and the audits cover them. Both platforms draw each catalogue
