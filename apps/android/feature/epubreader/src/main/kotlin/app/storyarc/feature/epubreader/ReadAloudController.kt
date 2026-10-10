@@ -81,6 +81,15 @@ internal class ReadAloudController(
      */
     private var engine: TextToSpeech? = null
 
+    /**
+     * Whether [engine] has reported itself ready.
+     *
+     * A built engine is not a bound one. On a cold device the bind takes hundreds of
+     * milliseconds, and an engine asked to speak inside that time refuses, which [speak]
+     * reads as the end of the session.
+     */
+    @Volatile private var engineReady = false
+
     /** What the engine is saying, so the page can be moved to it once it starts. */
     private var current: Sentence? = null
 
@@ -272,6 +281,7 @@ internal class ReadAloudController(
         stop()
         engine?.shutdown()
         engine = null
+        engineReady = false
         scope.cancel()
     }
 
@@ -320,7 +330,9 @@ internal class ReadAloudController(
      * the first press has to wait for it and every press after it must not.
      */
     private fun withEngine(body: () -> Unit) {
-        engine?.let { body(); return }
+        if (engineReady) { body(); return }
+        // Still binding. The callback below speaks what the session wants by then.
+        if (engine != null) return
         engine = TextToSpeech(context) { status ->
             val ready = engine
             if (status == TextToSpeech.SUCCESS && ready != null) {
@@ -328,7 +340,10 @@ internal class ReadAloudController(
                 // Before the first word, so a speed chosen while the engine was still
                 // binding is the speed the first sentence is said at.
                 ready.setSpeechRate(speechRate)
-                body()
+                engineReady = true
+                // Not `body`: a pause, a call or a skip can come while the engine binds,
+                // and the session, not the first press, says what to do now.
+                if (_session.value.isPlaying) resume()
             } else {
                 // No engine on this device, or none that would start. Nothing is said and
                 // the session goes back to idle, so the reader gets their play control back
@@ -424,7 +439,8 @@ internal class ReadAloudController(
 
     private fun speak(sentence: Sentence) {
         current = sentence
-        val engine = engine ?: return
+        // Not ready yet: the bind callback says [current] once it is.
+        val engine = engine?.takeIf { engineReady } ?: return
         sentence.language?.let { engine.language = it }
         val queued = engine.speak(
             sentence.text,

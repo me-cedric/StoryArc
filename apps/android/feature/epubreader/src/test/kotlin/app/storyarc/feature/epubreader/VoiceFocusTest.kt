@@ -123,6 +123,15 @@ class VoiceFocusTest {
         assertTrue("the voice never reached the state the case needs", condition())
     }
 
+    /** Lets a walk that would run, run: it reads off the main thread, so one idle is not enough. */
+    private fun idleFor() {
+        val deadline = System.currentTimeMillis() + 500
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(10)
+        }
+    }
+
     @Test
     fun `pressing play asks for the speaker and says the first sentence`() {
         val voice = speaking()
@@ -169,6 +178,43 @@ class VoiceFocusTest {
         focusChange(AudioManager.AUDIOFOCUS_GAIN)
 
         assertFalse("the call's end undid the listener's pause", voice.session.value.isPlaying)
+        assertEquals(PauseCause.LISTENER, voice.session.value.pausedBy)
+        assertNull("something was said after the listener paused", said())
+    }
+
+    /**
+     * The call comes and goes before the engine has bound.
+     *
+     * A cold engine takes a few hundred milliseconds to bind. On the API 36 CI emulator the call
+     * of `VoiceFocusInstrumentedTest` ended inside that time, the controller spoke to an engine
+     * that was not bound, the engine refused, and the refusal stopped the session.
+     */
+    @Test
+    fun `a call that ends while the engine binds resumes the voice once it is ready`() {
+        val voice = requireNotNull(voice)
+        voice.start(null)
+
+        focusChange(AudioManager.AUDIOFOCUS_LOSS_TRANSIENT)
+        focusChange(AudioManager.AUDIOFOCUS_GAIN)
+        idleFor()
+        assertTrue("the call ended and the voice stayed silent", voice.session.value.isPlaying)
+        assertNull("the voice spoke to an engine that was not ready", said())
+
+        engine().onInitListener.onInit(TextToSpeech.SUCCESS)
+        settle { said() != null }
+        assertEquals("One.", said())
+        assertTrue(voice.session.value.isPlaying)
+    }
+
+    @Test
+    fun `a pause while the engine binds keeps the voice silent once it is ready`() {
+        val voice = requireNotNull(voice)
+        voice.start(null)
+        voice.toggle()
+
+        engine().onInitListener.onInit(TextToSpeech.SUCCESS)
+        idleFor()
+
         assertEquals(PauseCause.LISTENER, voice.session.value.pausedBy)
         assertNull("something was said after the listener paused", said())
     }
