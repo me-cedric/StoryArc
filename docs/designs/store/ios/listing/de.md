@@ -75,11 +75,11 @@ Reihen liegen in einer Zelle zusammen, statt das Regal zu füllen. Regale und Le
 
 DATENSCHUTZ, KURZ GESAGT
 
-StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte. Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben. Server-Zugangsdaten gehen in den Schlüsselbund — nie in Einstellungen, Protokolle oder Sicherungen — und sie werden aus dem Diagnose-Export entfernt.
+StoryArc hat kein Konto, kein Backend, keine Analyse und keine Absturzberichte. Daten verlassen dieses Gerät nur zu den Bibliotheken, die Sie selbst eingerichtet haben. Server-Zugangsdaten gehen in den Schlüsselbund — nie in Einstellungen, Protokolle oder Sicherungen — und fehlen im Diagnose-Export.
 
 KOSTENLOS UND OPEN SOURCE
 
-Keine Bezahlstufe, keine In-App-Käufe, keine Werbung. Die App ist Open Source, und der vollständige Lizenztext von allem, was sie mitbringt, ist in ihr lesbar.
+Keine Bezahlstufe, keine In-App-Käufe, keine Werbung. Die App ist Open Source, und die Lizenzen von allem, was sie mitbringt, sind in ihr lesbar.
 
 FÜR IPHONE UND IPAD GEMACHT
 
