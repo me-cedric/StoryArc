@@ -247,9 +247,10 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
       steps: [
         // The reader opens with its chrome up, and a tap in the middle toggles it. The walk
         // hides it, turns the page, and shows it again: the frame is then taken inside the
-        // few seconds before the chrome hides itself.
+        // few seconds before the chrome hides itself. A turn can leave the chrome on its way
+        // out, and a plain tap then hid it in one English iPad frame, so `reveal` shows it.
         { press: s('read') }, { wait: s('menu') }, { point: [0.5, 0.5] }, { waitAbsent: s('menu') },
-        ...turns(lib.comicTurns), { point: [0.5, 0.5] }, { wait: s('menu') }, { shot: '03' },
+        ...turns(lib.comicTurns), { reveal: s('menu') }, { shot: '03' },
       ],
       exit: [{ reveal: s('close') }, { press: s('close') }],
     },
