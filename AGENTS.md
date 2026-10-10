@@ -375,6 +375,56 @@ exported, because the wrapper needs a JVM before it can read any property file. 
 JDKs are keg-only and macOS ships a `/usr/bin/java` stub that reports no runtime and
 shadows them, so "Unable to locate a Java Runtime" means the path, never a missing install.
 
+### Keep CI green at the source
+
+The pre-push hook runs `pnpm lint`, which checks the contract only. The iOS and Android
+gates run in CI, so a push can be red with a clean hook. From 2026-10-07 to 2026-10-10,
+main was red on both platforms. Each rule below comes from one of those failures.
+
+1. **Run the gate of each platform you changed before you push.** For `apps/ios`, run
+   `pnpm build:ios:tests` and the `-only-testing:` run of each UI class you touched. For
+   `apps/android`, run `pnpm test:android`. Run `connectedDebugAndroidTest` when you
+   changed a `src/androidTest` file or code that one of those tests uses.
+2. **Run instrumented tests on the API level of CI.** CI uses API 36
+   (`.github/workflows/android.yml`). A local API 35 emulator hid a product defect: the
+   speech engine binds later on API 36, and the voice stayed silent after a call
+   (d680fcac9). Use the API 36 image, one emulator at a time.
+3. **Wait for a condition, never for a fixed time.** A runner is slower than your Mac.
+   A fixed half second after a page turn failed on CI (a2a97e7be). On Android,
+   `waitForIdle` does not wait for work on `Dispatchers.IO`. Use `waitUntil` with the
+   condition (36b39c1e9, 4e0112467). On iOS, use `waitForExistence` or an expectation.
+4. **Fix the product when a test exposes a race.** "Constructed" is not "ready". A
+   `TextToSpeech` object exists before its engine binds. Do not make the test slower to
+   hide the gap. Make the product wait for the ready signal (d680fcac9).
+5. **Make each UI walk work at the default size and at the largest size.** Do not scroll
+   through one element type, such as `app.scrollViews.firstMatch`. The type changes with
+   the layout and the text size. Swipe the app with `app.swipeUp()` (ee82bb00e). Tap a
+   control only when it is hittable, because the reader chrome hides after four seconds
+   (987300eae).
+6. **Keep each Swift expression cheap to type-check.** An expression that compiles on a
+   Mac can time out on the runner (db148c5a6). Build long chains in steps with typed
+   constants. To find slow expressions, build with
+   `-Xfrontend -warn-long-expression-type-checking=25`.
+7. **Declare in `project.yml` every module that a target imports.** An undeclared module
+   can link in an incremental local build and fail in the clean CI build (db148c5a6).
+8. **Give each test its own state.** Do not share a player, a store, or a device setting
+   with another test. CI runs the tests in a fixed order on one device. A test that passes
+   alone can fail after another test (0ca24cd15). `pnpm test:ios:ci --list` prints the
+   CI order.
+9. **Check the CI run of each push, and fix a red main first.** Watch it with
+   `gh run watch <id> --exit-status`. When main is red, stop new work and fix the cause.
+   Do not retry, skip, or loosen the test to get green. A test that fails "now and then"
+   is a defect: record the run ID and fix it. Read the failing test name in the result
+   bundle or in the `android-instrumented-reports` artifact.
+
+Two local traps make a false failure. Both happened on 2026-10-10:
+
+- This Mac has an "iPhone 17 Pro" simulator on more than one runtime. Give the same UDID
+  to `scripts/install-and-seed-simulator.mjs` and to `xcodebuild`. If you do not, the test
+  runs on a device that has no seed.
+- A compile error that the source contradicts comes from a stale `.build/ios-ui`. Delete
+  that folder and build again.
+
 A task is not complete until you report changed files, the exact commands you
 ran, the result of each, whether a failure is pre-existing or introduced, and
 the remaining risks. See the Completion Gate in the compass contract.
