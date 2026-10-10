@@ -14,6 +14,7 @@
     "tokens:sync": "node scripts/sync-tokens.mjs",
     "a11y:android": "node scripts/a11y-scan.mjs",
     "capture:android": "node scripts/capture-android.mjs",
+    "store:showcase": "node scripts/store-showcase.mjs",
     "capture:ios": "node scripts/capture-ios.mjs",
     "capture:matrix": "node scripts/device-matrix.mjs",
     "capture:compare": "node scripts/capture-compare.mjs",
