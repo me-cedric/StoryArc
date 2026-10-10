@@ -355,7 +355,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       64x64 `Bitmap` through it and asserts the census size and the dominant colour — iOS's
       `samplesToTheGrid`, mirrored. The doc comment is corrected in the same pass, so the
       extractor suites are 14 against 14 rather than 14 against 13.
-- [~] **1.4** Screenshot the wash under increased contrast and reduced
+- [x] **1.4** Screenshot the wash under increased contrast and reduced
       transparency, where the delta requires a plain surface rather than a softened
       one.
 
@@ -435,6 +435,8 @@ when a cover was the resume affordance. Whoever syncs should add a
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/reduce-transparency-page-ios-2026-10-09/` shows the page with Reduce Transparency off, then on. The cover-tinted wash gives way to a plain ground. **Left:** the Android frames at `contrast_level` 1.0. The Android frames lane did not take them.
 
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/reduce-transparency-page-ios-2026-10-09/`. Android: `docs/designs/screenshots/rescope-android-2026-10-10/detail-increase-contrast-{light,dark}.png` at `contrast_level` 1.0 (the hero is the plain `surfaceSunken` ground), with `path1-shelf-card-opens-page-*` as the control at the standard level. The device was put back to `contrast_level` 0.0.
+
 ## Phase 2 — The screen
 
 - [x] **2.1** **[F1]** iOS: the page — cover over the wash, title block, one
@@ -486,7 +488,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       branch on, and no capture in the tree has ever shown it.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** The three availability states are taken on iOS: `docs/designs/screenshots/availability-states-ios-2026-10-09/` (a remote title with its source answering, the same title with its source stopped, the downloaded copy, and the overflow menu before and after the copy is kept).
-- [~] **2.2** **[F2]** Android: the same content model with Material
+- [x] **2.2** **[F2]** Android: the same content model with Material
       composition. Same three screenshots.
 
       **Built, seven for seven, and composed as Material rather than transcribed
@@ -535,6 +537,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       source and stopping it supplies the third state.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` (`pd-state-1-downloaded`, `pd-state-2-cached-remote-overflow`, `pd-state-3-source-stopped`, light and dark). **Left:** state 3 does not show the NEEDS_SOURCE text. Settings says the source is not answering, but the page keeps the NOT_DOWNLOADED provenance and the refusal sentence (defect 6 in that README). Retake the frame after the page takes the NEEDS_SOURCE state.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/rescope-android-2026-10-10/detail-state3-source-not-answering-{light,dark}.png`. The page says that the library is not answering and that the copy is fetched when it is back, and the line "From Attic Catalogue, not answering right now" shows the provenance. The earlier defect 6 does not occur. In French: `fr-detail-source-not-answering-*` and `fr-detail-not-downloaded-*` in the same folder.
 - [~] **2.3** Every cover on every surface leads here; every resume affordance
       still opens the book directly. Screenshot the two paths from the home
       surface.
@@ -654,6 +658,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       `xcrun simctl io booted screenshot` between.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/pale-hero-and-two-paths-ios-2026-10-09/` shows both paths from Home. A shelf card opens the page. The hero opens the reader with no page between. **Left:** the reader frame is a flat-colour fixture page, so the stored page is not visible in it. The Android pair of frames was not taken in wave 5.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/rescope-android-2026-10-10/` (`home-hero-and-shelf-*`, `path1-shelf-card-opens-page-*`, `path2-hero-opens-reader-page3-light.png`). The hero opens the reader at page 3 of 5, the stored page. iOS: the wave 5 frames stay. **Left:** path 2 in dark on Android. The reader opened page 1 in all three dark tries (task 28.2 of `close-the-audited-gaps`). The iOS reader frame is a flat-colour fixture page, so the stored page is not visible in it.
 - [x] **2.4** The page for a publication with no series, no year, no description
       and no cover — the composition has to hold up with a title and a placeholder.
       Screenshot both platforms.
@@ -938,7 +944,7 @@ when a cover was the resume affordance. Whoever syncs should add a
       `PublicationProvenanceTest.kt:121-135`,
       `aRemovedSourceIsNotNamedAndTheCopyIsStillHere`. This is the one task in the
       phase that was closed the way it asked to be — with a test rather than a look.
-- [~] **3.4** Confirm by inspection of the browse path that origin appears
+- [x] **3.4** Confirm by inspection of the browse path that origin appears
       nowhere else: home, library, on-device destination, search, shelves. This is
       the seam's only test and it is a `grep` plus four screenshots.
 
@@ -1029,6 +1035,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       `pnpm opds` supplies the second source that makes case 4 meaningful.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/no-origin-on-browse-ios-2026-10-09/` shows Home, the Library in list layout and Downloads with no library name, and Search for Slow Transfer with each row naming its library (the one exception). **Left:** the four Android frames. The Android frames lane did not take them.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/rescope-android-2026-10-10/` (`browse-home-*`, `browse-library-list-*`, `browse-downloads-*`, `browse-search-two-sources-*`, light and dark). Two sources are registered. Home, the Library in list layout and Downloads name no library on any row. Search labels each row. The Library also draws the notice "Cellar Catalogue hasn't been read yet" above the tab bar. It is a source notice, not a row label. The owner decides whether it stays.
 - [x] **3.5** Constraint overtaken, 31 keys handed to localization. No new user-facing string ships from this change. If the provenance
       line needs one, hand it to the vocabulary slice rather than adding it here.
 
@@ -1263,6 +1271,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       question are still owed, which is why this stays `[~]`.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iPad frames: `docs/designs/screenshots/ipad-measure-ios-2026-10-09/ios-ipad-portrait-page-chosen` shows both panes with a page chosen, and `ipad-panes-ios-2026-10-09/` and `ipad-split-width-ios-2026-10-09/` show the empty pane, a page beside the shelf, and a window resized to compact width and back. **Left:** true Split View beside a second app was not reached. The device checklist has the step (section H).
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** No new proof. **Left:** true Split View beside a second app on an iPad. The iPad step of `docs/mvp-device-checklist.md` holds it.
 
 - [x] **4.2** Android: the detail pane, with predictive back animated by the
       scaffold. Screenshot expanded width, and the narrow-then-widen path.
@@ -1637,6 +1647,8 @@ when a cover was the resume affordance. Whoever syncs should add a
       checks, by the owner rulings of 2026-10-08 and 2026-10-09. This is the last open task
       and ten tasks are partial.
 
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Taken: the Android wash at `contrast_level` 1.0 (1.4), state 3 (2.2), the four browse surfaces (3.4), and the iOS and Android pairs of the two paths except path 2 in dark (2.3). **Left:** frame 2 of 6.5 (the page while a copy travels; task 28.3), path 2 in dark on Android (2.3; task 28.2), true Split View on an iPad (4.1), items 10 and 11 of the list (a standalone search row, and a series shelf with a trimmed series name: no frame that could be checked), and the Android items.
+
 ## Phase 6 — The primary action a reader can take
 
 **Added 2026-09-10, from a defect found in the field**, and the artifacts moved
@@ -1695,7 +1707,7 @@ phase's own:
    77% CPU pressure — so this is not yet evidence of a defect in the app, and it is recorded
    as the place to look rather than as a finding.
 
-- [~] **6.1** The decision offers no read it cannot honour.
+- [x] **6.1** The decision offers no read it cannot honour.
 
       **Code and tests landed** on branch `fix/primary-action-needs-a-copy`, 2026-09-10.
       `primaryActionOf` now asks `StreamingOffer.of` and its tail returns the copy.
@@ -1719,6 +1731,8 @@ phase's own:
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial, same as the code state above. **Left:** frame 1 of 6.5.
 
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/frames-android-2026-10-09/pd-copy-1-absent{,-dark}.png`, frame 1 of 6.5.
+
 - [~] **6.2** The page draws the copy, and offers no read anywhere.
 
       **Code and tests landed**, 2026-09-10. `DetailNeedsCopyTest` composes the page for an
@@ -1738,7 +1752,9 @@ phase's own:
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** frames 1 and 2 of 6.5.
 
-- [~] **6.3** A download from this page is a queued download.
+      **Wave 9 (close-all-yellow), 2026-10-10.** **Left:** frames 1 and 2 of 6.5. Frame 1 exists (`docs/designs/screenshots/frames-android-2026-10-09/pd-copy-1-absent*`). Frame 2 shows a defect: the page does not draw the transfer record while a copy travels (`docs/designs/screenshots/rescope-android-2026-10-10/detail-copy-travelling-no-progress-defect-light.png`; task 28.3 of `close-the-audited-gaps`). Tick after the page draws the record.
+
+- [x] **6.3** A download from this page is a queued download.
 
       **Code and tests landed**, 2026-09-10. The page's route for a catalogue publication now
       goes through `DownloadQueue.enqueue`, which records the source and asks `DownloadService`
@@ -1766,7 +1782,9 @@ phase's own:
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** frame 4 of 6.5, the notification shade after the reader leaves the app.
 
-- [~] **6.4** One queue per source, owned in one place.
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/frames-android-2026-10-09/pd-copy-4-shade{,-dark}.png`, frame 4 of 6.5, the shade after the reader leaves the app.
+
+- [x] **6.4** One queue per source, owned in one place.
 
       **Code landed**, 2026-09-10. The queue is owned in `AppDependencies` and the catalogue
       screens take the shared one; the `remember(page.url)` construction site is gone, so this
@@ -1785,6 +1803,8 @@ phase's own:
       shows the notification surviving the reader leaving the page.
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. One `AppDependencies` per process (`ea53e3c7`). **Left:** frame 4 of 6.5.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/frames-android-2026-10-09/pd-copy-4-shade{,-dark}.png`, frame 4 of 6.5.
 
 - [~] **6.5** Captures, Android, light and dark at the default and the largest text size.
 
@@ -1805,6 +1825,8 @@ phase's own:
       **Wave 4 (close-all-yellow), 2026-10-09.** Not taken. The Android frames lane spent its time on other frames. Frames 1 to 4 are still owed: the absent, travelling and landed states, and the shade after the reader leaves. Take them at the default text size only.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has frame 1 (`pd-copy-1-absent`), frame 3 (`pd-copy-3-landed`) and frame 4 (`pd-copy-4-shade`). **Left:** frame 2 (`pd-copy-2-travelling`) does not prove the task. The page shows Read, with no Downloading label and no fraction, while a copy travels (defect 3 in that README). Retake it after the page draws the transfer record.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Frames 1, 3 and 4 exist (`docs/designs/screenshots/frames-android-2026-10-09/pd-copy-{1-absent,3-landed,4-shade}*`, light and dark). **Left:** frame 2, because the page draws no transfer record while a copy travels (task 28.3 of `close-the-audited-gaps`). `docs/designs/screenshots/rescope-android-2026-10-10/detail-copy-travelling-no-progress-defect-light.png` shows the fault and does not prove the frame.
 
 - [x] **6.6** iOS: verify the same shape, then mirror or record why not.
 

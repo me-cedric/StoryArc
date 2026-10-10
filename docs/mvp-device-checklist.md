@@ -12,6 +12,8 @@ Kavita and SMB steps need the owner's servers. Run each on both phones.
 
 ## Android phone
 
+Wave 9 ran no step of this section on 2026-10-10. The phone was locked, and the screen must stay unlocked while an agent drives it. Unlock it, keep it awake (charging is enough), and run the wave again. The steps that stay for an agent are the A to Z rail drag, the sleep-timer chips (visual part), the grain and curl drag, the volume-key page turns, read-aloud start, pause and leaving the reader, the row overflow menu, and the export through the system picker. TalkBack, call, headphone, Google Drive, Kavita, SMB and Perfetto steps stay with the owner.
+
 - Drag a finger down the A to Z rail. Feel one tick for each new letter. Task: `close-the-audited-gaps` 24.6.
 - With TalkBack in French, swipe once on a file that did not open. Hear the name and the reason together. Task: `one-vocabulary-in-four-languages` 1.8.
 - With TalkBack, check that each sleep-timer chip (5, 15, 30 and 45 min) is read once. Task: `audiobooks-and-playback` 8.1.
@@ -56,6 +58,7 @@ Kavita and SMB steps need the owner's servers. Run each on both phones.
 - Drag a finger down the A to Z rail. Feel one tick for each new letter. Task: `close-the-audited-gaps` 24.6.
 - With VoiceOver in French, swipe once on a file that did not open. Hear the name and the reason together. Task: `one-vocabulary-in-four-languages` 1.8.
 - Open the cover menu on a publication page. The subtitle of the web row wraps fully. Task: `close-the-audited-gaps` 24.1.
+- With VoiceOver, open a Kavita reading list that has no cover. The empty well is not a stop, and "Add a cover" is one stop. Task: `close-the-audited-gaps` 26.6.
 - Share a real CBZ and a real EPUB from Files, Mail and another app. Each one arrives. Task: none.
 - Start read-aloud, close the reader, lock the phone, and hear the voice continue. Task: `read-aloud-beyond-the-reader` 0.1.
 - During read-aloud, take a real call and hang up. The voice resumes and keeps its position. Task: `read-aloud-beyond-the-reader` 4.2.

@@ -487,6 +487,8 @@ says so and names what is left to watch.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Not done. The task needs frames at the largest text size. The owner ruled on 2026-10-08 that no frame is taken at another text size. The truncation rule stays covered by the text-size test gate.
 
+      **Wave 9 (close-all-yellow), 2026-10-10.** **Left:** iOS. The inline placement after a scroll-down is not drawn at the largest size. The owner rule moves the largest size to snapshots, and no catalogue entry draws the dock inline, so no frame was taken. Android needs nothing more.
+
 ## Phase 3 — Android's transport
 
 > **This phase was called "Android, which adds no bar" until 2026-09-05.** The owner reversed
@@ -567,6 +569,8 @@ says so and names what is left to watch.
       landing.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/playback-proofs-android-2026-10-09/android-voice-tap-*` show a tap on the card with the reader closed and with the reader open, and Back after the tap. **Left:** no frame shows the highlighted sentence being spoken, because the speech engine crashes on this emulator and the voice never moves. Back after the tap lands on Home, not on the screen the listener left (defect 2 in that README).
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Not done on Android. **Left:** a device or an emulator whose speech engine runs, for the frame of the highlighted sentence after a tap on the notification. Wave 5 defect 2 stays open: Back after the tap lands on Home, not on the screen the listener left.
 - [x] **3.3** Explicitly assert that the app docks **one** compact bar and that the **Verified built on 2026-10-07** against the source: ReadAloudHost hands the voice to PlaybackHost.startVoice; OneCompactBarTest and PlaybackHostVoiceTest assert one bar.
       voice takes it rather than being given a second one, and record why in the
       handoff, so neither the sharing nor the single bar is read as an accident and
@@ -899,6 +903,8 @@ them to the count.
       (3.2; the emulator speech engine crashes with SIGILL). 2.5 asks for the largest text
       size, which the owner rulings of 2026-10-08 and 2026-10-09 move to the snapshot tests
       and the accessibility checks. This is the last open task and three tasks are partial.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** **Left:** the frame of the highlighted sentence after a tap on the notification (3.2). The Android notification frames and the end-of-book frames on both platforms exist. 2.5 is partial on iOS.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 

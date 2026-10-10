@@ -122,7 +122,7 @@ watched it on a device.
       every request and every redirect must land on a listed https host (`CoverImageHosts`),
       an answer is read up to 8 MB and no further, and `coverImage` hands back the picture an
       image provider already sent instead of fetching it twice. See 6.1.
-- [~] 3.3 **Lookup by title shows candidates and waits** (both). Never adopts a match on its
+- [x] 3.3 **Lookup by title shows candidates and waits** (both). Never adopts a match on its
   own. Open Library `search.json`, AniList for manga, MangaUpdates — all keyless.
 
       **2026-10-06: built and tested; not reachable yet.** `CoverTitleSearch` builds all three
@@ -133,6 +133,8 @@ watched it on a device.
       answers are now cached, filtered to listed hosts and de-duplicated by picture. See 6.2
       and 6.3.
   **2026-10-08 (close-all-yellow, wave 3): reachable.** 'Find a cover' opens the sheet while the lookup switch is on. Only a tap adopts a candidate, through the same crop and store path as the photo picker. Frames of the wait and the empty answer: `docs/designs/screenshots/covers-b-android-2026-10-08/` and `docs/designs/screenshots/covers-b-ios-2026-10-08/`. **Left:** frames with candidate pictures. The Android emulator cannot validate TLS on this network (openlibrary.org gives NET::ERR_CERT_AUTHORITY_INVALID), and the only coverless book on the iOS simulator has no match. Repeat on a network without TLS interception, with a coverless book that has a match.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshot `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/22-cover-candidates-with-pictures.{light,dark,largest}.png` (a stub transport serves painted covers). Android: the snapshot `apps/android/feature/library/src/test/snapshots/05c-cover-chooser-candidates-{light,dark}.png`, drawn through a recording transport. Robolectric does not draw the bottom sheet frame itself, so the chooser is drawn on its own.
 - [x] 3.4 **A refusal is quiet** (both). 403, 404, 429 or silence leaves the cover as it was,
   shows the reader no error for something they did not ask about, and does not retry in a loop.
 
@@ -147,7 +149,7 @@ watched it on a device.
       Proved able to fail: removing the gate makes iOS report `Expectation failed: found ==
       nil` and `Expectation failed: asked.value.isEmpty`, and Android `CoverLookupClientTest >
       nothing is asked while the setting is off FAILED`.
-- [~] 3.6 **Frames**: the setting, and the candidate chooser.
+- [x] 3.6 **Frames**: the setting, and the candidate chooser.
 
       **2026-10-06: the setting is photographed on iOS only, and the chooser not at all.**
       `docs/designs/screenshots/cover-lookup-2026-10-06/` holds the Privacy screen on an
@@ -158,6 +160,8 @@ watched it on a device.
       reachable until task 2.3 opens it. The set's README states both gaps.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** The setting is framed on both platforms (`docs/designs/screenshots/cover-lookup-2026-10-06/`). `frames-android-2026-10-09/cover-chooser-no-candidate` shows the Choose a cover sheet with its no-candidate sentence. **Left:** the chooser with candidate pictures. The lookup hosts allow https only and the emulator got no candidate, so a capture test needs a recording transport. The iOS chooser is not taken.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. The setting is framed on both platforms (`docs/designs/screenshots/cover-lookup-2026-10-06/`). The chooser with pictures: iOS `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/22-*`, Android `apps/android/feature/library/src/test/snapshots/05c-cover-chooser-candidates-*`.
 
 ## 4. The web hand-off
 
@@ -193,6 +197,8 @@ watched it on a device.
       code carry `Visual-proof: flag`.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** `docs/designs/screenshots/frames-android-2026-10-09/cover-web-handoff-chrome-first-run.png` shows Find a cover on the web leaving the app. Chrome opened on its first-run screen. **Left:** a person must dismiss the Chrome first-run screen. Then retake the Custom Tab on the image search, and the publication afterwards. The iOS frame is not taken.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/rescope-ios-2026-10-10/ios-cover-web-handoff{,-dark}.png` shows "Find a cover on the web" leaving the app for the system browser (an image search for "Sea Room cover"). **Left:** Android. A person must dismiss the Chrome first-run screen. Then retake the Custom Tab on the image search and the page afterwards.
 
 ## 5. Writing back where it works
 
@@ -259,4 +265,4 @@ listed hosts. These are what it did not close.
   of task 3.1, on an emulator that stays responsive under the harness. **Wave 5 (close-all-yellow), 2026-10-09.** The retaken Android frames are in `docs/designs/screenshots/cover-for-every-publication/` and `cover-lookup-2026-10-06/`. See 2.6 and 3.1.
 - [x] 6.6 **An instrumented test runs the scanner over a content tree** (android), with a cover **Done, 2026-10-07 (close-all-yellow, wave 2).** `LibraryScannerCoverTreeInstrumentedTest` ran on the storyarc-ci emulator (API 35) through `pnpm gradle :core:format:connectedDebugAndroidTest`: 4 tests, 0 failures, through a real `DocumentsProvider` (`TestTreeProvider`). A temporary mutation that passed a null cover directory at the index call site made `theIncrementalIndexGivesEachAudiobookItsOwnCover` fail by name (reviewer).
   directory, and asserts each audiobook's own cover path. It closes task 1.1.
-- [ ] 6.7 **Frames still owed after wave 5** (both). Three frames need a step that no agent can take. (1) The candidate chooser with pictures: the lookup hosts allow https only and the emulator got no candidate, so a capture test needs a recording transport (task 3.6). (2) The web hand-off: a person must dismiss the Chrome first-run screen, then the Custom Tab on the image search and the publication afterwards are retaken (task 4.3). (3) The iOS chooser and the iOS hand-off frame (tasks 3.6 and 4.3). Tick 3.6 and 4.3 when these exist.
+- [ ] 6.7 **Frames still owed after wave 5** (both). Three frames need a step that no agent can take. (1) The candidate chooser with pictures: the lookup hosts allow https only and the emulator got no candidate, so a capture test needs a recording transport (task 3.6). (2) The web hand-off: a person must dismiss the Chrome first-run screen, then the Custom Tab on the image search and the publication afterwards are retaken (task 4.3). (3) The iOS chooser and the iOS hand-off frame (tasks 3.6 and 4.3). Tick 3.6 and 4.3 when these exist. **Wave 9 (close-all-yellow), 2026-10-10.** Done: item 1 (the chooser with pictures; entries 22 and `05c`) and item 3 (the iOS chooser and the iOS hand-off frame). **Left:** item 2, the Android web hand-off (4.3), which needs a person to dismiss the Chrome first-run screen.

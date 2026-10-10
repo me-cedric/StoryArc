@@ -127,7 +127,7 @@ format layer stops being able to hold a sentence.
       token. The list now carries a key, a password, an account and a way to
       sign in, in all four languages, and `SkipReasonCatalogueTest` runs the
       mirror on Android, which had no such guard at all.
-- [~] **1.7** Capture both skipped notices, in Spanish, at the largest text size.
+- [x] **1.7** Capture both skipped notices, in Spanish, at the largest text size.
       `SkippedNotice.swift` and `SkippedNotice.kt` are compact banners and the
       translations are longer than the English. Spanish is this app's measured
       worst case, not German — `localization`'s *Long translations* is the one
@@ -170,6 +170,8 @@ format layer stops being able to hold a sentence.
         cannot say is whether the result reads well.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `skipped-list-es` (the sheet in Spanish with the two skipped files) and `skipped-list-en` (the English control), light and dark where the README says so. **Left:** the iOS Spanish frames were not taken. The frames at font scale 2.0 are not taken, by the owner rule of 2026-10-08.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshots `apps/ios/SnapshotTests/__Snapshots__/LocalisedCatalogueTests/20a-library-skipped-notice-es.{light,dark,largest}.png` (Spanish) and `20b-library-skipped-notice-en.*` (the English control). Android: `docs/designs/screenshots/frames-android-2026-10-09/skipped-list-{es,en}*`. **Found:** at the largest size, in English and in Spanish, the iOS sentence wraps one word per line, the banner overlaps the large title, and Show falls below the first screen (task 28.4 of `close-the-audited-gaps`).
 - [~] **1.8** Confirm a screen reader speaks the translated words.
       Both notices group with `accessibilityElement(children: .combine)` and its
       Android equivalent, so the reason is announced as part of the notice.
@@ -249,7 +251,7 @@ is the target shape.
       than its `ContentResolver`, because a resolver cannot answer for a string;
       `AppIntents.kt:63` passes `activity`. The fallback is lower case in every
       language, and the resource's comment says why. *BUILD SUCCESSFUL in 44s*.
-- [~] **2.4** Capture the alert on both platforms in French, light and dark.
+- [x] **2.4** Capture the alert on both platforms in French, light and dark.
       **Control:** the same alert in English, same device, same moment.
       **Owed 2026-09-06.** Not captured: the emulator and the simulator locks are
       shared, so captures run serialised in their own pass. The brief for that pass:
@@ -262,6 +264,8 @@ is the target shape.
       interface language set to English, same device, same moment.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has `open-in-refused-fr` (the alert Impossible d'ouvrir ce fichier) and `open-in-refused-en` (the English control), light and dark. **Left:** the iOS alert frames were not taken.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshots `apps/ios/SnapshotTests/__Snapshots__/LocalisedCatalogueTests/21a-refused-file-fr.{light,dark}.png` and `21b-refused-file-en.*` (the control). The test draws the alert with the real `RefusedFile.refusing` modifier in a test window, not through the Files hand-over. Android: `docs/designs/screenshots/frames-android-2026-10-09/open-in-refused-{fr,en}*`.
 
 ## 3. The Android reader failure
 
@@ -451,7 +455,7 @@ Two literals, and the largest hidden surface behind them.
       English, 133 differ** — 22 wording, 1 typography, 110 placeholder syntax. Two rows
       moved into the placeholder group rather than out of the list, because reconciling
       the words left the format spelling as the only difference.
-- [~] **4.2** Reconcile the rows marked *wording*, one state at a time.
+- [x] **4.2** Reconcile the rows marked *wording*, one state at a time.
       A state whose two platforms agree is better than one where they do not,
       whatever else is open — so this is the one group in the change that may
       land partly without leaving a seam open.
@@ -505,6 +509,8 @@ Two literals, and the largest hidden surface behind them.
       here would claim a reconciliation that has not happened.
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. The capture classes that read `coversOnScreen` did not all run. On a clean install, one test each of `ScreenshotTests`, `SweepDetailTests`, `SweepEpubReaderTests` and `GrainWalkTests` passed. `SweepIpadTests`, `SweepIpadPaneTests` and `ReadAloudPlayerTests` did not pass or did not run: `testCaptureBarCarriesTheVoice` fails twice with 'The compact bar never appeared after starting read-aloud', and the cause is not found. `ReadingContinuityUITests` fails on wave 3 too and needs its own task. iOS has no singular form for `sources.detail.progress` and `shelves.promote.entries` ('1 of 1 titles'); Android has one. These two rows are not in the thirteen-row list and need a follow-up task. The two removal dialogs are framed in `docs/designs/screenshots/source-removal-ios-2026-10-09/`.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshot `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/24-source-detail-one-of-one-title.{light,dark,largest}.png` draws "1 of 1 title". Android has the singular form already, and no frame is owed there.
 - [x] **4.3** Reconcile the offline destination's vocabulary.
       iOS: *Nothing in your library is on this device yet*
       (`library.empty.onDevice`), *Nothing downloaded*, *%@ downloaded*.
@@ -635,6 +641,8 @@ Two literals, and the largest hidden surface behind them.
 
       **Wave 6 (close-all-yellow), 2026-10-09.** The iOS provenance line is fixed (25.1) and framed in French for the device state: `docs/designs/screenshots/wave6-ios-2026-10-09/ios-provenance-fr.png`. **Left:** French states d and e on iOS, the gone state on both platforms, and the Android state d have no frame. The two divergences for the owner stay.
 
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshots `apps/ios/SnapshotTests/__Snapshots__/LocalisedCatalogueTests/19a` to `19e` draw the French page states (not downloaded, server stopped, library removed, second place) and the gone alert. Android: `docs/designs/screenshots/frames-android-2026-10-09/` (`fr-detail-e-also-in`) and `docs/designs/screenshots/rescope-android-2026-10-10/fr-detail-{not-downloaded,source-not-answering}-*`. **Left:** the Android French state d (source removed, no copy) and the Android French gone state. They need a stale route that no lane staged. The two divergences for the owner stay.
+
 ## 5. The check that has to be able to fail
 
 Last, because a gate that fails on pre-existing code blocks eight in-flight
@@ -717,7 +725,7 @@ changes.
       cap.* The record is three rather than four because 3.5 took
       `ReaderViewModel.kt` from 811 lines to 798 and deleted its line, which the check
       asked for by name. `pnpm lines:selftest` — *15 checks passed*.
-- [ ] **6.5** Every capture from 1.7, 2.4, 3.4 and 4.6 referenced in the handoff,
+- [~] **6.5** Every capture from 1.7, 2.4, 3.4 and 4.6 referenced in the handoff,
       each with the control it needs. AGENTS.md §6 binds the change, not the
       task: neither exception applies here — nothing is behind a flag, and the
       screenshots are not byte-identical, which is the whole point of them.
@@ -743,6 +751,8 @@ changes.
       the gone state on both platforms and the Android state d of 4.6. Frames at font scale
       2.0 are met by the snapshot tests and the accessibility checks, by the owner rulings of
       2026-10-08 and 2026-10-09.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshots of entries 19a to 19e, 20a, 20b, 21a, 21b and 24 in `apps/ios/SnapshotTests/__Snapshots__/LocalisedCatalogueTests/` and `EdgeStateCatalogueTests/`. Android: the frames of 1.7, 2.4 and 3.4, and `docs/designs/screenshots/rescope-android-2026-10-10/fr-detail-*`. **Left:** the Android French state d and the Android French gone state (4.6). The README of the handoff must name the new snapshot entries.
 - [ ] **6.6** Update `localization`'s row in `docs/openspec/STATUS.md` from the
       verify report, in the same pass as `/opsx:verify`.
 

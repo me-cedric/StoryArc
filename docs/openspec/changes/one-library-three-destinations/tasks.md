@@ -129,7 +129,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         reads a page, backs out, and lands on Home with something in progress.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** The pale-cover frames are taken on iOS: `docs/designs/screenshots/pale-hero-and-two-paths-ios-2026-10-09/` (`ios-home-hero-pale`, light and dark). The byline and the progress bar read over the scrim, and the Resume button is legible. The Android frames, light and dark, are in `one-and-a-half-cards-2026-09-10/`. The largest text size is not taken, by the owner rule of 2026-10-08.
-- [~] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
+- [x] 0b.2 Both: a named resume action on the card, as well as the card being tappable. Both do
       the same thing — a card that is a button with no button on it teaches nothing about what
       tapping does.
 
@@ -179,6 +179,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         under the dimmed card.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/library-away-ios-2026-10-09/` (`ios-home-card-library-away`) shows the dimmed card with no Resume button, and the pale-cover frame of 0b.1 shows the button over the scrim. **Left:** the Android frame of a card whose source is away. Nobody took it in wave 5.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/library-away-ios-2026-10-09/` (no Resume under the dimmed card) and the snapshot `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/23-home-with-an-audiobook-hero.{light,dark}.png` (Resume on the hero). Android: the snapshot `apps/android/feature/library/src/test/snapshots/01d-home-source-away-{light,dark}.png` (no button under a card whose source is away). The frames owed above are met by this proof (`AGENTS.md` section 6, owner rule of 2026-10-09).
 - [~] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
       next in its series, rather than offering to reopen its last page. Finishing removes it
       from Keep reading by the same rule finishing normally does.
@@ -237,6 +239,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         issue and pages to its end; on iOS the equivalent walk before the shutter.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/finish-and-next-ios-2026-10-09/` shows Finish with Next in series, Finish alone, the Home after Finish, and the Finished section. **Left:** the three Android frames (Finish with Next in series, Finish alone, after Finish). The Android frames lane did not take them.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/finish-and-next-ios-2026-10-09/`. Android: the snapshots `apps/android/feature/library/src/test/snapshots/01b-home-finish-and-next`, `01c-home-finish-alone` and `01e-home-after-finish`, light and dark. **Left:** `01b` records a fault. "Next in series" wraps one letter per line on the hero card (task 28.1 of `close-the-audited-gaps`). Tick this task after the fix, when `01b` is recorded again and looked at in both appearances.
 - [x] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
 
@@ -296,7 +300,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         checked is that no caption is clipped.
 
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: verified. O17 is built: on a compact height the cover box gets shorter (`homeHeroArtHeight`) and the card keeps its 200 dp width. Frames at the default text size, in `docs/designs/screenshots/home-fold-2026-10-08/`: the heading is whole on 411 x 914 dp and on 360 x 800 dp (an emulator with `wm density 480`, not a real 360 dp phone) and on the iPhone 17 Pro. The largest-text frames are not taken, by the owner rule of 2026-10-08. Mutation proof: with the full 2:3 box, 'the next heading is visible on a small phone too' fails. **Open for design.md:** section 4 must name the O17 choice (the 200 dp tier).
-- [~] 0b.5 Both: captures before and after, at default and largest text size.
+- [x] 0b.5 Both: captures before and after, at default and largest text size.
       **Android needs no new hero** — it has one, first on the surface, conditional on something
       being in progress exactly as iOS is. The review reported it missing because the device had
       nothing in progress. Do not build a second one.
@@ -326,6 +330,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       text size. The largest-text half is met by the snapshot tests and the accessibility
       checks, by the owner rulings of 2026-10-08 and 2026-10-09. `lighter-visual-check` 5.2
       records that no snapshot draws the largest size yet.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. The after frames exist on both platforms: iOS `docs/designs/screenshots/finish-and-next-ios-2026-10-09/` and `library-away-ios-2026-10-09/`, Android the snapshots `apps/android/feature/library/src/test/snapshots/01b` to `01e` (light and dark). The largest-size half is met by the catalogue snapshots. `01b` shows the fault of task 28.1; the capture is taken, the fix is open.
 
 ## Phase 0 — Answer before building
 
@@ -626,7 +632,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
 
 ## Phase 2 — What the destinations hold
 
-- [~] **2.1** **[E1/E2] Home**, both platforms: Keep reading, Up next, recently
+- [x] **2.1** **[E1/E2] Home**, both platforms: Keep reading, Up next, recently
       added, pinned shelves, finished. Assembled from local history alone.
       Screenshot: all three degradations — carousel, single card, and Home as the
       empty state.
@@ -755,6 +761,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         rather than asserted.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/pinned-shelves-ios-2026-10-09/` shows the shelf menu (Pin to Home and Unpin from Home), Home with a pinned collection and a pinned reading list, and Home after both are unpinned. `by-library-filter-ios-2026-10-09/` shows that Keep reading stays on Home after the shelf is narrowed to one library. **Left:** Home draws a placeholder cover for each shelf on iOS, so the list order is not visible. The Android pin frames were not retaken in wave 5.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: the snapshot `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/26-home-pinned-shelves.{light,dark}.png` draws the two pinned sections with the real covers, and the reading list keeps its own order. Android: the snapshot `apps/android/feature/library/src/test/snapshots/01f-home-pinned-shelves-{light,dark}.png`, and the emulator frames `docs/designs/screenshots/rescope-android-2026-10-10/` (`shelf-menu-pin-to-home-*`, `shelf-menu-unpin-from-home-*`, `home-pinned-collection-*`, `home-after-unpin-light.png`; the after-unpin frame is light only). The frames owed above are met by this proof (`AGENTS.md` section 6, owner rule of 2026-10-09).
 - [x] **2.2** Test that Home renders complete and unchanged with every source
       unreachable, and that no shelf appears, reorders or grows when a slow source
       answers. This is the property most likely to regress silently, so it is a
@@ -1471,6 +1479,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
         after alone still answers the clause.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** iPad frames: `docs/designs/screenshots/ipad-sweep-ios-2026-10-09/`, `ipad-panes-ios-2026-10-09/` and `ipad-measure-ios-2026-10-09/` show the sidebar in portrait and landscape, the empty pane, a page beside the shelf, and the Settings sheet in both orientations. **Left:** true Split View beside a second app was not reached on the simulator. The device checklist has the step (section H).
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** No new proof. **Left:** true Split View beside a second app on an iPad. The simulator drag between two apps has no scripted route. The iPad step of `docs/mvp-device-checklist.md` holds it.
 - [~] **4.2** **[K2]** Android: Material's five breakpoints replacing the
       two-valued window class, the collapsed and expanded rail, and the two-pane
       scaffold. Screenshot: compact, medium and expanded, and a foldable half-open.
@@ -1519,6 +1529,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       open, so the seam and the pane boundary are in the same frame.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** Not done. The frame needs a Pixel Fold AVD at Device pose Half-open, with a publication open in the library pane. Wave 5 had one AVD, a phone with no hinge and no posture sensor. The README of `docs/designs/screenshots/frames-android-2026-10-09/` records the gap.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Not done. **Left:** a Pixel Fold AVD at Device pose Half-open with a publication open in the library pane. The lane has one AVD, a phone with no hinge and no posture sensor. The Android tablet step of `docs/mvp-device-checklist.md` holds it.
 - [~] **4.3** Verify the resize path: a two-pane window narrowed to one pane keeps
       what the reader was looking at, and widening restores the second pane.
 
@@ -1599,6 +1611,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       than faking it. Still unticked, and now for a different reason: not unmeetable, unwatched.
 
       **Wave 5 (close-all-yellow), 2026-10-09.** `docs/designs/screenshots/ipad-split-width-ios-2026-10-09/` shows a wide window with two panes, the window dragged narrow (the page fills it and the tab bar sits at the foot), and widened again (the same page). **Left:** it is a resized window, not Split View beside a second app. Dark is not taken. The device checklist has the step (section H).
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** No new proof. **Left:** the dark twin of `docs/designs/screenshots/ipad-split-width-ios-2026-10-09/` (the drag was by hand, in light only), and true Split View beside a second app. The iPad step of `docs/mvp-device-checklist.md` holds the second.
 
 ## Phase 5 — First run and the empty path
 
@@ -1901,6 +1915,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       2026-10-08 and 2026-10-09 (`lighter-visual-check` 5.2 records the gap in that claim).
       This is the last open task and seven tasks are partial, so it cannot be ticked before
       them.
+
+      **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. The Android frames of 0b.2 and 0b.3 exist (the snapshots `apps/android/feature/library/src/test/snapshots/01b` to `01f`). **Left:** the foldable at half-open (4.2), true Split View on an iPad (4.1, 4.3), and the fix of the fault in `01b` (0b.3; task 28.1 of `close-the-audited-gaps`).
 
 ## Delta merge, 2026-09-04 — not this change's own work
 

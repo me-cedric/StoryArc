@@ -443,8 +443,8 @@ failed. A contrast fault that stands for now goes in `knownContrastFaults`
 (`apps/ios/UITests/CatalogueVerdict.swift`) with its reason, and a steady entry that no longer
 occurs fails the test. `pnpm test:ios:audit` runs the iOS audit on a local simulator with the
 seed and the corpus. The iOS workflow runs it in the step *Catalogue audit*.
-`pnpm tokens:check` holds the palette pairs to 4.5:1. `lighter-visual-check` section 5 holds
-the open gaps. **A new screen adds its catalogue entry**: a snapshot test in light and
+`pnpm tokens:check` holds the palette pairs to 4.5:1. `close-the-audited-gaps` 28.7 holds
+the one open gap (`lighter-visual-check` is archived). **A new screen adds its catalogue entry**: a snapshot test in light and
 dark, and an audit.
 
 **3. Commit little.** A snapshot reference is the proof for a screen state. A device
