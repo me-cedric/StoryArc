@@ -45,6 +45,7 @@ const STRING_LOCALES = ['', '-de', '-es', '-fr']
  *  - Everything from the first format specifier on is dropped, because `Sort: %1$s` never
  *    appears and `Sort: ` always does.
  */
+const BY_LOCALE = new Map()
 const STRINGS = (() => {
     const decode = (value) =>
         value
@@ -67,11 +68,25 @@ const STRINGS = (() => {
                 if (value.length < 2) continue
                 if (!table.has(name)) table.set(name, new Set())
                 table.get(name).add(value)
+                const key = `${name}@${locale.slice(1) || 'en'}`
+                if (!BY_LOCALE.has(key)) BY_LOCALE.set(key, new Set())
+                BY_LOCALE.get(key).add(value)
             }
         }
     }
     return table
 })()
+
+/**
+ * One resource's words in one language (`en`, `de`, `es` or `fr`), from every module that
+ * defines it. Two modules can define one name with different words (`reader_menu_themes`),
+ * and the merged APK shows one of them, so the caller gets each.
+ */
+export function namedIn(resource, locale) {
+    const values = BY_LOCALE.get(`${resource}@${locale}`)
+    if (!values) throw new Error(`No <string name="${resource}"> in ${locale} in any Android module.`)
+    return [...values]
+}
 
 /**
  * One step naming a control, in every language the app draws it in.
