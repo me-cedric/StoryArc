@@ -47,7 +47,7 @@ const BOOKS = 'books'
 /**
  * The showcase set, and why each one is in it.
  *
- * Eleven publications, in three formats, across four series and two standalones. The
+ * Twelve publications, in four formats, across four series and three standalones. The
  * shape matters more than the titles: `library-browsing` sections a shelf by series, so a
  * set of eleven unrelated files would photograph a feature the app does not have, and a
  * set of eleven issues of one comic would photograph a shelf that looks like a bug.
@@ -80,6 +80,12 @@ export const SHOWCASE = [
   { from: `${BOOKS}/Jennifer Lynch/The Secret Diary of Laura Palmer (Jennifer Lynch).epub`, as: 'The Secret Diary of Laura Palmer.epub' },
   { from: `${BOOKS}/Mark Frost/The Secret History of Twin Peaks by Mark Frost.epub`, as: 'The Secret History of Twin Peaks.epub' },
   { from: `${BOOKS}/Mark Frost/Twin Peaks_ The Final Dossier by Mark Frost.epub`, as: 'Twin Peaks - The Final Dossier.epub' },
+  // The audiobook for the player frame. The owner named this file: AAC, an embedded cover
+  // and fifty chapters, so the player shows artwork and a chapter title.
+  {
+    from: 'audiobooks/Dungeon Crawler Carl (Dungeon Crawler Carl 01) by Matt Dinniman (Audiobook)(Fiction).m4b',
+    as: 'Dungeon Crawler Carl.m4b',
+  },
 ]
 
 const flag = (name, fallback = null) => {
