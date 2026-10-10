@@ -74,6 +74,31 @@ extension PublicationIndexer {
     public static func contentDigest(fileAt url: URL) async throws -> String {
         try await contentDigest(of: FileSource(url: url))
     }
+
+    /// The digest of a folder audiobook: the name and the size of each audio part.
+    ///
+    /// A folder has no bytes of its own, so its path was its only key. A reinstall moves the
+    /// app container, the path changes, and the position is not found (task 26.4). The part
+    /// list is the same after a reinstall, a rename of the folder or a move.
+    ///
+    /// The parts are taken in the order the player reads them. A cover image or a note beside
+    /// the parts does not change the digest. The input starts with a tag, so a folder digest
+    /// cannot equal the digest of a file.
+    public static func folderAudiobookDigest(at url: URL) -> String? {
+        let names = ((try? FileManager.default.contentsOfDirectory(atPath: url.path)) ?? [])
+            .filter { PageOrdering.isCandidateEntry(path: $0) }
+            .filter { FolderKind.audioExtensions.contains(($0 as NSString).pathExtension.lowercased()) }
+            .sorted(by: PageOrdering.naturalCompare)
+        guard !names.isEmpty else { return nil }
+        var hasher = SHA256()
+        hasher.update(data: Data("audio-folder\u{0}".utf8))
+        for name in names {
+            let size = (try? url.appending(path: name).resourceValues(forKeys: [.fileSizeKey]))?.fileSize ?? 0
+            hasher.update(data: Data("\(name)\u{0}\(size)\n".utf8))
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+
     /// An identity carrying both what the publication *is* and where it was found.
     ///
     /// ADR-0006's rules 2 and 3 together. The path is what the app files the

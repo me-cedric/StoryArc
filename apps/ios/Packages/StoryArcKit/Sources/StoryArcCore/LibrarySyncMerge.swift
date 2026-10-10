@@ -79,14 +79,19 @@ public enum LibrarySyncMerge {
     /// Kavita's.
     private static func mergingProgress(_ document: LibraryDocument, into local: LibrarySnapshot)
         -> (records: [ReadingProgress], conflicts: [ProgressPull.Conflict]) {
-        let arriving = LibraryImport.readableProgress(document).filter { !local.ownedByKavita($0.identity) }
+        let arriving = onePerPublication(
+            LibraryImport.readableProgress(document).filter { !local.ownedByKavita($0.identity) }
+        )
+        let held = onePerPublication(local.progress)
         let pull = ProgressPull.merging(remote: arriving) { identity in
-            local.progress.first { $0.identity.matches(identity) }
+            held.first { $0.identity.matches(identity) }
         }
-        var merged = local.progress
+        var merged = held
         for record in pull.toSave {
             if let existing = merged.firstIndex(where: { $0.identity.matches(record.identity) }) {
-                merged[existing] = record
+                // The device's own identity stays: it holds the current path, and an arriving
+                // record from before a reinstall holds the old one (task 26.4).
+                merged[existing] = record.identified(as: merged[existing].identity.filling(from: record.identity))
             } else {
                 merged.append(record)
             }
@@ -98,5 +103,36 @@ public enum LibrarySyncMerge {
             return stamped
         }
         return (settled, pull.conflicts)
+    }
+
+    /// One record for each publication, the newest, with the identity of every copy.
+    ///
+    /// Task 26.4: a document written across reinstalls held one record for each container
+    /// path a folder audiobook had, seven for one book. The copies are one publication, so the
+    /// document keeps one.
+    static func onePerPublication(_ records: [ReadingProgress]) -> [ReadingProgress] {
+        var kept: [ReadingProgress] = []
+        for record in records.sorted(by: { $0.updatedAt > $1.updatedAt }) {
+            if let index = kept.firstIndex(where: { $0.identity.matches(record.identity) }) {
+                kept[index] = kept[index].identified(as: kept[index].identity.filling(from: record.identity))
+            } else {
+                kept.append(record)
+            }
+        }
+        return kept
+    }
+}
+
+extension ReadingProgress {
+    /// This record, filed under another identity.
+    func identified(as identity: PublicationIdentity) -> ReadingProgress {
+        ReadingProgress(
+            identity: identity,
+            position: position,
+            isFinished: isFinished,
+            finishedAt: finishedAt,
+            updatedAt: updatedAt,
+            syncedPosition: syncedPosition
+        )
     }
 }

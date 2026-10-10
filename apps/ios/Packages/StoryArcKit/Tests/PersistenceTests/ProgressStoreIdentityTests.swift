@@ -1,5 +1,6 @@
 import Foundation
 import StoryArcCore
+import SwiftData
 import Testing
 
 @testable import Persistence
@@ -181,5 +182,64 @@ struct ProgressStoreIdentityTests {
 
         let found = try await store.progress(forStableID: "path:\(path)")
         #expect(found?.position == .page(index: 9, of: 30))
+    }
+
+    private static let containers = "/var/mobile/Containers/Data/Application"
+
+    private func inContainer(_ id: String) -> String {
+        "\(Self.containers)/\(id)/Documents/Audiobooks/Tales"
+    }
+
+    /// Task 26.4: a folder audiobook was keyed only by its path, and a reinstall changes it.
+    @Test("A folder audiobook's position written before a reinstall is found after it")
+    func aPositionFromAnOlderContainerIsFound() async throws {
+        let store = try store()
+        let old = inContainer("0B6E1F5C-2C2E-4C59-8E44-0D6C0A1E2B11")
+        try await store.save(
+            ReadingProgress(
+                identity: identity(path: old),
+                position: .listening(part: 2, partCount: 5, offset: 30, of: 90),
+                updatedAt: Date(timeIntervalSince1970: 1_000)
+            )
+        )
+
+        let now = identity(digest: "folder", path: inContainer("7F3A9D20-5B1C-4E7A-9F02-3C4D5E6F7A88"))
+        #expect(try await store.progress(for: now)?.position == .listening(part: 2, partCount: 5, offset: 30, of: 90))
+    }
+
+    /// An earlier build imported each copy of a sync document as its own record, so a device
+    /// can hold several. They are written here the way that build wrote them.
+    @Test("Linking folds the copies of older containers into one record at the current path")
+    func linkingFoldsOlderCopiesIntoOne() async throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "legacy-\(UUID()).store")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let legacy = ModelContext(try ProgressStore.opening(ModelConfiguration(url: url)))
+        let older = ["0B6E1F5C-2C2E-4C59-8E44-0D6C0A1E2B11", "1C7F2A6D-3D3F-4D6A-9F55-1E7D1B2F3C22"]
+        for (index, id) in older.enumerated() {
+            legacy.insert(
+                StoredProgress(
+                    serverKey: nil,
+                    contentDigest: nil,
+                    normalizedPath: inContainer(id),
+                    positionData: try JSONEncoder().encode(
+                        ReadingPosition.listening(part: index, partCount: 5, offset: 0, of: 90)
+                    ),
+                    isFinished: false,
+                    finishedAt: nil,
+                    updatedAt: Date(timeIntervalSince1970: TimeInterval(1_000 + index)),
+                    syncedPositionData: nil
+                )
+            )
+        }
+        try legacy.save()
+        let store = try ProgressStore(url: url)
+        let current = inContainer("7F3A9D20-5B1C-4E7A-9F02-3C4D5E6F7A88")
+
+        #expect(try await store.link(identity(digest: "folder", path: current)) == true)
+
+        let records = try await store.recent()
+        #expect(records.count == 1)
+        #expect(records.first?.identity == identity(digest: "folder", path: current))
+        #expect(records.first?.position == .listening(part: 1, partCount: 5, offset: 0, of: 90), "the newest stays")
     }
 }

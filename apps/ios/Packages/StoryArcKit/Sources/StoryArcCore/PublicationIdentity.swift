@@ -127,7 +127,38 @@ public struct PublicationIdentity: Sendable, Hashable, Codable {
         if let mine = normalizedPath, let theirs = other.normalizedPath, mine == theirs {
             return true
         }
-        return false
+        return sharesContainerPath(with: other)
+    }
+
+    /// Whether both paths name one place inside this app's data container.
+    ///
+    /// A reinstall gives the app a new container, so `…/Application/<old>/Documents/A` and
+    /// `…/Application/<new>/Documents/A` are one file seen before and after (task 26.4). A
+    /// record written before the reinstall has only the old path, and this is how it is found.
+    public func sharesContainerPath(with other: PublicationIdentity) -> Bool {
+        guard let mine = normalizedPath.flatMap(Self.containerRelativePath),
+              let theirs = other.normalizedPath.flatMap(Self.containerRelativePath) else { return false }
+        return mine == theirs
+    }
+
+    /// The part of a path after an app data container, or nil for a path outside one.
+    public static func containerRelativePath(_ path: String) -> String? {
+        let marker = "/Containers/Data/Application/"
+        guard let start = path.range(of: marker) else { return nil }
+        let rest = path[start.upperBound...]
+        guard let slash = rest.firstIndex(of: "/"),
+              UUID(uuidString: String(rest[..<slash])) != nil else { return nil }
+        let relative = rest[rest.index(after: slash)...]
+        return relative.isEmpty ? nil : String(relative)
+    }
+
+    /// This identity, with each component it lacks taken from `other`.
+    public func filling(from other: PublicationIdentity) -> PublicationIdentity {
+        PublicationIdentity(
+            serverIdentifier: serverIdentifier ?? other.serverIdentifier,
+            contentDigest: contentDigest ?? other.contentDigest,
+            normalizedPath: normalizedPath ?? other.normalizedPath
+        )
     }
 
     /// True when nothing at all was recorded — a bug at the call site rather

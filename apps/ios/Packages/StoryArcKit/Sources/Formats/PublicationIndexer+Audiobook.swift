@@ -26,7 +26,7 @@ extension PublicationIndexer {
         if FolderKind.of(entryNames: entries) == .audiobook {
             return await audiobook(
                 at: url,
-                identity: found,
+                identity: found.recordingDigest(folderAudiobookDigest(at: url)),
                 format: .audioFolder,
                 fallback: FilenameMetadata(filename: name)
             )

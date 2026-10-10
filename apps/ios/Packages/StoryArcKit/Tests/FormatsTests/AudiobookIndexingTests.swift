@@ -173,6 +173,30 @@ struct AudiobookIndexingTests {
         #expect(book.isPartial, "which is the same flag a comic missing pages sets")
     }
 
+    /// Task 26.4: a folder audiobook had no digest, so a reinstall, which moves the app
+    /// container, lost its position. The digest is the part list, wherever the folder is.
+    @Test("A folder audiobook keeps one digest when it moves, and gains a new one when a part changes")
+    func folderDigestFollowsTheParts() async throws {
+        let original = corpus.appending(path: "folder-parts")
+        let moved = try scratchFolder().appending(path: "Renamed")
+        try FileManager.default.copyItem(at: original, to: moved)
+        try Data([0x89, 0x50]).write(to: moved.appending(path: "cover.png"))
+
+        let first = try await PublicationIndexer.index(fileAt: original).identity
+        let second = try await PublicationIndexer.index(fileAt: moved).identity
+        #expect(first.contentDigest != nil)
+        #expect(first.contentDigest == second.contentDigest, "a cover beside the parts is not a part")
+        #expect(first.normalizedPath != second.normalizedPath)
+
+        let part = moved.appending(path: "part2.mp3")
+        let handle = try FileHandle(forWritingTo: part)
+        try handle.seekToEnd()
+        try handle.write(contentsOf: Data([0]))
+        try handle.close()
+        let changed = try await PublicationIndexer.index(fileAt: moved).identity
+        #expect(changed.contentDigest != first.contentDigest)
+    }
+
     private func scratchFolder() throws -> URL {
         let url = URL(fileURLWithPath: NSTemporaryDirectory())
             .appending(path: "indexing-\(UUID().uuidString)")

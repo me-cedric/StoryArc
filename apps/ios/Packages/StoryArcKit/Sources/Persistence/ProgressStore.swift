@@ -84,7 +84,7 @@ public actor ProgressStore {
     private static let building = NSLock()
 
     /// Builds a container with no other container being built at the same time.
-    private static func opening(_ configuration: ModelConfiguration) throws -> ModelContainer {
+    static func opening(_ configuration: ModelConfiguration) throws -> ModelContainer {
         building.lock()
         defer { building.unlock() }
         return try ModelContainer(for: StoredProgress.self, configurations: configuration)
@@ -207,8 +207,10 @@ public actor ProgressStore {
     /// caller can pass a whole library through it without writing on every launch.
     @discardableResult
     public func link(_ identity: PublicationIdentity) throws -> Bool {
-        guard let record = try existing(for: identity) else { return false }
-        var changed = false
+        guard let found = try existing(for: identity) else { return false }
+        // Task 26.4: the copies a reinstall left under an older container path go into one.
+        let (record, collapsed) = try Self.collapse(found, onto: identity, in: context)
+        var changed = collapsed
         if record.serverKey == nil, let key = Self.serverKey(identity) {
             record.serverKey = key
             changed = true
@@ -336,7 +338,7 @@ public actor ProgressStore {
             )
             if let first = found.first { return first }
         }
-        return nil
+        return try Self.containerTwins(of: identity, in: context).first
     }
 
     private static func domain(_ record: StoredProgress) -> ReadingProgress {
