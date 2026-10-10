@@ -115,6 +115,7 @@
     "commitlint:guard": "node scripts/commitlint-guard.mjs",
     "build:ios:ui": "cd apps/ios && xcodegen generate && xcodebuild build-for-testing -project StoryArc.xcodeproj -scheme StoryArc -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath ../../.build/ios-ui -quiet",
     "test:ios:ci": "node scripts/test-ios-ci.mjs",
+    "test:ios:audit": "node scripts/test-ios-audit.mjs",
     "ios:ci:check": "node scripts/test-ios-ci.mjs --check",
     "seed:ios:ui": "node scripts/install-and-seed-simulator.mjs",
     "device": "npx -y agent-device@0.21.22"
