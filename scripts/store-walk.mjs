@@ -65,7 +65,8 @@ const CORPUS_FILES = [
 ]
 
 /**
- * What each frame opens, per library. `comicTurns` and `ebookTurns` are page turns before
+ * What each frame opens, per library. `landmark` is words that the first screen of the
+ * shelf shows at every size. `comicTurns` and `ebookTurns` are page turns before
  * the frame: page 2 of *The Boys #1* is its cast page, and the fifth page of the Laura
  * Palmer EPUB is the first page of prose.
  */
@@ -73,6 +74,7 @@ export const LIBRARIES = {
   showcase: {
     folder: 'Showcase',
     files: SHOWCASE.map((item) => item.as),
+    landmark: 'The Boys',
     series: 'The Boys',
     comic: 'The Boys #1',
     comicTurns: 1,
@@ -83,6 +85,7 @@ export const LIBRARIES = {
   corpus: {
     folder: 'Corpus',
     files: CORPUS_FILES,
+    landmark: 'Bright Panels',
     series: null,
     comic: 'Quiet Machines',
     comicTurns: 2,
@@ -212,8 +215,8 @@ export function selector(platform, words) {
 export function walk({ platform, bucket, library: lib, labels: L, frames }) {
   const ios = platform === 'ios'
   const s = (name) => selector(platform, L[name])
-  const landmark = { waitText: lib.series ?? lib.comic }
-  const toLibrary = [{ tap: L.library, exact: true }, landmark]
+  const landmark = { waitText: lib.landmark }
+  const toLibrary = [{ tap: L.library, exact: true }]
   const turns = (count) => Array.from({ length: count }, (_, at) => ({ point: [0.93, 0.5], settle: at === count - 1 }))
   const themes = ios
     ? [
@@ -224,7 +227,7 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
     // The themes sheet opens at its small detent. One drag opens it to the swatches.
     : [{ tap: L.themes, exact: true, scroll: true, settle: true }, { scroll: 0.3 }, { wait: s('customise') }]
   const a = [
-    { id: '01', needs: null, steps: [...toLibrary, { shot: '01' }], exit: [] },
+    { id: '01', needs: null, steps: [...toLibrary, landmark, { shot: '01' }], exit: [] },
     {
       id: '02',
       needs: '01',

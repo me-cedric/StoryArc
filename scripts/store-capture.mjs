@@ -130,16 +130,19 @@ function find(nodes, viewport, words, exact) {
   return best && { x: best.x, y: best.y }
 }
 
-/** Where to press for a `tap` step: opens an `opener` or scrolls until the words show. */
+/**
+ * Where to press for a `tap` step. When the words are not on screen, it presses an
+ * `opener`, or scrolls: to the top once, since the shelf keeps its place, then down.
+ */
 async function locate(session, step) {
   const want = [].concat(step.tap)
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 7; attempt += 1) {
     const { nodes, viewport } = await ad(['snapshot', '-i', '--session', session])
     const target = find(nodes, viewport, want, step.exact)
     if (target) return target
     const opener = (step.openers ?? []).map((words) => find(nodes, viewport, words, true)).find(Boolean)
     if (opener) await ad(['press', String(opener.x), String(opener.y), '--settle', '--session', session])
-    else if (step.scroll) await ad(['scroll', 'down', '0.4', '--session', session])
+    else if (step.scroll) await ad(['scroll', ...(attempt === 0 ? ['top'] : ['down', '0.4']), '--session', session]).catch(() => {})
   }
   throw new Error(`nothing on screen is labelled "${want.join('" or "')}"`)
 }
@@ -193,9 +196,12 @@ async function run(lane, locale, steps) {
       await flush()
       batch.push(await tapped(step))
     } else if (step.reveal) {
-      // The EPUB reader on Android keeps its chrome up, so this only shows it when hidden.
+      // A tap in the middle toggles the reader's chrome, and the chrome hides itself a few
+      // seconds after it shows. Chrome that is up may be about to go, so the walk hides it
+      // and shows it again: the next press then has the chrome's whole time on screen.
       await flush()
-      if (!(await isVisible(lane.session, step.reveal))) batch.push({ command: 'press', input: { target: centre } }, wait({ selector: step.reveal }))
+      if (await isVisible(lane.session, step.reveal)) batch.push({ command: 'press', input: { target: centre } }, wait({ absent: step.reveal }))
+      batch.push({ command: 'press', input: { target: centre } }, wait({ selector: step.reveal }))
     } else if (step.until) {
       await flush()
       for (let attempt = 0; attempt < 4 && !(await isVisible(lane.session, step.until)); attempt += 1) {
