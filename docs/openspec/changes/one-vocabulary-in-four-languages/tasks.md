@@ -737,6 +737,12 @@ changes.
       judged yet for the reason 4.6 gives. The capture pass wants
       `-only-testing:StoryArcUITests/CurlWalk` and
       `-only-testing:StoryArcUITests/SweepComicReaderTests` before it takes anything else.
+      **Docs pass, 2026-10-10.** Stays open. Taken: the Android frames of 1.7 (Spanish), 2.4
+      (French alert) and 3.4, and the iOS French provenance line of 4.6 (wave 6). Owed: the
+      iOS Spanish frames of 1.7, the iOS French alert of 2.4, French states d and e on iOS,
+      the gone state on both platforms and the Android state d of 4.6. Frames at font scale
+      2.0 are met by the snapshot tests and the accessibility checks, by the owner rulings of
+      2026-10-08 and 2026-10-09.
 - [ ] **6.6** Update `localization`'s row in `docs/openspec/STATUS.md` from the
       verify report, in the same pass as `/opsx:verify`.
 
@@ -757,3 +763,6 @@ changes.
       So it stays open, deliberately, with a corrected premise rather than a
       fabricated update. What it needs: 1.7 and 1.8 finished, then `/opsx:verify`,
       then the row rewritten from that report's numbers and not from this task's.
+      **Docs pass, 2026-10-10.** Stays open. The row is written from the verify report, and no
+      verify report exists: 1.7, 1.8, 2.4, 4.2 and 4.6 are still partial. The `localization`
+      row in `STATUS.md` is not changed by this pass.

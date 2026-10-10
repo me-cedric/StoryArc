@@ -1034,7 +1034,7 @@ creep — see [`design.md`](design.md).
       beside `PlayerSleep.swift`, which took the same seam for the same reason.
       **Captures owed**: the sheet and the control, light and dark, default and largest text. Both
       devices were sweeping every screen when this landed.
-- [~] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
+- [x] 5.3 Both: sleep timer offers durations **and end-of-chapter**, shows the
       remaining time, fades out rather than cutting, and records a position slightly
       before where the fade ended.
       **Android done, and the model carries the weight.** `SleepTimer` holds both cases as one
@@ -1126,6 +1126,12 @@ creep — see [`design.md`](design.md).
       still unmade, and the default is what keeps the undecided half from blocking the decided
       one. Android has the same gap for the same reason: its read-aloud host is not a
       `PlayerSource` yet, so nothing there fades a voice either.
+      **Closed 2026-10-10 (docs pass).** The voice half is built on both platforms by
+      `close-the-audited-gaps` 13.6 (decision D19): a synthesised voice fades over its last
+      10 seconds, and an audiobook keeps its 30-second window. iOS: `SleepCountdown.voiceFade`
+      (`SleepTimer.swift:90`), applied in `PlayerSleep.swift:59`. Android:
+      `SleepTimer.VOICE_FADE_MILLIS` (`SleepTimer.kt:103`), asserted by `SleepTimerTest` and
+      `SpokenVolumeTest`.
 - [x] 5.4 Android: declare `COMMAND_SEEK_TO_PREVIOUS`/`NEXT` so the notification's
       three compact slots carry seek-back / play-pause / seek-forward.
       **Done.** All four are added in `onConnect`: the two chapter moves a head unit uses
@@ -2104,7 +2110,11 @@ shipped surface had no specification. iOS has nothing.
       rather than processed, because a module's documentation belongs in the repository and not
       in the bundle a reader downloads. Back to the baseline of one; that remaining warning is
       somebody else's and predates this.
-- [ ] 9.2 Update `docs/openspec/STATUS.md` and the format table in the docs.
+- [x] 9.2 Update `docs/openspec/STATUS.md` and the format table in the docs.
+      **Docs pass, 2026-10-10.** Done. `docs/openspec/STATUS.md` has a dated state paragraph
+      at the head of the `audiobooks-and-playback` section (82 of 91 done, 7 partial, 2 open).
+      The README format table row for audiobooks stays as it is, because it is still true: the
+      change has not synced into the main specs.
 - [~] 9.3 **Run on 2026-09-11, and every one of them passes.** `pnpm lint` clean;
       `pnpm lint:ios` (`swiftlint --strict`) 0 violations in 814 files; Android
       `testDebugUnitTest` and `lintDebug` BUILD SUCCESSFUL; StoryArcKit `swift test` 2503
@@ -2114,7 +2124,19 @@ shipped surface had no specification. iOS has nothing.
 
       The original wording follows: `pnpm lint`, `pnpm check`, `swiftlint --strict --no-cache`, `pnpm gradle`,
       `pnpm build:ios`, `pnpm build:ios:tests`, `pnpm build:android:tests`.
+      **Docs pass, 2026-10-10.** Run again on `main` at `e3249a0da`. Passed: `pnpm lint`, the
+      selftests, `pnpm lint:ios` and `swiftlint lint --strict --no-cache` (0 violations in
+      1349 files), `pnpm test:ios` (4365 host tests passed and 4 skipped, 21 snapshot tests
+      passed), `pnpm build:ios`, `pnpm lint:android`, `pnpm test:android`, `pnpm
+      build:android` and `pnpm build:android:tests`. Failed twice: `pnpm build:ios:tests`
+      (exit 65). Locally the x86_64 link of the app misses `Formats` symbols after a compile
+      step ends with no output. On CI the iOS job "App — build for simulator" fails because
+      `apps/ios/UITests/CatalogueAuditTests.swift:296` cannot be type-checked in reasonable
+      time. So `pnpm check` fails, and this task stays partial until the UI test target
+      builds.
 - [x] 9.4 `pnpm spec:guard:strict` on 2026-09-11: **0 errors**, 1 warning, and the
       warning is this change reading 60 of 76 tasks rather than anything wrong with its
       artifacts.
 - [ ] 9.5 `/opsx:verify audiobooks-and-playback`, then `/opsx:sync`.
+      **Docs pass, 2026-10-10.** Not done. The verify step needs every task closed, and 3.9,
+      4.4b, 6.1, 7.3, 8.1, 9.3 and 12.6 are partial. The sync waits for it.

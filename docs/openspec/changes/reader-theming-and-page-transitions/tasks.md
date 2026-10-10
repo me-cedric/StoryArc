@@ -1684,3 +1684,8 @@ inside it), custom backgrounds (3.7), and the tablet layout (3.8).
       account of Android Fast fade.
 
       Tick this when 3.6, 4.3b, 5.2 and 5.4 land and the four held items go in.
+      **Docs pass, 2026-10-10.** Not done. The condition above is not met: 4.3b is still
+      partial (Android draws no raster ahead at a chapter end). 3.6, 5.2 and 5.4 are ticked,
+      and the spread curl landed in `close-the-audited-gaps` (waves 9 and 10). The four held
+      items stay out of the main specs until 4.3b closes and the change is verified. The sync
+      order in `.delta-drops.json` stays as it is.

@@ -57,25 +57,26 @@ telemetry. If it helps you, you can [support development on Ko-fi](https://ko-fi
 **Pre-alpha, and further along than that word suggests.** Both apps open a
 library from a folder, a share, a catalogue or a Kavita server, read comics and
 EPUBs in their own readers, read aloud, and play audiobooks. What is missing is
-finish, not surface: [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) scores
-295 of the contract's 367 scenarios against both codebases — **174 built
-and tested on both, 90 built and asserted by nothing, 20 on one platform only,
-13 missing on both, 1 unclear** — and every capability is `partial`. The other 72
-scenarios carry no verdict yet, and that document names which capabilities they
-belong to. None is absent, none is done, and a good deal of what compiles has been
-watched working by nobody yet, which that document says row by row.
+finish, not surface: [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) scored
+all 411 scenarios of the contract against both codebases on 2026-09-12 — **232 built
+and tested on both, 154 built and asserted by nothing, 17 on one platform only,
+8 missing on both** — and every capability is `partial`. The main specs hold 426
+scenarios on 2026-10-10. The build that followed is recorded change by change in that
+document's "Build progress" paragraphs. None is absent, none is done, and the device
+steps that no simulator answers are in
+[`docs/mvp-device-checklist.md`](docs/mvp-device-checklist.md).
 
 | Area | State |
 | --- | --- |
-| Capability specs | ✅ 17 capabilities, 367 scenarios, validating; 295 of them audited against both apps with `path:line` evidence |
+| Capability specs | ✅ 17 capabilities, 426 scenarios, validating; the 411 of 2026-09-12 audited against both apps with `path:line` evidence |
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI; the mark and every icon rendered from one SVG |
 | Format layer | ✅ CBZ, CBR, CBT, PDF, EPUB and image folders open on both platforms — see below |
 | Test corpus | ✅ 26 archives, 2 PDFs, 6 EPUBs and 7 audiobooks, one manifest, asserted by both suites |
-| Sources | 🟡 Folders, SMB, OPDS and Kavita connect, cache and diagnose on both; `source-lifecycle` has 21 of 27 tasks ticked |
-| Readers | 🟡 Paged comic reader and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 50 of 58 ticked and 6 partial |
-| Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 68 of 91 ticked and calls itself unfinished |
-| Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is built and not yet wired in. `cover-for-every-publication` has 11 of 27 |
-| Portability | 🟡 One versioned library document, written and read on both platforms with no secret in it; no screen exports or imports it yet. `library-portability` has 9 of 26 |
+| Sources | 🟡 Folders, SMB (SMB 3 encryption included), OPDS and Kavita connect, cache, read every page of a source and diagnose on both; the `sources` row in STATUS is `partial`, and `close-the-audited-gaps` has 262 of 276 tasks done |
+| Readers | 🟡 Paged comic reader with a page carousel and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 54 of 59 done and 4 partial |
+| Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 83 of 91 done and 7 partial, and `read-aloud-beyond-the-reader` 20 of 24 |
+| Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is the last rung of the ladder, and the publication page offers the title and web search. `cover-for-every-publication` has 23 of 28 done and 4 partial |
+| Portability | 🟡 One versioned library document, exported and imported from a screen on both platforms with no secret in it, and synced through a share or a folder. `library-portability` has 30 of 31 done (3.1b open), and `library-sync` 24 of 28 |
 | Desktop: macOS | 🟡 Base only: a SwiftUI app in its own project opens an empty window and links `StoryArcKit`; no reading feature yet |
 | Desktop: Windows | 🟡 Base only: a WinUI 3 shell, an interop library and its tests; not yet run on Windows; no reading feature yet |
 | Desktop: Linux | 🟡 Base only: a GTK4 and libadwaita window on the shared Rust core; no reading feature yet |

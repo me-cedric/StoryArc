@@ -32,3 +32,13 @@
   - Built: `docs/designs/screen-catalogue.md` names the iOS test, the iOS audit and the Android test and images of each entry.
 - [x] 4.2 The snapshot verifications and the accessibility checks run in `pnpm test:ios`, `pnpm test:android` and CI.
   - Built: `pnpm test:ios` runs the host tests, then `pnpm snap:ios`. `pnpm test:android` passes `-Proborazzi.test.verify=true`. CI runs the Android accessibility checks with `./gradlew test`. CI does not compare images, because the references are recorded on macOS.
+
+## 5. Verify findings, 2026-10-10
+
+The verify step of the docs pass found that two scenarios of the delta state more than the code does. The change stays active until each item below is closed, by code or by an owner decision that changes the delta.
+
+- [ ] 5.1 iOS: text under the contrast floor fails the catalogue audit (scenario "Guidelines are checked by machine"). Now `auditCatalogue` in `apps/ios/UITests/CatalogueAuditTests.swift` fails only `.hitRegion` and `.sufficientElementDescription`, and it prints contrast and clipped-text findings. Android fails on contrast. Alternative: the owner rules that `pnpm tokens:check` is the iOS contrast check, and the delta says so.
+- [ ] 5.2 The largest text size (scenario "Both appearances"). No snapshot test draws it: no iOS snapshot sets a content size category, and no Android catalogue test sets `fontScale` (`docs/designs/screen-catalogue.md`, "The largest text size"). The iOS audit prints Dynamic Type findings and does not fail them. Add a largest-size snapshot or a failing check on each platform, or the owner changes the scenario.
+- [ ] 5.3 iOS: `CatalogueAuditTests` is in `StoryArcUITests`, so only `pnpm test:ios:ui` runs it. `pnpm test:ios` runs the host tests and `pnpm snap:ios`, and `.github/workflows/ios.yml` runs neither UI tests nor snapshots. Task 4.2 holds for Android only until a gate runs the iOS audit.
+- [ ] 5.4 Android: catalogue entries 05b and 18 have no snapshot test, and the iOS audit cannot reach 05b (`docs/designs/screen-catalogue.md`).
+- [x] 5.5 `AGENTS.md` section 6 names the `:core:snapshots` checks for Android (not `enableAccessibilityChecks()`), and says which iOS findings fail and which are printed. Done 2026-10-10 in the docs pass.

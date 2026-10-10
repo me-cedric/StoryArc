@@ -1628,6 +1628,14 @@ when a cover was the resume affordance. Whoever syncs should add a
       which walk, and what the frame has to *show* rather than merely contain. Three of the
       nine are sequences or pairs rather than single frames, and that distinction was not in
       this list before; a single frame would have been taken and would have proved nothing.
+      **Docs pass, 2026-10-10.** Stays open. Owed at the default text size: the Android wash
+      at `contrast_level` 1.0 (1.4), state 3 with the NEEDS_SOURCE text (2.2, a product
+      defect: the page keeps the NOT_DOWNLOADED provenance), the iOS covers that still skip
+      this page (2.3), the four browse surfaces with no origin (3.4), true Split View on an
+      iPad (4.1), and the travelling copy (6.5 frame 2, a product defect: no Downloading
+      label). The largest-size captures are met by the snapshot tests and the accessibility
+      checks, by the owner rulings of 2026-10-08 and 2026-10-09. This is the last open task
+      and ten tasks are partial.
 
 ## Phase 6 — The primary action a reader can take
 

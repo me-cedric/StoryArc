@@ -433,11 +433,14 @@ record it as a task:
 - A screen that is wrong in one appearance only.
 
 **2. Machines check the guidelines.** The accessibility checks run over every screen of
-`docs/designs/screen-catalogue.md`: `performAccessibilityAudit` (hit region, contrast,
-clipped text, Dynamic Type) in the iOS UI tests, and the Accessibility Test Framework
-(`enableAccessibilityChecks()`) in the Android Robolectric tests. A target under 44 pt or
-48 dp, a contrast failure or a missing label fails the test. **A new screen adds its
-catalogue entry**: a snapshot test in light and dark, and an audit.
+`docs/designs/screen-catalogue.md`: `performAccessibilityAudit` in the iOS UI tests
+(`CatalogueAuditTests`, run by `pnpm test:ios:ui`), and the `:core:snapshots` checks of the
+Compose semantics tree in the Android Robolectric tests. On Android, a target under 48 dp, a
+contrast failure or a missing label fails the test. On iOS, a target under 44 pt or a missing
+label fails the test; contrast, clipped text and Dynamic Type findings are printed, not failed,
+and `pnpm tokens:check` holds the palette pairs to 4.5:1. `lighter-visual-check` section 5
+holds the open gaps. **A new screen adds its catalogue entry**: a snapshot test in light and
+dark, and an audit.
 
 **3. Commit little.** A snapshot reference is the proof for a screen state. A device
 screenshot is committed only for what a snapshot cannot draw: one light and one dark per
@@ -445,8 +448,9 @@ changed screen, at the default text size, downscaled with `pnpm frames:shrink`, 
 `docs/designs/screenshots/<topic>-<yyyy-mm-dd>/`. No separate frames agent and no
 photo per task.
 
-The largest text size, all four languages and the guideline checks are covered by the
-snapshot tests and the audits, not by committed frames.
+The largest text size, all four languages and the guideline checks are not committed as
+frames. The snapshot tests and the audits cover them. The snapshot tests do not draw the
+largest text size yet, and `lighter-visual-check` task 5.2 holds that gap.
 
 `pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses a branch
 that adds a line inside a `View` or a `@Composable` and adds neither a frame under

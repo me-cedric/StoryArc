@@ -893,6 +893,12 @@ them to the count.
 - [ ] **5.6** Screenshots complete and referenced in the handoff, including the
       Android notification, which is a screen a reader sees even though it is not
       a screen the app draws.
+      **Docs pass, 2026-10-10.** Stays open. The Android notification frames are taken
+      (`playback-proofs-android-2026-10-09/`), and so are the end-of-book frames on both
+      platforms. Owed: a frame of the highlighted sentence after a tap on the notification
+      (3.2; the emulator speech engine crashes with SIGILL). 2.5 asks for the largest text
+      size, which the owner rulings of 2026-10-08 and 2026-10-09 move to the snapshot tests
+      and the accessibility checks. This is the last open task and three tasks are partial.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 

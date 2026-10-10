@@ -320,6 +320,12 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       Two things every one of those walks needs and none of them gets by launching the app:
       **something in progress** (or Keep reading is absent and the review's mistake repeats),
       and, for 0b.3, **two issues of one series with the first read to its last page**.
+      **Docs pass, 2026-10-10.** Stays partial. The iOS after frames are taken (0b.1 to 0b.4,
+      waves 4 and 5). The Android frames of 0b.2 (a card whose source is away) and 0b.3
+      (Finish with Next in series, Finish alone, after Finish) are still owed at the default
+      text size. The largest-text half is met by the snapshot tests and the accessibility
+      checks, by the owner rulings of 2026-10-08 and 2026-10-09. `lighter-visual-check` 5.2
+      records that no snapshot draws the largest size yet.
 
 ## Phase 0 — Answer before building
 
@@ -1887,6 +1893,14 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       seeded, so a sweep on a fresh simulator returns green having photographed nothing. Every
       row above needs its state seeded first, and rows 2 to 5 need it seeded by *reading* —
       opening a book and turning pages — which no fixture in the tree does for you.
+      **Docs pass, 2026-10-10.** Stays open. Still owed at the default text size: the Android
+      frames of 0b.2 and 0b.3, true Split View beside a second app on an iPad (4.1, 4.3;
+      device checklist), and an Android foldable at half-open (4.2; no foldable AVD). Items 1,
+      2, 7, 8, 10 and 12 of the table are taken (waves 4 and 5). The largest-size captures are
+      met by the snapshot tests and the accessibility checks, by the owner rulings of
+      2026-10-08 and 2026-10-09 (`lighter-visual-check` 5.2 records the gap in that claim).
+      This is the last open task and seven tasks are partial, so it cannot be ticked before
+      them.
 
 ## Delta merge, 2026-09-04 — not this change's own work
 
