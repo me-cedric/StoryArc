@@ -65,10 +65,14 @@ extension ReaderView {
             }
             // A resume lands after the pager is up whenever the archive opens second, and
             // `onAppear` alone then left the pager on page one over a model on page two.
-            .onChange(of: model.openCount) { _, _ in displayIndex = displayIndex(forModel: model.currentIndex) }
+            //
+            // Not animated, because a resume is not a turn. On iOS 26.5 the pager animated
+            // the jump while it laid out, stopped between two pages, and reported the later
+            // one: a book left on page 2 of 3 reopened on page 3.
+            .onChange(of: model.openCount) { _, _ in showCurrentPageWithoutAnimation() }
             // And once, the other way, when the publication opens on a page that is
             // not the first — a ComicInfo cover, or a resumed position later.
-            .onAppear { displayIndex = displayIndex(forModel: model.currentIndex) }
+            .onAppear { showCurrentPageWithoutAnimation() }
             // `comic-reader`: a direction change "applies immediately without losing the
             // current page". The run the pager lays out reverses under the reader, so the
             // position holding the page they are on moves to the other end of it. Asked
@@ -78,13 +82,7 @@ extension ReaderView {
             // Not animated, because this is not a turn: the page in front of the reader
             // does not change, only where the pager keeps it, and animating that would
             // fling across the publication to arrive back where it started.
-            .onChange(of: model.readingDirection) { _, _ in
-                var instant = Transaction()
-                instant.disablesAnimations = true
-                withTransaction(instant) {
-                    displayIndex = displayIndex(forModel: model.currentIndex)
-                }
-            }
+            .onChange(of: model.readingDirection) { _, _ in showCurrentPageWithoutAnimation() }
             .accessibilityLabel(
                 isRightToLeft ? Text("reader.rightToLeft", bundle: .module) : Text(verbatim: "")
             )
@@ -94,5 +92,14 @@ extension ReaderView {
                 onNext: { turnInReadingOrder(by: 1) },
                 onPrevious: { turnInReadingOrder(by: -1) }
             ))
+    }
+
+    /// Puts the pager on the model's page with no animation.
+    private func showCurrentPageWithoutAnimation() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) {
+            displayIndex = displayIndex(forModel: model.currentIndex)
+        }
     }
 }
