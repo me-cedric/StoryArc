@@ -123,6 +123,8 @@ struct ListRow: View {
     /// A source coming back should not make a thumbnail flick to full brightness — but a
     /// reader who asked for less motion gets the change with no crossfade at all.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// At the accessibility sizes a title wraps instead of ending in an ellipsis after a word.
+    @Environment(\.dynamicTypeSize) private var textSize
 
     let publication: Publication
     let model: LibraryModel
@@ -279,12 +281,12 @@ struct ListRow: View {
                 Text(series?.name ?? publication.displayTitle)
                     .textRole(.body)
                     .foregroundStyle(theme.palette.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(textSize.isAccessibilitySize ? nil : 1)
 
                 Text(subtitle)
                     .textRole(.caption)
                     .foregroundStyle(theme.palette.textTertiary)
-                    .lineLimit(1)
+                    .lineLimit(textSize.isAccessibilitySize ? nil : 1)
             }
 
             Spacer(minLength: 0)

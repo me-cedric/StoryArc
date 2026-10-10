@@ -112,9 +112,12 @@ struct SkippedNotice: View {
 
     private func message(_ sentence: Text, reason: SkipReason?) -> some View {
         VStack(alignment: .leading, spacing: StoryArcSpace.hair) {
+            // Wraps at every size: in a column beside the shelf the height is short, and at the
+            // accessibility sizes the sentence ended in an ellipsis after two words.
             sentence
                 .textRole(.footnote)
                 .foregroundStyle(theme.palette.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
             // `publication-formats`' refusal, in the reader's language: the scan hands over a
             // case and `SkipReasonWords` says what it means. Shown here only when there is one
             // publication to attribute it to; several reasons belong in the list, where each
@@ -123,6 +126,7 @@ struct SkippedNotice: View {
                 reason.sentence
                     .textRole(.caption)
                     .foregroundStyle(theme.palette.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
