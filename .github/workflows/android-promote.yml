@@ -2,7 +2,10 @@ name: Android promote
 
 # Manual only. This lane moves a version code that Play already holds from one track to
 # the next. It builds nothing and uploads no binary, so the bytes testers approved are the
-# bytes production gets.
+# bytes production gets. The release notes travel with the release.
+#
+# The owner decides each promotion. An agent runs this lane only when the owner asks.
+# A promotion to alpha, beta or production sends the build for review.
 #
 # The two hops it exists for:
 #   internal -> alpha        internal testing to closed testing

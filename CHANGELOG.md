@@ -1,6 +1,7 @@
 # Changelog
 
-All notable changes to StoryArc are documented here.
+All notable changes to StoryArc are documented here, for developers. The notes for
+readers of the app, which each release sends to Play, are in [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 The two apps version and release independently — `ios-vX.Y.Z` and

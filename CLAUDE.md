@@ -48,6 +48,8 @@ pnpm spec:guard          # artifact chain, one root, config, installed workflows
 
 `pnpm release patch|minor|major|X.Y.Z` is the whole release. It bumps the version, tags, and
 pushes; CI then builds and signs the bundle and the APK, publishes a GitHub release carrying
-the APK, and uploads it to Play's closed testing track as a draft. The owner starts the rollout in the Play Console, which sends it for review. Read §10 of [`AGENTS.md`](AGENTS.md)
+the APK, and uploads it to Play's internal testing track. Both carry the reader's notes from
+`RELEASE_NOTES.md`, which you keep up to date as you work. The owner promotes the build to closed
+testing and production, or asks you to run `android-promote.yml`. Read §10 of [`AGENTS.md`](AGENTS.md)
 before you run it — in particular: never hand-edit a version, never build a release locally,
 and never cut one unless you were asked to.

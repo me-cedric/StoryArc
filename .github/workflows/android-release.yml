@@ -7,15 +7,18 @@ name: Android release
 # What it produces, in order:
 #   1. a signed App Bundle and a signed APK, both at the version the tag carries
 #   2. a GitHub release on that tag, with the APK attached for sideloading
-#   3. that bundle on Play's closed testing track, as a draft release
+#   3. that bundle on Play's internal testing track, rolled out to the internal testers
 #
-# A draft, because the owner sends each release for review by hand: in the Play Console,
-# open the closed track, review the draft and start its rollout. That button is the one that
-# sends the build to Google for review and then to testers. A manual run may still choose
-# `completed`, which rolls it out at once.
+# Both carry the reader's notes of that version from `RELEASE_NOTES.md`.
 #
-# It never promotes. Moving a build from closed testing to production is
-# `android-promote.yml`, which reuses this artefact and never rebuilds.
+# Internal testing first, because a release there reaches the testers in minutes and
+# normally skips Play's review. The owner tries it, then promotes it to closed testing and
+# later to production, in the Play Console or with `android-promote.yml`. Promotion to a
+# closed or open track is what sends the build for review. A manual run may still choose
+# another track or a draft.
+#
+# It never promotes. `android-promote.yml` does, and it reuses this artefact and never
+# rebuilds.
 #
 # Secrets this needs, all five of them repository secrets:
 #   PLAY_SERVICE_ACCOUNT_JSON   Play Console service account key, the whole JSON document
@@ -29,15 +32,15 @@ on:
   workflow_dispatch:
     inputs:
       track:
-        description: 'Play track to publish to. alpha is the default closed testing track.'
+        description: 'Play track to publish to. internal is internal testing; alpha is the default closed testing track.'
         type: choice
-        options: [alpha, beta, internal]
-        default: alpha
+        options: [internal, alpha, beta]
+        default: internal
       releaseStatus:
-        description: 'draft waits for the owner to start the rollout in the Play Console. completed rolls it out and sends it for review at once.'
+        description: 'completed rolls it out on the track at once; on alpha or beta that sends it for review. draft waits for the owner in the Play Console.'
         type: choice
-        options: [draft, completed]
-        default: draft
+        options: [completed, draft]
+        default: completed
 
 concurrency:
   # Two uploads at once would race for the same version code. Queue them.
@@ -49,13 +52,10 @@ permissions:
 
 jobs:
   release:
-    name: Build, sign, publish, upload to closed testing
+    name: Build, sign, publish, upload to internal testing
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-        with:
-          # `gh release create --generate-notes` needs the history to say what changed.
-          fetch-depth: 0
 
       - name: Read the version the repository carries
         id: version
@@ -68,6 +68,15 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "tag=v$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Read the reader's notes of this version
+        # `pnpm release` filed them under the version. Play reads `<versionCode>.txt` from the
+        # changelogs folder of each language; the GitHub release reads the same text.
+        run: |
+          DIR="$RUNNER_TEMP/play/en-US/changelogs"
+          mkdir -p "$DIR"
+          node scripts/release.mjs --notes "${{ steps.version.outputs.name }}" > "$RUNNER_TEMP/notes.txt"
+          cp "$RUNNER_TEMP/notes.txt" "$DIR/${{ steps.version.outputs.code }}.txt"
 
       - uses: actions/setup-java@v5
         with:
@@ -127,7 +136,7 @@ jobs:
         run: |
           gh release create "$TAG" "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk" \
             --title "$TAG" \
-            --generate-notes
+            --notes-file "$RUNNER_TEMP/notes.txt"
 
       - name: Install fastlane
         # `supply` is the Play Developer API client both lanes use. The floor is pinned;
@@ -140,13 +149,13 @@ jobs:
           PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
 
-      - name: Upload to closed testing
+      - name: Upload to internal testing
         env:
-          TRACK: ${{ inputs.track || 'alpha' }}
-          RELEASE_STATUS: ${{ inputs.releaseStatus || 'draft' }}
+          TRACK: ${{ inputs.track || 'internal' }}
+          RELEASE_STATUS: ${{ inputs.releaseStatus || 'completed' }}
           VERSION_NAME: ${{ steps.version.outputs.name }}
-        # `alpha` is Play's name for the default closed track. A closed track you created
-        # yourself has its own name; a manual run can name it.
+        # `internal` is internal testing and `alpha` the default closed track. A manual run
+        # can name another track.
         run: |
           fastlane supply \
             --package_name com.mecedric.storyarc \
@@ -156,10 +165,11 @@ jobs:
             --track "$TRACK" \
             --release_status "$RELEASE_STATUS" \
             --version_name "$VERSION_NAME" \
+            --metadata_path "$RUNNER_TEMP/play" \
             --skip_upload_metadata true \
             --skip_upload_images true \
             --skip_upload_screenshots true \
-            --skip_upload_changelogs true
+            --skip_upload_changelogs false
 
       - name: Shred the credentials
         if: always()

@@ -631,6 +631,9 @@ equivalent, in commits, PR titles or bodies, reviews, or issues.
 
 Do not commit, push, tag, or open a PR unless explicitly asked.
 
+A change that a reader of the app notices adds one line to `RELEASE_NOTES.md` in the same
+commit. Section 10 gives the rules.
+
 ## 9. Working in a worktree
 
 Parallel agents each get their own git worktree and a branch. The worktree is a full
@@ -700,15 +703,16 @@ pnpm release patch        # or minor, or major, or an explicit 0.4.0
 
 That command, and then the tag it pushes, produce:
 
-1. the new `versionName` and `versionCode` written into `apps/android/gradle.properties`
-   and the version into `package.json`, committed as `chore(release): vX.Y.Z`
+1. the new `versionName` and `versionCode` written into `apps/android/gradle.properties`,
+   the version into `package.json`, and the `## Unreleased` notes of `RELEASE_NOTES.md`
+   filed under the new version, all committed as `chore(release): vX.Y.Z`
 2. a `vX.Y.Z` tag, pushed with the branch
 3. a signed App Bundle **and** a signed APK, built once by
    [`android-release.yml`](.github/workflows/android-release.yml) from that commit
-4. a GitHub release on the tag, carrying the APK
-5. that bundle on Play's **closed testing** track, as a **draft** release. The owner
-   starts its rollout in the Play Console, and that is what sends it for review. Do not
-   start the rollout for them.
+4. a GitHub release on the tag, carrying the APK, with the notes of that version as its text
+5. that bundle on Play's **internal testing** track, rolled out to the internal testers, with
+   the same notes as "What's new". Internal testing normally skips Play's review and reaches
+   the testers in minutes.
 
 **The rules that bind you:**
 
@@ -725,10 +729,34 @@ That command, and then the tag it pushes, produce:
 - **Ask before you release.** A release is outward-facing and a tag is hard to withdraw.
   Cut one only when asked for one outright; §8's "do not commit, push, or tag unless asked"
   is not suspended here, it is the reason this section is explicit.
-- **Promotion stays a separate, deliberate act.** This lane stops at closed testing.
-  Moving that build to production is [`android-promote.yml`](.github/workflows/android-promote.yml),
-  which reuses the artefact and rebuilds nothing, so the bytes testers approved are the
-  bytes production gets. Run it only when asked.
+- **Promotion stays a separate, deliberate act, and the owner decides it.** This lane stops
+  at internal testing. The owner promotes the build to closed testing (`alpha`), then to
+  production, in the Play Console. When the owner asks you to promote, run
+  [`android-promote.yml`](.github/workflows/android-promote.yml). It reuses the artefact and
+  rebuilds nothing, so the bytes testers approved are the bytes production gets. The notes
+  travel with the release. A promotion to `alpha`, `beta` or `production` sends the build
+  for review. Never promote without the owner's request.
+
+  ```bash
+  gh workflow run android-promote.yml -f versionCode=<code> -f from=internal -f to=alpha
+  ```
+
+**Keep the reader's notes as you work.** `RELEASE_NOTES.md` is what Play shows as "What's
+new" and what the GitHub release says. `CHANGELOG.md` is the record for developers; the
+notes are for readers.
+
+- **Write the line in the same commit as the change.** Each change that a reader notices
+  adds one line under `## Unreleased`: a feature, a fix of a visible defect, a changed
+  behaviour. A refactor, a test, a CI or a docs change adds nothing.
+- **Write for a reader, not a developer.** Plain English, one short sentence for each line,
+  starting with `- `. Say what the reader can do now or what works now. Do not name files,
+  modules, libraries, tests, task numbers or platforms' internals.
+- **Describe the Android app.** Only it ships today. Leave out a change that only iOS or a
+  desktop app has.
+- **Keep the section short.** Play takes at most 500 characters. Merge small fixes into one
+  line, such as "- Fixes for reading and playback."
+- **`pnpm release` checks this.** It refuses an empty `## Unreleased` section and one over
+  500 characters, before it changes anything. Then it files the section under the version.
 
 **Check the result, do not assume it.** The lane can fail after the tag is pushed —
 a rejected version code, an expired key.

@@ -87,9 +87,10 @@ instrumented**, counted from their `@Test` attributes. The instrumented ones exi
 decoding, PDF rendering, Room and the RAR decoder cannot run on a host JVM.
 
 Android builds are signed by CI, never on a laptop: each `vX.Y.Z` tag puts a
-signed APK on its GitHub release and the bundle on Play's closed testing track as
-a draft, which the owner rolls out from the Play Console. Nothing is in a public
-store, and iOS has no release lane yet.
+signed APK on its GitHub release and the bundle on Play's internal testing track,
+with the notes of [`RELEASE_NOTES.md`](RELEASE_NOTES.md). The owner promotes it to
+closed testing and production. Nothing is in a public store, and iOS has no
+release lane yet.
 
 ### What the format layer actually does
 
