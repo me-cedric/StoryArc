@@ -202,7 +202,8 @@ export function selector(platform, words) {
  * Step kinds: `tap` (find a node by its words and press its centre; when absent, `scroll`),
  * `press` (a selector), `point` (a fraction of the screen), `wait`, `waitAbsent`,
  * `waitText`, `reveal` (show the reader chrome when it is hidden), `until` (press until a
- * selector shows), `turnUntil` (turn pages until a text shows), `scroll`, `swipe`, `stable`
+ * selector shows), `turnUntil` (turn pages until a text shows), `first` (press the first
+ * node an agent-device `find` locator matches), `scroll`, `swipe`, `stable`
  * (the screen stops moving), `relaunch` (start
  * the app again), `pause` (a fixed wait, only with a `why`) and `shot`.
  */
@@ -290,8 +291,9 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
         // draws its navigation beside the player. The Android emulator has no sound device,
         // and its player can stand at 0:00 for half a minute. A pause there records no
         // position, and the audiobook then missed Continue reading on the German phone once.
-        // A tap on the scrub bar moves the book to the middle of its part and records it.
-        ...(ios ? [{ swipe: [[0.5, 0.3], [0.5, 0.95]] }, { waitAbsent: s('speed') }] : [{ press: 'role=seekbar' }]),
+        // A tap on the scrub bar moves the book to the middle of its part and records it. The
+        // scrub bar is the first slider; a wide player draws the speed slider under it.
+        ...(ios ? [{ swipe: [[0.5, 0.3], [0.5, 0.95]] }, { waitAbsent: s('speed') }] : [{ first: ['role', 'seekbar'] }]),
         { tap: L.home, exact: true }, { waitText: L.keepReading[0] }, { stable: true }, { shot: '06' },
       ],
       exit: [],

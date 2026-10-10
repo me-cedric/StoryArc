@@ -246,6 +246,9 @@ async function run(lane, locale, steps) {
         await ad(['press', String(edge.x), String(edge.y), '--settle', '--session', lane.session])
       }
       await shows(15000)
+    } else if (step.first) {
+      await flush()
+      await ad(['find', ...step.first, 'click', '--first', '--session', lane.session])
     } else if (step.until) {
       await flush()
       for (let attempt = 0; attempt < 4 && !(await isVisible(lane.session, step.until)); attempt += 1) {
