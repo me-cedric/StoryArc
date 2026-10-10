@@ -1,0 +1,100 @@
+name: Android listing
+
+# Manual only. This lane updates the Play store listing: the texts, the screenshots, the
+# feature graphic and the icon of the four languages. It builds nothing and uploads no
+# binary. It reads no file from the repository. `pnpm store:publish` checks the files on the
+# owner's Mac, zips them and attaches `play.zip` to the draft release `store-assets`; this
+# lane takes them from there, because the Play key exists only as a repository secret.
+#
+# **Validate is the default.** With `validateOnly` true, Play checks the listing and changes
+# nothing. A real update (`validateOnly` false) replaces the live texts and images. The
+# owner decides it. An agent runs this lane only when the owner asks, and sets `validateOnly`
+# false only when the owner asks for that outright.
+#
+# The service account needs the Play Console permission to edit the store listing.
+#
+# `supply` finds a release on a track even when it uploads only a listing, and its default
+# track is `production`. A listing-only run therefore names a track that already holds the
+# release, `internal` by default. Name a version code when the track holds more than one
+# release.
+#
+# Secret this needs: PLAY_SERVICE_ACCOUNT_JSON, the service account key, the whole JSON
+# document.
+on:
+  workflow_dispatch:
+    inputs:
+      validateOnly:
+        description: 'true asks Play to validate the listing and changes nothing. false writes the live listing.'
+        type: boolean
+        default: true
+      track:
+        description: 'A Play track that already holds a release. supply needs one even for a listing-only run.'
+        default: internal
+      versionCode:
+        description: 'Optional. The version code of the release on that track. Needed only when the track holds more than one release.'
+        required: false
+
+concurrency:
+  group: android-listing
+  cancel-in-progress: false
+
+permissions:
+  # `contents: read` cannot see a draft release; GitHub shows a draft only to a token that
+  # can push. This job reads one asset and writes nothing.
+  contents: write
+
+jobs:
+  listing:
+    name: Validate or update the Play listing
+    # No checkout. The zip carries everything.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the store assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download store-assets --pattern play.zip --dir "$RUNNER_TEMP/dl"
+          mkdir -p "$RUNNER_TEMP/store"
+          unzip -q "$RUNNER_TEMP/dl/play.zip" -d "$RUNNER_TEMP/store"
+          test -d "$RUNNER_TEMP/store/play"
+
+      - name: Install fastlane
+        # The runner's system gem directory is not writable by the build user.
+        run: sudo gem install fastlane -N -v '~> 2.228'
+
+      - name: Write the service account key
+        env:
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          umask 077
+          printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
+
+      - name: Update the listing
+        env:
+          VALIDATE_ONLY: ${{ inputs.validateOnly }}
+          TRACK: ${{ inputs.track }}
+          VERSION_CODE: ${{ inputs.versionCode }}
+        # Anything but the word false validates. `sync_image_upload` skips the images Play
+        # already holds, by checksum. The three skips keep this lane off the binaries and the
+        # release notes.
+        run: |
+          VALIDATE=true
+          if [ "$VALIDATE_ONLY" = false ]; then VALIDATE=false; fi
+          extra=()
+          if [ -n "$VERSION_CODE" ]; then extra+=(--version_code "$VERSION_CODE"); fi
+          fastlane supply \
+            --package_name com.mecedric.storyarc \
+            --json_key "$RUNNER_TEMP/play.json" \
+            --metadata_path "$RUNNER_TEMP/store/play" \
+            --track "$TRACK" \
+            "${extra[@]}" \
+            --skip_upload_apk true \
+            --skip_upload_aab true \
+            --skip_upload_changelogs true \
+            --sync_image_upload true \
+            --validate_only "$VALIDATE"
+
+      - name: Shred the credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/play.json"

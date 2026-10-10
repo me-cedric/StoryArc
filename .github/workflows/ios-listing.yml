@@ -1,0 +1,117 @@
+name: iOS listing
+
+# Manual only. This lane updates the App Store listing: the name, subtitle, promotional text,
+# keywords, description and screenshots of the four languages. It uploads no binary and
+# submits nothing for review. It reads no file from the repository. `pnpm store:publish
+# --platform appstore --upload` checks the files on the owner's Mac, zips them and attaches
+# `appstore.zip` to the draft release `store-assets`; this lane takes them from there.
+#
+# **Check is the default.** `fastlane deliver` has no mode that validates metadata without
+# writing it. So with `upload` false this lane only proves that the key works and that App
+# Store Connect knows the app. `upload` true writes the metadata and replaces the screenshots
+# of the editable app version. The owner decides it. An agent sets `upload` true only when
+# the owner asks for that outright.
+#
+# The listing is written to the editable version, the one in "Prepare for Submission". If
+# the app has none, create the version in App Store Connect first. The API key needs the App
+# Manager role.
+#
+# Secrets this needs, all three of them repository secrets:
+#   ASC_KEY_ID      the App Store Connect API key id
+#   ASC_ISSUER_ID   the issuer id of the team
+#   ASC_KEY_P8      the whole text of the AuthKey .p8 file, with its BEGIN and END lines
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: 'false only checks the key and the app. true writes the metadata and screenshots to App Store Connect. It never submits for review.'
+        type: boolean
+        default: false
+
+concurrency:
+  group: ios-listing
+  cancel-in-progress: false
+
+permissions:
+  # `contents: read` cannot see a draft release; GitHub shows a draft only to a token that
+  # can push. This job reads one asset and writes nothing.
+  contents: write
+
+jobs:
+  listing:
+    name: Check or upload the App Store listing
+    # No checkout. The zip carries everything. Without a binary, deliver needs no Mac.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require the App Store Connect secrets
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          missing=0
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+            if [ -z "${!name}" ]; then
+              echo "::error::The repository secret $name is not set. Add ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (an App Store Connect API key with the App Manager role) under Settings, Secrets and variables, Actions."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Download the store assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download store-assets --pattern appstore.zip --dir "$RUNNER_TEMP/dl"
+          mkdir -p "$RUNNER_TEMP/store"
+          unzip -q "$RUNNER_TEMP/dl/appstore.zip" -d "$RUNNER_TEMP/store"
+          test -d "$RUNNER_TEMP/store/appstore-deliver/metadata"
+          test -d "$RUNNER_TEMP/store/appstore-deliver/screenshots"
+
+      - name: Install fastlane
+        # The runner's system gem directory is not writable by the build user.
+        run: sudo gem install fastlane -N -v '~> 2.228'
+
+      - name: Write the API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        # fastlane reads a JSON file with the key text in it. `jq` escapes the newlines.
+        run: |
+          umask 077
+          jq -n --arg key_id "$ASC_KEY_ID" --arg issuer_id "$ASC_ISSUER_ID" --arg key "$ASC_KEY_P8" \
+            '{key_id: $key_id, issuer_id: $issuer_id, key: $key, in_house: false}' > "$RUNNER_TEMP/asc.json"
+
+      - name: Check the key and the app
+        # A read-only call. It fails when the key is wrong or the bundle id is unknown.
+        run: |
+          ruby -e '
+            require "spaceship"
+            Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(filepath: File.join(ENV.fetch("RUNNER_TEMP"), "asc.json"))
+            app = Spaceship::ConnectAPI::App.find("com.mecedric.storyarc")
+            abort("App Store Connect has no app com.mecedric.storyarc for this key.") unless app
+            puts "App Store Connect knows #{app.name} (#{app.bundle_id})."
+          '
+
+      - name: Upload the listing
+        if: ${{ inputs.upload }}
+        # Never submits and never uploads a binary. `force` skips the HTML preview prompt a
+        # runner cannot answer. `overwrite_screenshots` replaces the screenshots instead of
+        # adding to them, so a second run does not pass ten.
+        run: |
+          fastlane deliver \
+            --api_key_path "$RUNNER_TEMP/asc.json" \
+            --app_identifier com.mecedric.storyarc \
+            --metadata_path "$RUNNER_TEMP/store/appstore-deliver/metadata" \
+            --screenshots_path "$RUNNER_TEMP/store/appstore-deliver/screenshots" \
+            --skip_binary_upload true \
+            --submit_for_review false \
+            --overwrite_screenshots true \
+            --run_precheck_before_submit false \
+            --force true
+
+      - name: Shred the credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.json"
