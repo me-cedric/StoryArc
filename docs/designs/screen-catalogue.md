@@ -89,6 +89,12 @@ accessibility audit.
 | 17 | Library A to Z rail | `LibraryCatalogueTests/testCatalogue17LibraryAToZRail` | `LibraryCatalogueTests/17-library-a-to-z-rail` | No fault since titles wrap | `testCatalogue03LibraryGridAndRail` | `:feature:library` `Catalogue17LibraryRailTest`, `17-library-a-to-z-rail` |
 | 18 | Library with the skipped notice | `LibraryCatalogueTests/testCatalogue18LibrarySkippedNotice` | `LibraryCatalogueTests/18-library-skipped-notice` | No fault since the notice wraps. It fills most of the first screen | `testCatalogue18LibrarySkippedNotice`, on a device whose scan skipped a file | `:feature:library` `Catalogue18LibrarySkippedNoticeTest`, `18-library-skipped-notice`. Android keeps its Material 3 notice, with two text buttons |
 
+Android also draws six states that have no iOS twin yet, in light and dark: `Catalogue01HomeHeroStatesTest`
+(`01b-home-finish-and-next`, `01c-home-finish-alone`, `01d-home-source-away`, `01e-home-after-finish`,
+`01f-home-pinned-shelves`) and `Catalogue05cCoverChooserCandidatesTest` (`05c-cover-chooser-candidates`, drawn
+through a recording transport). `01b` records a fault: "Next in series" wraps one letter per line on the
+hero card. Record it again after the fix.
+
 Entry 05b is not in the first list of the change. It holds a fault that the snapshots found, and
 its test keeps that fault from coming back.
 
