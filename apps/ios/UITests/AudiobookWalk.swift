@@ -159,7 +159,11 @@ extension XCTestCase {
         while Date() < deadline {
             let pauses = app.buttons.matching(identifier: "Pause").allElementsBoundByIndex
             if let pause = pauses.first(where: \.isHittable) {
-                pause.tap()
+                // A six-second fixture a moment from its end can finish between this check and the
+                // tap, and the button goes with it. A finished book plays nothing, which is what
+                // this asks for, so a tap that finds nothing is not a failure here. `openAnAudiobook`
+                // then starts the book again (CI run 38067721517, 2026-10-10).
+                XCTExpectFailure("The book ended before the tap.", strict: false) { pause.tap() }
                 return
             }
             hold(0.1)
