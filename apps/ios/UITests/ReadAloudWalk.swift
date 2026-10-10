@@ -77,7 +77,11 @@ extension XCTestCase {
             // labelled with the series name, so `Harbour Lights 01` is not on it — the cover
             // there says `Harbour Lights`. Both books this walk opens by name are issues of a
             // run, so the walk states the grouping it needs. See `LibraryGrouping`.
-            app = sweepLaunch(formats: readAloudFormats, grouping: "issues")
+            //
+            // **On this device only** (task 25.5). A share in the list holds copies named
+            // `copy1-Harbour Lights 01` and on, which sort under C, above the book, and pushed
+            // it below the eight drags the search makes. The corpus copy is the one on the device.
+            app = sweepLaunch(formats: readAloudFormats, availability: "onThisDevice", grouping: "issues")
             try openReadAloudBook(named: title, in: app)
         } else {
             app = launch()

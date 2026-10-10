@@ -12,12 +12,12 @@
 //        node scripts/corpus.mjs <target> --count 200   (pad it out to 200 publications)
 //
 // `--count` exists for one requirement and is deliberately not the default. `library-browsing`
-// asks for section headings "in a long library", and the nineteen publications above are a
+// asks for section headings "in a long library", and the twenty publications above are a
 // library of one screen: enough to cross the sectioning threshold of twelve, not enough to
 // show what sectioning is *for*. A shelf of 218 built this way is photographed in
 // `docs/designs/screenshots/long-shelf-2026-09-11/`, and it sections.
 //
-// The nineteen are unchanged and come first. Everything `--count` adds is filler: two-page
+// The twenty are unchanged and come first. Everything `--count` adds is filler: two-page
 // comics whose only job is to be numerous, named so the shelf sections the way a real library
 // does — runs that declare a series, standalones that do not, and enough initials that the
 // headings under a title sort are not all one letter.
@@ -280,7 +280,7 @@ function pdf(out, { title, pages: count }) {
 }
 
 /** How many publications [build] writes before any filler. Asserted by the self-test. */
-export const BASE_COUNT = 19
+export const BASE_COUNT = 20
 
 /** Words the filler names are built from. Fixed, so two runs produce the same library. */
 const FILLER_SERIES = [
@@ -393,6 +393,13 @@ function build(root, { count = BASE_COUNT } = {}) {
   epub(at('Bright Panels.epub'),
     { title: 'Bright Panels', index: 1, chapters: 3, fixed: true })
 
+  // The fixture made for `read-aloud-beyond-the-reader` 4.3: one sentence, so the voice reaches
+  // the end in seconds. `ReadAloudShellTests` opens it by this title (task 25.5).
+  copyFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'test-fixtures', 'ebooks', 'one-sentence.epub'),
+    at('One Sentence.epub'),
+  )
+
   pdf(at('Field Notes.pdf'), { title: 'Field Notes', pages: 5 })
 
   // A book that names no cover. Before the spine fallback existed, every EPUB above
@@ -467,8 +474,8 @@ if (!target) {
 /**
  * How many publications to write, from `--count <n>`.
  *
- * Refused below [BASE_COUNT] rather than silently honoured: the nineteen are the point of
- * this script, and `--count 5` asking for a smaller corpus would get a corpus of nineteen
+ * Refused below [BASE_COUNT] rather than silently honoured: the twenty are the point of
+ * this script, and `--count 5` asking for a smaller corpus would get a corpus of twenty
  * and no warning.
  */
 const countFlag = process.argv.indexOf('--count')
@@ -564,7 +571,7 @@ if (target === '--self-test') {
       }],
       // `BASE_COUNT` is the number `--count` subtracts from, so a publication added above
       // without it moving would make every filled corpus one short of what was asked for.
-      ['nineteen without --count', () =>
+      ['twenty without --count', () =>
         readdirSync(scratch).length === BASE_COUNT],
 
       // The 200-publication library, checked as names rather than built as files. 183

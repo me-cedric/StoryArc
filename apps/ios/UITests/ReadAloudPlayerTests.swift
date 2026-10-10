@@ -10,7 +10,7 @@ import XCTest
 ///
 /// It fails by name rather than photographing whatever is on screen — the failure `AuditWalk`
 /// warns about at length — and it skips, through `openTheEpubReader(in:)`, when the device's
-/// library holds no EPUB at all.
+/// library holds no EPUB at all. Each walk opens `Harbour Lights 01` or another book by name.
 @MainActor
 final class ReadAloudPlayerTests: XCTestCase {
 
@@ -164,7 +164,11 @@ final class ReadAloudPlayerTests: XCTestCase {
     }
 
     /// The walk of ``speakAloud(opening:pausing:)``, paused, with the focus kept for the focus test.
-    private func speakAndLeaveTheReader(opening title: String? = nil) throws -> XCUIApplication {
+    ///
+    /// A book named, not the first EPUB cover a search meets (task 25.5): a shelf grouped by
+    /// series, or one with server titles beside the corpus, showed the search no EPUB cover,
+    /// and the walk skipped or opened a book that does not read aloud.
+    private func speakAndLeaveTheReader(opening title: String = "Harbour Lights 01") throws -> XCUIApplication {
         let walk = try speakAloud(opening: title)
         focusAroundStart = walk.focus
         return walk.app
