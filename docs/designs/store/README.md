@@ -92,11 +92,12 @@ Measured on 2026-10-10 with the showcase library, from shut-down devices, builds
 
 | Run | Frames | Time |
 | --- | --- | --- |
-| `pnpm store:capture` | 120 | 9 min 23 s |
-| `pnpm store:capture --locales fr --frames 04` | 5 | 2 min 32 s |
+| `pnpm store:capture` | 120 | 11 min 14 s |
+| `pnpm store:capture --locales fr --frames 04` | 5 | 2 min 1 s |
+| `pnpm store:capture --buckets phone --locales fr --frames 01` | 1 | 30 s |
 
 The Android lane sets the pace: its three sizes share one emulator. In the full run the
-iPhone lane ended at 4 min 36 s and the iPad lane at 6 min 39 s.
+iPhone lane ended at 6 min 0 s and the iPad lane at 7 min 48 s.
 
 ## The library
 
