@@ -49,18 +49,17 @@ No frame shows an error, a notice or an empty state. The run adds no library tha
 cannot reach: a source that does not answer puts *Not answering* in Settings and a notice on
 Home and the shelf.
 
-Two frames differ by window size. `split` and `spread` in `scripts/store-walk.mjs` mark the
-buckets:
+Two frames differ by window size:
 
-- Frame 01 on the 10-inch Android window and the iPad (`split`): the library draws an empty
-  pane beside the shelf until a cover is chosen, so the walk opens the audiobook's page there.
+- Frame 01 on the 10-inch Android window and the iPad (`split` in `scripts/store-walk.mjs`):
+  the library draws an empty pane beside the shelf until a cover is chosen, so the walk opens
+  the audiobook's page there.
 - Frame 04 on the Android phone: the themes sheet stays at its small detent. That is the only
   height that leaves the page in view. It shows the live preview but not the six themes. The
   full height covers the page.
-- Frame 04 on the 10-inch Android window and the iPad (`spread`): Readium sets two columns of
-  text. One turn then moves two pages, so the walk turns three times there, not four
-  (`spreadTurns`). The fourth turn shows the short last page of a letter: one column of text
-  and three empty quarters.
+- Frame 04 on the 10-inch Android window and the iPad: Readium sets two columns of text, and
+  one turn moves two pages. The walk turns three pages on every device. A fourth turn there
+  shows the short last page of a letter: one column of text and three empty quarters.
 - Frame 04 on the tablets: the themes are a popover over the page.
 
 ## The device sizes

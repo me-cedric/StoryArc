@@ -37,13 +37,12 @@ export const FRAMES = [
  * directly. Each size is exactly 9:16: Play refuses 1080x2400, the size of every stock
  * phone AVD in this SDK.
  *
- * `spread` marks a window 960 dp wide or wider: Readium sets two columns of text there, so
- * one page turn moves two pages. `split` marks a library drawn beside an empty detail pane.
+ * `split` marks a library drawn beside an empty detail pane.
  */
 export const ANDROID_BUCKETS = {
   phone: { size: [1080, 1920], density: 420, folder: 'phoneScreenshots', min: 320, max: 3840 },
   tablet7: { size: [1080, 1920], density: 280, folder: 'sevenInchScreenshots', min: 320, max: 3840 },
-  tablet10: { size: [1440, 2560], density: 240, folder: 'tenInchScreenshots', min: 1080, max: 7680, spread: true, split: true },
+  tablet10: { size: [1440, 2560], density: 240, folder: 'tenInchScreenshots', min: 1080, max: 7680, split: true },
 }
 
 /**
@@ -52,11 +51,11 @@ export const ANDROID_BUCKETS = {
  * `menuRow` is where the EPUB reader's menu sheet draws *Reading themes*, as a fraction of
  * the screen. The walk taps it by position because agent-device 0.21.22 does not see that
  * sheet in its accessibility snapshot (the sheet sits over the Readium view), so no
- * selector can reach the row. `spread` and `split` mean what they mean for Play.
+ * selector can reach the row. `split` means what it means for Play.
  */
 export const IOS_BUCKETS = {
   'iphone-6.9': { device: 'iPhone 17 Pro Max', size: [1320, 2868], scale: 3, menuRow: [0.33, 0.949] },
-  'ipad-13': { device: 'iPad Pro 13-inch', size: [2064, 2752], scale: 2, menuRow: [0.35, 0.779], spread: true, split: true },
+  'ipad-13': { device: 'iPad Pro 13-inch', size: [2064, 2752], scale: 2, menuRow: [0.35, 0.779], split: true },
 }
 
 /** The corpus files that make a tidy shelf. The refusal fixtures stay out of a listing. */
@@ -70,10 +69,10 @@ const CORPUS_FILES = [
 /**
  * What each frame opens, per library. `landmark` is words that the first screen of the
  * shelf shows at every size. `comicTurns` and `ebookTurns` are page turns before
- * the frame: page 2 of *The Boys #1* is its cast page, and the fifth page of the Laura
- * Palmer EPUB is the first page of prose. `spreadTurns` is `ebookTurns` for a bucket that
- * sets two columns: there the fourth turn shows the short last page of a letter, one
- * column of text and three empty quarters, and the third shows two full columns.
+ * the frame: page 2 of *The Boys #1* is its cast page, and the third turn in the Laura
+ * Palmer EPUB shows the first page of its foreword. On the 10-inch window and the iPad,
+ * Readium sets two columns and one turn moves two pages. There a fourth turn shows the
+ * short last page of a letter: one column of text and three empty quarters.
  */
 export const LIBRARIES = {
   showcase: {
@@ -84,8 +83,7 @@ export const LIBRARIES = {
     comic: 'The Boys #1',
     comicTurns: 1,
     ebook: 'The Secret Diary of Laura Palmer',
-    ebookTurns: 4,
-    spreadTurns: 3,
+    ebookTurns: 3,
     audiobook: 'Dungeon Crawler Carl',
   },
   corpus: {
@@ -97,7 +95,6 @@ export const LIBRARIES = {
     comicTurns: 2,
     ebook: 'The Long Field',
     ebookTurns: 1,
-    spreadTurns: 1,
     audiobook: 'Sea Room',
   },
 }
@@ -261,7 +258,7 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
       needs: [],
       steps: [
         ...toLibrary, { tap: `${lib.ebook},`, scroll: true }, { wait: s('read') }, { press: s('read') },
-        { wait: s('epubMenu') }, ...turns(bucket.spread ? lib.spreadTurns : lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
+        { wait: s('epubMenu') }, ...turns(lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
         ...themes, { shot: '04' },
       ],
       exit: [{ relaunch: true }, launched],
