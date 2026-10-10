@@ -311,7 +311,8 @@ private struct HomeHeroCard: View {
             .textRole(.footnote)
             .onAccentLabel()
         }
-        .buttonStyle(.glassProminent)
+        // 44 pt to touch around a capsule that keeps its system size (`CatalogueAuditTests`).
+        .buttonStyle(HitRegionButtonStyle(.glassProminent))
         .tint(theme.accent)
         .buttonSizing(.fitted)
         .padding(.top, StoryArcSpace.xs)

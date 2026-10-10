@@ -22,7 +22,11 @@ private let settleSeconds: TimeInterval = 3
 /// where no task starts.
 @MainActor
 private func draw(
-    _ screen: some View, mode: AppearanceMode, style: UIUserInterfaceStyle, for seconds: TimeInterval
+    _ screen: some View,
+    mode: AppearanceMode,
+    style: UIUserInterfaceStyle,
+    for seconds: TimeInterval,
+    textSize: UIContentSizeCategory? = nil
 ) -> UIImage {
     guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
         fatalError("The snapshot tests run hosted in the app, which has a window scene.")
@@ -36,6 +40,10 @@ private func draw(
     window.frame = CGRect(origin: .zero, size: phoneSize)
     window.windowLevel = .alert + 1
     window.overrideUserInterfaceStyle = style
+    if let textSize {
+        // A trait of the window, so the SwiftUI views and the UIKit bars both read it.
+        window.traitOverrides.preferredContentSizeCategory = textSize
+    }
     window.rootViewController = host
     window.makeKeyAndVisible()
     RunLoop.current.run(until: Date().addingTimeInterval(seconds))
@@ -53,10 +61,12 @@ private func draw(
     return image
 }
 
-/// Light and dark, one image each, from one view and its fixture state.
+/// Light and dark at the default text size, and light at the largest text size, one image each,
+/// from one view and its fixture state.
 ///
-/// A reference is `__Snapshots__/<class>/<slug>.<light|dark>.png`, so the catalogue number and
-/// name in `docs/designs/screen-catalogue.md` find the file. Setting
+/// A reference is `__Snapshots__/<class>/<slug>.<light|dark|largest>.png`, so the catalogue
+/// number and name in `docs/designs/screen-catalogue.md` find the file. The largest size is the
+/// last accessibility size, AX5 (`lighter-visual-check`, "Both appearances"). Setting
 /// `TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all` records again, which `pnpm snap:ios:record` does.
 @MainActor
 func assertCatalogue<Screen: View>(
@@ -69,12 +79,18 @@ func assertCatalogue<Screen: View>(
 ) {
     NSTimeZone.default = .gmt
     let view = screen()
-    for (name, mode, style) in [
-        ("light", AppearanceMode.light, UIUserInterfaceStyle.light),
-        ("dark", AppearanceMode.dark, UIUserInterfaceStyle.dark),
-    ] {
+    for name in ["light", "dark", "largest"] {
+        let isDark = name == "dark"
+        let textSize: UIContentSizeCategory? = name == "largest" ? .accessibilityExtraExtraExtraLarge : nil
+        let image = draw(
+            view,
+            mode: isDark ? .dark : .light,
+            style: isDark ? .dark : .light,
+            for: max(delay, settleSeconds),
+            textSize: textSize
+        )
         assertSnapshot(
-            of: draw(view, mode: mode, style: style, for: max(delay, settleSeconds)),
+            of: image,
             as: .image(precision: precision, perceptualPrecision: 0.98, scale: 2),
             named: name,
             file: file,

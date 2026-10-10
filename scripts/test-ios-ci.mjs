@@ -52,9 +52,9 @@ const RUN = [
   'PlayerBarLongTitleTests',
   // The same audit on both readers.
   'ReaderAuditTests',
-  // The audit over the screen catalogue, where a hit region, a missing description and
-  // clipped text fail. A screen a runner cannot show is skipped. One test proves the audit
-  // fails a 30 point target.
+  // The audit over the screen catalogue, where a small target, a missing description and
+  // contrast under the floor fail. A screen a runner cannot show is skipped. Two tests prove
+  // the gate fails a 30 point target and faint text. It is in OWN_STEP below.
   'CatalogueAuditTests',
   // The round trip `reading-progress` calls the app's most consequential behaviour: read,
   // close, relaunch, reopen, same page.
@@ -70,6 +70,17 @@ const RUN = [
   'ScreenshotTests/testTheInertCapsuleIsDimmerThanTheLiveOne',
   'SweepSearchTests/testSearchOffersAFieldToTypeIn',
 ]
+
+/**
+ * Entries of RUN that CI runs in a step of their own, with `--only`, after the other entries.
+ *
+ * The catalogue audit needs the corpus that `scripts/corpus.mjs` writes. Four of its screens
+ * open "Fine Print", "Harbour Lights 01" or an EPUB from it, and the skipped notice (18) needs
+ * its two files that cannot be opened. The corpus goes on the device after
+ * the other entries have run, so they keep the device they were written against.
+ * `pnpm test:ios:audit` runs the same step on a local simulator.
+ */
+const OWN_STEP = new Set(['CatalogueAuditTests'])
 
 /**
  * Non-capture tests CI deliberately does not run, and why.
@@ -199,7 +210,19 @@ if (argv.includes('--check')) {
   process.exit(0)
 }
 
-const only = RUN.flatMap((entry) => ['-only-testing:' + `${SUITE}/${entry}`])
+// `--only <entry>` runs one entry of RUN. Without it, every entry runs except those in
+// OWN_STEP, which CI runs in a step of their own. `--device <udid>` picks the simulator; the
+// default name is ambiguous on a Mac with more than one iOS runtime.
+const valueOf = (flag) => (argv.includes(flag) ? argv[argv.indexOf(flag) + 1] : null)
+const picked = valueOf('--only')
+if (picked && !RUN.includes(picked)) {
+  console.error(`test-ios-ci: ${picked} is not in RUN.`)
+  process.exit(1)
+}
+const entries = picked ? [picked] : RUN.filter((entry) => !OWN_STEP.has(entry))
+const device = valueOf('--device')
+const destination = device ? `platform=iOS Simulator,id=${device}` : 'platform=iOS Simulator,name=iPhone 17 Pro'
+const only = entries.flatMap((entry) => ['-only-testing:' + `${SUITE}/${entry}`])
 
 if (argv.includes('--list')) {
   console.log(only.join('\n'))
@@ -221,7 +244,7 @@ try {
       'test-without-building',
       '-project', 'StoryArc.xcodeproj',
       '-scheme', 'StoryArc',
-      '-destination', 'platform=iOS Simulator,name=iPhone 17 Pro',
+      '-destination', destination,
       '-derivedDataPath', '../../.build/ios-ui',
       ...only,
       // For the reason `test:ios:epub` gives: a failing run otherwise spends ten minutes

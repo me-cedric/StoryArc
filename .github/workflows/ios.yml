@@ -185,10 +185,23 @@ jobs:
         id: audit
         run: pnpm test:ios:ci
 
+      # The screen-catalogue audit (`CatalogueAuditTests`, `lighter-visual-check` 5.3): a small
+      # target, a missing description and text under the contrast floor fail it. It needs the
+      # corpus, because the publication pages and both readers open books from it, so the
+      # corpus goes on the device here, after the step above has run against the plain seed.
+      # `pnpm test:ios:audit` runs the same steps on a local simulator. The snapshot comparison
+      # stays out of CI: its references belong to an iPhone 17 on iOS 26.2.
+      - name: Seed the corpus
+        run: node scripts/corpus.mjs --simulator 'iPhone 17 Pro'
+
+      - name: Catalogue audit
+        id: catalogue
+        run: node scripts/test-ios-ci.mjs --only CatalogueAuditTests
+
       - name: Why the audit failed
         # Twelve audit failures on 2026-09-07 named twelve tests and gave no assertion
         # text, because `-quiet` prints none. This reads it out of the result bundle.
-        if: failure() && steps.audit.conclusion == 'failure'
+        if: failure() && (steps.audit.conclusion == 'failure' || steps.catalogue.conclusion == 'failure')
         run: pnpm why:ios:ui
 
       - name: Archive the audit result bundle
@@ -196,13 +209,13 @@ jobs:
         # ancestor of what it matched. Handed a single directory, that ancestor is the
         # directory itself, so the name `ui.xcresult` is stripped and the download
         # extracts as loose `Info.plist` and `Data/`, which no tool opens.
-        if: failure() && steps.audit.conclusion == 'failure'
+        if: failure() && (steps.audit.conclusion == 'failure' || steps.catalogue.conclusion == 'failure')
         run: cd .build/xcresult && zip -qr ui.xcresult.zip ui.xcresult
 
       - name: Upload the audit result bundle
         # An audit failure names a view and a rule. The screenshot of the clipped label
         # lives only in the bundle, so the summary above cannot replace this.
-        if: failure() && steps.audit.conclusion == 'failure'
+        if: failure() && (steps.audit.conclusion == 'failure' || steps.catalogue.conclusion == 'failure')
         uses: actions/upload-artifact@v4
         with:
           name: ios-ui-test-results

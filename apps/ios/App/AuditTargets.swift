@@ -6,8 +6,9 @@ extension View {
     /// `AccessibilityAuditTests` is only worth its green if it can go red. The audit checks hit
     /// regions, and no screen of this app has a control under 44 points on purpose, so the test
     /// could not tell an audit that measures from an audit that measures nothing. The launch
-    /// argument below draws one button of 30 points and one of 44, and
-    /// `CatalogueAuditTests.testAThirtyPointTargetFails` asks the audit about both.
+    /// argument below draws buttons from 18 to 44 points and one faint label, and
+    /// `CatalogueAuditTests.testAThirtyPointTargetFails` and `testFaintTextFails` ask the audit
+    /// about them.
     ///
     /// A release build has no such code: the body is `self`.
     @ViewBuilder
@@ -31,6 +32,12 @@ private struct AuditTargets: View {
                 ForEach([18, 24, 30, 36, 40, 44], id: \.self) { size in
                     target(size: CGFloat(size), identifier: "audit.target.\(size)")
                 }
+                // About 1.5 to 1, far under the 4.5 to 1 floor. Digits, so no language needs it.
+                Text(verbatim: "1234567890")
+                    .foregroundStyle(Color(white: 0.66))
+                    .padding(8)
+                    .background(Color(white: 0.8))
+                    .accessibilityIdentifier("audit.contrast")
             }
             .padding(.leading, 24)
             .padding(.bottom, 160)

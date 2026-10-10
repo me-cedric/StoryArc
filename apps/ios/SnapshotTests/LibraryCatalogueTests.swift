@@ -6,7 +6,9 @@ import XCTest
 @MainActor
 final class LibraryCatalogueTests: XCTestCase {
     func testCatalogue01HomeWithContent() {
-        assertCatalogue("01-home-with-content", delay: 1.5) {
+        // 98 per cent: the glass edge of the two Resume capsules draws in one of two ways from run
+        // to run, and the two differ in 1.3 per cent of the pixels.
+        assertCatalogue("01-home-with-content", delay: 1.5, precision: 0.98) {
             HomeScreen(model: CatalogueLibrary.model())
         }
     }

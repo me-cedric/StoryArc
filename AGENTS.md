@@ -434,12 +434,17 @@ record it as a task:
 
 **2. Machines check the guidelines.** The accessibility checks run over every screen of
 `docs/designs/screen-catalogue.md`: `performAccessibilityAudit` in the iOS UI tests
-(`CatalogueAuditTests`, run by `pnpm test:ios:ui`), and the `:core:snapshots` checks of the
-Compose semantics tree in the Android Robolectric tests. On Android, a target under 48 dp, a
-contrast failure or a missing label fails the test. On iOS, a target under 44 pt or a missing
-label fails the test; contrast, clipped text and Dynamic Type findings are printed, not failed,
-and `pnpm tokens:check` holds the palette pairs to 4.5:1. `lighter-visual-check` section 5
-holds the open gaps. **A new screen adds its catalogue entry**: a snapshot test in light and
+(`CatalogueAuditTests`), and the `:core:snapshots` checks of the Compose semantics tree in the
+Android Robolectric tests. On Android, a target under 48 dp, a contrast failure or a missing
+label fails the test. On iOS, a target under 44 pt, a missing label or a contrast finding on
+an element that the audit names fails the test. A contrast finding on an element that a bar
+covers or the window cuts is printed. Clipped text and Dynamic Type findings are printed, not
+failed. A contrast fault that stands for now goes in `knownContrastFaults`
+(`apps/ios/UITests/CatalogueVerdict.swift`) with its reason, and a steady entry that no longer
+occurs fails the test. `pnpm test:ios:audit` runs the iOS audit on a local simulator with the
+seed and the corpus. The iOS workflow runs it in the step *Catalogue audit*.
+`pnpm tokens:check` holds the palette pairs to 4.5:1. `lighter-visual-check` section 5 holds
+the open gaps. **A new screen adds its catalogue entry**: a snapshot test in light and
 dark, and an audit.
 
 **3. Commit little.** A snapshot reference is the proof for a screen state. A device
@@ -449,9 +454,9 @@ changed screen, at the default text size, downscaled with `pnpm frames:shrink`, 
 photo per task.
 
 The largest text size, all four languages and the guideline checks are not committed as
-frames. The snapshot tests and the audits cover them. The Android snapshot tests draw each
-catalogue screen at font scale 2.0 too (`<NN>-<name>-largest.png`). The iOS snapshot tests do
-not draw the largest text size yet, and `lighter-visual-check` task 5.2 holds that gap.
+frames. The snapshot tests and the audits cover them. Both platforms draw each catalogue
+screen in light at the largest text size too (iOS `<NN>-<name>.largest.png` at AX5, Android
+`<NN>-<name>-largest.png` at font scale 2.0); look at that image too.
 
 `pnpm preview:proof` is the gate, and `pnpm lint` runs it at pre-push. It refuses a branch
 that adds a line inside a `View` or a `@Composable` and adds neither a frame under

@@ -19,6 +19,7 @@ internal import StoryArcCore
 /// carry no resources, so each feature names them in its own catalogue.
 struct SourcesSettings: View {
     @Environment(\.theme) private var theme
+    @Environment(\.dynamicTypeSize) private var textSize // Status under the name at AX sizes.
     /// One width for every kind's symbol, so the names line up down the list: a folder, a
     /// server and a feed are drawn at three widths, and the text followed each of them.
     @ScaledMetric(relativeTo: .body) private var iconWidth: CGFloat = 28
@@ -273,17 +274,20 @@ struct SourcesSettings: View {
                         .textRole(.footnote)
                         .foregroundStyle(theme.palette.textTertiary)
                 }
+                if textSize.isAccessibilitySize { status(of: source) }
             }
 
             Spacer(minLength: 0)
-
-            Text(Self.status(of: source.state), bundle: .module)
-                .textRole(.footnote)
-                .foregroundStyle(theme.palette.textTertiary)
+            if !textSize.isAccessibilitySize { status(of: source) }
         }
         // One control per row, announced once, and at least 44pt tall.
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
+    }
+
+    private func status(of source: Source) -> some View {
+        Text(Self.status(of: source.state), bundle: .module).textRole(.footnote)
+            .foregroundStyle(theme.palette.textTertiary)
     }
 
     @ViewBuilder

@@ -90,7 +90,7 @@ struct RefreshingNotice: View {
     var body: some View {
         Text("library.refreshing", bundle: .module)
             .textRole(.footnote)
-            .storyArcGlassText()
+            .storyArcGlassText(.primary)
             .padding(.horizontal, StoryArcSpace.md)
             .padding(.vertical, StoryArcSpace.xs)
             .storyArcGlass()
@@ -131,7 +131,7 @@ struct CheckedNotice: View {
     var body: some View {
         Text(sentence, bundle: .module)
         .textRole(.footnote)
-        .storyArcGlassText()
+        .storyArcGlassText(.primary)
         .padding(.horizontal, StoryArcSpace.md)
         .padding(.vertical, StoryArcSpace.xs)
         .storyArcGlass()

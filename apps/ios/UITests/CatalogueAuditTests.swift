@@ -7,11 +7,11 @@ import XCTest
 /// each one a UI test can reach, and asks the platform's audit about it.
 ///
 /// **What fails and what is reported.** The audit has many kinds of finding, and the older
-/// audits in this target print all of them and fail on none, because contrast under the glass
-/// bar is measured against a material that no token gates (see `AccessibilityAuditTests`).
-/// Two kinds are not in doubt, and `native-experience` names them: a control under 44 points and
-/// an element with no description. Those fail here. Contrast, clipped text, Dynamic Type and the
-/// rest are printed for a reader of the log, as the older audits print them. `auditCatalogue`
+/// audits in this target print all of them and fail on none (see `AccessibilityAuditTests`).
+/// Here a control under 44 points, an element with no description and text under the contrast
+/// floor on an element the audit names fail (`lighter-visual-check`, "Guidelines are checked by
+/// machine"). A contrast fault that stands for now is on `knownContrastFaults` with its reason.
+/// Clipped text, Dynamic Type and the rest are printed for a reader of the log. `auditCatalogue`
 /// says why clipped text is among them, and `testAThirtyPointTargetFails` says why the 44 points
 /// are measured here and not left to Apple's audit.
 ///
@@ -208,11 +208,11 @@ final class CatalogueAuditTests: XCTestCase {
     func testCatalogue16ThemeSheet() throws {
         let app = sweepLaunch()
         try openTheEpubReader(in: app)
-        let menu = app.buttons["Menu"]
-        if !menu.waitForExistence(timeout: 5) {
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        // Hittable, not only present: the chrome hides after four seconds, and on 2026-10-10 two
+        // runs found the button and then tapped a chrome that had gone. `revealed` waits it out.
+        guard let menu = revealed("Menu", in: app) else {
+            throw XCTSkip("The EPUB reader drew no menu button.")
         }
-        try XCTSkipUnless(menu.waitForExistence(timeout: 5), "The EPUB reader drew no menu button.")
         menu.tap()
         for _ in 0..<5 where hittableRow("Reading themes", in: app, timeout: 1) == nil {
             app.swipeUp()
@@ -262,7 +262,35 @@ final class CatalogueAuditTests: XCTestCase {
         XCTAssertTrue(measured.contains("audit.target.40"), "The measure let a 40 point target pass: \(measured)")
         XCTAssertFalse(measured.contains("audit.target.44"), "The measure failed a 44 point target: \(measured)")
     }
+
+    /// Text under the contrast floor fails the gate, and a known fault does not.
+    ///
+    /// The same debug build draws one label at about 1.5 to 1 (`App/AuditTargets.swift`). The
+    /// platform audit must name it, and `catalogueVerdict` must fail it on a screen with no known
+    /// fault for it, and pass it on the screen that lists it.
+    func testFaintTextFails() throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-storyarc.audit.targets"]
+        app.launch()
+        let faint = app.staticTexts["audit.contrast"]
+        XCTAssertTrue(faint.waitForExistence(timeout: 15), "The debug build drew no faint label.")
+
+        var verdicts: [CatalogueVerdict] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            if issue.element?.identifier == "audit.contrast" {
+                verdicts.append(catalogueVerdict(for: issue, on: "any screen"))
+                verdicts.append(catalogueVerdict(for: issue, on: faintFault.screen, known: [faintFault]))
+            }
+            return true
+        }
+        XCTAssertEqual(verdicts, [.fail, .known("1234567890")], "The gate did not fail the faint label.")
+    }
 }
+
+/// The known fault `testFaintTextFails` lists, to prove that a listed fault is passed.
+private let faintFault = KnownContrastFault(
+    screen: "Audit targets", element: "1234567890", why: "Faint on purpose."
+)
 
 /// The points a finger needs, from the Human Interface Guidelines.
 private let minimumTarget: CGFloat = 44
@@ -287,51 +315,74 @@ extension XCTestCase {
     /// A control that the screen cuts is left out too, because its frame is the visible part and
     /// not the control. Hittability is not asked: it records a failure for a cover that scrolled
     /// half away.
+    ///
+    /// Each step has its own typed constant. The Xcode of the CI runner could not type-check
+    /// the one chained expression this was before, and failed the build.
     fileprivate func smallTargets(in app: XCUIApplication) -> [XCUIElement] {
-        let window = app.windows.firstMatch.frame.insetBy(dx: 1, dy: 1)
-        let bars = [app.navigationBars, app.toolbars, app.tabBars, app.segmentedControls]
-            .flatMap { $0.descendants(matching: .button).allElementsBoundByIndex }
-            .map { $0.frame }
-        let rows = app.cells.allElementsBoundByIndex.map { $0.frame }.filter { $0.height >= minimumTarget }
-        return [XCUIElement.ElementType.button, .link]
-            .flatMap { app.descendants(matching: $0).allElementsBoundByIndex }
-            .filter { $0.exists && $0.label != "Sheet Grabber" }
-            .filter { !$0.frame.isEmpty && window.contains($0.frame) }
-            .filter { min($0.frame.width, $0.frame.height) < minimumTarget - 0.5 }
-            .filter { target in !bars.contains(target.frame) }
-            .filter { target in !rows.contains { $0.contains(target.frame) } }
+        let window: CGRect = app.windows.firstMatch.frame.insetBy(dx: 1, dy: 1)
+        let barQueries: [XCUIElementQuery] = [app.navigationBars, app.toolbars, app.tabBars, app.segmentedControls]
+        var bars: [CGRect] = []
+        for query in barQueries {
+            bars += query.descendants(matching: .button).allElementsBoundByIndex.map(\.frame)
+        }
+        let rows: [CGRect] = app.cells.allElementsBoundByIndex.map(\.frame).filter { $0.height >= minimumTarget }
+        var controls: [XCUIElement] = app.descendants(matching: .button).allElementsBoundByIndex
+        controls += app.descendants(matching: .link).allElementsBoundByIndex
+        return controls.filter { control in
+            guard control.exists, control.label != "Sheet Grabber" else { return false }
+            let frame: CGRect = control.frame
+            guard !frame.isEmpty, window.contains(frame) else { return false }
+            guard min(frame.width, frame.height) < minimumTarget - 0.5 else { return false }
+            guard !bars.contains(frame) else { return false }
+            return !rows.contains { $0.contains(frame) }
+        }
     }
 
     /// The catalogue's gate.
     ///
-    /// **Fails:** a control under 44 points on either side, a hit region the platform names, and
-    /// an element with no description. **Reported:** every other finding, contrast and clipped
-    /// text among them. Contrast depends on what is behind the element, and untinted glass takes
-    /// its luminance from the cover beneath it. Clipped text is reported because the audit cannot
-    /// tell text that a scroll view cuts at its edge from text that a layout clips, and it names
-    /// no element for most of what it finds.
+    /// **Fails:** a control under 44 points on either side, a hit region the platform names, an
+    /// element with no description, and text under the contrast floor on an element the audit
+    /// names (`catalogueVerdict`). A steady known fault that no longer occurs fails too, so the
+    /// list drains. **Reported:** every other finding. Clipped text is reported because the audit
+    /// cannot tell text that a scroll view cuts at its edge from text that a layout clips, and it
+    /// names no element for most of what it finds.
     fileprivate func auditCatalogue(_ app: XCUIApplication, named screen: String) throws {
         var failing: [String] = []
         var reported: [String] = []
+        var knownSeen: Set<String> = []
+        let window: CGRect = app.windows.firstMatch.frame
+        var bars: [CGRect] = app.tabBars.allElementsBoundByIndex.map(\.frame)
+        bars += app.toolbars.allElementsBoundByIndex.map(\.frame)
+        bars += app.navigationBars.allElementsBoundByIndex.map(\.frame)
         try app.performAccessibilityAudit(for: .all) { issue in
-            let element = issue.element?.debugDescription ?? "no element reported"
-            let line = "  • \(issue.compactDescription)\n    \(element)"
-            switch issue.auditType {
-            case .hitRegion, .sufficientElementDescription:
+            // The first line of the description names the element: type, frame, identifier, label.
+            let element = issue.element?.debugDescription.split(separator: "\n").first.map(String.init)
+            let line = "\(issue.compactDescription). \(element ?? "No element reported.")"
+            switch catalogueVerdict(for: issue, on: screen, window: window, bars: bars) {
+            case .fail:
                 failing.append(line)
-                return false
-            default:
-                reported.append(line)
-                return true
+            case .known(let name):
+                knownSeen.insert(name)
+                reported.append("  • known fault: \(line)")
+            case .report:
+                reported.append("  • \(line)")
             }
+            return true
         }
         if !reported.isEmpty {
             print("Catalogue audit — \(screen): \(reported.count) finding(s) reported, not failed")
             for line in reported { print(line) }
         }
-        if !failing.isEmpty {
-            print("Catalogue audit — \(screen): \(failing.count) finding(s) that fail")
-            for line in failing { print(line) }
+        // XCTFail, not `return false`: the message the platform records names no element.
+        for line in failing {
+            XCTFail("\(screen): \(line)")
+        }
+        let gone = knownContrastFaults.filter { $0.screen == screen && $0.isSteady && !knownSeen.contains($0.element) }
+        for fault in gone {
+            XCTFail(
+                "\(screen): the known contrast fault on “\(fault.element)” no longer occurs. "
+                    + "Remove it from knownContrastFaults."
+            )
         }
 
         for target in smallTargets(in: app) {
