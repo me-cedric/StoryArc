@@ -27,7 +27,7 @@ export const FRAMES = [
   { id: '03', name: 'comic-reader' },
   { id: '04', name: 'reading-themes' },
   { id: '05', name: 'audiobook-player' },
-  { id: '06', name: 'your-libraries' },
+  { id: '06', name: 'home' },
 ]
 
 /**
@@ -36,11 +36,14 @@ export const FRAMES = [
  * A Compose layout changes with the window in dp, and `wm size` and `wm density` set that
  * directly. Each size is exactly 9:16: Play refuses 1080x2400, the size of every stock
  * phone AVD in this SDK.
+ *
+ * `spread` marks a window 960 dp wide or wider: Readium sets two columns of text there, so
+ * one page turn moves two pages. `split` marks a library drawn beside an empty detail pane.
  */
 export const ANDROID_BUCKETS = {
   phone: { size: [1080, 1920], density: 420, folder: 'phoneScreenshots', min: 320, max: 3840 },
   tablet7: { size: [1080, 1920], density: 280, folder: 'sevenInchScreenshots', min: 320, max: 3840 },
-  tablet10: { size: [1440, 2560], density: 240, folder: 'tenInchScreenshots', min: 1080, max: 7680 },
+  tablet10: { size: [1440, 2560], density: 240, folder: 'tenInchScreenshots', min: 1080, max: 7680, spread: true, split: true },
 }
 
 /**
@@ -49,11 +52,11 @@ export const ANDROID_BUCKETS = {
  * `menuRow` is where the EPUB reader's menu sheet draws *Reading themes*, as a fraction of
  * the screen. The walk taps it by position because agent-device 0.21.22 does not see that
  * sheet in its accessibility snapshot (the sheet sits over the Readium view), so no
- * selector can reach the row.
+ * selector can reach the row. `spread` and `split` mean what they mean for Play.
  */
 export const IOS_BUCKETS = {
   'iphone-6.9': { device: 'iPhone 17 Pro Max', size: [1320, 2868], scale: 3, menuRow: [0.33, 0.949] },
-  'ipad-13': { device: 'iPad Pro 13-inch', size: [2064, 2752], scale: 2, menuRow: [0.35, 0.779] },
+  'ipad-13': { device: 'iPad Pro 13-inch', size: [2064, 2752], scale: 2, menuRow: [0.35, 0.779], spread: true, split: true },
 }
 
 /** The corpus files that make a tidy shelf. The refusal fixtures stay out of a listing. */
@@ -68,7 +71,9 @@ const CORPUS_FILES = [
  * What each frame opens, per library. `landmark` is words that the first screen of the
  * shelf shows at every size. `comicTurns` and `ebookTurns` are page turns before
  * the frame: page 2 of *The Boys #1* is its cast page, and the fifth page of the Laura
- * Palmer EPUB is the first page of prose.
+ * Palmer EPUB is the first page of prose. `spreadTurns` is `ebookTurns` for a bucket that
+ * sets two columns: there the fourth turn shows the short last page of a letter, one
+ * column of text and three empty quarters, and the third shows two full columns.
  */
 export const LIBRARIES = {
   showcase: {
@@ -80,6 +85,7 @@ export const LIBRARIES = {
     comicTurns: 1,
     ebook: 'The Secret Diary of Laura Palmer',
     ebookTurns: 4,
+    spreadTurns: 3,
     audiobook: 'Dungeon Crawler Carl',
   },
   corpus: {
@@ -91,20 +97,10 @@ export const LIBRARIES = {
     comicTurns: 2,
     ebook: 'The Long Field',
     ebookTurns: 1,
+    spreadTurns: 1,
     audiobook: 'Sea Room',
   },
 }
-
-/**
- * The libraries *Your libraries* shows in frame 06. Every host is under `.invalid`, so
- * nothing is reachable and nothing is a real server. The names are the same in all
- * four languages.
- */
-export const SOURCES = [
-  { name: 'NAS', ios: 'networkShare', android: 'NETWORK_SHARE', locator: 'smb://nas.invalid/comics' },
-  { name: 'OPDS', ios: 'opdsCatalog', android: 'OPDS_CATALOG', locator: 'https://opds.invalid/opds' },
-  { name: 'Kavita', ios: 'kavitaServer', android: 'KAVITA_SERVER', locator: 'http://kavita.invalid' },
-]
 
 // ---------------------------------------------------------------------------------------
 // The app's own words. A renamed key fails here, by name, before a device boots.
@@ -112,6 +108,8 @@ export const SOURCES = [
 
 /** Android: resource names, read through `namedIn()` in `android-routes.mjs`. */
 const ANDROID_KEYS = {
+  home: ['destination_home'],
+  keepReading: ['home_keep_reading'],
   library: ['destination_library'],
   read: ['detail_action_read', 'detail_action_continue'],
   listen: ['detail_action_listen', 'detail_action_continue_listening'],
@@ -119,17 +117,15 @@ const ANDROID_KEYS = {
   close: ['reader_close'],
   epubMenu: ['epub_menu'],
   themes: ['reader_menu_themes'],
-  customise: ['theme_customise'],
+  presets: ['theme_presets'],
   pause: ['player_pause'],
   play: ['player_play'],
-  more: ['library_more'],
-  places: ['rail_expand'],
-  settings: ['settings_title'],
-  sources: ['settings_sources'],
 }
 
 /** iOS: `<table>:<key>`, where the table is the folder that owns `Resources/Localizable.xcstrings`. */
 const IOS_KEYS = {
+  home: ['App:tab.home'],
+  keepReading: ['LibraryFeature:library.continueReading'],
   library: ['App:tab.library'],
   read: ['LibraryFeature:catalogue.detail.read', 'LibraryFeature:library.continueReading'],
   listen: ['LibraryFeature:detail.listen', 'LibraryFeature:detail.continueListening'],
@@ -140,8 +136,6 @@ const IOS_KEYS = {
   play: ['PlayerFeature:player.play'],
   openPlayer: ['PlayerFeature:player.open'],
   speed: ['PlayerFeature:player.speed'],
-  settings: ['App:home.settings'],
-  sources: ['SettingsFeature:settings.sources'],
 }
 
 let catalogues = null
@@ -193,44 +187,57 @@ export function selector(platform, words) {
 // ---------------------------------------------------------------------------------------
 
 /**
- * The walk for one device and one language, as two launches.
+ * The walk for one device and one language, as one list of steps.
  *
- * Launch A holds frames 01 to 04 in one path. Launch B starts the app again with the
- * libraries of frame 06 in its registry: the app reads that registry at launch only, and
- * with it in launch A the library frame would carry a notice about three libraries it
- * cannot reach. Launch B takes 06 first and 05 last, so no walk has to leave the player.
+ * Frames 01 to 04 follow one path. The app then starts again: the themes sheet of frame 04
+ * is not in the iOS accessibility snapshot, so no step can close it, and a new launch leaves
+ * the reader on every platform. Frame 05 opens the audiobook, and frame 06 is Home, whose
+ * *Continue reading* holds the comic, the ebook and the audiobook that the walk opened.
  *
- * Each chunk is one frame: the steps that reach it and take it, what it `needs` (the chunk
- * whose screen it continues from, or null when it starts from any screen with the tab
- * bar), and the `exit` back to such a screen. A chunk runs when its frame is selected or
- * when a selected chunk needs it. Steps after the last selected frame do not run.
+ * Each chunk is one frame: the steps that reach it and take it, what it `needs` (the chunks
+ * that must run first; the walk goes on from the screen of the last one when it is the
+ * chunk just before), and the `exit` to a screen with the tab bar. A chunk runs when its
+ * frame is selected or when a selected chunk needs it. Steps after the last selected frame
+ * do not run.
  *
- * Step kinds: `tap` (find a node by its words and press its centre; when absent, press
- * the first of its `openers` on screen, or `scroll`), `press` (a selector), `point` (a
- * fraction of the screen), `wait`, `waitAbsent`, `waitText`, `reveal` (show the reader
- * chrome when it is hidden), `until` (press until a selector shows), `scroll`, `swipe`,
- * `stable` (the screen stops moving), `back`, `pause` (a fixed wait, only with a `why`)
- * and `shot`.
+ * Step kinds: `tap` (find a node by its words and press its centre; when absent, `scroll`),
+ * `press` (a selector), `point` (a fraction of the screen), `wait`, `waitAbsent`,
+ * `waitText`, `reveal` (show the reader chrome when it is hidden), `until` (press until a
+ * selector shows), `scroll`, `swipe`, `stable` (the screen stops moving), `relaunch` (start
+ * the app again), `pause` (a fixed wait, only with a `why`) and `shot`.
  */
 export function walk({ platform, bucket, library: lib, labels: L, frames }) {
   const ios = platform === 'ios'
   const s = (name) => selector(platform, L[name])
-  const landmark = { waitText: lib.landmark }
+  // A cold device can take a while to draw the first screen after a launch.
+  const launched = { wait: s('library'), timeoutMs: 60000 }
   const toLibrary = [{ tap: L.library, exact: true }]
-  const turns = (count) => Array.from({ length: count }, (_, at) => ({ point: [0.93, 0.5], settle: at === count - 1 }))
+  const turns = (count) => Array.from({ length: count }, () => ({ point: [0.93, 0.5], settle: true }))
   const themes = ios
     ? [
         { pause: 1000, why: 'the menu sheet is not in the accessibility snapshot' },
         { point: bucket.menuRow },
         { pause: 3000, why: 'the themes sheet and its preview are not in the accessibility snapshot' },
       ]
-    // The themes sheet opens at its small detent. One drag opens it to the swatches.
-    : [{ tap: L.themes, exact: true, scroll: true, settle: true }, { scroll: 0.3 }, { wait: s('customise') }]
-  const a = [
-    { id: '01', needs: null, steps: [...toLibrary, landmark, { shot: '01' }], exit: [] },
+    // On a phone the themes sheet stays at its small detent, the one height that leaves the
+    // page in view. A wider window draws a popover beside the page. The live preview reads
+    // the page's own words a moment after the sheet opens.
+    : [{ tap: L.themes, exact: true, scroll: true, settle: true }, { waitText: L.presets[0] }, { stable: true }]
+  const chunks = [
+    {
+      id: '01',
+      needs: [],
+      steps: [
+        ...toLibrary, { waitText: lib.landmark },
+        // A wide library draws an empty pane beside the shelf until a cover is chosen.
+        ...(bucket.split ? [{ tap: `${lib.audiobook},`, scroll: true }, { wait: s('listen') }, { stable: true }] : []),
+        { shot: '01' },
+      ],
+      exit: [],
+    },
     {
       id: '02',
-      needs: '01',
+      needs: ['01'],
       steps: [
         ...(lib.series ? [{ tap: `${lib.series},`, scroll: true }, { waitText: lib.comic }] : []),
         { tap: `${lib.comic},`, scroll: true }, { wait: s('read') }, { shot: '02' },
@@ -239,7 +246,7 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
     },
     {
       id: '03',
-      needs: '02',
+      needs: ['02'],
       steps: [
         // The reader opens with its chrome up, and a tap in the middle toggles it. The walk
         // hides it, turns the page, and shows it again: the frame is then taken inside the
@@ -251,34 +258,17 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
     },
     {
       id: '04',
-      needs: null,
+      needs: [],
       steps: [
         ...toLibrary, { tap: `${lib.ebook},`, scroll: true }, { wait: s('read') }, { press: s('read') },
-        { wait: s('epubMenu') }, ...turns(lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
+        { wait: s('epubMenu') }, ...turns(bucket.spread ? lib.spreadTurns : lib.ebookTurns), { reveal: s('epubMenu') }, { press: s('epubMenu') },
         ...themes, { shot: '04' },
       ],
-      exit: [],
-    },
-  ]
-  const b = [
-    {
-      id: '06',
-      needs: null,
-      steps: [
-        // Android puts Settings behind the library's overflow on a phone, and behind the
-        // navigation rail's *Show more places* on a wide window.
-        ...(ios ? [{ tap: L.settings, exact: true }] : [...toLibrary, { tap: L.settings, exact: true, openers: [L.places, L.more] }]),
-        { tap: L.sources, exact: true, scroll: true },
-        // The libraries are the last group on the page. A drag at mid-width, not `scroll`:
-        // on the iPad the page is a sheet over Home, and agent-device scrolls Home instead.
-        { waitText: SOURCES[0].name }, { swipe: [[0.5, 0.7], [0.5, 0.33]], count: 2 },
-        { waitText: SOURCES.at(-1).name }, { stable: true }, { shot: '06' },
-      ],
-      exit: [{ back: true }, { back: true }],
+      exit: [{ relaunch: true }, launched],
     },
     {
       id: '05',
-      needs: null,
+      needs: [],
       steps: [
         ...toLibrary, { tap: `${lib.audiobook},`, scroll: true }, { wait: s('listen') }, { press: s('listen') },
         // The player starts on its own. A press on Pause while it still prepares does
@@ -289,13 +279,19 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
       ],
       exit: [],
     },
+    {
+      id: '06',
+      needs: ['03', '04', '05'],
+      steps: [
+        // The iOS player is a sheet over the tab bar, and a drag down closes it. Android
+        // draws its navigation beside the player.
+        ...(ios ? [{ swipe: [[0.5, 0.3], [0.5, 0.95]] }, { waitAbsent: s('speed') }] : []),
+        { tap: L.home, exact: true }, { waitText: L.keepReading[0] }, { stable: true }, { shot: '06' },
+      ],
+      exit: [],
+    },
   ]
-  // A cold device can take a while to draw the first screen after a launch.
-  const launched = { wait: s('library'), timeoutMs: 60000 }
-  return [
-    { sources: false, steps: assemble(a, frames) },
-    { sources: true, steps: assemble(b, frames) },
-  ].filter((segment) => segment.steps.length > 0).map((segment) => ({ ...segment, steps: [launched, ...segment.steps] }))
+  return [launched, ...assemble(chunks, frames)]
 }
 
 /** The steps of the chunks a selection needs, in order, cut after the last selected shot. */
@@ -305,7 +301,7 @@ function assemble(chunks, frames) {
     const chunk = chunks[at]
     if (frames.includes(chunk.id) || included.has(chunk.id)) {
       included.add(chunk.id)
-      if (chunk.needs) included.add(chunk.needs)
+      for (const id of chunk.needs) included.add(id)
     }
   }
   const order = chunks.filter((chunk) => included.has(chunk.id))
@@ -313,7 +309,7 @@ function assemble(chunks, frames) {
   order.forEach((chunk, at) => {
     steps.push(...chunk.steps.filter((step) => !step.shot || frames.includes(step.shot)))
     const next = order[at + 1]
-    if (next && next.needs !== chunk.id) steps.push(...chunk.exit)
+    if (next && !next.needs.includes(chunk.id)) steps.push(...chunk.exit)
   })
   const last = steps.findLastIndex((step) => step.shot)
   return last === -1 ? [] : steps.slice(0, last + 1)
@@ -435,7 +431,8 @@ export function verify({ locales, frames, androidBuckets, iosBuckets }) {
 
 function selfTest() {
   const all = FRAMES.map((f) => f.id)
-  const shots = (segments) => segments.flatMap((seg) => seg.steps.filter((st) => st.shot).map((st) => st.shot))
+  const shots = (steps) => steps.filter((st) => st.shot).map((st) => st.shot)
+  const taps = (steps, words) => steps.some((st) => st.tap === words)
   const context = (platform, frames) => ({
     platform,
     bucket: platform === 'ios' ? IOS_BUCKETS['iphone-6.9'] : ANDROID_BUCKETS.phone,
@@ -457,14 +454,16 @@ function selfTest() {
     ['an iOS selector names the button role', () => selector('ios', ['A', 'B']) === 'role=button label="A" || role=button label="B"'],
     ['Play layout', () => shotPath('android', 'tablet7', 'de', '01') === join(OUT, 'play/de-DE/images/sevenInchScreenshots/01-library.png')],
     ['App Store layout', () => shotPath('ios', 'ipad-13', 'fr', '04') === join(OUT, 'appstore/fr-FR/04-reading-themes-ipad-13.png')],
-    ['all frames: six shots, 06 before 05', () => ['ios', 'android'].every((p) => shots(walk(context(p, all))).join() === '01,02,03,04,06,05')],
+    ['all frames: six shots in order', () => ['ios', 'android'].every((p) => shots(walk(context(p, all))).join() === '01,02,03,04,05,06')],
     ['one frame: one shot', () => shots(walk(context('android', ['03']))).join() === '03'],
-    ['frame 03 alone walks through 01 and 02', () => walk(context('android', ['03']))[0].steps.some((st) => st.tap === 'The Boys #1,')],
-    ['frame 04 alone skips the comic', () => !walk(context('ios', ['04']))[0].steps.some((st) => st.tap === 'The Boys #1,')],
-    ['frame 05 alone skips settings and launch A', () => { const w = walk(context('ios', ['05'])); return w.length === 1 && w[0].sources && !w[0].steps.some((st) => st.tap === labels('ios', 'de').sources) }],
-    ['the walk ends at its last shot', () => walk(context('android', ['01']))[0].steps.at(-1).shot === '01'],
-    ['a frame after the comic leaves the reader', () => walk(context('android', ['03', '04']))[0].steps.some((st) => st.press === selector('android', labels('android', 'de').close))],
-    ['a fixed wait carries its reason', () => ['ios', 'android'].every((p) => walk(context(p, all)).every((seg) => seg.steps.every((st) => !st.pause || st.why)))],
+    ['frame 03 alone walks through 01 and 02', () => taps(walk(context('android', ['03'])), 'The Boys #1,')],
+    ['frame 04 alone skips the comic', () => !taps(walk(context('ios', ['04'])), 'The Boys #1,')],
+    ['frame 05 alone skips the comic and the ebook', () => { const w = walk(context('ios', ['05'])); return !taps(w, 'The Boys #1,') && !taps(w, 'The Secret Diary of Laura Palmer,') }],
+    ['frame 06 alone opens all three first', () => { const w = walk(context('android', ['06'])); return shots(w).join() === '06' && ['The Boys #1,', 'The Secret Diary of Laura Palmer,', 'Dungeon Crawler Carl,'].every((t) => taps(w, t)) }],
+    ['the walk starts the app again after the ebook', () => walk(context('ios', ['04', '05'])).some((st) => st.relaunch)],
+    ['the walk ends at its last shot', () => walk(context('android', ['01'])).at(-1).shot === '01'],
+    ['a frame after the comic leaves the reader', () => walk(context('android', ['03', '04'])).some((st) => st.press === selector('android', labels('android', 'de').close))],
+    ['a fixed wait carries its reason', () => ['ios', 'android'].every((p) => walk(context(p, all)).every((st) => !st.pause || st.why))],
     ['a listing heading is read', () => section('x\n## Subtitle\n\n```\nRead it all\n```\n', 'Subtitle') === 'Read it all'],
     ['an over-long field fails', () => textProblems('\n## App name\n```\n' + 'x'.repeat(31) + '\n```\n', { 'App name': 30 }).length === 1],
     ['a PNG header is measured', () => pngSize(png(7, 3, [0, 0, 0])).join('x') === '7x3'],

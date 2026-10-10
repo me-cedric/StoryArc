@@ -31,7 +31,7 @@ import { promisify } from 'node:util'
 import { resolveAdb } from './adb.mjs'
 import { LIBRARY as SHOWCASE_DIR } from './store-showcase.mjs'
 import {
-  ANDROID_BUCKETS, FRAMES, IOS_BUCKETS, LIBRARIES, LOCALES, OUT, ROOT, SOURCES,
+  ANDROID_BUCKETS, FRAMES, IOS_BUCKETS, LIBRARIES, LOCALES, OUT, ROOT,
   labels, pngFileSize, shotPath, verify, walk,
 } from './store-walk.mjs'
 
@@ -156,7 +156,7 @@ async function isVisible(session, target) {
   }
 }
 
-/** Runs one launch's steps. `lane` knows the screen size and where each frame goes. */
+/** Runs the steps of one walk. `lane` knows the screen size and where each frame goes. */
 async function run(lane, locale, steps) {
   const [width, height] = lane.points
   const at = ([fx, fy]) => ({ kind: 'point', x: Math.round(width * fx), y: Math.round(height * fy) })
@@ -198,10 +198,16 @@ async function run(lane, locale, steps) {
     } else if (step.reveal) {
       // A tap in the middle toggles the reader's chrome, and the chrome hides itself a few
       // seconds after it shows. Chrome that is up may be about to go, so the walk hides it
-      // and shows it again: the next press then has the chrome's whole time on screen.
+      // and shows it again: the next press then has the chrome's whole time on screen. A
+      // loaded simulator can still lose that race, so the walk tries a second time.
       await flush()
-      if (await isVisible(lane.session, step.reveal)) batch.push({ command: 'press', input: { target: centre } }, wait({ absent: step.reveal }))
-      batch.push({ command: 'press', input: { target: centre } }, wait({ selector: step.reveal }))
+      const pressed = next.press === step.reveal ? [{ command: 'press', input: { target: { kind: 'selector', selector: step.reveal } } }] : []
+      const reveal = async () => ad(['batch', '--steps', JSON.stringify([
+        ...(await isVisible(lane.session, step.reveal) ? [{ command: 'press', input: { target: centre } }, wait({ absent: step.reveal })] : []),
+        { command: 'press', input: { target: centre } }, wait({ selector: step.reveal }), ...pressed,
+      ]), '--on-error', 'stop', '--session', lane.session])
+      await reveal().catch(reveal)
+      if (pressed.length > 0) index += 1
     } else if (step.until) {
       await flush()
       for (let attempt = 0; attempt < 4 && !(await isVisible(lane.session, step.until)); attempt += 1) {
@@ -221,7 +227,10 @@ async function run(lane, locale, steps) {
       batch.push({ command: 'swipe', input: { from, to, count: step.count ?? 1, pauseMs: 300 } })
     }
     else if (step.scroll) batch.push({ command: 'scroll', input: { direction: 'down', amount: step.scroll } })
-    else if (step.back) batch.push({ command: 'back', input: {} })
+    else if (step.relaunch) {
+      await flush()
+      await open(lane, locale)
+    }
     else if (step.shot) {
       const file = lane.shot(locale, step.shot)
       mkdirSync(dirname(file), { recursive: true })
@@ -232,9 +241,11 @@ async function run(lane, locale, steps) {
   await flush()
 }
 
-/** One device, one language: both launches of the walk. */
+const open = (lane, locale) => ad(['open', lane.app, ...lane.device, '--session', lane.session, '--relaunch', ...lane.launchArgs(locale)])
+
+/** One device, one language: the whole walk. */
 async function walkOnce(lane, locale) {
-  const segments = walk({
+  const steps = walk({
     platform: lane.platform,
     bucket: lane.bucket,
     library,
@@ -242,11 +253,8 @@ async function walkOnce(lane, locale) {
     frames,
   })
   await lane.reset(locale)
-  for (const segment of segments) {
-    if (segment.sources) await lane.beforeSources?.()
-    await ad(['open', lane.app, ...lane.device, '--session', lane.session, '--relaunch', ...lane.launchArgs(locale, segment.sources)])
-    await run(lane, locale, segment.steps)
-  }
+  await open(lane, locale)
+  await run(lane, locale, steps)
 }
 
 /** Runs every language of one lane, and keeps going past a language that fails. */
@@ -323,24 +331,6 @@ async function androidLane(failures) {
     reset: async (locale) => {
       await shell(`am force-stop ${PKG}; cd /data/data/${PKG} && rm -rf databases files no_backup shared_prefs cache`)
       await shell(`cmd locale set-app-locales ${PKG} --locales ${locale}`)
-    },
-    // The registry is read at launch, so the app is down while it is written.
-    beforeSources: async () => {
-      const registry = {
-        sources: SOURCES.map((source, at) => ({
-          id: `00000000-0000-4000-8000-00000000000${at + 1}`, displayName: source.name, kind: source.android,
-          lastSuccessfulSyncEpochMillis: null, credentialReference: null, locator: source.locator,
-        })),
-        tombstones: [],
-      }
-      const escaped = JSON.stringify(registry).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-      const scratch = join(OUT, 'sources.xml')
-      writeFileSync(scratch, `<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n    <string name="registry">${escaped}</string>\n</map>\n`)
-      await adb('push', scratch, '/data/local/tmp/storyarc-sources.xml')
-      rmSync(scratch)
-      const prefs = `/data/data/${PKG}/shared_prefs`
-      await shell(`am force-stop ${PKG}; mkdir -p ${prefs} && mv /data/local/tmp/storyarc-sources.xml ${prefs}/app.storyarc.sources.xml`
-        + ` && chown -R $(stat -c %u:%g /data/data/${PKG}) ${prefs} && chmod 660 ${prefs}/app.storyarc.sources.xml && restorecon -R ${prefs}`)
     },
   }
   try {
@@ -488,10 +478,7 @@ async function iosLane(name, failures) {
     device: [], screenshot: { pixelDensity: bucket.scale },
     label: (locale) => locale,
     shot: (locale, id) => shotPath('ios', name, locale, id),
-    launchArgs: (locale, sources) => [
-      '-AppleLanguages', `(${locale})`, '-AppleLocale', locale,
-      ...(sources ? ['-app.storyarc.sources', iosRegistry()] : []),
-    ].flatMap((arg) => ['--launch-args', arg]),
+    launchArgs: (locale) => ['-AppleLanguages', `(${locale})`, '-AppleLocale', locale].flatMap((arg) => ['--launch-args', arg]),
     // Every walk starts from the same app state. The library database lives in the app
     // group's container; the preferences go through `defaults`, so cfprefsd forgets them too.
     reset: async () => {
@@ -514,7 +501,9 @@ async function iosLane(name, failures) {
     lane.container = (await simctl('get_app_container', device.udid, BUNDLE, 'data')).stdout.trim()
     lane.group = (await simctl('get_app_container', device.udid, BUNDLE, `group.${BUNDLE}`)).stdout.trim()
     syncIosLibrary(lane.container, name)
-    await simctl('status_bar', device.udid, 'override', '--time', '9:41', '--batteryState', 'charged',
+    // A full date, so the iPad's status bar shows 9 Jan and not the day of the run. simctl
+    // takes an ISO date only with milliseconds, and it draws Sun 9 Jan for this Tuesday.
+    await simctl('status_bar', device.udid, 'override', '--time', new Date(2024, 0, 9, 9, 41).toISOString(), '--batteryState', 'charged',
       '--batteryLevel', '100', '--wifiBars', '3', '--cellularMode', 'active', '--cellularBars', '4')
     await walkAll(lane, failures)
   } catch (error) {
@@ -527,15 +516,6 @@ async function iosLane(name, failures) {
       if (booted() && !argv.includes('--keep-devices')) await simctl('shutdown', device.udid).catch(() => {})
     }
   }
-}
-
-/** The registry frame 06 shows, as the property-list data literal `UserDefaults` reads. */
-function iosRegistry() {
-  const registry = {
-    sources: SOURCES.map((source, at) => ({ id: `00000000-0000-4000-8000-00000000000${at + 1}`, displayName: source.name, kind: source.ios, locator: source.locator })),
-    tombstones: [],
-  }
-  return `<${Buffer.from(JSON.stringify(registry)).toString('hex')}>`
 }
 
 /**

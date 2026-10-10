@@ -34,16 +34,34 @@ binary, so `pnpm store:verify` checks `AppIcon-1024.png` instead.
 
 | Frame | Screen |
 | --- | --- |
-| 01 library | The shelf, with series in one cell |
+| 01 library | The shelf, with series in one cell. A wide window also shows the audiobook's page |
 | 02 publication | *The Boys #1*, its detail page |
 | 03 comic-reader | Page 2 of *The Boys #1*, with the reader's chrome |
-| 04 reading-themes | The Laura Palmer EPUB, with the reading-themes panel open |
+| 04 reading-themes | The Laura Palmer EPUB, with the reading themes open beside or under the page |
 | 05 audiobook-player | *Dungeon Crawler Carl* in the full player, paused |
-| 06 your-libraries | Three libraries: a share, an OPDS catalogue and a Kavita server |
+| 06 home | Home, with the comic, the ebook and the audiobook in *Continue reading* |
 
 Every frame shows the app's interface. A bare page of somebody else's artwork reads as an
 advertisement for that comic. Pages 3 and 4 of *The Boys #1* show gore and swearing, so
 frame 03 stops at page 2. The turn counts are in `LIBRARIES` in `scripts/store-walk.mjs`.
+
+No frame shows an error, a notice or an empty state. The run adds no library that the device
+cannot reach: a source that does not answer puts *Not answering* in Settings and a notice on
+Home and the shelf.
+
+Two frames differ by window size. `split` and `spread` in `scripts/store-walk.mjs` mark the
+buckets:
+
+- Frame 01 on the 10-inch Android window and the iPad (`split`): the library draws an empty
+  pane beside the shelf until a cover is chosen, so the walk opens the audiobook's page there.
+- Frame 04 on the Android phone: the themes sheet stays at its small detent. That is the only
+  height that leaves the page in view. It shows the live preview but not the six themes. The
+  full height covers the page.
+- Frame 04 on the 10-inch Android window and the iPad (`spread`): Readium sets two columns of
+  text. One turn then moves two pages, so the walk turns three times there, not four
+  (`spreadTurns`). The fourth turn shows the short last page of a letter: one column of text
+  and three empty quarters.
+- Frame 04 on the tablets: the themes are a popover over the page.
 
 ## The device sizes
 
@@ -71,9 +89,12 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
 2. Each device gets the library once. A file that is there already is not pushed again. A
    file the library does not name moves to a parking folder; nothing is deleted.
 3. For each language, the lane resets the app's state, keeps the library, and walks the
-   frames in one path (`walk()` in `scripts/store-walk.mjs`). Launch A takes 01 to 04.
-   Launch B adds the three libraries of frame 06 to the registry, which the app reads at
-   launch only, and takes 06, then 05.
+   frames in one path (`walk()` in `scripts/store-walk.mjs`). After frame 04 the walk starts
+   the app again, because no step can close the iOS themes sheet. Frame 05 opens the
+   audiobook. Frame 06 then goes to Home, so *Continue reading* holds the three books that the
+   walk opened. `--frames 06` alone still opens all three first.
+   Each page turn waits until the screen is still: after quick turns, the Android EPUB reader
+   did not record the position, and the ebook was missing from *Continue reading*.
 4. Each step waits for its screen before the screenshot: a selector, a text, or a quiet
    screen. Two waits on iOS are fixed, and the walk says why: agent-device does not see the
    EPUB reader's menu sheet, so the walk taps its *Reading themes* row by position.
@@ -81,7 +102,9 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
    `scripts/android-routes.mjs`, iOS `Localizable.xcstrings`. A renamed key fails the run by
    name before a device boots. `pnpm store:selftest`, part of `pnpm lint`, checks the walk.
 6. The Android status bar is agent-device's demo mode. iOS shows 9:41 through
-   `simctl status_bar`, cleared at the end. The run shuts down the devices it booted.
+   `simctl status_bar`, cleared at the end. The time is a full ISO date, so the iPad shows
+   Sun 9 Jan and not the date of the run. The date is a Tuesday: simctl draws the wrong
+   weekday. The run shuts down the devices it booted.
 
 A frame that fails leaves the device's screen in `.build/store-logs/` and the run goes on
 with the next language.
