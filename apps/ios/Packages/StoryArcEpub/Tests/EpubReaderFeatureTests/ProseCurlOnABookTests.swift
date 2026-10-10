@@ -74,8 +74,9 @@ struct ProseCurlOnABookTests {
         window.makeKeyAndVisible()
         try await Task.sleep(for: .seconds(3))
         // A loaded suite run can take longer than 3 s to report the first location, and a walk
-        // that starts with none counts a crossing that is not there.
-        for _ in 0..<100 where navigator.currentLocation == nil {
+        // that starts with none counts a crossing that is not there. On the runner of 2026-10-09
+        // it took longer than 13 s, so the wait is up to 30 s and ends when the location comes.
+        for _ in 0..<300 where navigator.currentLocation == nil {
             try await Task.sleep(for: .milliseconds(100))
         }
         return Book(reader: reader, navigator: navigator, window: window)
@@ -98,6 +99,24 @@ struct ProseCurlOnABookTests {
         return "\(locator?.href.string ?? "?")@\(locator?.locations.progression ?? -1)"
     }
 
+    /// Waits, for at most five seconds, until Readium has laid out the resource after the one
+    /// on screen. The last resource has none after it.
+    ///
+    /// Readium preloads that resource after a turn, and on a loaded machine the preload took
+    /// longer than the half second each step waits (2026-10-10). Until it is there,
+    /// ``ProsePages/ahead(in:forward:isRightToLeft:over:)`` has nothing to raster, so a turn
+    /// across the chapter end read as a crossing with nothing rastered ahead.
+    private func nextResourceLaidOut(in page: UIView, after href: String, last: String?) async throws {
+        guard let last, !href.hasSuffix(last) else { return }
+        for _ in 0..<50 {
+            if let paging = PaginatedScroll.find(in: page),
+               ProsePages.spread(in: paging, at: paging.contentOffset.x + paging.bounds.width) != nil {
+                return
+            }
+            try await Task.sleep(for: .milliseconds(100))
+        }
+    }
+
     @Test("A turn across a chapter end is rastered ahead, and a turn inside one is not")
     func theBoundaryIsRasteredAhead() async throws {
         let book = try await openBook()
@@ -109,6 +128,7 @@ struct ProseCurlOnABookTests {
         for step in 0..<8 {
             let before = navigator.currentLocation?.href.string ?? "?"
             let page = try #require(navigator.view)
+            try await nextResourceLaidOut(in: page, after: before, last: book.reader.readingOrder.last)
             let started = CACurrentMediaTime()
             clock.start()
             let leaving = try #require(page.raster(afterScreenUpdates: false))
