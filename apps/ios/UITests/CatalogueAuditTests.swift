@@ -283,13 +283,13 @@ final class CatalogueAuditTests: XCTestCase {
             }
             return true
         }
-        XCTAssertEqual(verdicts, [.fail, .known("Faint on purpose")], "The gate did not fail the faint label.")
+        XCTAssertEqual(verdicts, [.fail, .known("1234567890")], "The gate did not fail the faint label.")
     }
 }
 
 /// The known fault `testFaintTextFails` lists, to prove that a listed fault is passed.
 private let faintFault = KnownContrastFault(
-    screen: "Audit targets", element: "Faint on purpose", why: "Faint on purpose."
+    screen: "Audit targets", element: "1234567890", why: "Faint on purpose."
 )
 
 /// The points a finger needs, from the Human Interface Guidelines.

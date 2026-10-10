@@ -32,8 +32,8 @@ private struct AuditTargets: View {
                 ForEach([18, 24, 30, 36, 40, 44], id: \.self) { size in
                     target(size: CGFloat(size), identifier: "audit.target.\(size)")
                 }
-                // About 1.3 to 1, far under the 4.5 to 1 floor. Faint on purpose.
-                Text(verbatim: "Faint on purpose")
+                // About 1.5 to 1, far under the 4.5 to 1 floor. Digits, so no language needs it.
+                Text(verbatim: "1234567890")
                     .foregroundStyle(Color(white: 0.66))
                     .padding(8)
                     .background(Color(white: 0.8))
