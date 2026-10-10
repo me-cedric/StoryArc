@@ -44,6 +44,14 @@ public enum AudiobookReader {
             .filter { FolderKind.audioExtensions.contains(($0 as NSString).pathExtension.lowercased()) }
             .sorted(by: PageOrdering.naturalCompare)
 
+        // A download is kept in a folder of its own, so a downloaded M4B arrives here as a
+        // folder of one file. Its chapter markers are still its chapters.
+        if names.count == 1 {
+            let file = url.appending(path: names[0])
+            let chapters = await chapters(of: AVURLAsset(url: file), in: file)
+            if !chapters.isEmpty { return Audiobook(parts: chapters, unreadablePartCount: 0) }
+        }
+
         var parts: [AudiobookPart] = []
         var unreadable = 0
         for name in names {

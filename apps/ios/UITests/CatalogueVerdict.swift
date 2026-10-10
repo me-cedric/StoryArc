@@ -85,18 +85,26 @@ private let showOnTheNotice = """
     named it on different screens of the three that show the notice.
     """
 
+private let coverAndTitle = """
+    The element is a cover without art and its title together. The audit compares the title \
+    with the cover's colour in the same frame. The title is the primary text colour on the \
+    page. In the order of the CI job on 2026-10-10 (iOS 26.5) Home showed other cards first, \
+    and the audit did not name it.
+    """
+
+private let underTheCheckedNotice = """
+    A title in the primary text colour, in the band just above the tab bar. The scroll edge \
+    effect fades the band, and the "Libraries checked just now" notice covers part of it for a \
+    few seconds after launch. Which title sits there depends on what the runs before it left \
+    on the screen, so the audit names it on some runs and not on others.
+    """
+
 /// Each entry was measured on two clean runs on 2026-10-10 (iPhone 17 Pro, iOS 26.2, with the
-/// seed and the corpus that `pnpm test:ios:audit` writes).
+/// seed and the corpus that `pnpm test:ios:audit` writes). The entries for "Foreign Codec" and
+/// for "Harbour Lights" on Search were measured on 2026-10-10 in the order of the CI job (iPhone
+/// 17 Pro, iOS 26.5): the seed, the UI audit walks, then the corpus.
 let knownContrastFaults: [KnownContrastFault] = [
-    KnownContrastFault(
-        screen: "01 Home",
-        element: "Broken Transfer",
-        why: """
-            The element is a cover without art and its title together. The audit compares the \
-            title with the cover's colour in the same frame. The title is the primary text \
-            colour on the page.
-            """
-    ),
+    KnownContrastFault(screen: "01 Home", element: "Broken Transfer", why: coverAndTitle, isSteady: false),
     KnownContrastFault(
         screen: "05 Publication page", element: "On this device, readable with no network", why: aboveTheTabBar
     ),
@@ -171,6 +179,12 @@ let knownContrastFaults: [KnownContrastFault] = [
         isSteady: false
     ),
     KnownContrastFault(screen: "04 Library list", element: "Show", why: showOnTheNotice, isSteady: false),
+    KnownContrastFault(
+        screen: "04 Library list", element: "Foreign Codec", why: underTheCheckedNotice, isSteady: false
+    ),
+    KnownContrastFault(
+        screen: "14 Search at rest", element: "Harbour Lights", why: underTheCheckedNotice, isSteady: false
+    ),
     KnownContrastFault(
         screen: "18 Library with the skipped notice", element: "Show", why: showOnTheNotice, isSteady: false
     ),

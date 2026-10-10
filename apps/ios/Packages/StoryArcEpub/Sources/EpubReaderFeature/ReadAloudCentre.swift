@@ -66,9 +66,17 @@ public final class ReadAloudCentre {
     /// copy that can disagree with the bar. `nil` while a *narrated* audiobook is playing —
     /// which is the right answer to "is this publication being read aloud", and the reason
     /// this is not simply `PlayerCentre.shared.book`.
-    var speaking: String? { source == nil ? nil : PlayerCentre.shared.book?.id }
+    var speaking: String? { source == nil ? nil : player.book?.id }
 
-    private init() {}
+    /// The player this voice runs in. Always ``PlayerCentre/shared`` in the app.
+    ///
+    /// A test passes its own. Test suites run side by side in one process, and every suite that
+    /// opens a reader asks the shared player for a handover: the same book adopts the session,
+    /// another book displaces it. On the runner of 2026-10-10 that took the opening sentence
+    /// away from `SpokenReturnTests`.
+    private let player: PlayerCentre
+
+    init(player: PlayerCentre = .shared) { self.player = player }
 
     // MARK: - Starting, and changing hands
 
@@ -97,9 +105,8 @@ public final class ReadAloudCentre {
         self.position = position
         self.follower = follower
 
-        let centre = PlayerCentre.shared
-        centre.adoptSystemPlatform()
-        centre.begin(book, source: source)
+        player.adoptSystemPlatform()
+        player.begin(book, source: source)
     }
 
     /// A reader has opened the book that is being spoken, and will draw its sentence.

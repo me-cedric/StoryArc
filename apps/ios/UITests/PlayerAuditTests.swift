@@ -40,23 +40,22 @@ final class PlayerAuditTests: XCTestCase {
     /// The hit-area finding of `close-the-audited-gaps` 23.7, held as an assertion because
     /// `reportOnly` can only print it.
     ///
-    /// The publication page under the bar offers the cover chooser's text buttons, which were
-    /// 18 pt tall. Each now owns 44 pt, the platform's minimum, and the audit's own measure is
-    /// the button's accessibility frame.
+    /// The publication page under the bar offered the cover chooser's text buttons, which were
+    /// 18 pt tall. Since 2026-10-08 those actions are one menu (task 24.1): a cover-less page
+    /// shows "Add a cover", and a page with a cover shows the round "Edit cover" button. The
+    /// control the page shows owns 44 pt, the platform's minimum.
     func testCoverChooserButtonsOnThePageUnderTheBarAreFortyFourPointsTall() throws {
         let app = launch()
         try openAnAudiobook(in: app)
 
-        for name in ["Choose a cover", "Find a cover on the web"] {
-            let found = app.buttons.matching(NSPredicate(format: "label == %@", name))
-                .allElementsBoundByIndex
-            XCTAssertFalse(found.isEmpty, "The page under the bar offers no \(name) button to measure.")
-            let small = found.filter { $0.frame.height < 44 }
-            XCTAssertTrue(
-                small.isEmpty,
-                "\(name) is drawn under 44 pt tall: \(small.map { $0.frame })"
-            )
-        }
+        let add = app.buttons["Add a cover"].firstMatch
+        let edit = app.buttons["Edit cover"]
+        XCTAssertTrue(
+            add.waitForExistence(timeout: 5) || edit.exists,
+            "The page under the bar offers neither Add a cover nor Edit cover to measure."
+        )
+        let region = add.exists ? add.frame : coverButtonRegion(edit)
+        XCTAssertGreaterThanOrEqual(region.height, 44, "The cover control is drawn under 44 pt tall: \(region).")
     }
 
     /// The full player, at the default text size.
@@ -188,10 +187,15 @@ final class PlayerAuditTests: XCTestCase {
     /// The assertion is on play/pause because that is the control every listener presses, and
     /// the landmark is *Chapters* for §3.2's reason: it is a control `audio-playback` requires
     /// the player to offer, so it cannot be removed without the spec changing.
+    ///
+    /// **From the first chapter.** The fixture lasts six seconds, and each walk before this one
+    /// plays a little of it. On 2026-10-10 the book was a tenth of a second from its end, so
+    /// Play finished it, and the player showed the end of the book with no Chapters button.
     func testATransportTapDoesNotDismissThePlayer() throws {
         let app = launch()
         try openAnAudiobook(in: app)
         try openThePlayer(in: app)
+        try rewindTheBook(in: app)
 
         let transport = try XCTUnwrap(hittablePlayPause(in: app), """
             Neither Play nor Pause was hittable while the player was presented. \

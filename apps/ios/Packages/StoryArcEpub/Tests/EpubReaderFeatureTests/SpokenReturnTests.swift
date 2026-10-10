@@ -71,7 +71,10 @@ struct SpokenReturnTests {
         let speech = try #require(
             PublicationSpeechSynthesizer(publication: opened, engineFactory: engine.make)
         )
-        let centre = ReadAloudCentre.shared
+        // Its own centre and player, not the shared ones. Other suites open readers in this
+        // process at the same time, and a reader that opens adopts or displaces the shared session.
+        let player = PlayerCentre()
+        let centre = ReadAloudCentre(player: player)
         let id = reader.publication.id
         let left = Page(showing: id)
 
@@ -81,7 +84,7 @@ struct SpokenReturnTests {
             recording: SpokenPosition(identity: reader.publication.identity, readingOrder: [], store: nil),
             drawnBy: left
         )
-        defer { PlayerCentre.shared.end() }
+        defer { player.end() }
 
         // The opening sentence is drawn on the reader that started the voice. Then it leaves.
         await until { left.drawn.count == 1 }

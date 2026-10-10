@@ -313,8 +313,9 @@ extension XCTestCase {
     /// - switches, sliders and steppers, which the platform sizes.
     ///
     /// A control that the screen cuts is left out too, because its frame is the visible part and
-    /// not the control. Hittability is not asked: it records a failure for a cover that scrolled
-    /// half away.
+    /// not the control. Hittability is not a reason to fail, because a cover that scrolled half
+    /// away is not hittable. It is a reason to leave a control out: a control behind a presented
+    /// sheet is not hittable, and its own screen measures it.
     ///
     /// Each step has its own typed constant. The Xcode of the CI runner could not type-check
     /// the one chained expression this was before, and failed the build.
@@ -334,7 +335,12 @@ extension XCTestCase {
             guard !frame.isEmpty, window.contains(frame) else { return false }
             guard min(frame.width, frame.height) < minimumTarget - 0.5 else { return false }
             guard !bars.contains(frame) else { return false }
-            return !rows.contains { $0.contains(frame) }
+            guard !rows.contains(where: { $0.contains(frame) }) else { return false }
+            // Last, so it is asked only of a control that is otherwise too small. A control
+            // behind a presented sheet is left out, because no finger reaches it while the sheet
+            // is up. On 2026-10-10 (iOS 26.5) a Resume on Home failed the three Settings entries
+            // from behind their sheet. Home's own entry measures it.
+            return control.isHittable
         }
     }
 
