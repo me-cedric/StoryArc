@@ -22,7 +22,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// The page with nothing on it: the reader as a reader spends their time in it.
     func testCaptureEpubPage() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         hold(6)
         shutter(app, named: "epub-reader-page")
@@ -30,7 +30,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// The menu: five doors and a read-aloud row, at the medium detent with the page behind.
     func testCaptureEpubMenu() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         hold(1)
@@ -44,7 +44,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// is the screen `epub-theme-axes` is reached *from*, and a reviewer looking at the axes
     /// needs the level above it in the same folder and the same appearance.
     func testCaptureEpubThemePresets() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openThemeSheet(in: app)
         hold(1.5)
         shutter(app, named: "epub-theme-presets")
@@ -57,7 +57,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// for each axis to state its own value in words rather than as a slider position, and
     /// whether nine of them read as a settings screen or as a wall is the question here.
     func testCaptureEpubThemeAxes() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openThemeSheet(in: app)
         try openAxes(in: app)
         XCTAssertTrue(
@@ -76,7 +76,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// `reading-themes` refuses a pairing below the floor and says the ratio. That refusal is
     /// the app's only visible contrast gate and it has no picture.
     func testCaptureEpubPageColour() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openThemeSheet(in: app)
         try openAxes(in: app)
         _ = scrollTo(app.staticTexts["Page colour"], in: app, swipes: 8)
@@ -86,7 +86,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// The table of contents.
     func testCaptureEpubContents() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Contents", in: app), "The menu offers no Contents row.").tap()
@@ -104,7 +104,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// The field rather than a result set: typing into the simulator garbles ASCII, and the
     /// screen a reader lands on is the one with the empty field and its prompt on it.
     func testCaptureEpubSearch() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Search", in: app), "The menu offers no Search row.").tap()
@@ -114,7 +114,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// Bookmarks, which on a book nobody has marked is an empty state with an instruction.
     func testCaptureEpubBookmarks() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Bookmarks", in: app), "The menu offers no Bookmarks row.").tap()
@@ -124,7 +124,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// Notes and highlights, likewise empty and likewise instructive.
     func testCaptureEpubNotes() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         try XCTUnwrap(hittableRow("Notes", in: app), "The menu offers no Notes row.").tap()
@@ -139,7 +139,7 @@ final class SweepEpubReaderTests: XCTestCase {
     /// by `SelectionMenu`. A press that lands between words selects nothing and there is no
     /// menu — so the walk states what it saw rather than photographing the page.
     func testCaptureEpubNoteDialog() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         hold(3)
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.4)).press(forDuration: 1.2)
@@ -157,7 +157,7 @@ final class SweepEpubReaderTests: XCTestCase {
 
     /// The reader with a book being read aloud, so the docked transport is over the page.
     func testCaptureEpubReadAloud() throws {
-        let app = sweepLaunch()
+        let app = sweepLaunch(availability: "onThisDevice")
         try openReader(in: app)
         try openMenu(in: app)
         // The row is the last of the menu's second section, below the fold on a phone.
