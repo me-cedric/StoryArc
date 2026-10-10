@@ -99,6 +99,10 @@ jobs:
         # the same key in the same run, so they are the same build.
         run: ./gradlew bundleRelease assembleRelease
 
+      - name: The bundle carries the native symbols
+        # Without them Play warns on the upload, and a native crash shows only addresses.
+        run: unzip -l apps/android/app/build/outputs/bundle/release/app-release.aab | grep -q 'BUNDLE-METADATA/com.android.tools.build.debugsymbols/'
+
       - name: Name the APK after its version
         # `app-release.apk` in a downloads list says nothing. `StoryArc-0.2.0.apk` does.
         run: cp apps/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk"

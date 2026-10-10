@@ -51,6 +51,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // The bundle carries the native symbols, so Play names the frames of a crash in
+            // `libstoryarc_rar.so`, which parses untrusted archives.
+            ndk { debugSymbolLevel = "FULL" }
             // Unsigned unless the workflow supplied a keystore — see README, "Signing and release".
             if (uploadKeystore != null) signingConfig = signingConfigs.getByName("upload")
         }
