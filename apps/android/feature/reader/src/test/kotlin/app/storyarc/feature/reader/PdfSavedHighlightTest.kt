@@ -68,7 +68,8 @@ class PdfSavedHighlightTest {
     fun `a saved highlight reaches the draw list of the page that holds it`() {
         val text = state(annotation(PAGE))
         compose.setContent { ResolvePageMarks(text, PAGE) }
-        compose.waitForIdle()
+        // The marks resolve on Dispatchers.IO, which `waitForIdle` does not wait for.
+        compose.waitUntil(timeoutMillis = 5_000) { text.marks.value.containsKey(PAGE) }
 
         val decoration = pdfDecorationOn(PAGE, hasText = true, marks = text.marks.value, selection = null)
         assertEquals("the saved highlight is not in the page's draw list", 1, decoration.marks.size)
