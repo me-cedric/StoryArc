@@ -4,6 +4,7 @@
 // Usage: pnpm store:publish                       Play: check, zip, send, ask CI to VALIDATE
 //        pnpm store:publish --dry                 Play: check and zip only, no network
 //        pnpm store:publish --publish             Play: the same, then CI WRITES the live listing
+//        pnpm store:publish --track alpha         Play: name a track that holds a release (default internal)
 //        pnpm store:publish --platform appstore   App Store: check and zip, then stop
 //        pnpm store:publish --platform appstore --upload   ...then send it and ask CI to upload
 //        pnpm store:publish --self-test           the pure parts, no network
@@ -258,12 +259,13 @@ const readAppleTree = (root) =>
 // ---------------------------------------------------------------------------------------
 
 export function parseArgs(argv) {
-  const options = { platform: 'play', dry: false, publish: false, upload: false, selfTest: false }
+  const options = { platform: 'play', dry: false, publish: false, upload: false, selfTest: false, track: 'internal' }
   for (let at = 0; at < argv.length; at += 1) {
     const arg = argv[at]
     if (arg === '--platform') options.platform = argv[(at += 1)]
     else if (arg === '--dry') options.dry = true
     else if (arg === '--publish') options.publish = true
+    else if (arg === '--track') options.track = argv[(at += 1)]
     else if (arg === '--upload') options.upload = true
     else if (arg === '--self-test') options.selfTest = true
     else throw new Error(`Unknown argument "${arg}".`)
@@ -333,7 +335,7 @@ function send(platform, archive, inputs) {
   console.log(`Watch it: gh run list --workflow ${WORKFLOW[platform]} --limit 1, then gh run watch <id> --exit-status`)
 }
 
-function runPlay({ dry, publish }) {
+function runPlay({ dry, publish, track }) {
   const rows = loadTexts('play')
   const root = join(STORE, 'play')
   const imageProblems = existsSync(root)
@@ -344,7 +346,7 @@ function runPlay({ dry, publish }) {
   console.log(`Play: ${rows.length} language(s) checked, texts written into ${rel(root)}`)
   const archive = zip('play', 'play.zip')
   if (dry) return console.log('--dry: nothing was sent.')
-  send('play', archive, { validateOnly: !publish })
+  send('play', archive, { validateOnly: !publish, track })
   console.log(publish ? 'The workflow WRITES the live listing.' : 'The workflow only VALIDATES. Run again with --publish to write it.')
 }
 
@@ -462,7 +464,7 @@ function main() {
   try {
     options = parseArgs(process.argv.slice(2))
   } catch (error) {
-    console.error(`${error.message}\nUsage: store-publish.mjs [--platform play|appstore] [--dry] [--publish | --upload] [--self-test]`)
+    console.error(`${error.message}\nUsage: store-publish.mjs [--platform play|appstore] [--dry] [--publish | --upload] [--track <name>] [--self-test]`)
     process.exit(2)
   }
   if (options.selfTest) return selfTest()
