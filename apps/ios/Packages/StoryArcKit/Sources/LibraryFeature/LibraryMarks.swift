@@ -121,4 +121,14 @@ extension LibraryModel {
     func isFinished(of publication: Publication) -> Bool {
         progress[publication.id]?.isFinished ?? false
     }
+
+    /// Whether opening this publication carries on from a stored position.
+    ///
+    /// The title page's primary action says "Continue" only when this is true. A finished
+    /// publication reopens at its start (`reading-progress`, *Finished state*), so its action
+    /// says "Read" or "Listen". Task 26.5: the walks saw "Continue reading" open a finished
+    /// comic on its first page.
+    func continuesInPlace(_ publication: Publication) -> Bool {
+        !isFinished(of: publication) && (readFraction(of: publication) ?? 0) > 0
+    }
 }

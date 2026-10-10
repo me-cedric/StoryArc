@@ -80,4 +80,28 @@ struct PrimaryActionTests {
         #expect(book.resuming == nil)
         #expect(PrimaryAction.of(.m4b, hasProgress: true, chapter: book.resuming) == .continueListening)
     }
+
+    /// Task 26.5: the walks saw "Continue reading" on a finished comic that then opened on its
+    /// first page, as `reading-progress` asks. The words now promise what happens.
+    @Test("A finished publication says read, because it opens at its start")
+    @MainActor
+    func finishedSaysRead() {
+        let model = LibraryModel()
+        let comic = Publication(
+            identity: PublicationIdentity(contentDigest: "quiet"),
+            format: .cbz,
+            displayTitle: "Quiet Machines",
+            origin: .inferred
+        )
+        let record = ReadingProgress(
+            identity: comic.identity,
+            position: .page(index: 3, of: 12),
+            updatedAt: Date(timeIntervalSince1970: 0)
+        )
+        model.progress[comic.id] = record
+        #expect(PrimaryAction.of(comic.format, hasProgress: model.continuesInPlace(comic)) == .continueReading)
+
+        model.progress[comic.id] = record.finished(true, at: Date(timeIntervalSince1970: 1))
+        #expect(PrimaryAction.of(comic.format, hasProgress: model.continuesInPlace(comic)) == .read)
+    }
 }

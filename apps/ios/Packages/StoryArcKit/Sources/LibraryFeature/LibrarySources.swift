@@ -86,7 +86,9 @@ extension LibraryModel {
     /// catalogue, unlike Kavita) has no way to keep that promise except this one.
     public func add(_ source: Source) {
         guard registry[source.id] == nil else { return }
-        if let tombstone = registry.tombstone(for: source) {
+        if let same = registry.sameLocation(as: source) {
+            registry = registry.replacing(source.rekeyed(to: same.id))
+        } else if let tombstone = registry.tombstone(for: source) {
             registry = registry.readding(source.rekeyed(to: tombstone.sourceID))
         } else {
             registry = registry.adding(source)

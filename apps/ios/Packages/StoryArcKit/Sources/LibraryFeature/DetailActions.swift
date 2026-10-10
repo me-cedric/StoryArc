@@ -173,7 +173,7 @@ struct DetailActions: View {
         PrimaryAction
             .of(
                 publication.format,
-                hasProgress: (model.readFraction(of: publication) ?? 0) > 0,
+                hasProgress: model.continuesInPlace(publication),
                 chapter: resuming
             )
             .label

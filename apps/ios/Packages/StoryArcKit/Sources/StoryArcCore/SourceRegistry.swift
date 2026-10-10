@@ -210,6 +210,15 @@ public struct SourceRegistry: Sendable, Equatable {
         return tombstones.first { $0.kind == source.kind && $0.locator == locator }
     }
 
+    /// The source that already stands for the place `source` names, if there is one.
+    ///
+    /// Task 26.5: the share form, used again for a share already in the list, added a second
+    /// source with the same name and the same address. One place is one source.
+    public func sameLocation(as source: Source) -> Source? {
+        guard let locator = source.locator else { return nil }
+        return sources.first { $0.id != source.id && $0.kind == source.kind && $0.locator == locator }
+    }
+
     /// Re-adding a source the reader removed, with its progress intact.
     ///
     /// The tombstone goes, so the collection pass stops considering it.

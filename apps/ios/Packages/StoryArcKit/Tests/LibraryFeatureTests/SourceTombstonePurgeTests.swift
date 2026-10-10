@@ -71,6 +71,21 @@ struct SourceTombstonePurgeTests {
         #expect(model.registry.tombstones.isEmpty)
     }
 
+    /// Task 26.5: the share form, used again for a share in the list, added `127.0.0.1/Sync`
+    /// a second time.
+    @Test("Adding a place that is already in the list keeps one source, with the reader's name")
+    func addingTheSamePlaceTwiceKeepsOneSource() throws {
+        let model = LibraryModel(sourceStore: sourceStore())
+        let first = catalogue(named: "Comics", locator: "https://example.com/feed")
+        model.add(first)
+        model.rename(first, to: "My comics")
+
+        model.add(catalogue(named: "Comics", locator: "https://example.com/feed"))
+
+        #expect(model.registry.sources.map(\.id) == [first.id])
+        #expect(model.registry[first.id]?.displayName == "My comics")
+    }
+
     @Test("Adding an unrelated catalogue does not take over another source's tombstone")
     func addingAnUnrelatedSourceMintsItsOwnIdentifier() throws {
         let model = LibraryModel(sourceStore: sourceStore())
