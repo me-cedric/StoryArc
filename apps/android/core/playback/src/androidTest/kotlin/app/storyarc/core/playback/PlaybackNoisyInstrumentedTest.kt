@@ -1,6 +1,7 @@
 package app.storyarc.core.playback
 
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
@@ -75,10 +76,19 @@ class PlaybackNoisyInstrumentedTest {
         return null
     }
 
-    private fun shell(command: String): String =
-        instrumentation.uiAutomation.executeShellCommand(command).use { descriptor ->
-            java.io.FileInputStream(descriptor.fileDescriptor).bufferedReader().readText()
+    /**
+     * What the shell printed, standard error included. `am` prints its refusal of a protected
+     * broadcast to standard error. A reader of standard output alone saw no refusal, did not
+     * skip, and waited out the timeout for a pause that could not come: the CI failure from
+     * 2026-10-07.
+     */
+    private fun shell(command: String): String {
+        val (output, input, error) = instrumentation.uiAutomation.executeShellCommandRwe(command)
+        input.close()
+        return listOf(output, error).joinToString("\n") { descriptor ->
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor).bufferedReader().use { it.readText() }
         }
+    }
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 

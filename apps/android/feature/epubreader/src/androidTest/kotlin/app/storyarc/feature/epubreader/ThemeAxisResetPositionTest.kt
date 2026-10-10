@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
-import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertNotNull
@@ -31,14 +30,19 @@ import org.readium.r2.navigator.epub.EpubNavigatorFragment
  * `ThemeAxisResetTest` proves what `resetAxis` asks of the view model, and pins the source order
  * of the reset, because no JVM test can lay out a navigator. This is the behaviour, on a real
  * reflowable book in the real activity: turn to a page in the middle of a chapter, move the
- * margins, reset them through the same `resetAxis` the slider's long press calls, and read the
- * first paragraph on the page before and after each step.
+ * margins, reset them through the same `resetAxis` the slider's long press calls, and check
+ * after each step that the first paragraph of the starting page is still on the page.
  *
  * `ebook-reader`: "the reading position is preserved to the paragraph, not the page number".
  * Submitting preferences re-paginates the resource and Readium lands on the progression, which
  * measured on an emulator moved the reader fourteen paragraphs back inside one chapter. The
- * activity's `applyTheme` goes back to the locator it captured. Removing that `navigator.go`
- * call is the mutation this test must fail on.
+ * activity's `applyTheme` goes back to the locator it captured.
+ *
+ * **This case does not catch the removal of that `navigator.go` call.** Measured on 2026-10-10
+ * on the `storyarc-ci` emulator (API 35): with the call removed, Readium's own landing kept the
+ * paragraph on the page, and the case passed. A book with paragraphs of mixed length did the
+ * same. `currentLocator` holds a progression and no text, so the call goes to the same
+ * progression that Readium lands on by itself.
  *
  * The book is written here, forty paragraphs a chapter and each reading "Chapter 1, paragraph
  * 31." as `packages/test-fixtures/ebooks/fixture.epub` does, so the test needs nothing on the
@@ -82,23 +86,26 @@ class ThemeAxisResetPositionTest {
             val widest = ThemeAxis.MARGINS.sliderRange!!.endInclusive
             scenario.onActivity { it.model.set(ThemeAxis.MARGINS, widest) }
             settle()
-            val afterChange = firstParagraph(reader)
-            assertNotNull("No paragraph after the change.", afterChange)
-            assertClose("Changing an axis moved the reader off its paragraph.", before, afterChange!!)
+            assertOnPage("Changing an axis moved the reader off its paragraph.", before, paragraphsOnPage(reader))
 
             scenario.onActivity { activity ->
                 resetAxis(activity.model.theme.value.preset, ThemeAxis.MARGINS, activity.model::set)
             }
             settle()
-            val afterReset = firstParagraph(reader)
-            assertNotNull("No paragraph after the reset.", afterReset)
-            assertClose("Resetting an axis moved the reader off its paragraph.", before, afterReset!!)
+            assertOnPage("Resetting an axis moved the reader off its paragraph.", before, paragraphsOnPage(reader))
         }
     }
 
-    /** One paragraph of drift is the first paragraph being the tail of the one before it. */
-    private fun assertClose(message: String, expected: Int, actual: Int) {
-        assertTrue("$message Paragraph $expected became $actual.", abs(expected - actual) <= TOLERANCE)
+    /**
+     * The paragraph is still on the page, wherever on it.
+     *
+     * Not the first paragraph of the page: a reflow moves every page break, so the page that
+     * holds paragraph 14 can begin with the tail of paragraph 10. Measured on 2026-10-10 on the
+     * `storyarc-ci` emulator: wide margins put paragraphs 10 to 21 on that page, with 14 in the
+     * middle of it, and a first-paragraph comparison called that a drift of four.
+     */
+    private fun assertOnPage(message: String, expected: Int, shown: List<Int>) {
+        assertTrue("$message Paragraph $expected is not on the page, which shows $shown.", expected in shown)
     }
 
     /** Long enough for Readium to re-paginate and for the activity's own settle delay to pass. */
@@ -113,29 +120,32 @@ class ThemeAxisResetPositionTest {
         throw AssertionError("Timed out waiting for $what.")
     }
 
+    private fun firstParagraph(navigator: EpubNavigatorFragment): Int? = paragraphsOnPage(navigator).firstOrNull()
+
     /**
-     * The number of the first paragraph on the page, read from the page itself.
+     * The numbers of the paragraphs on the page, in order, read from the page itself.
      *
      * Asked of the web view that is showing, in the page's own terms: a paragraph is on the
      * page when its box meets the viewport, whichever column of the chapter it sits in.
      */
-    private fun firstParagraph(navigator: EpubNavigatorFragment): Int? {
-        val view = navigator.view ?: return null
+    private fun paragraphsOnPage(navigator: EpubNavigatorFragment): List<Int> {
+        val view = navigator.view ?: return emptyList()
         val shown = arrayListOf<WebView>()
         instrumentation.runOnMainSync { collectShownWebViews(view, shown) }
         for (web in shown) {
             val latch = CountDownLatch(1)
             var answer: String? = null
             instrumentation.runOnMainSync {
-                web.evaluateJavascript(FIRST_PARAGRAPH_SCRIPT) {
+                web.evaluateJavascript(PARAGRAPHS_SCRIPT) {
                     answer = it
                     latch.countDown()
                 }
             }
             if (!latch.await(JS_TIMEOUT_SECONDS, TimeUnit.SECONDS)) continue
-            answer?.trim('"')?.toIntOrNull()?.let { return it }
+            val numbers = answer?.trim('"')?.split(',')?.mapNotNull { it.toIntOrNull() }.orEmpty()
+            if (numbers.isNotEmpty()) return numbers
         }
-        return null
+        return emptyList()
     }
 
     private fun collectShownWebViews(view: View, into: MutableList<WebView>) {
@@ -193,17 +203,16 @@ $paragraphs
         const val PARAGRAPHS = 40
         const val MID_CHAPTER = 10
         const val MAX_TURNS = 30
-        const val TOLERANCE = 1
         const val SETTLE_MILLIS = 1_500L
         const val POLL_MILLIS = 250L
         const val TIMEOUT_MILLIS = 30_000L
         const val JS_TIMEOUT_SECONDS = 5L
 
-        const val FIRST_PARAGRAPH_SCRIPT =
-            "(function(){var ps=document.querySelectorAll('p');" +
+        const val PARAGRAPHS_SCRIPT =
+            "(function(){var ps=document.querySelectorAll('p');var shown=[];" +
                 "for(var i=0;i<ps.length;i++){var r=ps[i].getBoundingClientRect();" +
                 "if(r.right>0&&r.left<window.innerWidth&&r.bottom>0&&r.top<window.innerHeight){" +
-                "var m=/paragraph (\\d+)/.exec(ps[i].textContent);if(m)return m[1];}}return '';})()"
+                "var m=/paragraph (\\d+)/.exec(ps[i].textContent);if(m)shown.push(m[1]);}}return shown.join(',');})()"
 
         const val CONTAINER = """<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">

@@ -104,16 +104,16 @@ class SettingsSemanticsTest {
     }
 
     @Test
-    fun theWallpaperSwitchCarriesItsNameAndStartsOn() {
+    fun theWallpaperSwitchCarriesItsNameAndStartsOff() {
         showSettings()
         open(R.string.settings_appearance)
-        // `native-experience`: the wallpaper scheme is the default, and the setting is the
-        // way back to StoryArc's own palette. One node, so a screen reader hears the name
-        // and the state together rather than a bare on/off beside a paragraph.
+        // StoryArc's own palette is the default since 2026-10-06 (`AppSettings.useDynamicColor`),
+        // and the setting is the way to the wallpaper scheme. One node, so a screen reader hears
+        // the name and the state together rather than a bare on/off beside a paragraph.
         val row = compose.onNodeWithText(context.getString(R.string.appearance_dynamic_colour))
-        row.assertIsOn()
-        row.performClick()
         row.assertIsOff()
+        row.performClick()
+        row.assertIsOn()
     }
 
     @Test
