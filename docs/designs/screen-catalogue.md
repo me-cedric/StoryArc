@@ -24,6 +24,8 @@ accessibility audit.
   - Entry 08 allows 16 per cent of its pixels to differ, because the tab bar and the accessory
     are two glass lenses that move a few levels of colour from run to run. Those two bars are a
     device screenshot case.
+  - Entry 01 allows 2 per cent, because the glass edge of the two Resume capsules draws in one of
+    two ways from run to run, and the two differ in 1.3 per cent of the pixels.
   - A reference belongs to one iOS version. Another version fails by a few thousand pixels or by
     a whole bar. Record again on that version.
 - **iOS accessibility audit.** `CatalogueAuditTests` in the UI-test target walks the real app to
