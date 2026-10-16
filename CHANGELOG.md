@@ -211,7 +211,11 @@ The two apps version and release independently — `ios-vX.Y.Z` and
   - Building the iOS app now needs the Metal toolchain, which is not part of a default
     Xcode install: `xcodebuild -downloadComponent MetalToolchain`, about 690 MB. It is a
     separate download rather than something the package can declare, so it is in
-    [the iOS README](apps/ios/README.md).
+    [the iOS README](apps/ios/README.md). Since Xcode 27.1 the host build and `pnpm
+    test:ios` need it too, because SwiftPM's new build system compiles the shader instead
+    of warning that it is unhandled, and the component is bound to the Xcode that
+    downloaded it, so an Xcode upgrade asks for it again. `AGENTS.md` says what the
+    failure looks like.
 - **The page curl, on Android.** One AGSL shader over the two decoded pages: the
   crease follows your finger, the turned sheet shows the page's back, its leading edge
   catches light and it casts a shadow on the page beneath. Past halfway the turn
@@ -521,6 +525,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Tooling
 
+- **The Kavita mock's self-test no longer resets on a Mac.** It read the metadata of all
+  155 series at once, which opened 155 sockets against a listener whose backlog the macOS
+  kernel caps at 128; the kernel reset the overflow and `pnpm lint` stopped at
+  `kavita:check` on every Mac while the Linux runner, whose cap is 4096, never saw it. The
+  reads now go sixteen at a time.
+- **The icon chooser's announcement test reads Xcode 27.1's SDK as well as Xcode 26's.**
+  SwiftUI moved the accessibility traits and visibility it stores from named fields back
+  to entries keyed by a `TraitsKey` or `VisibilityKey` type, and the calibration that reads
+  SwiftUI's own trait numbering found nothing, so seven assertions failed on the newer
+  toolchain. Both shapes are read now; the numbering is still never spelled in the test.
 - **`pnpm delta:drop`, in `pnpm lint`.** A `## MODIFIED` spec delta replaces its
   requirement's whole block, so anything the main spec holds and the delta omits is
   deleted the moment the change is archived — and `openspec validate` never looks, because
