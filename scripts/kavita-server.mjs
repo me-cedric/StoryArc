@@ -1046,10 +1046,25 @@ const drive = async () => {
   // wire as bare integers. They were served as a constant zero and a three-cycle, which is
   // a corpus in which the stated-rating path never happens — so a client that dropped the
   // rating entirely, which is what both clients did, looked exactly like one that kept it.
-  const held = await Promise.all(
-    series.map(async (each) =>
-      (await get(`/api/Series/metadata?seriesId=${each.id}`, token)).json())
-  )
+  //
+  // Read in bounded batches rather than all at once. `series` holds 155 rows, and
+  // `Promise.all` over a `fetch` per row opens 155 sockets in the same tick against a
+  // listener whose backlog the macOS kernel caps at `kern.ipc.somaxconn`, 128. Linux caps
+  // it at 4096, which is why the ubuntu runner that runs `pnpm lint` never saw this; on a
+  // Mac the kernel resets the overflow and the self-test died with `connect ECONNRESET`
+  // on the first spare socket, under Node 24 and 26 alike. Sixteen is well under the cap
+  // on every host and still far more than a shelf ever asks at once.
+  const metadataOf = async (rows) => {
+    const held = []
+    for (let start = 0; start < rows.length; start += 16) {
+      held.push(...await Promise.all(
+        rows.slice(start, start + 16).map(async (each) =>
+          (await get(`/api/Series/metadata?seriesId=${each.id}`, token)).json())
+      ))
+    }
+    return held
+  }
+  const held = await metadataOf(series)
   check('the metadata route states an age rating on every series',
     held.every((each) => typeof each.ageRating === 'number'))
 
