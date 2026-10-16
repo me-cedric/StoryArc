@@ -3,8 +3,10 @@
 //! shared corpus in `packages/test-fixtures` (`docs/architecture/format-layer.md`).
 
 mod byte_reader;
+pub mod tar;
 pub mod zip;
 mod zip_central_directory;
 mod zip_recovery;
 
+pub use tar::{TarEntry, TarError, TarReader};
 pub use zip::{ZipEntry, ZipError, ZipReader};

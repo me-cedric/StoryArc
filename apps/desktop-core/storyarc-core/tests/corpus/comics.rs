@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use storyarc_core::formats::{ZipError, ZipReader};
+use storyarc_core::formats::{TarReader, ZipError, ZipReader};
 use storyarc_core::io::{FileSource, RandomAccessSource};
 
 use super::manifest::{self, Comic};
@@ -16,6 +16,7 @@ pub const PNG_SIGNATURE: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x
 pub fn check(fixture: &Comic) -> Result<(), String> {
     match container(fixture) {
         "zip" => check_zip(fixture),
+        "tar" => check_tar(fixture),
         other => Err(format!(
             "no {other} reader opens {} yet ({})",
             fixture.file, fixture.pins
@@ -133,6 +134,37 @@ fn check_recovered_zip(source: Arc<dyn RandomAccessSource>) -> Result<(), String
             .map_err(|e| format!("{}: {e}", entry.path))?;
         expect(
             &format!("{} decodes to a PNG", entry.path),
+            data.starts_with(&PNG_SIGNATURE),
+            true,
+        )?;
+    }
+    Ok(())
+}
+
+/// The container level (task 1.3): a CBT's regular files, in archive order, read verbatim.
+fn check_tar(fixture: &Comic) -> Result<(), String> {
+    let tar = TarReader::open(source(fixture)?).map_err(|e| format!("open: {e}"))?;
+    let paths: Vec<&str> = tar.entries().iter().map(|e| e.path.as_str()).collect();
+    let order: Vec<&str> = fixture
+        .expected_page_order
+        .iter()
+        .flatten()
+        .map(String::as_str)
+        .collect();
+    // TAR fixtures hold pages and chapter directories only, and directory blocks are not
+    // entries, so the entry list *is* the page order the manifest records.
+    expect("entries in archive order", paths, order)?;
+    for entry in tar.entries() {
+        let data = tar
+            .data(entry)
+            .map_err(|e| format!("{}: {e}", entry.path))?;
+        expect(
+            &format!("{} byte count", entry.path),
+            data.len() as u64,
+            entry.size,
+        )?;
+        expect(
+            &format!("{} starts as a PNG", entry.path),
             data.starts_with(&PNG_SIGNATURE),
             true,
         )?;
