@@ -1,9 +1,14 @@
-//! StoryArc for Linux. Base shell only: no feature code yet.
+//! StoryArc for Linux. The shell only: no feature code yet.
+
+mod session;
+mod window_state;
 
 use adw::prelude::*;
 use gtk::{gio, glib};
 
-const APP_ID: &str = "com.mecedric.StoryArc";
+use window_state::{MIN_HEIGHT, MIN_WIDTH};
+
+pub(crate) const APP_ID: &str = "com.mecedric.StoryArc";
 const SECTIONS: [&str; 3] = ["Home", "Library", "Downloads"];
 
 fn main() -> glib::ExitCode {
@@ -25,13 +30,25 @@ fn find_icon_when_uninstalled() {
 
 fn install_actions(app: &adw::Application) {
     let quit = gio::ActionEntry::builder("quit")
-        .activate(|app: &adw::Application, _, _| app.quit())
+        .activate(|app: &adw::Application, _, _| close_all_and_quit(app))
         .build();
     let about = gio::ActionEntry::builder("about")
         .activate(|app: &adw::Application, _, _| show_about(app))
         .build();
     app.add_action_entries([quit, about]);
+    // GNOME has no standard Quit key, so Control and Q quits and Control and W closes the window.
+    // `window.close` is GTK's own action on every window, so it reaches reader windows too.
     app.set_accels_for_action("app.quit", &["<Control>q"]);
+    app.set_accels_for_action("window.close", &["<Control>w"]);
+}
+
+/// Closes every window first, so each one writes its state on the way out,
+/// then ends the process even if a window declined to close.
+fn close_all_and_quit(app: &adw::Application) {
+    for window in app.windows() {
+        window.close();
+    }
+    app.quit();
 }
 
 fn show_about(app: &adw::Application) {
@@ -57,13 +74,20 @@ fn present_window(app: &adw::Application) {
     let window = adw::ApplicationWindow::builder()
         .application(app)
         .title("StoryArc")
-        .default_width(1100)
-        .default_height(720)
-        .width_request(360)
-        .height_request(294)
         .content(&split)
         .build();
+    // The minimum size is a size request: libadwaita sets one of its own only from 1.6.
+    window.set_size_request(MIN_WIDTH, MIN_HEIGHT);
+    let state = session::restore(&gtk::prelude::WidgetExt::display(&window));
+    window.set_default_size(state.width, state.height);
+    if state.maximized {
+        window.maximize();
+    }
     window.add_breakpoint(narrow_breakpoint(&split));
+    window.connect_close_request(|window| {
+        session::save(window);
+        glib::Propagation::Proceed
+    });
     window.present();
 }
 
