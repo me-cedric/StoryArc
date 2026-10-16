@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The menu of a window (desktop-clients task 2.38): a MenuBar, or under 720 device-independent
+     pixels a "..." button that opens the same six menus as sub-menus (docs/designs/desktop/windows.md,
+     section 6). Both are filled from the command table by MenuBuilder. -->
+<UserControl
+    x:Class="StoryArc.Windows.AppMenu"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    SizeChanged="OnSizeChanged">
+    <Grid>
+        <MenuBar
+            x:Name="Bar"
+            HorizontalAlignment="Left"
+            AutomationProperties.AutomationId="MenuBar" />
+        <Button
+            x:Name="OverflowButton"
+            Visibility="Collapsed"
+            HorizontalAlignment="Left"
+            Background="Transparent"
+            BorderThickness="0"
+            AutomationProperties.AutomationId="MenuOverflow">
+            <FontIcon Glyph="&#xE712;" />
+        </Button>
+    </Grid>
+</UserControl>

@@ -1,21 +1,18 @@
-using System.Runtime.InteropServices;
-using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.ApplicationModel.Resources;
 using StoryArc.Interop;
+using StoryArc.Interop.Shell;
+using StoryArc.Windows.Shell;
 using Windows.ApplicationModel;
-using Windows.Graphics;
 
 namespace StoryArc.Windows;
 
+/// <summary>The library window: one per app, at its saved frame when the last run left one.</summary>
 public sealed partial class MainWindow : Window
 {
-    private const double WidthDip = 1100;
-    private const double HeightDip = 720;
-    private const double MinWidthDip = 480;
-    private const double MinHeightDip = 360;
+    private readonly AppHost _host;
 
     /// <summary>
     /// The app's strings, generated from the iOS catalogues into <c>Strings/&lt;lang&gt;/Resources.resw</c>
@@ -24,11 +21,9 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private readonly ResourceLoader _strings = new();
 
-    [LibraryImport("user32.dll")]
-    private static partial uint GetDpiForWindow(nint hwnd);
-
-    public MainWindow()
+    internal MainWindow(AppHost host, LibraryWindowState? restored)
     {
+        _host = host;
         InitializeComponent();
 
         // Windows.ApplicationModel.AppInfo: the display name from Package.appxmanifest, so the window,
@@ -42,13 +37,22 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        var scale = GetDpiForWindow(Win32Interop.GetWindowFromWindowId(AppWindow.Id)) / 96.0;
-        AppWindow.Resize(new SizeInt32((int)(WidthDip * scale), (int)(HeightDip * scale)));
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        if (restored is not null)
         {
-            presenter.PreferredMinimumWidth = (int)(MinWidthDip * scale);
-            presenter.PreferredMinimumHeight = (int)(MinHeightDip * scale);
+            WindowPlacement.Restore(AppWindow, restored.Frame, restored.DisplayId, restored.IsMaximized);
         }
+        else
+        {
+            WindowPlacement.OpenAtDefault(AppWindow, WindowDefaults.LibraryWidth, WindowDefaults.LibraryHeight);
+        }
+
+        WindowPlacement.SetMinimumSize(AppWindow);
+
+        Func<string, bool> isAvailable = id => CommandRouting.IsHandled(id, WindowKind.Library);
+        Action<string> invoke = id => _host.Invoke(id, this);
+        Menu.Initialize(WindowKind.Library, isAvailable, invoke);
+        MenuBuilder.AttachAccelerators(Root, WindowKind.Library, isAvailable, invoke);
+        Preferences.Initialize(_host);
 
         // The four destinations, named as the iOS tab bar names them (LibraryDestination: home,
         // library, onDevice, search). The list does not change when sources are added or removed.
@@ -59,6 +63,16 @@ public sealed partial class MainWindow : Window
 
         CoreVersionText.Text = ReadCoreVersion();
         Navigation.SelectedItem = HomeItem;
+
+        AppWindow.Changed += OnAppWindowChanged;
+        _host.LibraryMoved(Snapshot());
+    }
+
+    /// <summary>Selects the Settings item of the pane, which shows the preferences page.</summary>
+    internal void ShowPreferences()
+    {
+        Navigation.SelectedItem = Navigation.SettingsItem;
+        Activate();
     }
 
     private static string ReadCoreVersion()
@@ -75,10 +89,10 @@ public sealed partial class MainWindow : Window
 
     private void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
+        Preferences.Visibility = args.IsSettingsSelected ? Visibility.Visible : Visibility.Collapsed;
+        EmptyState.Visibility = args.IsSettingsSelected ? Visibility.Collapsed : Visibility.Visible;
         if (args.IsSettingsSelected)
         {
-            SectionTitle.Text = _strings.GetString("home_settings");
-            EmptyText.Text = string.Empty;
             return;
         }
 
@@ -86,4 +100,17 @@ public sealed partial class MainWindow : Window
         SectionTitle.Text = item?.Content as string ?? string.Empty;
         EmptyText.Text = item?.Tag is string emptyKey ? _strings.GetString(emptyKey) : string.Empty;
     }
+
+    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        if (args.DidPositionChange || args.DidSizeChange)
+        {
+            _host.LibraryMoved(Snapshot());
+        }
+    }
+
+    private LibraryWindowState Snapshot() => new(
+        WindowPlacement.FrameOf(AppWindow),
+        WindowPlacement.IsMaximized(AppWindow),
+        WindowPlacement.DisplayIdOf(AppWindow));
 }

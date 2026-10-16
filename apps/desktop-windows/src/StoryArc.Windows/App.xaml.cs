@@ -1,10 +1,13 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using StoryArc.Windows.Shell;
 
 namespace StoryArc.Windows;
 
 public partial class App : Application
 {
-    private Window? _window;
+    // Held for the life of the app: the windows, the session and the settings are its.
+    private AppHost? _host;
 
     public App()
     {
@@ -13,7 +16,7 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        _host = new AppHost(DispatcherQueue.GetForCurrentThread());
+        _host.Start();
     }
 }

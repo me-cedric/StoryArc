@@ -10,10 +10,10 @@ namespace StoryArc.Windows.Shell;
 /// <summary>
 /// Builds the menus from <see cref="CommandTable"/>, so the menu bar, the "..." overflow of a
 /// narrow window and the reader's menu are one list (desktop-clients task 2.38). Each item is a
-/// <c>Microsoft.UI.Xaml.Controls.MenuFlyoutItem</c> with a
-/// <c>Microsoft.UI.Xaml.Input.KeyboardAccelerator</c> where the command has a key with a
-/// modifier or a function key, and the key's text in <c>KeyboardAcceleratorTextOverride</c> so
-/// the menu shows it.
+/// <c>Microsoft.UI.Xaml.Controls.MenuFlyoutItem</c> that shows its key in
+/// <c>KeyboardAcceleratorTextOverride</c>. The keys themselves are
+/// <c>Microsoft.UI.Xaml.Input.KeyboardAccelerator</c>s on the window's root (<see cref="AttachAccelerators"/>),
+/// so they keep working while the menu bar is hidden in full screen and are registered once.
 /// </summary>
 /// <remarks>
 /// A plain key (the arrows, Home, End, Space) is never a global accelerator: it would take the key
@@ -36,8 +36,12 @@ internal static class MenuBuilder
         [MenuName.Help] = ("menu_help", "Help", "H"),
     };
 
-    /// <summary>Fills a <c>MenuBar</c> with the six menus. The accelerators ride on the items, as the WinUI MenuBar sample does.</summary>
-    public static void Fill(MenuBar bar, WindowKind window, Action<string> invoke)
+    /// <summary>
+    /// Fills a <c>MenuBar</c> with the six menus. A command is enabled when its window kind applies
+    /// and <paramref name="isAvailable"/> says something answers it; the rest show disabled, so the
+    /// menu has the same shape in every window.
+    /// </summary>
+    public static void Fill(MenuBar bar, WindowKind window, Func<string, bool> isAvailable, Action<string> invoke)
     {
         bar.Items.Clear();
         foreach (var menu in Enum.GetValues<MenuName>())
@@ -45,18 +49,16 @@ internal static class MenuBuilder
             var (key, label, accessKey) = Menus[menu];
             var item = new MenuBarItem { Title = Strings.Get(key, label), AccessKey = accessKey };
             AutomationProperties.SetAutomationId(item, "Menu_" + menu);
-            FillItems(item.Items, menu, window, invoke, withAccelerators: true);
+            FillItems(item.Items, menu, window, isAvailable, invoke);
             bar.Items.Add(item);
         }
     }
 
     /// <summary>
     /// The same six menus as sub-menus of one flyout: the "..." button of a window narrower than
-    /// 720 and the reader's menu. Its items carry the key text only; the keys themselves are
-    /// attached to the window's root by <see cref="AttachAccelerators"/>, because a flyout that is
-    /// not open is not in the tree.
+    /// 720 and the reader's menu. Its items carry the key text only, like the menu bar's.
     /// </summary>
-    public static MenuFlyout Overflow(WindowKind window, Action<string> invoke)
+    public static MenuFlyout Overflow(WindowKind window, Func<string, bool> isAvailable, Action<string> invoke)
     {
         var flyout = new MenuFlyout();
         foreach (var menu in Enum.GetValues<MenuName>())
@@ -64,19 +66,19 @@ internal static class MenuBuilder
             var (key, label, _) = Menus[menu];
             var sub = new MenuFlyoutSubItem { Text = Strings.Get(key, label) };
             AutomationProperties.SetAutomationId(sub, "Overflow_" + menu);
-            FillItems(sub.Items, menu, window, invoke, withAccelerators: false);
+            FillItems(sub.Items, menu, window, isAvailable, invoke);
             flyout.Items.Add(sub);
         }
 
         return flyout;
     }
 
-    /// <summary>Attaches the shortcuts of every command enabled in <paramref name="window"/> to <paramref name="root"/>.</summary>
-    public static void AttachAccelerators(UIElement root, WindowKind window, Action<string> invoke)
+    /// <summary>Attaches the shortcuts of every command enabled in <paramref name="window"/> to <paramref name="root"/>, once each.</summary>
+    public static void AttachAccelerators(UIElement root, WindowKind window, Func<string, bool> isAvailable, Action<string> invoke)
     {
-        foreach (var command in CommandTable.All.Where(command => CommandTable.IsEnabled(command, window)))
+        foreach (var command in CommandTable.All.Where(command => CommandTable.IsEnabled(command, window) && isAvailable(command.Id)))
         {
-            foreach (var accelerator in Accelerators(command, isEnabled: true))
+            foreach (var accelerator in Accelerators(command))
             {
                 var id = command.Id;
                 accelerator.Invoked += (sender, args) =>
@@ -89,7 +91,7 @@ internal static class MenuBuilder
         }
     }
 
-    private static void FillItems(IList<MenuFlyoutItemBase> items, MenuName menu, WindowKind window, Action<string> invoke, bool withAccelerators)
+    private static void FillItems(IList<MenuFlyoutItemBase> items, MenuName menu, WindowKind window, Func<string, bool> isAvailable, Action<string> invoke)
     {
         foreach (var command in CommandTable.InMenu(menu))
         {
@@ -98,13 +100,13 @@ internal static class MenuBuilder
                 items.Add(new MenuFlyoutSeparator());
             }
 
-            items.Add(Item(command, window, invoke, withAccelerators));
+            items.Add(Item(command, window, isAvailable, invoke));
         }
     }
 
-    private static MenuFlyoutItem Item(AppCommand command, WindowKind window, Action<string> invoke, bool withAccelerators)
+    private static MenuFlyoutItem Item(AppCommand command, WindowKind window, Func<string, bool> isAvailable, Action<string> invoke)
     {
-        var isEnabled = CommandTable.IsEnabled(command, window);
+        var isEnabled = CommandTable.IsEnabled(command, window) && isAvailable(command.Id);
         var item = new MenuFlyoutItem
         {
             Text = Strings.Get(command.LabelKey, command.Label),
@@ -119,18 +121,10 @@ internal static class MenuBuilder
             item.KeyboardAcceleratorTextOverride = shortcut.Display;
         }
 
-        if (withAccelerators)
-        {
-            foreach (var accelerator in Accelerators(command, isEnabled))
-            {
-                item.KeyboardAccelerators.Add(accelerator);
-            }
-        }
-
         return item;
     }
 
-    private static IEnumerable<KeyboardAccelerator> Accelerators(AppCommand command, bool isEnabled)
+    private static IEnumerable<KeyboardAccelerator> Accelerators(AppCommand command)
     {
         if (HandledByTheFocusedControl.Contains(command.Id))
         {
@@ -150,7 +144,6 @@ internal static class MenuBuilder
                 {
                     Key = key,
                     Modifiers = Modifiers(shortcut.Modifiers),
-                    IsEnabled = isEnabled,
                 };
             }
         }

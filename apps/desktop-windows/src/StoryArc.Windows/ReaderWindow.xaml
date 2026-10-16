@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- One reader window per publication (desktop-clients task 2.37). The page itself is drawn by the
+     reader view of task 2.40; until then the window shows where it is: the publication and its page. -->
+<Window
+    x:Class="StoryArc.Windows.ReaderWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:StoryArc.Windows">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="Root" PointerMoved="OnPointerMoved" KeyDown="OnKeyDown">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar x:Name="AppTitleBar">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <local:AppMenu x:Name="Menu" Grid.Row="1" />
+
+        <TextBlock
+            x:Name="PageText"
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Style="{ThemeResource TitleTextBlockStyle}"
+            AutomationProperties.AutomationId="ReaderPage" />
+    </Grid>
+</Window>
