@@ -16,8 +16,8 @@ use std::cmp::Ordering;
 
 use icu::collator::options::{CollatorOptions, Strength};
 use icu::collator::{Collator, CollatorBorrowed};
+use icu::datetime::DateTimeFormatter;
 use icu::datetime::fieldsets::YMD;
-use icu::datetime::{DateTimeFormatter, NoCalendarFormatter};
 use icu::decimal::DecimalFormatter;
 use icu::decimal::input::Decimal;
 use icu::locale::Locale;
@@ -98,7 +98,6 @@ fn articles(language: &str) -> &'static [&'static str] {
 /// `Collation::sort_key`, for a caller that holds a language code and no collator.
 pub fn sort_key<'a>(title: &'a str, language: &str) -> &'a str {
     let trimmed = title.trim();
-    let lowered = trimmed.to_lowercase();
     for article in articles(language) {
         // The apostrophe forms — French "l'" — carry no space after them.
         let prefix = if article.ends_with('\'') {
@@ -106,7 +105,12 @@ pub fn sort_key<'a>(title: &'a str, language: &str) -> &'a str {
         } else {
             format!("{article} ")
         };
-        if lowered.len() > prefix.len() && lowered.starts_with(&prefix) {
+        // Every article is ASCII, so a case-insensitive ASCII compare of the first bytes is
+        // the `lowercased().hasPrefix` of iOS without lower-casing the whole title.
+        let matches = trimmed
+            .get(..prefix.len())
+            .is_some_and(|head| head.eq_ignore_ascii_case(&prefix));
+        if trimmed.len() > prefix.len() && matches {
             return trimmed[prefix.len()..].trim_start();
         }
     }
@@ -146,12 +150,10 @@ pub fn format_date(moment: Timestamp, tag: &str) -> String {
         return moment.to_rfc3339()[..10].to_owned();
     };
     let locale = locale(tag);
-    match DateTimeFormatter::try_new((&locale).into(), YMD::medium()) {
-        Ok(formatter) => formatter.format(&date).to_string(),
-        Err(_) => NoCalendarFormatter::try_new(Default::default(), YMD::medium())
-            .map(|formatter| formatter.format(&date).to_string())
-            .unwrap_or_else(|_| moment.to_rfc3339()[..10].to_owned()),
-    }
+    DateTimeFormatter::try_new((&locale).into(), YMD::medium())
+        .or_else(|_| DateTimeFormatter::try_new(Default::default(), YMD::medium()))
+        .map(|formatter| formatter.format(&date).to_string())
+        .unwrap_or_else(|_| moment.to_rfc3339()[..10].to_owned())
 }
 
 #[cfg(test)]
@@ -181,6 +183,40 @@ mod tests {
     #[test]
     fn swedish_files_a_ring_and_a_diaeresis_after_z() {
         assert_eq!(shelf("sv"), ["Ñandú", "Nuez", "Zorro", "Ångström", "Ähre"]);
+    }
+
+    /// iOS's `LibrarySortSpeaksTheReadersLanguageTests` records that English files these five
+    /// as German does; French folds the same way. The four interface languages, all stated.
+    #[test]
+    fn english_and_french_file_the_five_titles_as_german_does() {
+        let german = ["Ähre", "Ångström", "Ñandú", "Nuez", "Zorro"];
+        assert_eq!(shelf("en"), german);
+        assert_eq!(shelf("fr"), german);
+    }
+
+    #[test]
+    fn the_languages_disagree_so_each_answer_is_real() {
+        let orders: std::collections::HashSet<Vec<&str>> =
+            ["es", "de", "sv"].into_iter().map(shelf).collect();
+        assert_eq!(orders.len(), 3);
+    }
+
+    /// The iPad sidebar's series cases: Spanish files *Nube* before *Ñu*, German the reverse,
+    /// and three series put *Ñandú* last in Spanish.
+    #[test]
+    fn series_names_collate_as_the_ios_sidebar_does() {
+        let sorted = |language: &str, names: &[&'static str]| {
+            let collation = Collation::new(language);
+            let mut names = names.to_vec();
+            names.sort_by(|a, b| collation.compare_stable(a, b));
+            names
+        };
+        assert_eq!(sorted("es", &["Ñu", "Nube"]), ["Nube", "Ñu"]);
+        assert_eq!(sorted("de", &["Nube", "Ñu"]), ["Ñu", "Nube"]);
+        assert_eq!(
+            sorted("es", &["Ñandú", "Nube", "Nuez"]),
+            ["Nube", "Nuez", "Ñandú"]
+        );
     }
 
     #[test]
