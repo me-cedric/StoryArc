@@ -58,6 +58,13 @@ pub struct Comic {
     pub expected_skipped_page_count: Option<usize>,
     /// What the archive's undecodable page should be named as.
     pub expected_undecodable_codec: Option<String>,
+    /// The page's size in pixels, where the fixture pins one. Read by `tests/decode.rs`.
+    #[allow(dead_code)]
+    pub page_dimensions: Option<Vec<u32>>,
+    /// The colour at the centre of the first page, which every decoder must reproduce. Read
+    /// by `tests/decode.rs`.
+    #[allow(dead_code)]
+    pub expected_page_pixel: Option<Vec<i64>>,
 }
 
 /// The `ComicInfo.xml` fields a fixture records. Every one is optional in the file too.

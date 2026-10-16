@@ -2,6 +2,7 @@
 
 pub mod domain;
 pub mod formats;
+pub mod image;
 pub mod io;
 pub mod locale;
 pub mod paths;

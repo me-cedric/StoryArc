@@ -28,6 +28,11 @@ all = { level = "deny", priority = -1 }
 # the CI runners and the distro containers do not install libdav1d; with it off an AVIF
 # page is refused by name (task 2.5). Built and tested on a Mac with Homebrew's dav1d.
 avif = ["image/avif-native"]
+# HEIC decoding through `zune-heic`, pure Rust with its own HEVC decoder. On by default
+# because it builds wherever the core builds; a packager who will not ship an HEVC decoder
+# turns it off, and an HEIC page is then refused by name like an AVIF one.
+heic = ["dep:zune-heic"]
+default = ["heic"]
 
 [dependencies]
 # miniz_oxide 0.9.1, MIT OR Zlib OR Apache-2.0: raw DEFLATE for ZIP entries. ADR-0008 takes
@@ -52,6 +57,12 @@ sha2 = "0.11.1"
 # image 0.25.10, MIT OR Apache-2.0: JPEG, PNG, WebP and GIF page decoding, with every other
 # format off so a crafted page reaches no decoder the reader was not promised.
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+# zune-heic 0.5.0, MIT OR Apache-2.0 OR Zlib, with zune-isobmff 0.5.0 (same licence) for the
+# container: HEIC pages (task 2.5). Pure Rust and bit-identical to libheif by its own CI;
+# libheif itself is LGPL-3.0 and libde265 LGPL-3.0, so neither is used. Pinned exactly: the
+# crate is young and decodes untrusted input. Apple's VideoToolbox path is switched off in
+# `image::decode` so every desktop runs the same decoder.
+zune-heic = { version = "=0.5.0", optional = true }
 # icu 2.3.1, Unicode-3.0: ICU4X collation, number and date formatting, and the normaliser
 # the search fold uses, with the compiled data of every locale (design.md, Decision 5).
 icu = "2.3.1"
