@@ -101,22 +101,27 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 **Lane M: the macOS shell**
 
-- [ ] 1.11 **Entitlement test first.** `apps/desktop-macos/Tests/EntitlementsTests.swift` reads the entitlements file and
+- [x] 1.11 **Entitlement test first.** `apps/desktop-macos/Tests/EntitlementsTests.swift` reads the entitlements file and
   asserts the sandbox, user-selected read-write, app-scope bookmarks and network client keys, plus the keychain group if
   task 1.13 decides on one, and no others. Read-write is for the diagnostic export of task 3.14. Then add the file.
   Verify: `xcodebuild test -scheme StoryArc -destination 'platform=macOS'` passes.
-- [ ] 1.12 **Folder bookmarks that survive the sandbox.** A Mac wrapper that creates and resolves with
+- [x] 1.12 **Folder bookmarks that survive the sandbox.** A Mac wrapper that creates and resolves with
   `.withSecurityScope`, refreshes a stale bookmark and balances start and stop. A spy test asserts the options. Parent
   task 1.30 moves the fix into `Persistence`. Verify: the spy test passes and a sandboxed run keeps a folder across a relaunch.
-- [ ] 1.13 **Data-protection keychain, a spike first.** An ad-hoc build has no team ID, and the data-protection keychain
+- [x] 1.13 **Data-protection keychain, a spike first.** An ad-hoc build has no team ID, and the data-protection keychain
   needs an application identifier or a keychain access group, so `SecItemAdd` is expected to fail with
   `errSecMissingEntitlement` (-34018) (Inferred). Run the call once in an ad-hoc build and write the result into
   `design.md`, Decision 2. If it fails, ad-hoc builds use the login keychain and the data-protection path waits for
   task 6.8. Then a Mac wrapper picks the path, with a test that saves and reads a secret and a test that the secret is
   absent from the container's files. Verify: the result is in `design.md` and both tests pass for the path the spike chose.
-- [ ] 1.14 **The shell.** One `Window` for the library with a `NavigationSplitView` sidebar of the destination set, empty
+- [x] 1.14 **The shell.** One `Window` for the library with a `NavigationSplitView` sidebar of the destination set, empty
   states, and a `Settings` scene. Verify: a UI walk opens the window and the settings and `pnpm build:macos` passes. Captures
-  in light and dark.
+  in light and dark. **Built 2026-10-16:** `pnpm build:macos` exits 0 and `xcodebuild test` passes 17 of 17
+  (entitlements pinned from both sides, bookmarks with `.withSecurityScope`, the keychain path measured, the window and
+  Settings walked); six frames under `docs/designs/screenshots/desktop/macos/wave1/`, taken from inside the app because
+  `screencapture` has no Screen Recording grant here, every one with the window inactive and the wide ones at the tiling
+  manager's size, as their README says. Search sits fourth in the sidebar, in `LibraryDestination`'s order; the Library
+  and Shelves groups are wave 2.
 
 **Lane L: the Linux shell**
 
@@ -181,6 +186,8 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   join `scripts/sync-tokens.mjs` and `pnpm tokens:verify` once the Windows and Linux shells read them, so the box stays open.
 - [x] 1.32 **[X] Lint wiring (parent edit, `package.json`).** Add the EPUB bundle pin check, the PDFium pin check and the
   desktop strings drift check of task 2.8 to `pnpm lint`. Verify: each fails `pnpm lint` on a deliberate break.
+  **Wired 2026-10-16:** `pnpm epub:pin`, `pnpm pdfium:pin` and `pnpm strings:desktop:check` run inside `pnpm lint`, and
+  their self-tests inside `pnpm selftests`; each self-test mutates its input and fails by name.
 
 ## 2. Wave 2: open and read a comic
 

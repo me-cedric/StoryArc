@@ -128,9 +128,14 @@ and wait for the iOS owner. The Mac lane works around each of them inside `apps/
 `com.apple.security.files.user-selected.read-write`, `com.apple.security.files.bookmarks.app-scope`,
 `com.apple.security.network.client`. Read-write is needed because the diagnostic export writes a file the reader names
 outside the container (`desktop-experience`, diagnostics). The keychain access group is not in this list yet: it needs a
-team ID, and task 1.13 spikes whether an ad-hoc build can use the data-protection keychain at all. Result: pending task
-1.13. If the call fails with `errSecMissingEntitlement` (-34018), ad-hoc builds use the login keychain and the
-data-protection path waits for task 6.8. Add the audio-input entitlement only if a spec ever needs it. SMB uses the
+team ID, and task 1.13 spikes whether an ad-hoc build can use the data-protection keychain at all. **Result, measured
+2026-10-16 (task 1.13, Xcode 27.1, inside the sandboxed ad-hoc app): `SecItemAdd` with `kSecUseDataProtectionKeychain`
+returns `errSecMissingEntitlement` (-34018).** So ad-hoc builds use the login keychain: `MacCredentialStore.path` is
+`.login`, no keychain group is declared, `EntitlementsTests` asserts exactly four keys, and the data-protection path
+waits for the team-signed build of task 6.8, whose stable designated requirement also removes the login keychain's
+ad-hoc wart (a rebuilt binary is a different app to an item the previous build wrote).
+`MacCredentialStoreTests.dataProtectionKeychainRefusesAnAdHocBuild` pins -34018 so a signed build flips the path on
+evidence; `apps/desktop-macos/Tests/KeychainSpike.md` holds the full note. Add the audio-input entitlement only if a spec ever needs it. SMB uses the
 existing `Smb` package (SMBClient 0.3.1, pure Swift), which needs only the network entitlement. The app does not
 mount shares through `NetFS`.
 
