@@ -21,6 +21,14 @@ unsafe_code = "deny"
 [lints.clippy]
 all = { level = "deny", priority = -1 }
 
+[features]
+# AVIF decoding through libdav1d: `image`'s `avif-native` feature, which is the `dav1d`
+# bindings (0.11.1, MIT) over the libdav1d system library (BSD-2-Clause, found through
+# pkg-config) and `mp4parse` (0.17.0, MPL-2.0) for the container. Off by default because
+# the CI runners and the distro containers do not install libdav1d; with it off an AVIF
+# page is refused by name (task 2.5). Built and tested on a Mac with Homebrew's dav1d.
+avif = ["image/avif-native"]
+
 [dependencies]
 # miniz_oxide 0.9.1, MIT OR Zlib OR Apache-2.0: raw DEFLATE for ZIP entries. ADR-0008 takes
 # inflate from the platform; a Rust core has no platform inflate, and this is the pure-Rust
@@ -30,6 +38,26 @@ miniz_oxide = "0.9.1"
 # iOS and Android express as regular expressions too. The dependency-free engine, because
 # nine patterns over one short string need neither Unicode classes nor speed.
 regex-lite = "0.1.9"
+# rusqlite 0.40.2, MIT, with the bundled SQLite (public domain) compiled by cc, so the core
+# carries one known SQLite on Windows and Linux rather than whatever the system ships. The
+# local store of design.md, Decision 5; pinned exactly because task 2.1 pins it.
+rusqlite = { version = "=0.40.2", features = ["bundled"] }
+# serde 1.0.229 and serde_json 1.0.154, MIT OR Apache-2.0: the records that cross the seam
+# as UTF-8 JSON (design.md, Decision 5), the stored positions, and the progress fixtures.
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+# sha2 0.11.1, MIT OR Apache-2.0: the content digest of ADR-0006 (SHA-256 over the length,
+# the first and the last 512 KB), which must equal the hex the mobile apps write.
+sha2 = "0.11.1"
+# image 0.25.10, MIT OR Apache-2.0: JPEG, PNG, WebP and GIF page decoding, with every other
+# format off so a crafted page reaches no decoder the reader was not promised.
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
+# icu 2.3.1, Unicode-3.0: ICU4X collation, number and date formatting, and the normaliser
+# the search fold uses, with the compiled data of every locale (design.md, Decision 5).
+icu = "2.3.1"
+# notify 8.2.0, CC0-1.0: the native folder watchers (inotify, ReadDirectoryChangesW,
+# FSEvents) behind the watcher abstraction of task 2.3.
+notify = "8.2.0"
 
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the
@@ -38,7 +66,5 @@ regex-lite = "0.1.9"
 cc = "=1.6.0"
 
 [dev-dependencies]
-# serde 1.0.229, MIT OR Apache-2.0: the corpus harness reads `manifest.json` into typed
-# records so a fixture's expectations are named fields rather than string lookups.
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1"
+# tempfile 3.27.0, MIT OR Apache-2.0: scratch folders for the scanner, watcher and store tests.
+tempfile = "3.27.0"
