@@ -10,6 +10,12 @@ repository.workspace = true
 [lints]
 workspace = true
 
+[dependencies]
+# miniz_oxide 0.9.1, MIT OR Zlib OR Apache-2.0: raw DEFLATE for ZIP entries. ADR-0008 takes
+# inflate from the platform; a Rust core has no platform inflate, and this is the pure-Rust
+# one `flate2` itself wraps, with no C and no feature flags.
+miniz_oxide = "0.9.1"
+
 [dev-dependencies]
 # serde 1.0.229, MIT OR Apache-2.0: the corpus harness reads `manifest.json` into typed
 # records so a fixture's expectations are named fields rather than string lookups.
