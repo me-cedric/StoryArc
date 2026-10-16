@@ -16,6 +16,13 @@ struct LibraryActions {
 
 enum LibraryGo { case home, library, downloads }
 
+/// A place the library window is asked to show from outside it.
+enum LibraryNavigation: Equatable {
+    case go(LibraryGo)
+    case search(String)
+    case details(publicationID: String)
+}
+
 /// What the key reader window can do.
 struct ReaderActions {
     let openFile: () -> Void

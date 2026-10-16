@@ -68,6 +68,17 @@ struct LibraryViewModelTests {
         #expect(selection.kept(in: ["p0", "p9"]).ids == ["p0"])
     }
 
+    @Test("The line under a cover names the series and issue, and never repeats the title")
+    func secondLine() {
+        #expect(CoverCell.secondLine(of: TestPublications.make(4, series: "Saga")) == "Saga · 4")
+        #expect(CoverCell.secondLine(of: TestPublications.make(4)) == nil)
+        let guessed = Publication(
+            identity: PublicationIdentity(normalizedPath: "/comics/natural-sort.cbz"), format: .cbz,
+            displayTitle: "natural-sort", series: "Natural-Sort", origin: .inferred
+        )
+        #expect(CoverCell.secondLine(of: guessed) == nil)
+    }
+
     @Test("The grid adds columns with the width and never fewer than two")
     func gridColumns() {
         #expect(LibraryGrid.columns(for: 400).count == 2)

@@ -74,7 +74,12 @@ enum Walk {
 
     /// The visible windows titled with this publication.
     static func readerWindows(for target: ReaderTarget) -> [NSWindow] {
-        NSApplication.shared.windows.filter { $0.isVisible && $0.title == target.title }
+        // The library window takes a publication's title while its page is shown, so it is
+        // left out by identifier.
+        NSApplication.shared.windows.filter { window in
+            window.isVisible && window.title == target.title
+                && !(window.identifier?.rawValue.hasPrefix(LibraryWindow.id) ?? false)
+        }
     }
 
     /// Opens a reader the way a click on a cover does.

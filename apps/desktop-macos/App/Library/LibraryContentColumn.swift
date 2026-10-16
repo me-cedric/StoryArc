@@ -172,7 +172,7 @@ struct LibraryNotices: View {
             Spacer()
             action().controlSize(.small)
         }
-        .font(.callout)
+        .scaledFont(.callout)
         .foregroundStyle(.secondary)
         .padding(.vertical, 6)
         .padding(.horizontal, 10)

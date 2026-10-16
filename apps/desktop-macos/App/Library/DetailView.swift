@@ -28,9 +28,9 @@ struct DetailView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                         .shadow(radius: 12, y: 6)
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(publication.displayTitle).font(.largeTitle.weight(.bold)).fontDesign(.serif)
+                        Text(publication.displayTitle).scaledFont(.largeTitle, weight: .bold).fontDesign(.serif)
                         if let line = CoverCell.secondLine(of: publication) {
-                            Text(line).font(.title3).foregroundStyle(theme.palette.textSecondary)
+                            Text(line).scaledFont(.title3).foregroundStyle(theme.palette.textSecondary)
                         }
                         if !publication.authors.isEmpty {
                             Text(publication.authors.joined(separator: ", "))
@@ -74,7 +74,7 @@ struct DetailView: View {
             if let pages = publication.pageCount { Text("desktop.detail.pages \(pages)") }
             if let year = publication.year { Text(String(year)) }
         }
-        .font(.callout)
+        .scaledFont(.callout)
         .foregroundStyle(theme.palette.textTertiary)
     }
 
@@ -101,6 +101,8 @@ struct DetailView: View {
         } label: {
             Text("desktop.detail.more")
         }
+        // A secondary action beside the prominent one is borderless (AGENTS.md section 6).
+        .menuStyle(.borderlessButton)
         .fixedSize()
     }
 
@@ -113,7 +115,7 @@ struct DetailView: View {
                 Text(detail.whereItLives)
             }
         }
-        .font(.callout)
+        .scaledFont(.callout)
         .foregroundStyle(theme.palette.textTertiary)
         .accessibilityElement(children: .combine)
     }

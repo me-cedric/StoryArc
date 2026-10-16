@@ -71,6 +71,11 @@ struct ChromeAccentTests {
         #expect(again.textSize == .largest)
         #expect(!again.coverAlone)
         #expect(!again.settings.turnPagesByTappingTheEdges)
-        #expect(ChromeTextSize.largest.dynamicTypeSize > ChromeTextSize.default.dynamicTypeSize)
+        // Each step is larger, and the largest draws body text at 20 points or more, which is
+        // what macOS's own largest Accessibility text size reaches in the apps that have one.
+        #expect(ChromeTextSize.default.scale == 1)
+        #expect(ChromeTextSize.large.scale > ChromeTextSize.default.scale)
+        #expect(ChromeTextSize.largest.scale > ChromeTextSize.large.scale)
+        #expect(Font.TextStyle.body.macPointSize * ChromeTextSize.largest.scale >= 20)
     }
 }

@@ -99,11 +99,16 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(item)
         }
         if !recents.isEmpty { menu.addItem(.separator()) }
-        let library = NSMenuItem(
-            title: String(localized: "desktop.nav.library"), action: #selector(showLibrary), keyEquivalent: ""
-        )
-        library.target = self
-        menu.addItem(library)
+        // `docs/designs/desktop/macos.md` section 6: the Dock also offers Library and Downloads.
+        let places: [(String, Selector)] = [
+            ("desktop.nav.library", #selector(showLibrary)), ("desktop.nav.downloads", #selector(showDownloads)),
+        ]
+        for (key, action) in places {
+            let title = String(localized: String.LocalizationValue(key))
+            let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
+            item.target = self
+            menu.addItem(item)
+        }
         return menu
     }
 
@@ -115,6 +120,12 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func showLibrary() {
         WindowOpener.shared.openLibrary?()
+        MacLibrary.live?.navigationRequest = .go(.library)
+    }
+
+    @objc private func showDownloads() {
+        WindowOpener.shared.openLibrary?()
+        MacLibrary.live?.navigationRequest = .go(.downloads)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

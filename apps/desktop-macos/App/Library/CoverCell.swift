@@ -34,11 +34,11 @@ struct CoverCell: View {
                     .padding(-3)
             )
             Text(publication.displayTitle)
-                .font(.callout.weight(.medium))
+                .scaledFont(.callout, weight: .medium)
                 .lineLimit(2)
                 .foregroundStyle(theme.palette.textPrimary)
             if let line = Self.secondLine(of: publication) {
-                Text(line).font(.caption).foregroundStyle(theme.palette.textSecondary).lineLimit(1)
+                Text(line).scaledFont(.caption).foregroundStyle(theme.palette.textSecondary).lineLimit(1)
             }
         }
         .contentShape(Rectangle())
@@ -47,10 +47,14 @@ struct CoverCell: View {
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
+    /// The series and the issue, under the title. Absent when it would only repeat the
+    /// title: a series guessed from a file name is often the file name itself.
     static func secondLine(of publication: Publication) -> String? {
         guard let series = publication.series else { return nil }
-        guard let number = publication.number else { return series }
-        return "\(series) · \(number)"
+        if let number = publication.number { return "\(series) · \(number)" }
+        let options: String.CompareOptions = [.caseInsensitive, .diacriticInsensitive]
+        let repeatsTitle = series.compare(publication.displayTitle, options: options) == .orderedSame
+        return repeatsTitle ? nil : series
     }
 
     /// "Saga, Saga, issue 4, 62 percent read".

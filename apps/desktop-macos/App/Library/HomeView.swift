@@ -55,7 +55,7 @@ struct HomeView: View {
 
     private func shelf(_ title: LocalizedStringKey, _ publications: [Publication]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.title2.weight(.semibold))
+            Text(title).scaledFont(.title2, weight: .semibold)
             ScrollView(.horizontal) {
                 HStack(spacing: 16) {
                     ForEach(publications) { publication in
@@ -85,17 +85,17 @@ private struct HomeCard: View {
                     .frame(width: 72, height: 108)
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(publication.displayTitle).font(.headline).lineLimit(2)
+                    Text(publication.displayTitle).scaledFont(.headline).lineLimit(2)
                     if let line = CoverCell.secondLine(of: publication) {
-                        Text(line).font(.subheadline).foregroundStyle(theme.palette.textSecondary).lineLimit(1)
+                        Text(line).scaledFont(.subheadline).foregroundStyle(theme.palette.textSecondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
                     if let fraction {
                         ProgressRail(fraction: fraction).clipShape(Capsule())
                         Text(fraction, format: .percent.precision(.fractionLength(0)))
-                            .font(.caption).foregroundStyle(theme.palette.textSecondary)
+                            .scaledFont(.caption).foregroundStyle(theme.palette.textSecondary)
                     } else {
-                        Text("desktop.home.unread").font(.caption).foregroundStyle(theme.palette.textSecondary)
+                        Text("desktop.home.unread").scaledFont(.caption).foregroundStyle(theme.palette.textSecondary)
                     }
                 }
                 .frame(width: 180, alignment: .leading)

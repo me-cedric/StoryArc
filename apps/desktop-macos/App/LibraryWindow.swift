@@ -60,6 +60,11 @@ struct LibraryWindow: View {
             path = NavigationPath()
         }
         .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
+        .onChange(of: library.navigationRequest) { _, request in
+            guard let request else { return }
+            library.navigationRequest = nil
+            navigate(request)
+        }
         .onChange(of: library.offeredFolder) { showingFolderOffer = library.offeredFolder != nil }
         .acceptsDroppedFiles()
         .confirmationDialog(
@@ -111,6 +116,9 @@ struct LibraryWindow: View {
             }
         }
         .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
+        // The sidebar draws its own row font; the reader's text size reaches it through the
+        // system's own row sizes.
+        .environment(\.sidebarRowSize, MacSettings.shared.textSize == .default ? .medium : .large)
     }
 
     private var actions: LibraryActions {
@@ -121,13 +129,7 @@ struct LibraryWindow: View {
             find: { isSearchFocused = true },
             viewAsGrid: { library.model.layout = .grid },
             viewAsList: { library.model.layout = .list },
-            go: { place in
-                switch place {
-                case .home: selection = .destination(.home)
-                case .library: selection = .destination(.library)
-                case .downloads: selection = .destination(.onDevice)
-                }
-            },
+            go: { go($0) },
             continueReading: {
                 if let first = library.model.continueReading.first { open(first) }
             },
@@ -137,6 +139,22 @@ struct LibraryWindow: View {
                 }
             }
         )
+    }
+
+    private func go(_ place: LibraryGo) {
+        switch place {
+        case .home: selection = .destination(.home)
+        case .library: selection = .destination(.library)
+        case .downloads: selection = .destination(.onDevice)
+        }
+    }
+
+    private func navigate(_ request: LibraryNavigation) {
+        switch request {
+        case let .go(place): go(place)
+        case let .search(text): search = text.isEmpty ? search.cleared() : search.typed(text)
+        case let .details(id): path.append(PublicationRoute(publicationID: id))
+        }
     }
 
     private func open(_ publication: Publication) {

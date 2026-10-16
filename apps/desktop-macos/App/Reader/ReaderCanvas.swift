@@ -88,7 +88,7 @@ struct ReaderCanvas: View {
                                 Text("desktop.reader.pageUnreadable")
                             }
                         }
-                        .font(.callout).foregroundStyle(.secondary).padding()
+                        .scaledFont(.callout).foregroundStyle(.secondary).padding()
                     }
                 }
         }

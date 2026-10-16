@@ -12,7 +12,6 @@ struct SettingsRoot: View {
 
     let library: MacLibrary
 
-    @State private var tab: SettingsTab = .sources
     @State private var query = ""
 
     var body: some View {
@@ -21,7 +20,7 @@ struct SettingsRoot: View {
                 tabs
             } else {
                 SettingsSearchResults(query: query) { entry in
-                    tab = entry.tab
+                    MacSettings.shared.settingsTab = entry.tab
                     query = ""
                 }
             }
@@ -32,7 +31,9 @@ struct SettingsRoot: View {
     }
 
     private var tabs: some View {
-        TabView(selection: $tab) {
+        TabView(selection: Binding(
+            get: { MacSettings.shared.settingsTab }, set: { MacSettings.shared.settingsTab = $0 }
+        )) {
             ForEach(SettingsTab.allCases) { tab in
                 Tab(LocalizedStringKey(tab.titleKey), systemImage: tab.symbolName, value: tab) {
                     SettingsTabContent(tab: tab, library: library)

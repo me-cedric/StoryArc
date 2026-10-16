@@ -36,9 +36,10 @@ private struct SourcesSettingsTab: View {
                     VStack(alignment: .leading) {
                         Text(source.name).foregroundStyle(source.isGrey ? .secondary : .primary)
                         if source.state == .offline {
-                            Text("desktop.settings.sources.offline").font(.caption).foregroundStyle(.secondary)
+                            Text("desktop.settings.sources.offline").scaledFont(.caption).foregroundStyle(.secondary)
                         } else if source.state == .needsAccess {
-                            Text("desktop.settings.sources.needsAccess").font(.caption).foregroundStyle(.secondary)
+                            Text("desktop.settings.sources.needsAccess")
+                                .scaledFont(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Spacer()

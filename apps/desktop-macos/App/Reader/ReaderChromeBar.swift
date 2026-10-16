@@ -61,6 +61,8 @@ struct ReaderChromeBar: View {
                         scrubbing = nil
                     }
                 }
+                // The label is for VoiceOver; the counter beside it already says it on screen.
+                .labelsHidden()
                 .accessibilityValue(Text("desktop.reader.pageLabel \(shownPage) \(model.pages.count)"))
             }
         }

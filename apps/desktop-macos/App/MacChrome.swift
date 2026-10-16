@@ -25,7 +25,8 @@ private struct MacChrome: ViewModifier {
         content
             .storyArcTheme(appearance: settings.settings.appearance)
             .tint(accent.chromeColour(for: settings.accent, brand: palette.accent))
-            .dynamicTypeSize(settings.textSize.dynamicTypeSize)
+            .scaledFont(.body)
+            .controlSize(settings.textSize == .default ? .regular : .large)
             .preferredColorScheme(settings.settings.appearance.colorScheme)
             .environment(\.locale, Locale.storyArc)
     }
@@ -40,5 +41,43 @@ extension Palette {
         case .oledDark: .oledDark
         case .system: scheme == .dark ? .dark : .light
         }
+    }
+}
+
+extension Font.TextStyle {
+    /// The point size macOS 26 draws each text style at, from the system's own table.
+    var macPointSize: CGFloat {
+        switch self {
+        case .largeTitle: 26
+        case .title: 22
+        case .title2: 17
+        case .title3: 15
+        case .headline, .body: 13
+        case .callout: 12
+        case .subheadline: 11
+        case .footnote, .caption: 10
+        case .caption2: 10
+        @unknown default: 13
+        }
+    }
+
+    /// The weight macOS gives a text style when none is asked for.
+    var macWeight: Font.Weight { self == .headline ? .bold : .regular }
+}
+
+extension View {
+    /// A text style at the size the reader chose in Appearance, which macOS does not do for an app.
+    func scaledFont(_ style: Font.TextStyle, weight: Font.Weight? = nil) -> some View {
+        modifier(ScaledFont(style: style, weight: weight))
+    }
+}
+
+private struct ScaledFont: ViewModifier {
+    let style: Font.TextStyle
+    let weight: Font.Weight?
+
+    func body(content: Content) -> some View {
+        let size = style.macPointSize * MacSettings.shared.textSize.scale
+        content.font(.system(size: size, weight: weight ?? style.macWeight))
     }
 }

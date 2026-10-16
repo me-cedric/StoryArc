@@ -30,6 +30,8 @@ final class MacLibrary {
     private(set) var couldNotRestore: [ReaderTarget] = []
     /// A folder dropped on the library, waiting for the reader to agree to add it.
     var offeredFolder: URL?
+    /// Where something outside the library window asked it to go: the Dock menu, or a walk.
+    var navigationRequest: LibraryNavigation?
     /// The reading record of each publication on the shelf, keyed by publication id.
     ///
     /// A Mac-side copy of `LibraryModel.record(of:)`, which is internal to `LibraryFeature`:

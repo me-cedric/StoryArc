@@ -53,7 +53,7 @@ struct CoverGridView: View {
                         Section {
                             grid(group.publications, width: geometry.size.width)
                         } header: {
-                            Text(group.name).font(.title3.weight(.semibold))
+                            Text(group.name).scaledFont(.title3, weight: .semibold)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, LibraryGrid.spacing)
                         }
@@ -101,12 +101,12 @@ struct CoverListView: View {
                     .frame(width: 36, height: 54)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(publication.displayTitle).lineLimit(1)
-                    Text(subtitle(of: publication)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text(subtitle(of: publication)).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
                 if let fraction = library.model.readFraction(of: publication) {
                     Text(fraction, format: .percent.precision(.fractionLength(0)))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .scaledFont(.caption).foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, 2)

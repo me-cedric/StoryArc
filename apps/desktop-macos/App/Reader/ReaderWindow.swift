@@ -255,7 +255,7 @@ struct ReaderWindow: View {
 
     private var goToPageSheet: some View {
         VStack(spacing: 16) {
-            Text("desktop.reader.goToPage.title \(model.pages.count)").font(.headline)
+            Text("desktop.reader.goToPage.title \(model.pages.count)").scaledFont(.headline)
             TextField("desktop.reader.goToPage.prompt", text: $pageField)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 120)

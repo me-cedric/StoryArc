@@ -27,11 +27,17 @@ enum ChromeTextSize: String, CaseIterable, Sendable, Codable {
 
     static let defaultsKey = "app.storyarc.mac.textSize"
 
-    var dynamicTypeSize: DynamicTypeSize {
+    /// How much larger than the system's own sizes the windows draw their text.
+    ///
+    /// macOS has no system text size, and SwiftUI on macOS ignores `dynamicTypeSize`: wave 2
+    /// set it and the largest-size frames came out identical to the default ones. So every
+    /// window draws its text through `scaledFont`, which multiplies the macOS point size of
+    /// each text style by this.
+    var scale: CGFloat {
         switch self {
-        case .default: .large
-        case .large: .xxLarge
-        case .largest: .accessibility3
+        case .default: 1
+        case .large: 1.25
+        case .largest: 1.6
         }
     }
 }
@@ -64,6 +70,9 @@ final class MacSettings {
     }
 
     static let coverAloneKey = "app.storyarc.mac.coverAlone"
+
+    /// The preferences tab on show. Not stored: the window opens on Sources each launch.
+    var settingsTab: SettingsTab = .sources
 
     private let store: SettingsStore
     private let defaults: UserDefaults
