@@ -28,8 +28,8 @@ settings:
     CODE_SIGN_ENTITLEMENTS: App/StoryArcMac.entitlements
 
 packages:
-  # The same package the iOS app uses, consumed by path. Only DesignSystem and
-  # StoryArcCore are linked. Feature products join as each desktop wave needs them.
+  # The same package the iOS app uses, consumed by path. Each desktop wave links the
+  # products it needs; wave 2 adds the format layer and the comic reader's model.
   StoryArcKit:
     path: ../ios/Packages/StoryArcKit
 
@@ -39,6 +39,58 @@ targets:
     platform: macOS
     sources:
       - path: App
+        excludes:
+          - "Info.plist"
+    # Document types and the comic UTIs, carried over from `apps/ios/project.yml` with the
+    # `UI` keys dropped (design.md Decision 2). `xcodegen generate` writes `App/Info.plist`
+    # from this block on every `pnpm build:macos`; the file is gitignored and never edited.
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: StoryArc
+        LSApplicationCategoryType: public.app-category.books
+        ITSAppUsesNonExemptEncryption: false
+        NSLocalNetworkUsageDescription: >-
+          StoryArc connects to library servers you run yourself, such as a NAS or a
+          Raspberry Pi on your own network.
+        NSBonjourServices:
+          - _smb._tcp
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Comic archive
+            LSHandlerRank: Owner
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - app.storyarc.cbz
+              - app.storyarc.cbr
+              - app.storyarc.cb7
+              - app.storyarc.cbt
+          - CFBundleTypeName: EPUB publication
+            LSHandlerRank: Alternate
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - org.idpf.epub-container
+          - CFBundleTypeName: PDF document
+            LSHandlerRank: Alternate
+            CFBundleTypeRole: Viewer
+            LSItemContentTypes:
+              - com.adobe.pdf
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: app.storyarc.cbz
+            UTTypeDescription: Comic Book ZIP
+            UTTypeConformsTo: [public.zip-archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbz] }
+          - UTTypeIdentifier: app.storyarc.cbr
+            UTTypeDescription: Comic Book RAR
+            UTTypeConformsTo: [public.archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbr] }
+          - UTTypeIdentifier: app.storyarc.cb7
+            UTTypeDescription: Comic Book 7-Zip
+            UTTypeConformsTo: [public.archive]
+            UTTypeTagSpecification: { public.filename-extension: [cb7] }
+          - UTTypeIdentifier: app.storyarc.cbt
+            UTTypeDescription: Comic Book TAR
+            UTTypeConformsTo: [public.tar-archive]
+            UTTypeTagSpecification: { public.filename-extension: [cbt] }
     dependencies:
       - package: StoryArcKit
         product: DesignSystem
@@ -50,6 +102,12 @@ targets:
         product: LibraryFeature
       - package: StoryArcKit
         product: Persistence
+      # Wave 2: the archive openers and the indexer for files handed over, and the comic
+      # reader's model, which decodes pages and records progress for the Mac page view.
+      - package: StoryArcKit
+        product: Formats
+      - package: StoryArcKit
+        product: ReaderFeature
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
@@ -57,11 +115,18 @@ targets:
         ENABLE_APP_SANDBOX: YES
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: StoryArc
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.books
-        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    # A shared scheme rather than the one Xcode makes up. The made-up scheme gathers
+    # coverage, and with the test bundle and the app both linking `LibraryFeature`, Xcode
+    # turns the package products into dynamic frameworks; libarchive's C framework then
+    # fails to link against the profile runtime (`___llvm_profile_runtime`). No gate reads
+    # the coverage, so it is off.
+    scheme:
+      testTargets:
+        - StoryArcMacTests
+      gatherCoverageData: false
 
   # Hosted in the app on purpose. The process the tests run in is the ad-hoc signed,
   # sandboxed StoryArc.app, so the entitlement, bookmark and keychain tests measure what
@@ -74,10 +139,23 @@ targets:
       - path: Tests
         excludes:
           - "*.md"
+      # Copied into the test bundle, never read from the checkout. The tests run inside the
+      # sandboxed app, and a checkout under ~/Documents is a protected folder: an `open()` of
+      # a path there waits on a privacy prompt nobody answers and the run hangs (measured
+      # 2026-10-17). The bundle sits inside the app, which the sandbox always lets it read.
+      - path: ../../packages/test-fixtures/comics
+        type: folder
+        buildPhase: resources
+      - path: App/StoryArcMac.entitlements
+        buildPhase: resources
     dependencies:
       - target: StoryArc
       - package: StoryArcKit
         product: Persistence
+      - package: StoryArcKit
+        product: LibraryFeature
+      - package: StoryArcKit
+        product: StoryArcCore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.Tests
