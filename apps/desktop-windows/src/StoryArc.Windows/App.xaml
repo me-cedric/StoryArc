@@ -6,8 +6,26 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- WinUI's own styles first, so nothing below is overridden by them. -->
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- The design tokens. A copy of packages/design-tokens/dist/windows/StoryArcTokens.xaml. -->
+                <ResourceDictionary Source="ms-appx:///Tokens/StoryArcTokens.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- The chrome accent is the brand colour, not the system's (desktop-experience, "The interface
+                 accent and the system appearance"). WinUI paints a filled accent with SystemAccentColorDark1
+                 in the light theme and SystemAccentColorLight2 in the dark theme (Common_themeresources_any.xaml),
+                 so every shade takes the one brand value, which is the same on both appearances by design.
+                 Microsoft.UI.Xaml.Controls.NavigationView reads the selection indicator from
+                 AccentFillColorDefaultBrush, which these keys feed. The settings choice to follow the system
+                 accent instead is a later task; it removes these overrides at run time. -->
+            <StaticResource x:Key="SystemAccentColor" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorLight1" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorLight2" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorLight3" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorDark1" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorDark2" ResourceKey="StoryArcBrandAccent" />
+            <StaticResource x:Key="SystemAccentColorDark3" ResourceKey="StoryArcBrandAccent" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>
