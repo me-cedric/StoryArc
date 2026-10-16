@@ -38,7 +38,7 @@ public sealed class SessionRecorderTests
 
         recorder.ReaderClosed("saga-042");
 
-        Assert.Equal(["fine-print"], recorder.State.Readers.Select(reader => reader.PublicationId));
+        Assert.Equal(new[] { "fine-print" },recorder.State.Readers.Select(reader => reader.PublicationId));
     }
 
     [Fact]
