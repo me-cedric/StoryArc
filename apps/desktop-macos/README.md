@@ -1,8 +1,10 @@
 # StoryArc for macOS
 
-**Status: wave 0, base only.** The app opens an empty window. It proves that
-the project generates, builds, and links `StoryArcKit`. No reading feature exists
-yet. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
+**Status: wave 1, the shell.** One library window with a sidebar of the four
+destinations, their empty states, a toolbar search field and a `Settings` window
+with six empty tabs. Folder bookmarks and secrets have their sandbox-correct Mac
+wrappers. No source can be added yet and no reading feature exists: menus,
+readers and the data behind the sidebar are wave 2. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
 timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 
 - Plan: [`docs/openspec/changes/desktop-clients`](../../docs/openspec/changes/desktop-clients)
@@ -19,7 +21,7 @@ timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 | Project | Its own XcodeGen project: `project.yml` makes `StoryArcMac.xcodeproj`. Scheme `StoryArc`. |
 | Shared code | `apps/ios/Packages/StoryArcKit`, consumed by path. Wave 0 links `DesignSystem` and `StoryArcCore`. Each wave adds the products it needs. |
 | Bundle id | `com.mecedric.storyarc` |
-| Sandbox | App Sandbox on. Entitlements: `app-sandbox`, `files.user-selected.read-write`, `network.client`. Later waves add `files.bookmarks.app-scope`. |
+| Sandbox | App Sandbox on. Entitlements: `app-sandbox`, `files.user-selected.read-write`, `files.bookmarks.app-scope`, `network.client`, and no other — `Tests/EntitlementsTests.swift` pins the set. No keychain access group: an ad-hoc build cannot use the data-protection keychain (`Tests/KeychainSpike.md`), so secrets go to the login keychain until the signed build of task 6.8. |
 | EPUB | `WKWebView` with the pinned Readium ts-toolkit renderer. Readium swift-toolkit is iOS only and cannot serve macOS. |
 | PDF | PDFKit, through `StoryArcKit`. |
 | Not used | Mac Catalyst. It gives an iPad app in a window. |
@@ -33,20 +35,43 @@ own source folder.
 apps/desktop-macos/
 ├── project.yml                 XcodeGen spec; StoryArcMac.xcodeproj is generated
 ├── App/
-│   ├── StoryArcMacApp.swift    the @main entry
-│   ├── RootView.swift          the placeholder window
+│   ├── StoryArcMacApp.swift    the @main entry: one Window scene, one Settings scene
+│   ├── LibraryWindow.swift     sidebar of LibraryDestination, content column, search field
+│   ├── DestinationEmptyState.swift  what each destination shows with no source
+│   ├── SettingsRoot.swift      the six Settings tabs, each a grouped form
+│   ├── MacFolderBookmarks.swift     security-scoped bookmarks, until task 1.30 moves them in
+│   ├── MacCredentialStore.swift     the keychain path an ad-hoc build can use
 │   ├── StoryArcMac.entitlements
-│   └── Localizable.xcstrings
+│   └── Localizable.xcstrings   en, fr, de, es
+├── Tests/                      StoryArcMacTests, hosted in the app
+│   ├── EntitlementsTests.swift      the exact entitlement set, in the file and the signature
+│   ├── MacFolderBookmarksTests.swift  spy on the options, real round trip in the sandbox
+│   ├── MacCredentialStoreTests.swift  the keychain spike, round trip, no secret in a file
+│   ├── ShellTests.swift        the window is open, ⌘, opens Settings once
+│   ├── CaptureTests.swift      the frames, on request
+│   └── KeychainSpike.md        the spike's result, 2026-10-16
 └── README.md
 ```
+
+The library window's minimum is 640 × 440 points. Below about 600 the system
+collapses the sidebar into its toggle.
 
 ## Build and run
 
 ```bash
 pnpm build:macos      # xcodegen generate, then xcodebuild build, scheme StoryArc
+cd apps/desktop-macos && xcodebuild test -project StoryArcMac.xcodeproj -scheme StoryArc -destination 'platform=macOS'
 ```
 
-Requires macOS 26, Xcode 26 and `brew install xcodegen`. For the Xcode IDE, run
+The tests are hosted in the app, so they run inside the ad-hoc signed, sandboxed
+process: the entitlement, bookmark and keychain tests measure a local run, not an
+`xctest` runner. `TEST_RUNNER_STORYARC_CAPTURE=1` in front of the test command also
+writes the window frames into the container's `tmp/captures/`; see
+[`docs/designs/screenshots/desktop/macos/wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md)
+for how and for what they do and do not show.
+
+Requires macOS 26, Xcode 27.1 with the Metal toolchain component (`AGENTS.md`
+section 3b) and `brew install xcodegen`. For the Xcode IDE, run
 `cd apps/desktop-macos && xcodegen generate && open StoryArcMac.xcodeproj`.
 
 CI: `.github/workflows/desktop-macos.yml`. It is path-filtered, so mobile CI is
