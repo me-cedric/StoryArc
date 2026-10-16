@@ -93,10 +93,10 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 **Lane E: the EPUB bundle**
 
-- [ ] 1.9 **Pin check first.** `apps/desktop-web/epub/check-pin.mjs` (lane E owns it, task 1.32 wires it into lint) fails when `apps/desktop-web/epub/package.json` does not
+- [x] 1.9 **Pin check first.** `apps/desktop-web/epub/check-pin.mjs` (lane E owns it, task 1.32 wires it into lint) fails when `apps/desktop-web/epub/package.json` does not
   hold exact versions `@readium/navigator` 2.11.1 and `@readium/shared` 2.7.0, or when `pin.json` does not match the built
   file's digest. Then create the project, lockfile and Vite build. Verify: the check passes and fails on a deliberate bump.
-- [ ] 1.10 **The eight-vector egress page** of ADR-0015, ported to `apps/desktop-web/epub/test/egress.html`, with a
+- [x] 1.10 **The eight-vector egress page** of ADR-0015, ported to `apps/desktop-web/epub/test/egress.html`, with a
   collector that counts arrivals. Verify: opened in any browser, it reports eight attempts and a count of arrivals.
 
 **Lane M: the macOS shell**
@@ -144,7 +144,7 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 **Lane P: packaging and pins**
 
-- [ ] 1.21 **PDFium pin check first. [P]** `scripts/pdfium-pin-check.mjs` fails when `apps/desktop-core/pdfium/pin.json` does not
+- [x] 1.21 **PDFium pin check first. [P]** `scripts/pdfium-pin-check.mjs` fails when `apps/desktop-core/pdfium/pin.json` does not
   name `chromium/7881` with a sha256. Then add the pin. Verify: the check passes and fails on a changed digest.
 - [ ] 1.22 **CI matrix runs green** on a push that touches only desktop paths. Verify: the three workflows pass.
 - [ ] 1.23 **A Flatpak manifest for the base** that builds `storyarc-linux` offline. File
@@ -176,8 +176,10 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   (`StoryArcTokens.cs` and the XAML dictionary) and one for the GTK CSS the Linux design reads, per ADR-0007. Test first:
   a drift check that fails when a generated file is edited by hand. Deferral: until `packages/` accepts the emitters,
   lane W and lane L hold the values in one hand-written file each, marked as a copy. Verify: `pnpm tokens:check` covers
-  the Windows and GTK outputs and fails on a changed token.
-- [ ] 1.32 **[X] Lint wiring (parent edit, `package.json`).** Add the EPUB bundle pin check, the PDFium pin check and the
+  the Windows and GTK outputs and fails on a changed token. **Emitters landed 2026-10-16** (`dist/windows/StoryArcTokens.xaml`,
+  `StoryArcTokens.cs`, `dist/gtk/storyarc-tokens.css`, from the one source, contrast-gated with the rest); the app copies
+  join `scripts/sync-tokens.mjs` and `pnpm tokens:verify` once the Windows and Linux shells read them, so the box stays open.
+- [x] 1.32 **[X] Lint wiring (parent edit, `package.json`).** Add the EPUB bundle pin check, the PDFium pin check and the
   desktop strings drift check of task 2.8 to `pnpm lint`. Verify: each fails `pnpm lint` on a deliberate break.
 
 ## 2. Wave 2: open and read a comic

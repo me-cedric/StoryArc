@@ -348,7 +348,11 @@ keys and system media controls).
 
 **Choice (Medium confidence).** `@readium/navigator` 2.11.1 and `@readium/shared` 2.7.0 from `readium/ts-toolkit`
 (BSD-3-Clause), pinned to exact versions, built with Vite into one JavaScript file whose digest is recorded in a
-`pin.json`, the way libarchive's is. foliate-js is rejected: it uses CFI locators and its README says its API may
+`pin.json`, the way libarchive's is. **Built 2026-10-16 (task 1.9):** `@readium/navigator` 2.11.1 declares `@readium/shared`
+2.6.0, not 2.7.0, so `apps/desktop-web/epub/pnpm-workspace.yaml` overrides the graph to one copy of 2.7.0 (the 2.6.0 to
+2.7.0 diff is additive) and `check-pin.mjs` fails on a second copy. The build is reproducible: two builds gave the same
+digest. The directory carries its own `pnpm-workspace.yaml` so pnpm treats it as its own root rather than climbing to the
+repository's. foliate-js is rejected: it uses CFI locators and its README says its API may
 break at any time.
 
 **What the host owes the renderer.** The toolkit has no EPUB container parser. The host supplies a Readium Web

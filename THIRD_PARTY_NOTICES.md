@@ -42,6 +42,8 @@ Copyright (c) 2016-2025 Nabil Chatbi (Swift port) | HTML parsing inside the Read
 | [EB Garamond](https://fonts.google.com/specimen/EB+Garamond) | `OFL-1.1` | iOS, Android | Copyright 2017 The EB Garamond Project Authors (https://github.com/octaviopardo/EBGaramond12) | A bundled reading typeface. |
 | [Bitter](https://fonts.google.com/specimen/Bitter) | `OFL-1.1` | iOS, Android | Copyright 2011 The Bitter Project Authors (https://github.com/solmatas/BitterPro) | A bundled reading typeface. |
 | [Atkinson Hyperlegible](https://fonts.google.com/specimen/Atkinson+Hyperlegible) | `OFL-1.1` | iOS, Android | Copyright 2020 Braille Institute of America, Inc. | A bundled reading typeface, designed for low vision. |
+| [Readium TypeScript Toolkit 2.11.1 (navigator), 2.7.0 (shared)](https://github.com/readium/ts-toolkit) | `BSD-3-Clause` | macOS, Windows, Linux | Copyright (c) 2022, Readium Foundation | Reflowable EPUB rendering in the desktop web views, as one pinned bundle. ADR-0018 D6. |
+| [PDFium chromium/7881 (pdfium-binaries)](https://github.com/bblanchon/pdfium-binaries) | `BSD-3-Clause` | Windows, Linux | Copyright 2014 The PDFium Authors | The PDF engine behind the Windows and Linux readers, through pdfium-render; macOS keeps PDFKit. ADR-0018. |
 <!-- /generated:notices -->
 
 Licence texts are in [`packages/licences/texts`](packages/licences/texts), taken from

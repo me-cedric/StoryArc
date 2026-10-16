@@ -27,7 +27,7 @@ const TARGET = join(ROOT, 'THIRD_PARTY_NOTICES.md')
 const BEGIN = '<!-- generated:notices -->'
 const END = '<!-- /generated:notices -->'
 
-const PLATFORM_NAMES = { ios: 'iOS', android: 'Android' }
+const PLATFORM_NAMES = { ios: 'iOS', android: 'Android', macos: 'macOS', windows: 'Windows', linux: 'Linux' }
 
 const { notices } = JSON.parse(readFileSync(INVENTORY, 'utf8'))
 

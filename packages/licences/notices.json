@@ -329,6 +329,31 @@
       ],
       "why": "A bundled reading typeface, designed for low vision.",
       "copyright": "Copyright 2020 Braille Institute of America, Inc."
+    },
+    {
+      "name": "Readium TypeScript Toolkit",
+      "version": "2.11.1 (navigator), 2.7.0 (shared)",
+      "licence": "BSD-3-Clause",
+      "url": "https://github.com/readium/ts-toolkit",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux"
+      ],
+      "why": "Reflowable EPUB rendering in the desktop web views, as one pinned bundle. ADR-0018 D6.",
+      "copyright": "Copyright (c) 2022, Readium Foundation"
+    },
+    {
+      "name": "PDFium",
+      "version": "chromium/7881 (pdfium-binaries)",
+      "licence": "BSD-3-Clause",
+      "url": "https://github.com/bblanchon/pdfium-binaries",
+      "platforms": [
+        "windows",
+        "linux"
+      ],
+      "why": "The PDF engine behind the Windows and Linux readers, through pdfium-render; macOS keeps PDFKit. ADR-0018.",
+      "copyright": "Copyright 2014 The PDFium Authors"
     }
   ],
   "$copyright": "Each component's own copyright line, taken from that project's LICENSE or, for the fonts, from the OFL file the font itself ships. Needed because texts/ holds the SPDX template for each licence, and an SPDX template says `Copyright (c) <year> <owner>`. Shipping that placeholder discharges nothing: BSD and Apache both require the actual notice to travel with the binary. Never compose one of these lines by hand."
