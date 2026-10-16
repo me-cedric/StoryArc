@@ -59,7 +59,7 @@ struct LibraryWindow: View {
             if case let .filter(filter) = row { libraryFilter = filter; search = search.moved(to: .library) }
             path = NavigationPath()
         }
-        .onChange(of: FileInbox.shared.serial) { Task { await openHandedOver() } }
+        .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
         .onChange(of: library.offeredFolder) { showingFolderOffer = library.offeredFolder != nil }
         .acceptsDroppedFiles()
         .confirmationDialog(
@@ -77,11 +77,11 @@ struct LibraryWindow: View {
             Text("desktop.drop.folder.body")
         }
         .task {
-            WindowOpener.shared.openReader = { openWindow(value: $0) }
+            WindowOpener.shared.openReader = { openWindow.reader($0) }
             WindowOpener.shared.openLibrary = { openWindow(id: Self.id) }
             await library.restore()
-            for session in library.restorableReaders() { openWindow(value: session.target) }
-            await openHandedOver()
+            for session in library.restorableReaders() { openWindow.reader(session.target) }
+            await library.openHandedOver { openWindow.reader($0) }
         }
     }
 
@@ -115,7 +115,7 @@ struct LibraryWindow: View {
 
     private var actions: LibraryActions {
         LibraryActions(
-            openFile: { Task { for target in await library.chooseFile() { openWindow(value: target) } } },
+            openFile: { Task { for target in await library.chooseFile() { openWindow.reader(target) } } },
             addFolder: { library.chooseFolder() },
             refresh: { Task { await library.model.rescan() } },
             find: { isSearchFocused = true },
@@ -142,17 +142,9 @@ struct LibraryWindow: View {
     private func open(_ publication: Publication) {
         guard let target = library.target(for: publication) else { return }
         library.recents.note(target)
-        openWindow(value: target)
+        openWindow.reader(target)
     }
 
-    private func openHandedOver() async {
-        let urls = FileInbox.shared.take()
-        guard !urls.isEmpty else { return }
-        for target in await library.open(urls) {
-            library.recents.note(target)
-            openWindow(value: target)
-        }
-    }
 }
 
 /// A row of the sidebar: one of the four destinations, or a filter of the library.

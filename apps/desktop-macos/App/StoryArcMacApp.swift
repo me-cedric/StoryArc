@@ -22,8 +22,8 @@ struct StoryArcMacApp: App {
             StoryArcMacCommands()
         }
 
-        // One reader per publication. `openWindow(value:)` fronts the window whose value is
-        // equal, and `ReaderTarget` is equal by publication. Restoration is the app's own
+        // One reader per publication: every open goes through `ReaderWindowRegistry`, which
+        // fronts the window already reading it. Restoration is the app's own
         // (`RestorationPlan`), so a window whose publication is gone is named, not reopened.
         WindowGroup(for: ReaderTarget.self) { $target in
             if let target {

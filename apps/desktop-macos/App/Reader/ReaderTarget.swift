@@ -4,9 +4,10 @@ import StoryArcCore
 /// What one reader window reads: one publication, at one file.
 ///
 /// `desktop-experience`, *The window model*: one window per publication, and a second open
-/// of the same publication focuses the first. SwiftUI's `openWindow(value:)` fronts the
-/// window whose value is *equal* to the one asked for, so equality here is the publication
-/// and nothing else — the path is carried for restoration and plays no part in identity.
+/// of the same publication focuses the first. Equality here is the publication and nothing
+/// else — the path is carried for restoration and plays no part in identity — and
+/// `ReaderWindowRegistry` keys its windows the same way, because `openWindow(value:)` alone
+/// was measured opening a second window for an equal value.
 /// Task 2.9 of `desktop-clients`.
 struct ReaderTarget: Codable, Hashable, Sendable {
     let publicationID: String

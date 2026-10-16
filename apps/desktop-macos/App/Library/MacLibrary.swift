@@ -40,6 +40,9 @@ final class MacLibrary {
     private var accesses: [String: FolderAccess] = [:]
     private var mountObserver: (any NSObjectProtocol)?
 
+    /// The library the running app made, for the walks and captures hosted in it.
+    private(set) static weak var live: MacLibrary?
+
     init(bookmarks: MacFolderBookmarks = MacFolderBookmarks()) {
         let store = try? ProgressStore()
         progress = store
@@ -55,6 +58,7 @@ final class MacLibrary {
             downloadStore: DownloadStore(),
             journal: ScanJournal()
         )
+        Self.live = self
     }
 
     // MARK: - Launch
@@ -240,6 +244,19 @@ final class MacLibrary {
             }
         }
         return targets
+    }
+
+    /// Opens whatever the system or a drop handed over, in reader windows.
+    ///
+    /// Any window may call this: the inbox empties on the first take, so a drop on a reader
+    /// while the library window is closed still opens, and two windows never open it twice.
+    func openHandedOver(using openReader: (ReaderTarget) -> Void) async {
+        let urls = FileInbox.shared.take()
+        guard !urls.isEmpty else { return }
+        for target in await open(urls) {
+            recents.note(target)
+            openReader(target)
+        }
     }
 
     /// A publication on the shelf, as a reader target, or `nil` when its file is not here.

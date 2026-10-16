@@ -37,6 +37,9 @@ struct ReaderWindow: View {
     @State private var pageField = ""
     @State private var observer: ReaderWindowObserver?
     @State private var window: NSWindow?
+    /// The page a turn asked for while the model is still getting there. Turns count from
+    /// it, so two presses in quick succession move two pages and not one.
+    @State private var pendingIndex: Int?
     @FocusState private var isFocused: Bool
 
     init(target: ReaderTarget, library: MacLibrary) {
@@ -83,6 +86,8 @@ struct ReaderWindow: View {
         .navigationTitle(target.title)
         .background(WindowAccessor { attach($0) })
         .sheet(isPresented: $isAskingForPage) { goToPageSheet }
+        .acceptsDroppedFiles()
+        .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
         .task { await open() }
         .onDisappear { close() }
     }
@@ -117,6 +122,7 @@ struct ReaderWindow: View {
         }
         ProgressFlushers.shared.unregister(target.publicationID)
         ReaderWindows.shared.didClose(target)
+        ReaderWindowRegistry.detach(target)
         DisplayAwake.shared.release(for: target.publicationID)
         observer?.detach()
         Task { await library.refreshProgress() }
@@ -124,6 +130,7 @@ struct ReaderWindow: View {
 
     private func attach(_ window: NSWindow) {
         self.window = window
+        ReaderWindowRegistry.attach(window, for: target)
         if observer == nil {
             let observer = ReaderWindowObserver(
                 onKey: { isKey in
@@ -165,7 +172,7 @@ struct ReaderWindow: View {
     /// Moves by whole slots, so a pair turns as one.
     private func turn(by step: Int) {
         let layout = currentLayout
-        let slot = layout.slot(containing: model.currentIndex) + step
+        let slot = layout.slot(containing: pendingIndex ?? model.currentIndex) + step
         guard let spread = layout[slot] else { return }
         go(to: spread.leading)
     }
@@ -175,8 +182,10 @@ struct ReaderWindow: View {
     private func go(to index: Int) {
         guard model.pages.indices.contains(index) else { return }
         zoom = zoom.fitted()
+        pendingIndex = index
         Task {
             await model.go(to: index)
+            if pendingIndex == index { pendingIndex = nil }
             writer?.note(ReadingProgress(
                 identity: model.publication.identity,
                 position: .page(index: index, of: model.pages.count),
@@ -231,7 +240,7 @@ struct ReaderWindow: View {
 
     private var actions: ReaderActions {
         ReaderActions(
-            openFile: { Task { for target in await library.chooseFile() { openWindow(value: target) } } },
+            openFile: { Task { for target in await library.chooseFile() { openWindow.reader(target) } } },
             addFolder: { library.chooseFolder() },
             page: { perform($0) },
             goToPage: { pageField = String(model.currentIndex + 1); isAskingForPage = true },
