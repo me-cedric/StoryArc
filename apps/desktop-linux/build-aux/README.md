@@ -58,3 +58,25 @@ runtime, SDK and Rust extension install into a named volume on the first run and
 
 A CI job can run the same command in that image with `options: --privileged`; the
 ubuntu-24.04 runner has no flatpak-builder package of its own.
+
+## What the try showed, 2026-10-16
+
+Run on an Apple silicon Mac, so the aarch64 runtime and the aarch64 PDFium tarball.
+The runtime, SDK and Rust extension 26.08 installed from Flathub, the `pdfium` module
+built, and `cargo --offline build` compiled every crate from `cargo-sources.json`
+with no network. The `storyarc` module then stopped at two lines outside this
+directory, each proved by a diagnostic copy of the manifest that is not committed:
+
+1. `third_party/libarchive/.../archive_util.c` calls `getresuid` and `getresgid`,
+   which glibc declares only under `_GNU_SOURCE`; the SDK's gcc compiles C23 by
+   default, where an implicit declaration is an error. Fedora, Arch and Manjaro
+   fail the same way in `container-build.sh`. With `CFLAGS=-D_GNU_SOURCE` the
+   module builds. The fix belongs in `apps/desktop-core/storyarc-core/build.rs`
+   or `libarchive/config-linux.h`.
+2. `flatpak build-export` refuses the icon: `com.mecedric.StoryArc.svg` has
+   `viewBox="66 44 362 456"`, and an exported icon must be square. With a square
+   placeholder the export, the install and `flatpak info` all pass, and the
+   installed app carries `files/bin/storyarc` and `files/lib/libpdfium.so`. The
+   fix belongs in `apps/desktop-linux/data/icons/`.
+
+Once both land, `scripts/flatpak-build.sh` as committed is the whole proof.
