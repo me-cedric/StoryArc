@@ -34,5 +34,7 @@
   <ItemGroup>
     <None Include="$(NativeLibraryPath)" Link="$(NativeLibraryFile)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="$(RepoRoot)Cargo.toml" Link="workspace.Cargo.toml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The generated token file: the chrome accent test holds the C# brand constant to it. -->
+    <None Include="..\..\src\StoryArc.Windows\Tokens\StoryArcTokens.xaml" Link="StoryArcTokens.xaml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
