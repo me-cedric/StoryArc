@@ -23,15 +23,17 @@ const TIMEOUT_MS: i32 = 2000;
 /// two variants as `Read` returns it. A negative channel means "no accent set".
 pub fn accent_from_variant(value: &glib::Variant) -> Option<Rgb> {
     let mut inner = value.clone();
-    for _ in 0..3 {
+    for _ in 0..6 {
         if let Some((r, g, b)) = inner.get::<(f64, f64, f64)>() {
             return Rgb::from_unit(r, g, b);
         }
-        if inner.n_children() == 1 && inner.type_().is_tuple() {
-            inner = inner.child_value(0);
-            continue;
-        }
-        inner = inner.as_variant()?;
+        inner = if inner.type_().is_variant() {
+            inner.as_variant()?
+        } else if inner.type_().is_tuple() && inner.n_children() == 1 {
+            inner.child_value(0)
+        } else {
+            return None;
+        };
     }
     None
 }
@@ -88,16 +90,40 @@ mod tests {
     #[test]
     fn a_portal_answer_unwraps_to_the_accent_however_it_is_boxed() {
         let triple = (0.2f64, 0.4f64, 1.0f64).to_variant();
-        assert_eq!(accent_from_variant(&triple), Some(Rgb { r: 51, g: 102, b: 255 }));
+        assert_eq!(
+            accent_from_variant(&triple),
+            Some(Rgb {
+                r: 51,
+                g: 102,
+                b: 255
+            })
+        );
         let boxed = glib::Variant::from_variant(&triple);
-        assert_eq!(accent_from_variant(&boxed), Some(Rgb { r: 51, g: 102, b: 255 }));
+        assert_eq!(
+            accent_from_variant(&boxed),
+            Some(Rgb {
+                r: 51,
+                g: 102,
+                b: 255
+            })
+        );
         let read_reply = glib::Variant::tuple_from_iter([glib::Variant::from_variant(&boxed)]);
-        assert_eq!(accent_from_variant(&read_reply), Some(Rgb { r: 51, g: 102, b: 255 }));
+        assert_eq!(
+            accent_from_variant(&read_reply),
+            Some(Rgb {
+                r: 51,
+                g: 102,
+                b: 255
+            })
+        );
     }
 
     #[test]
     fn no_accent_set_or_a_wrong_shape_means_none() {
-        assert_eq!(accent_from_variant(&(-1.0f64, 0.0f64, 0.0f64).to_variant()), None);
+        assert_eq!(
+            accent_from_variant(&(-1.0f64, 0.0f64, 0.0f64).to_variant()),
+            None
+        );
         assert_eq!(accent_from_variant(&"blue".to_variant()), None);
         assert_eq!(accent_from_variant(&(1u32, 2u32).to_variant()), None);
     }

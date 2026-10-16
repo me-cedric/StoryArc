@@ -297,6 +297,93 @@ pub fn reader_accent(cover: Option<Rgb>, choice: Accent, system: Option<Rgb>) ->
     cover.unwrap_or_else(|| chrome_accent(choice, system))
 }
 
+/// What a row shows for a choice: the iOS catalogue key when it has one, else the
+/// English text, which `strings::tr` falls back to.
+pub type Label = (Option<&'static str>, &'static str);
+
+impl Appearance {
+    pub fn label(self) -> Label {
+        match self {
+            Self::System => (Some("appearance.system"), "System"),
+            Self::Light => (Some("appearance.light"), "Light"),
+            Self::Dark => (Some("appearance.dark"), "Dark"),
+            Self::OledDark => (Some("appearance.oledDark"), "OLED Dark"),
+            Self::Natural => (Some("appearance.natural"), "Natural"),
+        }
+    }
+}
+
+impl Accent {
+    /// The two choices, the System one only where the system offers an accent.
+    pub fn choices(system: Option<Rgb>) -> Vec<Self> {
+        if offers_system_accent(system) {
+            vec![Self::StoryArc, Self::System]
+        } else {
+            vec![Self::StoryArc]
+        }
+    }
+
+    pub fn label(self) -> Label {
+        match self {
+            Self::StoryArc => (None, "StoryArc"),
+            Self::System => (Some("appearance.system"), "System"),
+        }
+    }
+}
+
+impl Layout {
+    pub fn label(self) -> Label {
+        match self {
+            Self::Auto => (None, "Automatic"),
+            Self::Single => (None, "Single page"),
+            Self::TwoPages => (None, "Two pages"),
+            Self::Scroll => (None, "Continuous scroll"),
+        }
+    }
+}
+
+impl Fit {
+    pub fn label(self) -> Label {
+        match self {
+            Self::Page => (None, "Fit page"),
+            Self::Width => (None, "Fit width"),
+            Self::Original => (None, "Original size"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod label_tests {
+    use super::*;
+
+    #[test]
+    fn the_system_accent_choice_exists_only_where_the_system_offers_an_accent() {
+        let blue = Some(Rgb {
+            r: 53,
+            g: 132,
+            b: 228,
+        });
+        assert_eq!(
+            Accent::choices(blue),
+            vec![Accent::StoryArc, Accent::System]
+        );
+        assert_eq!(Accent::choices(None), vec![Accent::StoryArc]);
+    }
+
+    #[test]
+    fn every_choice_has_a_label() {
+        for appearance in Appearance::ALL {
+            assert!(!appearance.label().1.is_empty());
+        }
+        for layout in Layout::ALL {
+            assert!(!layout.label().1.is_empty());
+        }
+        for fit in Fit::ALL {
+            assert!(!fit.label().1.is_empty());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

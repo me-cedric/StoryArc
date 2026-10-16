@@ -62,7 +62,9 @@ impl Publication {
             id: path.to_string_lossy().into_owned(),
             title,
             page_count: pages.len() as u32,
-            direction: info.map_or(ReadingDirection::LeftToRight, |info| info.reading_direction()),
+            direction: info.map_or(ReadingDirection::LeftToRight, |info| {
+                info.reading_direction()
+            }),
             page_names: pages.iter().map(|page| page.path.clone()).collect(),
         })
     }
@@ -70,5 +72,56 @@ impl Publication {
     /// Whether the publication can be reopened now, for restoration.
     pub fn is_reachable(id: &str) -> bool {
         Path::new(id).is_file()
+    }
+}
+
+/// Whether the file behind an open reader window can still be reached. The window keeps
+/// the pages it already holds either way and no window closes by itself.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Availability {
+    #[default]
+    Available,
+    Gone,
+}
+
+impl Availability {
+    pub fn of(id: &str, reachable: impl Fn(&str) -> bool) -> Self {
+        if reachable(id) {
+            Self::Available
+        } else {
+            Self::Gone
+        }
+    }
+
+    /// The grey note the window shows while the rest of the publication is unavailable.
+    pub fn note(self) -> Option<&'static str> {
+        (self == Self::Gone).then_some("The rest of this publication is unavailable")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_publication_that_disappears_is_named_in_grey_and_one_that_returns_is_not() {
+        assert_eq!(Availability::of("/a.cbz", |_| true).note(), None);
+        let gone = Availability::of("/a.cbz", |_| false);
+        assert_eq!(gone, Availability::Gone);
+        assert_eq!(
+            gone.note(),
+            Some("The rest of this publication is unavailable")
+        );
+        assert_eq!(
+            Availability::of("/a.cbz", |_| true),
+            Availability::Available
+        );
+    }
+
+    #[test]
+    fn a_path_that_is_not_a_file_is_refused_by_name() {
+        let error = Publication::open(Path::new("/nonexistent/x.cbz")).unwrap_err();
+        assert!(error.starts_with("x.cbz:"), "{error}");
+        assert!(!Publication::is_reachable("/nonexistent/x.cbz"));
     }
 }

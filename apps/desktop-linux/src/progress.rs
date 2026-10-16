@@ -111,6 +111,38 @@ impl<S: ProgressStore> ProgressWriter<S> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn quitting_writes_every_reader_and_a_failing_store_stops_nobody() {
+        let start = Instant::now();
+        let mut writers = [
+            ProgressWriter::new(FakeStore::default(), "/a.cbz"),
+            ProgressWriter::new(
+                FakeStore {
+                    fail: true,
+                    ..FakeStore::default()
+                },
+                "/b.cbz",
+            ),
+            ProgressWriter::new(FakeStore::default(), "/c.cbz"),
+        ];
+        for (page, writer) in writers.iter_mut().enumerate() {
+            writer.turned(page as u32 + 1, start);
+        }
+        let failures: Vec<String> = writers
+            .iter_mut()
+            .filter_map(|writer| writer.flush().err())
+            .collect();
+        assert_eq!(failures.len(), 1);
+        assert!(failures[0].contains("/b.cbz") && failures[0].contains("disk full"));
+        assert_eq!(
+            writers[1].pending(),
+            Some(2),
+            "kept in memory for the next attempt"
+        );
+        assert_eq!(writers[0].pending(), None);
+        assert_eq!(writers[2].pending(), None);
+    }
+
     #[derive(Default)]
     struct FakeStore {
         written: Vec<(String, u32)>,

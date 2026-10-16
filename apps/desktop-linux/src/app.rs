@@ -6,8 +6,6 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 
-use adw::prelude::*;
-
 use crate::reader_window::Reader;
 use crate::session;
 use crate::settings::{Preferences, Rgb};
@@ -27,6 +25,7 @@ pub struct ReaderHandle {
 pub struct App {
     preferences: RefCell<Preferences>,
     pub theme: OnceCell<Theme>,
+    pub application: OnceCell<adw::Application>,
     /// The accent the settings portal reports, when it reports one.
     pub system_accent: Cell<Option<Rgb>>,
     pub library: RefCell<Option<adw::ApplicationWindow>>,
@@ -50,6 +49,13 @@ impl App {
         })
     }
 
+    pub fn application(&self) -> adw::Application {
+        self.application
+            .get()
+            .cloned()
+            .expect("the application is set in startup")
+    }
+
     pub fn preferences(&self) -> Preferences {
         self.preferences.borrow().clone()
     }
@@ -64,7 +70,12 @@ impl App {
         };
         session::save_preferences(&next);
         self.apply_theme();
-        let readers: Vec<Rc<Reader>> = self.readers.borrow().iter().map(|h| h.reader.clone()).collect();
+        let readers: Vec<Rc<Reader>> = self
+            .readers
+            .borrow()
+            .iter()
+            .map(|h| h.reader.clone())
+            .collect();
         for reader in readers {
             reader.preferences_changed(&next);
         }
@@ -122,7 +133,9 @@ impl App {
 
     /// Forgets a reader window that closed by hand.
     pub fn forget_reader(&self, publication: &str) {
-        self.readers.borrow_mut().retain(|handle| handle.publication != publication);
+        self.readers
+            .borrow_mut()
+            .retain(|handle| handle.publication != publication);
     }
 
     /// Names a file that could not be opened, in the library, in grey.

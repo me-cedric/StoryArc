@@ -10,8 +10,11 @@ pub mod entry;
 pub mod grid;
 pub mod query;
 
+#[allow(unused_imports)]
 pub use entry::{Cover, Format, LibraryEntry, Progress};
+#[allow(unused_imports)]
 pub use grid::{CoverTier, GridModel, Selection, SeriesGroup};
+#[allow(unused_imports)]
 pub use query::{Destination, Filters, QueryState, ReadState, Sort};
 
 #[cfg(test)]

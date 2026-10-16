@@ -611,6 +611,46 @@ pub fn in_group(group: Group) -> impl Iterator<Item = &'static Command> {
         .filter(move |command| command.group == group && !command.accels.is_empty())
 }
 
+/// The commands that sit at one place, in table order.
+pub fn in_place(place: Place) -> impl Iterator<Item = &'static Command> {
+    COMMANDS
+        .iter()
+        .filter(move |command| command.place == place)
+}
+
+/// The Keyboard Shortcuts dialog: each section with the commands that have a key, in
+/// the order General, Library, Reader, Player. An empty section is left out.
+pub fn shortcut_sections() -> Vec<(Group, Vec<&'static Command>)> {
+    [Group::General, Group::Library, Group::Reader, Group::Player]
+        .into_iter()
+        .map(|group| (group, in_group(group).collect::<Vec<_>>()))
+        .filter(|(_, commands)| !commands.is_empty())
+        .collect()
+}
+
+#[cfg(test)]
+mod section_tests {
+    use super::*;
+
+    #[test]
+    fn the_shortcut_sections_hold_every_keyed_command_once_and_no_empty_section() {
+        let sections = shortcut_sections();
+        assert!(sections.iter().all(|(_, commands)| !commands.is_empty()));
+        let listed: usize = sections.iter().map(|(_, commands)| commands.len()).sum();
+        let keyed = COMMANDS.iter().filter(|c| !c.accels.is_empty()).count();
+        assert_eq!(listed, keyed);
+        assert_eq!(sections[0].0, Group::General);
+    }
+
+    #[test]
+    fn a_place_lists_its_commands_in_table_order() {
+        let reader: Vec<_> = in_place(Place::ReaderMenu).map(|c| c.action).collect();
+        assert!(reader.contains(&"win.fullscreen"));
+        let primary: Vec<_> = in_place(Place::PrimaryMenu).map(|c| c.action).collect();
+        assert_eq!(primary, ["app.preferences", "app.shortcuts"]);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

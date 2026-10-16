@@ -112,7 +112,9 @@ impl FileProgressStore {
             .unwrap_or_default()
             .lines()
             .filter_map(|line| line.rsplit_once('='))
-            .filter_map(|(publication, page)| Some((publication.to_owned(), page.trim().parse().ok()?)))
+            .filter_map(|(publication, page)| {
+                Some((publication.to_owned(), page.trim().parse().ok()?))
+            })
             .collect()
     }
 
