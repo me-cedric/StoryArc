@@ -7,6 +7,7 @@ pub mod comic_archive;
 pub mod comic_info;
 pub mod epub;
 pub mod filename_metadata;
+pub mod image_folder;
 #[cfg(storyarc_libarchive)]
 mod libarchive_sys;
 pub mod page_codec;
@@ -26,6 +27,7 @@ pub use comic_archive::{
 pub use comic_info::ComicInfo;
 pub use epub::{EpubError, EpubMetadata, EpubReader, EpubSpineItem, EpubTocEntry};
 pub use filename_metadata::FilenameMetadata;
+pub use image_folder::ImageFolderArchive;
 pub use page_codec::PageCodec;
 pub use page_ordering::{CoverSelection, PageDeclarations, PageEntry, PageOrdering};
 pub use rar::{RarEntry, RarError, RarGeneration, RarReader};

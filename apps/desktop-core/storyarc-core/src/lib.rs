@@ -3,6 +3,7 @@
 pub mod domain;
 pub mod formats;
 pub mod io;
+pub mod sources;
 pub mod store;
 
 /// The crate version, for example `0.1.0`.
