@@ -5,21 +5,26 @@ import SwiftUI
 @main
 struct StoryArcMacApp: App {
     var body: some Scene {
-        WindowGroup {
-            RootView()
+        // One `Window`, not a `WindowGroup`: `desktop-experience` gives the app one library
+        // window and any number of reader windows, and a group would hand out a second
+        // library on ⌘N. The readers are wave 2, as `WindowGroup(for:)`.
+        Window("StoryArc", id: LibraryWindow.id) {
+            LibraryWindow()
                 .storyArcTheme()
-                .frame(minWidth: 520, minHeight: 400)
+                .frame(minWidth: LibraryWindow.minimumSize.width, minHeight: LibraryWindow.minimumSize.height)
         }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 1100, height: 720)
         .commands {
-            // Placeholder for the reader and library shortcuts a later wave adds.
+            // The menus of docs/designs/desktop/macos.md section 6 are wave 2.
             CommandGroup(after: .newItem) {}
         }
-        .defaultSize(width: 1100, height: 720)
 
+        // The `Settings` scene gives the StoryArc menu its Settings… item and ⌘, for free,
+        // and opens one window however often it is asked.
         Settings {
-            Form {}
-                .formStyle(.grouped)
-                .frame(width: 480, height: 320)
+            SettingsRoot()
+                .storyArcTheme()
         }
     }
 }
