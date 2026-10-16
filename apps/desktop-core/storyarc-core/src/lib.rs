@@ -3,6 +3,8 @@
 pub mod domain;
 pub mod formats;
 pub mod io;
+pub mod locale;
+pub mod paths;
 pub mod sources;
 pub mod store;
 
