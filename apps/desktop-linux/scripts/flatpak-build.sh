@@ -18,10 +18,12 @@ manifest="apps/desktop-linux/build-aux/com.mecedric.StoryArc.json"
 # The image that carries flatpak-builder and the GNOME 51 runtime. Multi-arch: amd64 and arm64.
 image="ghcr.io/flathub-infra/flatpak-github-actions:gnome-51"
 
+# One volume holds both the build directory and the .flatpak-builder state: flatpak-builder
+# refuses a state dir on a different filesystem from the build dir, which a second volume is.
 docker run --rm --privileged \
   -v "$root":/src:ro \
   -v storyarc-flatpak-system:/var/lib/flatpak \
-  -v storyarc-flatpak-state:/work/.flatpak-builder \
+  -v storyarc-flatpak-work:/work \
   -w /work \
   "$image" bash -c "set -e
     flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
