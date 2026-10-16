@@ -22,6 +22,16 @@
 #ifndef STORYARC_LIBARCHIVE_CONFIG_LINUX_H
 #define STORYARC_LIBARCHIVE_CONFIG_LINUX_H
 
+/* Before any system header. glibc declares getresuid() and getresgid(), which
+ * archive_util.c calls, only under _GNU_SOURCE; libarchive's own configure-generated
+ * config.h defines it at the top for exactly this reason. gcc 16 (Fedora 43, Arch) makes
+ * an implicit declaration an error, and Ubuntu 24.04 only warned, which is why the
+ * omission reached the container builds. `archive_platform.h` includes this header
+ * through PLATFORM_CONFIG_H before it includes anything else, so this is early enough. */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE 1
+#endif
+
 /* Version reported by archive_version_string(). Keep in step with third_party/libarchive/pin.json. */
 #define ARCHIVE_VERSION_ONLY_STRING "3.8.9"
 #define ARCHIVE_VERSION_STRING "libarchive " ARCHIVE_VERSION_ONLY_STRING
