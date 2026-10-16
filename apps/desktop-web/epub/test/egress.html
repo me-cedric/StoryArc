@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Publication egress: 8 attempts</title>
+<!--
+  The eight-vector egress page of ADR-0015, for the desktop web views (ADR-0018 D6).
+
+  An EPUB is HTML, and HTML that is merely being read can still fetch: a tracking pixel, a
+  scripted image, fetch, XMLHttpRequest, sendBeacon, a WebSocket, an iframe, and a
+  top-level navigation. This page tries all eight at once, each aimed at its own path on a
+  collector that counts what arrives, so a run names what escaped rather than only counting
+  it. It is a port of apps/ios/Packages/StoryArcEpub/Tests/EpubReaderFeatureTests/
+  PublicationEgressTests.swift, vector for vector.
+
+  How to read it. The page always reports eight attempts, because it always makes eight.
+  The arrivals are the collector's count, not the page's: a page cannot tell "blocked by
+  the web view" from "nothing was listening", so the proof needs a listener on the other
+  side. Run `node test/collector.mjs`, open the URL it prints, and the page reports both
+  numbers. Unblocked, every browser reports 8 of 8. Inside a web view that denies egress
+  the page cannot reach the collector either, so it says so, and the host reads the count
+  from the collector directly: GET <collector>/count. Zero is the pass.
+
+  The navigation vector leaves the page, as it must, two seconds in. The collector answers
+  it with a redirect back here carrying the run's id, and the page then reports instead of
+  firing again, so the result is visible in the same window either way.
+
+  Parameters. `?collector=http://127.0.0.1:4815` names the collector when this file is
+  opened from somewhere other than the collector itself (a file:// open, or the app's own
+  scheme). Without it the page uses its own origin when that is http(s), else the
+  collector's default port.
+-->
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 2rem; max-width: 40rem; }
+  table { border-collapse: collapse; margin-top: 1rem; }
+  td, th { text-align: left; padding: 0.2rem 1rem 0.2rem 0; }
+  #report { font-weight: 600; }
+  .muted { color: #666; }
+</style>
+</head>
+<body>
+<h1>Publication egress</h1>
+<p id="report">Attempts: 8. Arrivals: measuring…</p>
+<p id="where" class="muted"></p>
+<table>
+  <thead><tr><th>Vector</th><th>Arrived</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<script>
+(function () {
+  "use strict";
+
+  // The same eight, in the same order, as the iOS suite's `Vector` enum.
+  var VECTORS = ["image", "scriptedImage", "fetch", "request", "beacon", "socket", "frame", "navigation"];
+  var DEFAULT_COLLECTOR = "http://127.0.0.1:4815";
+  // The navigation fires on a two-second timer, as on iOS; the report follows the slowest
+  // vector with the same margin the iOS suite keeps.
+  var NAVIGATION_DELAY_MS = 2000;
+  var REPORT_DELAY_MS = 4000;
+
+  var params = new URLSearchParams(location.search);
+  var collector = params.get("collector") || (/^https?:$/.test(location.protocol) ? location.origin : DEFAULT_COLLECTOR);
+  collector = collector.replace(/\/+$/, "");
+  var socketOrigin = collector.replace(/^http/, "ws");
+  // The id ties this page's hits to this run, so re-opening the page never counts a
+  // previous run's arrivals. The redirect back from the navigation vector carries it.
+  var run = params.get("report") || String(Date.now()) + "-" + Math.floor(Math.random() * 1e6);
+
+  var report = document.getElementById("report");
+  var where = document.getElementById("where");
+  var rows = document.getElementById("rows");
+  where.textContent = "Collector " + collector + ", run " + run + ".";
+
+  function hit(vector) {
+    return collector + "/hit/" + vector + "?run=" + encodeURIComponent(run);
+  }
+
+  function render(arrived) {
+    var set = {};
+    arrived.forEach(function (name) { set[name] = true; });
+    rows.innerHTML = "";
+    VECTORS.forEach(function (name) {
+      var tr = document.createElement("tr");
+      var a = document.createElement("td");
+      var b = document.createElement("td");
+      a.textContent = name;
+      b.textContent = set[name] ? "yes" : "no";
+      tr.appendChild(a);
+      tr.appendChild(b);
+      rows.appendChild(tr);
+    });
+    var text = "Attempts: " + VECTORS.length + ". Arrivals: " + arrived.length + " of " + VECTORS.length + ".";
+    report.textContent = text;
+    document.title = "Publication egress: " + VECTORS.length + " attempts, " + arrived.length + " arrivals";
+  }
+
+  function readCount() {
+    fetch(collector + "/count?run=" + encodeURIComponent(run), { cache: "no-store" })
+      .then(function (response) { return response.json(); })
+      .then(function (body) { render(body.arrived || []); })
+      .catch(function () {
+        report.textContent = "Attempts: " + VECTORS.length + ". Arrivals: unknown from inside this page — " +
+          "the collector is unreachable from here. Read GET " + collector + "/count?run=" + run + " from the host; " +
+          "if the host sees 0, every vector was stopped.";
+        document.title = "Publication egress: " + VECTORS.length + " attempts, collector unreachable";
+      });
+  }
+
+  if (params.get("report")) {
+    // Back from the navigation vector. Nothing fires again; only the count is read.
+    readCount();
+    return;
+  }
+
+  // 1. A tracking pixel.
+  var pixel = document.createElement("img");
+  pixel.src = hit("image");
+  pixel.width = 1;
+  pixel.height = 1;
+  document.body.appendChild(pixel);
+  // 2. A scripted image.
+  new Image().src = hit("scriptedImage");
+  // 3. fetch.
+  try { fetch(hit("fetch"), { mode: "no-cors" }).catch(function () {}); } catch (e) {}
+  // 4. XMLHttpRequest.
+  try {
+    var x = new XMLHttpRequest();
+    x.open("GET", hit("request"));
+    x.send();
+  } catch (e) {}
+  // 5. sendBeacon.
+  if (navigator.sendBeacon) {
+    try { navigator.sendBeacon(hit("beacon"), "x"); } catch (e) {}
+  }
+  // 6. A WebSocket, which is not a resource load and bypasses loaders that only guard those.
+  try { new WebSocket(socketOrigin + "/hit/socket?run=" + encodeURIComponent(run)); } catch (e) {}
+  // 7. An iframe.
+  var frame = document.createElement("iframe");
+  frame.src = hit("frame");
+  frame.width = 1;
+  frame.height = 1;
+  document.body.appendChild(frame);
+  // 8. A top-level navigation, on a timer. The collector redirects it back here.
+  setTimeout(function () { location.href = hit("navigation"); }, NAVIGATION_DELAY_MS);
+
+  // If the navigation was stopped, this page is still here, and reports from here.
+  setTimeout(readCount, REPORT_DELAY_MS);
+})();
+</script>
+</body>
+</html>
