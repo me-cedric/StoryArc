@@ -5,4 +5,16 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+
+  <!-- The DllImport declarations. csbindgen writes this file from the Rust source in storyarc-ffi's
+       build.rs (desktop-clients task 1.8a, lane C owns it). It is linked, not copied, so the Rust
+       crate stays the one source of the seam: this project does not compile until that file exists. -->
+  <ItemGroup>
+    <Compile Include="$(RepoRoot)apps/desktop-core/storyarc-ffi/generated/NativeMethods.g.cs" Link="NativeMethods.g.cs" />
+  </ItemGroup>
+
+  <!-- The tests pin the raw seam (NativeMethods is internal, as csbindgen emits it) as well as the wrappers. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="StoryArc.Interop.Tests" />
+  </ItemGroup>
 </Project>
