@@ -1,4 +1,5 @@
 import Foundation
+import StoryArcCore
 
 /// A defaults suite of its own for one test, removed when the test ends.
 struct ScratchDefaults {
@@ -48,5 +49,31 @@ enum TestFixtures {
         let target = folder.appending(path: name)
         try FileManager.default.copyItem(at: comics.appending(path: name), to: target)
         return target
+    }
+}
+
+/// Publications for the pure tests, each with a stable path identity.
+enum TestPublications {
+    static func make(_ index: Int, series: String? = nil) -> Publication {
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/comics/\(index).cbz"),
+            format: .cbz,
+            displayTitle: "Title \(index)",
+            series: series,
+            number: series == nil ? nil : "\(index)",
+            origin: .inferred,
+            pageCount: 24
+        )
+    }
+
+    /// One whose identity is its name, for tests that speak in names rather than numbers.
+    static func named(_ name: String) -> Publication {
+        Publication(
+            identity: PublicationIdentity(normalizedPath: "/comics/\(name).cbz"),
+            format: .cbz,
+            displayTitle: name,
+            origin: .inferred,
+            pageCount: 24
+        )
     }
 }
