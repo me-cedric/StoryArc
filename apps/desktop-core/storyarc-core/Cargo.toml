@@ -6,15 +6,32 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
+# The vendored libarchive sources and the desktop-only config header it compiles.
+build = "build.rs"
 
-[lints]
-workspace = true
+# The workspace forbids unsafe code. This crate lowers that to `deny` for one reason: the
+# RAR decoder calls the vendored libarchive, and calling C is impossible without `unsafe`.
+# `deny` can be lifted by exactly one module, `src/formats/libarchive_sys.rs`, which does so
+# at its top with the reason written beside it; `forbid` could not be lifted at all. Every
+# other module of this crate is still refused an `unsafe` block, and clippy stays at the
+# workspace's own setting.
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
 
 [dependencies]
 # miniz_oxide 0.9.1, MIT OR Zlib OR Apache-2.0: raw DEFLATE for ZIP entries. ADR-0008 takes
 # inflate from the platform; a Rust core has no platform inflate, and this is the pure-Rust
 # one `flate2` itself wraps, with no C and no feature flags.
 miniz_oxide = "0.9.1"
+
+[build-dependencies]
+# cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the
+# third build system over the one copy under third_party/ (design.md, Decision 7). Pinned
+# exactly because the design pins it.
+cc = "=1.6.0"
 
 [dev-dependencies]
 # serde 1.0.229, MIT OR Apache-2.0: the corpus harness reads `manifest.json` into typed
