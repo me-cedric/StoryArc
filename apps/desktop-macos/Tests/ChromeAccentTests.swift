@@ -19,7 +19,6 @@ struct ChromeAccentTests {
     func brandByDefault() throws {
         let (settings, scratch) = try settings()
         defer { scratch.remove() }
-        let defaults = scratch.defaults
         let accent = AccentModel(systemAccent: .green)
 
         #expect(settings.accent == .brand)

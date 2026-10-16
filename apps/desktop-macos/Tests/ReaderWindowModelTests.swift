@@ -36,7 +36,6 @@ struct ReaderWindowModelTests {
     func secondOpenFocuses() throws {
         let (windows, scratch) = try windows()
         defer { scratch.remove() }
-        let defaults = scratch.defaults
         let saga = target("saga")
 
         #expect(windows.decide(saga) == .open(saga))

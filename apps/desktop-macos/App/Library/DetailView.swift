@@ -1,0 +1,160 @@
+import AppKit
+import DesignSystem
+import LibraryFeature
+import StoryArcCore
+import SwiftUI
+
+/// A publication's page, pushed into the content column.
+///
+/// `docs/designs/desktop/macos.md` section 3: the cover wash under the hero, one primary
+/// action, the other actions in a menu, and one line that names where the file lives.
+/// `DetailPresentation` decides the words; this draws them. Task 2.23d.
+struct DetailView: View {
+    @Environment(\.theme) private var theme
+
+    let library: MacLibrary
+    let publication: Publication
+    let onOpen: (Publication) -> Void
+
+    @State private var cover: CGImage?
+
+    var body: some View {
+        let detail = presentation
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .top, spacing: 24) {
+                    CoverImage(library: library, publication: publication, maxPixelSize: 900)
+                        .frame(width: 220, height: 330)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .shadow(radius: 12, y: 6)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(publication.displayTitle).font(.largeTitle.weight(.bold)).fontDesign(.serif)
+                        if let line = CoverCell.secondLine(of: publication) {
+                            Text(line).font(.title3).foregroundStyle(theme.palette.textSecondary)
+                        }
+                        if !publication.authors.isEmpty {
+                            Text(publication.authors.joined(separator: ", "))
+                                .foregroundStyle(theme.palette.textSecondary)
+                        }
+                        facts
+                        HStack(spacing: 12) {
+                            primary(detail)
+                            more
+                        }
+                        .padding(.top, 8)
+                        whereItLives(detail)
+                    }
+                    Spacer(minLength: 0)
+                }
+                if let summary = publication.summary, !summary.isEmpty {
+                    Text(summary).foregroundStyle(theme.palette.textPrimary).frame(maxWidth: 640, alignment: .leading)
+                }
+            }
+            .padding(28)
+            .opacity(detail.isGrey ? 0.7 : 1)
+        }
+        .background(DetailWashBackground(library: library, publication: publication))
+        .navigationTitle(publication.displayTitle)
+    }
+
+    private var presentation: DetailPresentation {
+        let location = library.model.location(of: publication)
+        return DetailPresentation.make(
+            publication: publication,
+            location: location,
+            isReachable: location.map(MacLibrary.isReachable) ?? false,
+            progress: library.record(of: publication),
+            hasCover: library.model.cachedCover(for: publication) != nil
+        )
+    }
+
+    private var facts: some View {
+        HStack(spacing: 14) {
+            Text(publication.format.displayName)
+            if let pages = publication.pageCount { Text("desktop.detail.pages \(pages)") }
+            if let year = publication.year { Text(String(year)) }
+        }
+        .font(.callout)
+        .foregroundStyle(theme.palette.textTertiary)
+    }
+
+    @ViewBuilder
+    private func primary(_ detail: DetailPresentation) -> some View {
+        switch detail.primary {
+        case .read:
+            Button { onOpen(publication) } label: { Text("desktop.detail.read").onAccentLabel() }
+                .buttonStyle(.borderedProminent).tint(theme.accent)
+        case let .continue(page, total):
+            Button { onOpen(publication) } label: { Text("desktop.detail.continue \(page) \(total)").onAccentLabel() }
+                .buttonStyle(.borderedProminent).tint(theme.accent)
+        case .readAgain:
+            Button { onOpen(publication) } label: { Text("desktop.detail.readAgain").onAccentLabel() }
+                .buttonStyle(.borderedProminent).tint(theme.accent)
+        case .unavailable:
+            EmptyView()
+        }
+    }
+
+    private var more: some View {
+        Menu {
+            PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: { _ in })
+        } label: {
+            Text("desktop.detail.more")
+        }
+        .fixedSize()
+    }
+
+    private func whereItLives(_ detail: DetailPresentation) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: detail.isGrey ? "externaldrive.badge.xmark" : "folder")
+            if detail.isGrey {
+                Text("desktop.detail.unavailable \(detail.whereItLives)")
+            } else {
+                Text(detail.whereItLives)
+            }
+        }
+        .font(.callout)
+        .foregroundStyle(theme.palette.textTertiary)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The cover wash under the hero, from the cover's own colour when one is cached.
+private struct DetailWashBackground: View {
+    @Environment(\.theme) private var theme
+
+    let library: MacLibrary
+    let publication: Publication
+
+    var body: some View {
+        LinearGradient(
+            colors: [wash.opacity(0.35), theme.palette.surfaceCanvas],
+            startPoint: .top, endPoint: .center
+        )
+        .ignoresSafeArea()
+        .background(theme.palette.surfaceCanvas)
+    }
+
+    private var wash: Color {
+        guard let image = library.model.cachedCover(for: publication),
+              let pixels = CoverAccent.pixels(of: image),
+              let hex = CoverAccent.derived(from: pixels)?.wash,
+              let colour = Color(storyArcHex: hex)
+        else { return theme.palette.surfaceSunken }
+        return colour
+    }
+}
+
+extension Color {
+    /// A colour from the `#RRGGBB` strings `StoryArcCore` answers in, or `nil`.
+    init?(storyArcHex hex: String) {
+        let body = hex.hasPrefix("#") ? hex.dropFirst() : Substring(hex)
+        guard body.count == 6, let value = UInt32(body, radix: 16) else { return nil }
+        self.init(
+            .sRGB,
+            red: Double((value >> 16) & 0xFF) / 255,
+            green: Double((value >> 8) & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255
+        )
+    }
+}

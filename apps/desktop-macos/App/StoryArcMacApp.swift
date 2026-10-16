@@ -4,27 +4,42 @@ import SwiftUI
 
 @main
 struct StoryArcMacApp: App {
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) private var delegate
+    @State private var library = MacLibrary()
+
     var body: some Scene {
         // One `Window`, not a `WindowGroup`: `desktop-experience` gives the app one library
         // window and any number of reader windows, and a group would hand out a second
-        // library on ⌘N. The readers are wave 2, as `WindowGroup(for:)`.
+        // library on ⌘N.
         Window("StoryArc", id: LibraryWindow.id) {
-            LibraryWindow()
-                .storyArcTheme()
+            LibraryWindow(library: library)
+                .macChrome()
                 .frame(minWidth: LibraryWindow.minimumSize.width, minHeight: LibraryWindow.minimumSize.height)
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 1100, height: 720)
         .commands {
-            // The menus of docs/designs/desktop/macos.md section 6 are wave 2.
-            CommandGroup(after: .newItem) {}
+            StoryArcMacCommands()
         }
+
+        // One reader per publication. `openWindow(value:)` fronts the window whose value is
+        // equal, and `ReaderTarget` is equal by publication. Restoration is the app's own
+        // (`RestorationPlan`), so a window whose publication is gone is named, not reopened.
+        WindowGroup(for: ReaderTarget.self) { $target in
+            if let target {
+                ReaderWindow(target: target, library: library)
+                    .macChrome()
+            }
+        }
+        .restorationBehavior(.disabled)
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 980, height: 820)
 
         // The `Settings` scene gives the StoryArc menu its Settings… item and ⌘, for free,
         // and opens one window however often it is asked.
         Settings {
-            SettingsRoot()
-                .storyArcTheme()
+            SettingsRoot(library: library)
+                .macChrome()
         }
     }
 }
