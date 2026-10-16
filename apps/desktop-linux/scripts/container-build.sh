@@ -47,6 +47,7 @@ run="set -e
   cargo --version
   cargo test --locked -p storyarc-core -p storyarc-ffi
   cargo build --locked -p storyarc-linux
+  cargo test --locked -p storyarc-linux
   $lint
   desktop-file-validate apps/desktop-linux/data/com.mecedric.StoryArc.desktop
   appstreamcli validate --no-net apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml"

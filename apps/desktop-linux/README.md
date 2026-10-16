@@ -1,8 +1,10 @@
 # StoryArc for Linux
 
-**Status: wave 0, base only.** The app opens an `AdwApplicationWindow` with a
-split view (Home, Library, Downloads), an About dialog and `Ctrl+Q`. It shows
-the core version. No reading feature exists yet. The Flatpak manifest is a
+**Status: wave 1, shell foundations.** The app opens an `AdwApplicationWindow` with a
+split view (Home, Library, Downloads), an About dialog, `Ctrl+W` to close a window and
+`Ctrl+Q` to quit. It remembers its window size, maximised state and display across a
+relaunch, and lands on a connected display when the saved one is gone. It shows the core
+version. No reading feature exists yet. The Flatpak manifest is a
 skeleton: it does not build offline until `cargo-sources.json` exists.
 
 [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the timing in
@@ -44,6 +46,8 @@ Not chosen: Avalonia (experimental Wayland backend), Qt, Vala or C, AppImage
 apps/desktop-linux/
 ├── Cargo.toml                          package storyarc-linux, binary storyarc
 ├── src/main.rs                         the window, actions and About dialog
+├── src/window_state.rs                 a pure WindowState: save, restore, fit to the displays
+├── src/session.rs                      the GTK side of it: read the monitors, write the file on close
 ├── data/
 │   ├── com.mecedric.StoryArc.desktop
 │   ├── com.mecedric.StoryArc.metainfo.xml

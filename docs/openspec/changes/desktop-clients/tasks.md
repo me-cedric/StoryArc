@@ -120,14 +120,17 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 **Lane L: the Linux shell**
 
-- [ ] 1.15 **Window state test first.** A pure `WindowState` value in `apps/desktop-linux/src/window_state.rs` with save and
+- [x] 1.15 **Window state test first.** A pure `WindowState` value in `apps/desktop-linux/src/window_state.rs` with save and
   restore, including a display that is gone. Verify: `cargo test -p storyarc-linux window_state` passes.
 - [ ] 1.16 **The shell.** `AdwApplication` with id `com.mecedric.StoryArc`, a header bar, a minimum size, a breakpoint near
   600 px, Control and W, Control and Q. Verify: `cargo run -p storyarc-linux` shows the window on Wayland, and the
-  application id appears in `hyprctl clients` on a Hyprland session (manual capture).
+  application id appears in `hyprctl clients` on a Hyprland session (manual capture). **Built 2026-10-16:**
+  `container-build.sh ubuntu-24.04 --clippy` passes (GTK 4.14.5, libadwaita 1.5.0) and the window-state tests pass
+  in the container, 12 of 12. The Wayland walk and the `hyprctl` check are owed by a Linux host, so the box stays open.
 - [ ] 1.17 **The curl spike on Wayland.** A `GtkGLArea` that draws the ADR-0009 projection while a pointer drags. Exit: the
   frame time is written down for one Wayland session and for one X11 session. The curl is present on X11 only if it holds
   the spec's frame budget there. Verify: the numbers sit in `docs/delivery/desktop-spike-curl-linux.md`.
+  **Not started 2026-10-16:** needs a Wayland session with a GPU and an X11 session; this Mac has neither.
 
 **Lane W: the Windows shell**
 
