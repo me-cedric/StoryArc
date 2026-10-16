@@ -8,8 +8,10 @@
 //! system cannot decode*, asks that no page in a supported archive decode on one desktop and
 //! not on another.
 
+pub mod adjust;
 pub mod decode;
 
+pub use adjust::{adjusted, border_inset, cropped, sharpened};
 pub use decode::{
     DecodedPage, MAX_PAGE_PIXELS, PageDecodeError, PageSize, SPREAD_THRESHOLD, can_decode, decode,
     dimensions, is_spread, is_spread_at,

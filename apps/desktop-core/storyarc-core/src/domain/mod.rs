@@ -2,6 +2,7 @@
 //! `StoryArcCore` target: the ones that must not drift between the two callers.
 
 pub mod adjustments;
+pub mod border_crop;
 pub mod identity;
 pub mod natural_order;
 pub mod progress;
@@ -11,6 +12,7 @@ pub mod spread_layout;
 pub mod timestamp;
 
 pub use adjustments::ImageAdjustments;
+pub use border_crop::{BorderCrop, BorderInset};
 pub use identity::{PublicationIdentity, ServerIdentifier};
 pub use natural_order::NaturalOrder;
 pub use progress::{ProgressMerge, ProgressMergeOutcome, ReadingPosition, ReadingProgress};
