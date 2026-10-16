@@ -44,6 +44,12 @@ targets:
         product: DesignSystem
       - package: StoryArcKit
         product: StoryArcCore
+      # Wave 1: the destination set the sidebar lists, and the credential store the
+      # Mac keychain wrapper delegates to.
+      - package: StoryArcKit
+        product: LibraryFeature
+      - package: StoryArcKit
+        product: Persistence
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
@@ -56,3 +62,28 @@ targets:
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+
+  # Hosted in the app on purpose. The process the tests run in is the ad-hoc signed,
+  # sandboxed StoryArc.app, so the entitlement, bookmark and keychain tests measure what
+  # a local run measures and not what an unsandboxed xctest runner would. XcodeGen sets
+  # TEST_HOST and BUNDLE_LOADER from the target dependency.
+  StoryArcMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+        excludes:
+          - "*.md"
+    dependencies:
+      - target: StoryArc
+      - package: StoryArcKit
+        product: Persistence
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.Tests
+        # As in apps/ios: without a generated plist the bundle cannot be signed and the
+        # build stops before a test runs.
+        GENERATE_INFOPLIST_FILE: YES
+        # The project-level entitlements belong to the app. A test bundle signed with the
+        # sandbox entitlement is a bundle that claims to be a sandboxed process.
+        CODE_SIGN_ENTITLEMENTS: ""
