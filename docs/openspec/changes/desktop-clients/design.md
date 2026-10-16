@@ -336,6 +336,25 @@ async-callback and native-AOT issues. Revisit above about 40 functions.
 corpus in `packages/test-fixtures` and the specs are the control, as ADR-0001 states. Every core module's first test
 reads that corpus and asserts byte-identical or value-identical output.
 
+**As built, 2026-10-16 (wave 1, lane C).** Unsafe code lives in one module: `storyarc-core/Cargo.toml` lowers the
+workspace's `forbid` to `deny` and only `src/formats/libarchive_sys.rs` carries `#![allow(unsafe_code)]`, with the
+reason beside both; `RarDecoder` and everything above it are safe Rust. The Linux config header is
+`storyarc-core/libarchive/config-linux.h`, handed to libarchive through its own `PLATFORM_CONFIG_H` hook rather than
+include-path order, because `#include "config.h"` resolves the including file's directory first; macOS hosts compile
+the vendored `config.h` unchanged and `third_party/` is untouched. Crates added: `miniz_oxide` 0.9.1 (MIT or Zlib or
+Apache-2.0, raw DEFLATE), `regex-lite` 0.1.9 (MIT or Apache-2.0, the filename conventions), `cc` =1.6.0 and
+`csbindgen` =1.9.8 as pinned above, and `serde` 1.0.229 for the tests; `quick-xml` was not needed, since ComicInfo and
+the OPF are scraped flat the way the Swift readers do. `RandomAccessSource` is synchronous and readers take an
+`Arc<dyn RandomAccessSource>`; the tokio runtime of Open Question 5 sits above it, for the sources that are async.
+On Windows `build.rs` skips libarchive and `RarDecoder` answers `Unavailable` until task 1.7 lands the MSVC header.
+
+Three places where the mirror found the Swift reader and the corpus disagreeing, for the iOS and Android owners
+rather than for this lane: a RAR4 written on Windows carries backslashes in its entry names, which libarchive
+normalises to `/` and the Rust reader normalises too, while Swift's `RarReader` does not, so a compressed nested page
+there is found by the Rust reader and not by Swift; `FilenameMetadata.trimmingLeadingZeros("0.5")` answers `"0"` in
+Swift and is mirrored and pinned as such; and the Swift XML scraper attaches the next element's text to a
+self-closing tag, which the Rust one does not. None changes a fixture's expectation today.
+
 **Async runtime.** `oo7` needs one. Decide one runtime for the core and the Linux app before the first secret is stored
 (Open Questions).
 

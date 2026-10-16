@@ -978,20 +978,21 @@ script; the thirty-five committed captures are ad hoc, and thirty-two of them ar
 settings screens. The pseudo-locale walk and the accessibility sweep both stop at the two
 readers, because a reader needs a publication on the device and the emulator has none.
 
-## Desktop: `desktop-clients`, 2026-10-07
+## Desktop: `desktop-clients`, wave 1 on 2026-10-16
 
-Wave 0 is a preparation wave. It holds the research, the parity audit, ADR-0018, the change `desktop-clients` with its new
-capability `desktop-experience`, and a minimal base per target. No desktop feature is built. Every row below is **base only**:
-a project that compiles and shows an empty window, and nothing a reader can use. The plan for the waves that follow is in
-`changes/desktop-clients/tasks.md`. Mobile rows above are not affected.
+Wave 0 (2026-10-07) was preparation: the research, the parity audit, ADR-0018, the change with its new capability
+`desktop-experience`, and a minimal base per target. **Wave 1 landed on 2026-10-16**, built in parallel lanes on this
+Mac and verified by the commands each row names; nothing a reader can use exists yet, because wave 2 is where a comic
+opens. The plan is in `changes/desktop-clients/tasks.md`; the lanes' deviations are recorded in its `design.md`.
 
 | Target | Stack | State | Next |
 | --- | --- | --- | --- |
-| macOS | SwiftUI app in `apps/desktop-macos`, StoryArcKit by path, macOS 26, App Sandbox | base only | Wave 1 task 1.11 to 1.14: entitlements, bookmarks, keychain, the shell |
-| Windows | WinUI 3 on Windows App SDK 2.5.1, C#, .NET 10, Windows 11 24H2, over the Rust core | base only; builds for x64 in CI, not yet launched on a Windows desktop | Wave 1 tasks 1.8, 1.18 to 1.20: the seam, the shell, the D3D11 curl spike |
-| Linux | GTK 4.14 and libadwaita 1.5 in Rust, Wayland first, Flatpak first | base only | Wave 1 tasks 1.15 to 1.17: window state, the shell, the Wayland curl spike |
-| Shared core | `storyarc-core` and `storyarc-ffi` (Rust, no UI), for Windows and Linux | base only | Wave 1 tasks 1.1 to 1.8: the format layer against `packages/test-fixtures` |
-| EPUB bundle | Readium ts-toolkit, pinned, in a system web view on each desktop | not started | Wave 1 tasks 1.9 and 1.10: the pin check and the egress page |
+| macOS | SwiftUI app in `apps/desktop-macos`, StoryArcKit by path, macOS 26, App Sandbox | **wave 1 done**: entitlements pinned from both sides, `.withSecurityScope` bookmarks, the keychain path measured (an ad-hoc build gets -34018, so the login keychain until a team signs), a library window with the sidebar and empty states and a Settings scene; `xcodebuild test` 17 of 17, six frames | Wave 2 tasks 2.9 to 2.24: windows, menus, keys, pointer, zoom, the reader, folders, Home, search, detail |
+| Windows | WinUI 3 on Windows App SDK 2.5.1, C#, .NET 10, Windows 11 24H2, over the Rust core | shell written (title bar, Mica, `NavigationView`, strings from the generated `.resw`, the brand accent); the interop tests target the real seam; **both proved only by CI on the next push**, no Windows host here | Wave 1 spikes 1.19 and 1.20 on a Windows machine; wave 2 tasks 2.37 to 2.48 |
+| Linux | GTK 4.14 and libadwaita 1.5 in Rust, Wayland first, Flatpak first | shell built: window state saved and restored and fitted to a gone display, Control-W and Control-Q, the breakpoint; `container-build.sh ubuntu-24.04 --clippy` passes and the crate's tests run there, 12 of 12; the Wayland walk and the `hyprctl` check are owed by a Linux host | The curl spike 1.17 on a Linux host; wave 2 tasks 2.25 to 2.36 |
+| Shared core | `storyarc-core` and `storyarc-ffi` (Rust, no UI), for Windows and Linux | **format layer done**: own ZIP and TAR readers, RAR headers by hand with libarchive for the bytes, the ranged source with a cancel token, page order, metadata and covers; the whole shared corpus passes on macOS and in an Ubuntu container; the seam exports eight calls with generated C# declarations | Task 1.7, RAR on MSVC, on a Windows host; wave 2 tasks 2.1 to 2.8a |
+| EPUB bundle | Readium ts-toolkit, pinned, in a system web view on each desktop | **pinned and built**: `@readium/navigator` 2.11.1 and `@readium/shared` 2.7.0, one reproducible file with its digest in `pin.json`, the pin check in `pnpm lint`; the eight-vector egress page counts eight of eight arrivals in a plain browser, which is the baseline each host must bring to zero | Wave 4 tasks 4.1 and 4.2 |
+| Cross-cutting | tokens, strings, pins | the token build emits a WinUI dictionary with a C# mirror and GTK CSS; one script writes the four-language `.resw` and `.po` files from the iOS catalogues, 1023 keys, with drift checks in `pnpm lint`; the PDFium binary is pinned and digest-checked | The app copies of the tokens join the sync once the shells read them |
 
 Requirements of the new capability: 43, with 168 scenarios. None is built. The owner answered the three open questions on 2026-10-07:
 the chrome accent, the edge click zones default and the cold-launch budget (design.md Open Questions 1 to 3).

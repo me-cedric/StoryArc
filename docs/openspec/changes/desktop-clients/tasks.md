@@ -66,30 +66,38 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 **Lane C: the core's format layer**
 
-- [ ] 1.1 **Corpus harness first.** `apps/desktop-core/storyarc-core/tests/corpus.rs` reads
+- [x] 1.1 **Corpus harness first.** `apps/desktop-core/storyarc-core/tests/corpus.rs` reads
   `packages/test-fixtures/manifest.json` and fails once per fixture with no reader. Verify: `pnpm test:desktop:core`
   fails naming each fixture, then passes after 1.2 to 1.6.
-- [ ] 1.2 **ZIP reader.** Own reader per ADR-0008: central directory, compressed size, zip64, encrypted flag, ranged read.
+- [x] 1.2 **ZIP reader.** Own reader per ADR-0008: central directory, compressed size, zip64, encrypted flag, ranged read.
   File `src/formats/zip.rs`. Verify: the ZIP corpus passes byte for byte.
-- [ ] 1.3 **TAR reader** for CBT. File `src/formats/tar.rs`. Verify: the TAR corpus passes.
-- [ ] 1.4 **`RandomAccessSource`** trait with a local-file implementation, cancellation and range tests.
+- [x] 1.3 **TAR reader** for CBT. File `src/formats/tar.rs`. Verify: the TAR corpus passes.
+- [x] 1.4 **`RandomAccessSource`** trait with a local-file implementation, cancellation and range tests.
   File `src/io/source.rs`. Verify: `cargo test -p storyarc-core io::` passes, including a cancel mid-read.
-- [ ] 1.5 **RAR through libarchive** on Linux and macOS hosts: `build.rs` with the `cc` crate over
+- [x] 1.5 **RAR through libarchive** on Linux and macOS hosts: `build.rs` with the `cc` crate over
   `third_party/libarchive`, a desktop-only Linux config header in `apps/desktop-core/storyarc-core/libarchive/` that
   `build.rs` puts ahead of the vendored include path, about ten `extern "C"` declarations. The vendored `config.h` stays
   untouched. Verify: the RAR corpus passes on `ubuntu-24.04` and `macos-26`, `pnpm libarchive:pin` still passes and
   `git diff -- third_party` is empty.
-- [ ] 1.6 **Page order, metadata and covers**, mirrored from StoryArcKit `Formats`. Files under `src/formats/`.
+- [x] 1.6 **Page order, metadata and covers**, mirrored from StoryArcKit `Formats`. Files under `src/formats/`.
   Verify: the corpus's expected metadata and cover digests match.
+  **Built 2026-10-16:** the manifest records no cover digests, so the harness asserts the cover's identity (the
+  designated page or the first), its byte count and the PNG signature; `pnpm test:desktop:core` passes the 46 corpus
+  tests, the 9 ZIP reader tests, the 7 RAR tests and 57 unit tests, on macOS and in an `ubuntu:24.04` container.
 - [ ] 1.7 **RAR on MSVC.** A desktop-only `_WIN32` config header beside the Linux one, and the BCrypt code paths for x64
   and ARM64. Verify: the RAR corpus passes on `windows-2025-vs2026` for both targets and `git diff -- third_party` is
   empty. Exit: a written result in the task if it fails.
+  **Not attempted 2026-10-16:** no Windows host here. `build.rs` skips libarchive on `target_os = "windows"` with a
+  build warning and `RarDecoder` answers `Unavailable` there, so `cargo build -p storyarc-ffi` still links for the
+  Windows CI job; the MSVC header, the BCrypt paths and the removal of that skip are this task's remaining work.
 - [ ] 1.8 **The seam, test first. [W]** `apps/desktop-windows/tests/StoryArc.Interop.Tests` calls `storyarc_core_version()`,
   one buffer round trip, one error code and one cancel. Lane W writes the test project and links the generated file of 1.8a
   into `StoryArc.Interop`. Verify: the tests fail to link until 1.8a lands.
-- [ ] 1.8a **The seam, exports. [C]** `storyarc-ffi` exports the four calls and `build.rs` writes
+- [x] 1.8a **The seam, exports. [C]** `storyarc-ffi` exports the four calls and `build.rs` writes
   `apps/desktop-core/storyarc-ffi/generated/NativeMethods.g.cs` with csbindgen. Lane C owns that file. Verify:
   `pnpm test:desktop:interop` passes on windows, ubuntu and macOS runners.
+  **Rust side built 2026-10-16:** eight exports, the header and the generated `NativeMethods.g.cs` agree, `cargo test
+  -p storyarc-ffi` passes 8 of 8; the C# side (lane W, task 1.8) is proved by the interop jobs on the next push.
 
 **Lane E: the EPUB bundle**
 
