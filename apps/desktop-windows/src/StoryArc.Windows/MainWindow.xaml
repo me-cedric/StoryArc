@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
+<!-- The library window: chrome only (desktop-clients task 1.18). Title bar, Mica, the four library
+     destinations the iOS app has, in its order, and an empty state. No feature lives here yet. -->
 <Window
     x:Class="StoryArc.Windows.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="StoryArc">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Microsoft.UI.Xaml.Media.MicaBackdrop: Mica behind the title bar and the pane. Where Mica is
+         not supported, or transparency is off, the system draws a solid colour in its place. -->
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
@@ -14,33 +17,56 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="StoryArc">
+        <!-- Microsoft.UI.Xaml.Controls.TitleBar (Windows App SDK 1.7 and later). The title is set in
+             code from the package display name, the one place the app's name lives. -->
+        <TitleBar x:Name="AppTitleBar">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
         </TitleBar>
 
+        <!-- Microsoft.UI.Xaml.Controls.NavigationView. PaneDisplayMode Auto gives the three states by
+             window width (expanded, compact, minimal), which is the "any window size" rule on this
+             platform. The items' text comes from the generated string resources in code; Tag holds the
+             resource name of each destination's empty-state sentence. -->
         <NavigationView
             x:Name="Navigation"
             Grid.Row="1"
-            PaneDisplayMode="Left"
+            PaneDisplayMode="Auto"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
-            SelectionChanged="OnSelectionChanged">
+            SelectionChanged="OnSelectionChanged"
+            AutomationProperties.AutomationId="LibraryNavigation">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="Home" Tag="Home" Icon="Home" />
-                <NavigationViewItem Content="Library" Tag="Library" Icon="Library" />
-                <NavigationViewItem Content="Downloads" Tag="Downloads" Icon="Download" />
+                <NavigationViewItem x:Name="HomeItem" Icon="Home" Tag="home_nothingOpen" AutomationProperties.AutomationId="NavHome" />
+                <NavigationViewItem x:Name="LibraryItem" Icon="Library" Tag="library_empty_subtitle" AutomationProperties.AutomationId="NavLibrary" />
+                <NavigationViewItem x:Name="OnDeviceItem" Icon="Download" Tag="library_empty_onDevice" AutomationProperties.AutomationId="NavOnDevice" />
+                <NavigationViewItem x:Name="SearchItem" Icon="Find" Tag="library_search_prompt" AutomationProperties.AutomationId="NavSearch" />
             </NavigationView.MenuItems>
 
-            <StackPanel Margin="32" Spacing="8">
-                <TextBlock x:Name="SectionTitle" Style="{ThemeResource TitleTextBlockStyle}" />
-                <TextBlock Text="Nothing here yet. This is the Windows base: the shell and the core link only."
-                           Style="{ThemeResource BodyTextBlockStyle}"
-                           TextWrapping="Wrap" />
-                <TextBlock x:Name="CoreVersionText"
-                           Style="{ThemeResource CaptionTextBlockStyle}"
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <!-- The empty state: centred, one sentence (docs/designs/desktop/windows.md, section 9).
+                 The button that section names arrives with the first feature that has an action. -->
+            <StackPanel
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="480"
+                Margin="32"
+                Spacing="8">
+                <TextBlock
+                    x:Name="SectionTitle"
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    HorizontalAlignment="Center" />
+                <TextBlock
+                    x:Name="EmptyText"
+                    Style="{ThemeResource BodyTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    TextAlignment="Center"
+                    TextWrapping="Wrap" />
+                <TextBlock
+                    x:Name="CoreVersionText"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    HorizontalAlignment="Center" />
             </StackPanel>
         </NavigationView>
     </Grid>
