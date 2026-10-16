@@ -5,7 +5,7 @@
   "sdk": "org.gnome.Sdk",
   "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
   "command": "storyarc",
-  "x-note": "cargo-sources.json is not generated yet. Later task: run flatpak-cargo-generator.py Cargo.lock -o apps/desktop-linux/build-aux/cargo-sources.json. Until then this manifest does not build offline. Also add libarchive and pdfium modules when the format layer lands. A human writes the copy that goes to Flathub.",
+  "x-note": "This is the repository's own manifest and it may be machine-written. The copy that goes to Flathub may not be, and a human writes it after the owner's written question to Flathub is answered (tasks.md 1.25). README.md beside this file says how cargo-sources.json is regenerated and how the build is tried in a container.",
   "finish-args": [
     "--share=ipc",
     "--socket=wayland",
@@ -16,12 +16,40 @@
   "build-options": {
     "append-path": "/usr/lib/sdk/rust-stable/bin",
     "env": {
-      "CARGO_HOME": "/run/build/storyarc/cargo"
+      "CARGO_HOME": "/run/build/storyarc/cargo",
+      "CARGO_NET_OFFLINE": "true"
     }
   },
   "modules": [
     {
+      "name": "pdfium",
+      "x-note": "The PDF engine no distro packages (ADR-0018, design.md Decision 7). One release asset per architecture, pinned by tag and sha256 in apps/desktop-core/pdfium/pin.json; scripts/pdfium-pin-check.mjs guards that file. pdfium-render binds to /app/lib/libpdfium.so at run time once the PDF wave wires it.",
+      "buildsystem": "simple",
+      "build-commands": [
+        "install -Dm644 lib/libpdfium.so /app/lib/libpdfium.so",
+        "install -Dm644 LICENSE /app/share/licenses/pdfium/LICENSE",
+        "install -Dm644 VERSION /app/share/licenses/pdfium/VERSION"
+      ],
+      "sources": [
+        {
+          "type": "archive",
+          "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7881/pdfium-linux-x64.tgz",
+          "sha256": "1470e21b8b4a3b4ad7f85684e2da11d94f3b69a86d81dee11b9b6709d927ac1d",
+          "strip-components": 0,
+          "only-arches": ["x86_64"]
+        },
+        {
+          "type": "archive",
+          "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7881/pdfium-linux-arm64.tgz",
+          "sha256": "ee7f7b7d5468958336a818c1cd580bdd20972846b7377b13f9a923d92d1d4674",
+          "strip-components": 0,
+          "only-arches": ["aarch64"]
+        }
+      ]
+    },
+    {
       "name": "storyarc",
+      "x-note": "libarchive needs no module: storyarc-core compiles the vendored third_party/libarchive sources with the cc crate (apps/desktop-core/storyarc-core/build.rs), and the dir source below carries them. cargo-sources.json vendors every crate of Cargo.lock so the build runs offline.",
       "buildsystem": "simple",
       "build-commands": [
         "cargo --offline build --release --locked -p storyarc-linux",
