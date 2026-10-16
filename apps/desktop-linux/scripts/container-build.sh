@@ -52,8 +52,11 @@ run="set -e
   desktop-file-validate apps/desktop-linux/data/com.mecedric.StoryArc.desktop
   appstreamcli validate --no-net apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml"
 
+# storyarc-ffi's build.rs regenerates generated/NativeMethods.g.cs into the source tree on every
+# build. A tmpfs over that one directory takes the write, so the repository mount stays read-only.
 docker run --rm ${platform:+--platform "$platform"} \
   -v "$root":/src:ro -w /src \
+  --tmpfs /src/apps/desktop-core/storyarc-ffi/generated \
   -v "storyarc-target-$distro":/target \
   -v "storyarc-cargo-$distro":/root/.cargo \
   -e CARGO_TARGET_DIR=/target \
