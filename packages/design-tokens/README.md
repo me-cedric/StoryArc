@@ -12,13 +12,13 @@ app can drift from the palette by hand-editing a hex code.
 | `tokens/typography.json` | Font families per platform and the eleven type roles with size, line height, weight and tracking. |
 | `tokens/layout.json` | Spacing scale, radius scale, Android elevation, motion durations and easing, cover-grid metrics, glass and touch-target rules. |
 | `scripts/oklch.mjs` | OKLCH → sRGB conversion and WCAG contrast maths. No dependencies. |
-| `scripts/build.mjs` | Resolves tokens, runs the contrast gate, emits Swift + Kotlin + a resolved JSON dump. |
+| `scripts/build.mjs` | Resolves tokens, runs the contrast gate, emits Swift, Kotlin, a WinUI resource dictionary with a C# mirror, GTK CSS, and a resolved JSON dump. |
 | `dist/` | Generated output. Gitignored — rebuild, never edit. |
 
 ## Public API
 
 ```bash
-pnpm tokens:build   # write dist/swift, dist/kotlin, dist/tokens.resolved.json
+pnpm tokens:build   # write dist/swift, dist/kotlin, dist/windows, dist/gtk, dist/tokens.resolved.json
 pnpm tokens:check   # run the contrast gate only, write nothing (CI uses this)
 pnpm tokens:sync    # build, then copy the generated files into both apps
 ```
@@ -101,3 +101,14 @@ pnpm --filter @storyarc/design-tokens check
 ```
 
 The contrast gate is the test. It runs in CI on every pull request.
+
+## The desktop outputs
+
+`dist/windows/StoryArcTokens.xaml` is a WinUI `ResourceDictionary`: every colour as a
+`Color` and a `SolidColorBrush` keyed `StoryArc<Group><Name>`, and space, radius, motion and
+the type scale as `x:Double` resources with the same prefix. `dist/windows/StoryArcTokens.cs`
+mirrors the values for code. `dist/gtk/storyarc-tokens.css` carries the colours as
+`@define-color storyarc_<group>_<name>` and the rest as custom properties on `:root`, which is
+what a `GtkCssProvider` reads. Added for the desktop clients (ADR-0018, task 1.31); the copies
+inside `apps/desktop-windows` and `apps/desktop-linux` join `scripts/sync-tokens.mjs` once
+those shells read them.

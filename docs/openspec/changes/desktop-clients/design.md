@@ -545,10 +545,22 @@ Nothing migrates for a reader: no desktop app exists today. Rollback is deletion
    device. Task 5.9 measures each first running shell against this number.
 4. **Shared shell code.** Move the iOS composition code into a package that both iOS and macOS use? It needs a change under
    `apps/ios`. Wave 5 parent task.
-5. **Async runtime** for the core and `oo7` (tokio is the `oo7` default, `async-io` is the alternative).
-6. **Who builds the EPUB manifest and positions on macOS?** Swift in `StoryArcEpubMac`, or the Rust core through a static
-   library. A Swift builder duplicates logic. A Rust static library puts cargo inside the Xcode build, which ADR-0001
-   avoided. Decide in wave 1 with a spike.
+5. **Async runtime. Answered 2026-10-16 (task 1.28): tokio.** `smb` 0.12.1 implements its `async` feature on
+   tokio and has no async-std path, and `oo7` 0.6.0 offers tokio as one of its two runtimes (both read from the
+   crates.io metadata). One runtime for the core means one thread pool to reason about, so the core owns a single
+   multi-threaded tokio runtime behind a `Runtime` handle, created once by the host. The GTK app keeps GLib's main
+   loop for the interface and bridges with `glib::spawn_future_local` plus a channel, as `gtk4-rs` documents; the
+   Windows app calls the core through the C ABI on `Task.Run`, so the runtime is invisible to C#. `async-io` is not
+   taken because `smb` could not use it.
+6. **Who builds the EPUB manifest and positions on macOS? Answered 2026-10-16 (task 1.29): Swift, from
+   StoryArcKit.** `Formats` already parses an EPUB's container with no dependency: `EpubReader` yields the spine
+   (`EpubSpineItem`), the table of contents (`EpubTocEntry`), `EpubMetadata` and the cover
+   (`apps/ios/Packages/StoryArcKit/Sources/Formats/EpubReader.swift`), and `ZipCentralDirectory` already carries
+   each entry's compressed size, which is the number the positions rule divides by 1024. So `StoryArcEpubMac` turns
+   what the package yields into the Readium Web Publication Manifest and the positions list in Swift, and
+   duplicates nothing but the serialisation. A Rust static library would have put cargo inside the Xcode build for
+   a job the Swift code already does. The shared-corpus test of task 4.3 asserts the same positions on all platforms,
+   which is what keeps the two builders honest.
 7. **Flathub.** Does the reviewer accept a project that discloses AI assistance? Owner asks in writing.
 8. **Apple Developer Program** and **Windows signing identity.** Both are owner purchases and decisions. Until then, builds
    are ad hoc or unsigned and testers meet Gatekeeper and SmartScreen.
