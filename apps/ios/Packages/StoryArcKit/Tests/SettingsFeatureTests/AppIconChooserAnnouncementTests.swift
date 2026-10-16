@@ -94,13 +94,23 @@ struct AppIconChooserAnnouncementTests {
     /// The bits an accessibility attachment under `node` stores in `field`, or nil if it stores none.
     ///
     /// `.accessibilityAddTraits` and `.accessibilityHidden` write `AccessibilityProperties`' own
-    /// `traits` and `visibility` fields. Each holds an option set with a `rawValue`. An earlier SDK
-    /// kept the same two in a dictionary under entries keyed by a `TraitsKey` or a `VisibilityKey`
-    /// type, and that shape is gone. So this searches the subtree for the first `rawValue` rather
-    /// than walking a fixed path, and the next reshuffle moves nothing here.
+    /// `traits` and `visibility` fields, and the SDK decides what those look like. Xcode 26's keeps
+    /// them as fields of that name, each an option set with a `rawValue`. Xcode 27.1's keeps them
+    /// as `Entry` values keyed by a `TraitsKey` or a `VisibilityKey` *type*, each holding a `value`
+    /// and a `mask` — the shape an earlier SDK had and this once said was gone. Both are read: the
+    /// field by name, then the entry by its key, and under either the first `rawValue` rather than
+    /// a fixed path, so the next reshuffle moves as little as possible here. The entry's `value` and
+    /// never its `mask`: `accessibilityHidden(false)` stores value 0 under mask 4, and reading the
+    /// mask would make shown and hidden the same number.
     static func bits(for field: String, in node: ViewNode) -> UInt64? {
         for candidate in node.descendants where candidate.label == field {
             if let raw = firstRawValue(under: candidate) { return raw }
+        }
+        let keyType = field.prefix(1).uppercased() + field.dropFirst() + "Key.Type"
+        for entry in node.descendants
+        where entry.typeName == "Entry" && entry.child(labelled: "key")?.typeName == keyType {
+            guard let held = entry.child(labelled: "value") else { continue }
+            if let raw = firstRawValue(under: held.child(labelled: "value") ?? held) { return raw }
         }
         return nil
     }
