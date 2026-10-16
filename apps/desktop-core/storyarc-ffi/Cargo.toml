@@ -6,6 +6,8 @@ edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 repository.workspace = true
+# Writes generated/NativeMethods.g.cs with csbindgen (design.md, Decision 5).
+build = "build.rs"
 
 [lib]
 name = "storyarc_ffi"
@@ -13,6 +15,12 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 storyarc-core = { path = "../storyarc-core" }
+
+[build-dependencies]
+# csbindgen 1.9.8, MIT: reads the `extern "C"` functions of src/lib.rs and writes the C#
+# `DllImport` declarations the Windows app links, so the two sides cannot drift by hand.
+# Pinned exactly because the design pins it.
+csbindgen = "=1.9.8"
 
 # This crate is the one place unsafe code is allowed: the C ABI needs it.
 [lints.rust]
