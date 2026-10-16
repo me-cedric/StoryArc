@@ -59,3 +59,23 @@ jobs:
           name: storyarc-windows-x64
           path: apps/desktop-windows/src/StoryArc.Windows/bin/x64/Release/
           if-no-files-found: error
+
+  # Cross-built on the same x64 image: the csproj passes --target aarch64-pc-windows-msvc
+  # to cargo, so the toolchain needs that target added. build.ps1 skips the interop tests
+  # for ARM64 because an ARM64 library does not load on an x64 host.
+  build-windows-arm64:
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-pc-windows-msvc
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: apps/desktop-windows/global.json
+      - run: pwsh apps/desktop-windows/build.ps1 -Platform ARM64 -Configuration Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyarc-windows-arm64
+          path: apps/desktop-windows/src/StoryArc.Windows/bin/ARM64/Release/
+          if-no-files-found: error

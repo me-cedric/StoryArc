@@ -26,7 +26,7 @@ concurrency:
 
 jobs:
   app:
-    name: macOS app — build
+    name: macOS app — build and test
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v5
@@ -49,4 +49,16 @@ jobs:
           -scheme StoryArc
           -destination 'platform=macOS'
           CODE_SIGNING_ALLOWED=NO
+          -quiet
+
+      # Signed ad hoc on purpose, unlike the build above: StoryArcMacTests is hosted in the
+      # sandboxed app, so the entitlement, bookmark and keychain tests measure what a local
+      # run measures. The ad-hoc identity needs no certificate on the runner.
+      - name: Test
+        working-directory: apps/desktop-macos
+        run: >-
+          xcodebuild test
+          -project StoryArcMac.xcodeproj
+          -scheme StoryArc
+          -destination 'platform=macOS'
           -quiet
