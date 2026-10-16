@@ -133,6 +133,12 @@ impl FolderSource {
         &self.report.skipped
     }
 
+    /// Whether the last walk stopped because its token was raised. What it found before
+    /// stopping is kept.
+    pub fn was_cancelled(&self) -> bool {
+        self.report.was_cancelled
+    }
+
     /// Folders the walk could not list: the difference between an empty library and one
     /// whose access lapsed.
     pub fn unreadable_folders(&self) -> &[String] {

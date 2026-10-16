@@ -1849,7 +1849,9 @@ name = "storyarc-ffi"
 version = "0.1.0"
 dependencies = [
  "csbindgen",
+ "serde_json",
  "storyarc-core",
+ "tempfile",
 ]
 
 [[package]]
