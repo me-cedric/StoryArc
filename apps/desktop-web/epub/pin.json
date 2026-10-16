@@ -1,0 +1,12 @@
+{
+  "$comment": "The desktop EPUB renderer, pinned (ADR-0018 D6, design.md Decision 6). package.json must pin exactly these, pnpm-lock.yaml must resolve exactly one copy of each, and `file` must digest to `sha256`. Checked by check-pin.mjs; after a bump run `pnpm install`, `pnpm build`, then `node check-pin.mjs --write`.",
+  "packages": {
+    "@readium/navigator": "2.11.1",
+    "@readium/shared": "2.7.0"
+  },
+  "source": "https://github.com/readium/ts-toolkit",
+  "licence": "BSD-3-Clause",
+  "copyright": "Copyright (c) 2022, Readium Foundation",
+  "file": "dist/storyarc-epub.js",
+  "sha256": "415a93f4b2461ef24d495dfbcd6091e92ab5ac751e1a55ce3cba703e4db92028"
+}

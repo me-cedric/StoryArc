@@ -1,0 +1,21 @@
+{
+  "name": "storyarc-epub-bundle",
+  "private": true,
+  "description": "The one EPUB renderer bundle the three desktop web views load. ADR-0018 D6. Standalone: its own pnpm root, not a member of the repository workspace.",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "scripts": {
+    "build": "vite build",
+    "check": "node check-pin.mjs",
+    "check:selftest": "node check-pin.mjs --self-test",
+    "egress": "node test/collector.mjs",
+    "egress:selftest": "node test/collector.mjs --self-test"
+  },
+  "dependencies": {
+    "@readium/navigator": "2.11.1",
+    "@readium/shared": "2.7.0"
+  },
+  "devDependencies": {
+    "vite": "8.3.4"
+  }
+}

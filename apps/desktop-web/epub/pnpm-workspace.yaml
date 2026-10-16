@@ -1,0 +1,20 @@
+# This directory is its own pnpm root, on purpose.
+#
+# pnpm resolves the nearest pnpm-workspace.yaml above the working directory. Without this
+# file a `pnpm install` run here climbs to the repository root and installs the root
+# workspace instead — measured on 2026-10-16 with pnpm 11.20.0: "Scope: all 2 workspace
+# projects", and the override below was never applied. The root's
+# `packages: ['packages/*']` does not match apps/desktop-web/epub, which is also on
+# purpose: this bundle has its own lockfile, its own exact pins and its own check
+# (check-pin.mjs), and the desktop apps embed its built file. Nothing at the root depends
+# on it and it depends on nothing at the root.
+packages:
+  - '.'
+
+# @readium/navigator 2.11.1 declares @readium/shared 2.6.0. Without this override the
+# bundle would carry two copies of shared, and a Locator built through the host-facing
+# 2.7.0 would not be the class the navigator checks. The 2.6.0 to 2.7.0 diff is additive
+# (tokenizers and guided navigation), read with `npm diff` on 2026-10-16. check-pin.mjs
+# fails when the lockfile resolves more than one copy.
+overrides:
+  '@readium/shared': '2.7.0'
