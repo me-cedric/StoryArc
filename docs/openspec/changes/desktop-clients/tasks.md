@@ -93,6 +93,9 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 - [ ] 1.8 **The seam, test first. [W]** `apps/desktop-windows/tests/StoryArc.Interop.Tests` calls `storyarc_core_version()`,
   one buffer round trip, one error code and one cancel. Lane W writes the test project and links the generated file of 1.8a
   into `StoryArc.Interop`. Verify: the tests fail to link until 1.8a lands.
+  **Written 2026-10-16:** four tests against the generated declarations (version, a buffer round trip freed once, a
+  per-thread last error, a cancel token), with `NativeCore` wrappers and a `CancelToken : SafeHandle`; proved by the
+  `interop-linux` and `interop-macos` jobs on the next push, not here.
 - [x] 1.8a **The seam, exports. [C]** `storyarc-ffi` exports the four calls and `build.rs` writes
   `apps/desktop-core/storyarc-ffi/generated/NativeMethods.g.cs` with csbindgen. Lane C owns that file. Verify:
   `pnpm test:desktop:interop` passes on windows, ubuntu and macOS runners.
@@ -149,6 +152,11 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 - [ ] 1.18 **The shell.** A WinUI window with `TitleBar`, a backdrop and `NavigationView`, a `StoryArc.Interop` reference
   and the cargo `Exec` target. Verify: `pwsh apps/desktop-windows/build.ps1` passes for x64 and ARM64.
+  **Written 2026-10-16, proved by CI only:** `TitleBar`, `MicaBackdrop`, a `NavigationView` over the four iOS
+  destinations with strings from the generated `.resw` and the brand accent aliased over `SystemAccentColor`; no .NET
+  SDK and no Windows host here, so the `Desktop Windows` workflow's x64 build is the proof and ARM64 is still not built
+  in CI (task 1.22). Search sits in the pane as a placeholder until task 2.47b puts the field in the title bar, which
+  is what `docs/designs/desktop/windows.md` §2 draws.
 - [ ] 1.19 **The curl spike on D3D11.** The ADR-0009 shader as HLSL in a `SwapChainPanel` with independent input. Exit:
   monitor-rate presents on a 120 Hz screen while a flyout animates. Verify: the result sits in
   `docs/delivery/desktop-spike-curl-windows.md`.
