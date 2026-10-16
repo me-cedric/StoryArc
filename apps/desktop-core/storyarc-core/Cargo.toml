@@ -11,4 +11,7 @@ repository.workspace = true
 workspace = true
 
 [dev-dependencies]
+# serde 1.0.229, MIT OR Apache-2.0: the corpus harness reads `manifest.json` into typed
+# records so a fixture's expectations are named fields rather than string lookups.
+serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1"
