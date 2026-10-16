@@ -23,6 +23,12 @@ const TARGETS = [
     from: join(DIST, 'kotlin', 'StoryArcTokens.kt'),
     to: join(ROOT, 'apps', 'android', 'core', 'designsystem', 'src', 'main', 'kotlin', 'app', 'storyarc', 'core', 'designsystem', 'tokens', 'StoryArcTokens.kt'),
   },
+  // The desktop clients (ADR-0018, task 1.31). The Windows app merges the dictionary in
+  // App.xaml; the GTK CSS joins here once the Linux shell loads it.
+  {
+    from: join(DIST, 'windows', 'StoryArcTokens.xaml'),
+    to: join(ROOT, 'apps', 'desktop-windows', 'src', 'StoryArc.Windows', 'Tokens', 'StoryArcTokens.xaml'),
+  },
 ]
 
 const build = spawnSync(process.execPath, [join(ROOT, 'packages', 'design-tokens', 'scripts', 'build.mjs')], { stdio: 'inherit' })

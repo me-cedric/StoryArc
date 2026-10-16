@@ -11,6 +11,20 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, wave 1.** The three desktop apps of ADR-0018 move from an empty window to
+  their foundations, built in parallel lanes on 2026-10-16. The shared Rust core reads the whole
+  fixture corpus: its own ZIP and TAR readers, RAR headers by hand with the vendored libarchive
+  compiled by `cc` for the entry bytes, a ranged source with a cancel token, page order, metadata
+  and covers, and a C ABI seam with generated C# declarations. The Mac app pins its sandbox
+  entitlements from both sides, keeps folders through security-scoped bookmarks, measured that an
+  ad-hoc build cannot use the data-protection keychain, and shows the library window with its
+  sidebar, empty states and a Settings scene. The Linux app saves and restores its window and
+  closes on Control-W. The Windows app draws its title bar, Mica and the four destinations from
+  generated string resources, proved by CI. The EPUB renderer is one pinned Readium bundle with a
+  digest check, and the eight-vector egress page is ported for the three web views. One script
+  writes the Windows `.resw` and Linux `.po` strings from the iOS catalogues in four languages, the
+  token build emits a WinUI dictionary and GTK CSS, and the PDFium binary is pinned; all three
+  checks sit in `pnpm lint`. What only a Windows or Linux host can prove is named in the task list.
 - **A cover for every publication, both platforms.** One cover ladder answers for the
   shelf, the player, the media session, the publication page and the Android car shelf: the
   reader's own picture, then the file's own artwork, then a `cover`, `folder` or `poster`
