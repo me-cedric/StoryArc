@@ -14,22 +14,22 @@ case "$distro" in
     image="ubuntu:24.04"; platform=""
     setup='export DEBIAN_FRONTEND=noninteractive
       apt-get update -qq
-      apt-get install -y -qq build-essential pkg-config curl ca-certificates libgtk-4-dev libadwaita-1-dev libarchive-dev appstream desktop-file-utils
+      apt-get install -y -qq build-essential pkg-config curl ca-certificates libgtk-4-dev libadwaita-1-dev appstream desktop-file-utils
       curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal >/dev/null
       . /root/.cargo/env
       pkg-config --modversion gtk4 libadwaita-1' ;;
   arch)
     image="archlinux:latest"; platform="linux/amd64"
     # Emulated amd64 on Apple silicon lacks the syscalls pacman 7 sandbox needs.
-    setup='pacman --disable-sandbox -Syu --noconfirm --needed base-devel gtk4 libadwaita libarchive rust appstream desktop-file-utils >/dev/null
+    setup='pacman --disable-sandbox -Syu --noconfirm --needed base-devel gtk4 libadwaita rust appstream desktop-file-utils >/dev/null
       pkg-config --modversion gtk4 libadwaita-1' ;;
   manjaro)
     image="manjarolinux/base"; platform="linux/amd64"
-    setup='pacman -Syu --noconfirm --needed base-devel gtk4 libadwaita libarchive rust appstream desktop-file-utils >/dev/null
+    setup='pacman -Syu --noconfirm --needed base-devel gtk4 libadwaita rust appstream desktop-file-utils >/dev/null
       pkg-config --modversion gtk4 libadwaita-1' ;;
   fedora)
     image="fedora:latest"; platform=""
-    setup='dnf install -y -q gcc gcc-c++ make pkgconf-pkg-config gtk4-devel libadwaita-devel libarchive-devel cargo rust appstream desktop-file-utils >/dev/null
+    setup='dnf install -y -q gcc gcc-c++ make pkgconf-pkg-config gtk4-devel libadwaita-devel cargo rust appstream desktop-file-utils >/dev/null
       pkg-config --modversion gtk4 libadwaita-1' ;;
   *) echo "usage: $0 <ubuntu-24.04|arch|manjaro|fedora> [--clippy]" >&2; exit 2 ;;
 esac

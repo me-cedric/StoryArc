@@ -102,8 +102,10 @@ read from each distro's package index on 2026-10-07.
 | Arch Linux | 4.24.1 | 1.10.0 | 2.54.1 | Passes | `pacman` |
 | Manjaro Stable | 4.22.4 | 1.9.3 | 2.52.6 | Passes | `pacman` |
 
-Dev packages. The wave 0 base needs GTK, libadwaita, a compiler and Rust. WebKitGTK
-and libarchive are listed because later waves link them.
+Dev packages. The base needs GTK, libadwaita, a C compiler and Rust. WebKitGTK is
+listed because a later wave links it. libarchive is not a dependency: `storyarc-core`
+compiles the vendored `third_party/libarchive` with the `cc` crate, so no distro
+package of it is installed or linked.
 
 | Need | Ubuntu 24.04, Pop!_OS | Arch, Manjaro | Fedora |
 | --- | --- | --- | --- |
@@ -111,8 +113,8 @@ and libarchive are listed because later waves link them.
 | GTK 4 | `libgtk-4-dev` | `gtk4` | `gtk4-devel` |
 | libadwaita | `libadwaita-1-dev` | `libadwaita` | `libadwaita-devel` |
 | WebKitGTK 6.0 | `libwebkitgtk-6.0-dev` | `webkitgtk-6.0` | `webkitgtk6.0-devel` |
-| libarchive | `libarchive-dev` | `libarchive` | `libarchive-devel` |
-| Rust 1.92 or newer | `rustup` | `rustup` or `rust` | `rustup` or `rust` |
+| Rust 1.92 or newer | `rustup` | `rustup` or `rust` | `rustup` or `cargo rust` |
+| Data file checks | `appstream desktop-file-utils` | same | same |
 | Run: file picker, dark mode | `xdg-desktop-portal-gtk` | same | same |
 | Run: secrets | `gnome-keyring` | same | same |
 
@@ -123,8 +125,11 @@ Fedora risk: the `webkitgtk` source package is orphaned. Updates still flow. If
 Fedora retires it, a Fedora source build loses `webkitgtk6.0-devel`. The Flatpak
 is not affected.
 
-Package names for GTK, libadwaita and WebKitGTK are **Known**. The rest are
-**Inferred** from standard naming. `container-build.sh` confirms them.
+Package names are **Known**: `container-build.sh` installed the compiler, GTK,
+libadwaita, Rust and the data file tools on all four distros on 2026-10-16
+(Ubuntu 24.04 GTK 4.14.5 and libadwaita 1.5.0, Fedora 44 4.22.5 and 1.9.4, Arch
+4.24.1 and 1.10.0, Manjaro 4.22.4 and 1.9.3). The WebKitGTK names stay **Known**
+from the package indexes; the two `Run:` rows are **Inferred** and unexercised.
 
 ## Display servers and desktops
 
