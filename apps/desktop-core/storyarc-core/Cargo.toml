@@ -26,6 +26,10 @@ all = { level = "deny", priority = -1 }
 # inflate from the platform; a Rust core has no platform inflate, and this is the pure-Rust
 # one `flate2` itself wraps, with no C and no feature flags.
 miniz_oxide = "0.9.1"
+# regex-lite 0.1.9, MIT OR Apache-2.0: the filename conventions of `FilenameMetadata`, which
+# iOS and Android express as regular expressions too. The dependency-free engine, because
+# nine patterns over one short string need neither Unicode classes nor speed.
+regex-lite = "0.1.9"
 
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the

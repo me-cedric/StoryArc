@@ -1,5 +1,6 @@
 //! Shared desktop core for StoryArc on Windows and Linux. It has no UI code and never will.
 
+pub mod domain;
 pub mod formats;
 pub mod io;
 

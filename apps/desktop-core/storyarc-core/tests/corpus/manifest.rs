@@ -5,10 +5,6 @@
 //! implementations from privately disagreeing about what a correct parse is (ADR-0001).
 //! The path is resolved from `CARGO_MANIFEST_DIR` rather than copied in.
 
-// Every expectation is read once its reader lands (tasks 1.2 to 1.6). Until then the
-// fields are dead on purpose: the harness names them before any code can satisfy them.
-#![allow(dead_code)]
-
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 

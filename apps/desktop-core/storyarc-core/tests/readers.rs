@@ -3,6 +3,9 @@
 //! `TarReaderTests` and `RarReaderTests`.
 
 mod corpus {
+    // Only the corpus path helper is used from this binary; the typed manifest belongs to
+    // `tests/corpus.rs`, which is the one place the manifest's expectations are asserted.
+    #[allow(dead_code)]
     pub mod manifest;
 }
 

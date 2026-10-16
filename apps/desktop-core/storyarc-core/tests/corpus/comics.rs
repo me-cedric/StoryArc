@@ -18,15 +18,22 @@ pub const PNG_SIGNATURE: [u8; 8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x
 /// Returns the first failure as text rather than panicking, so the per-fixture test names
 /// the fixture and the pin together.
 pub fn check(fixture: &Comic) -> Result<(), String> {
+    // The container level first (tasks 1.2, 1.3 and 1.5), then the archive level (1.6).
+    // 7-Zip has no container reader on purpose: it is refused by name, and that refusal
+    // is the whole of what the archive level asserts for it.
     match container(fixture) {
-        "zip" => check_zip(fixture),
-        "tar" => check_tar(fixture),
-        "rar4" | "rar5" => check_rar(fixture),
-        other => Err(format!(
-            "no {other} reader opens {} yet ({})",
-            fixture.file, fixture.pins
-        )),
+        "zip" => check_zip(fixture)?,
+        "tar" => check_tar(fixture)?,
+        "rar4" | "rar5" => check_rar(fixture)?,
+        "7z" => {}
+        other => {
+            return Err(format!(
+                "no {other} reader opens {} ({})",
+                fixture.file, fixture.pins
+            ));
+        }
     }
+    super::archives::check(fixture)
 }
 
 /// The container the manifest says a fixture really is, falling back to the extension
@@ -44,7 +51,7 @@ fn source(fixture: &Comic) -> Result<Arc<dyn RandomAccessSource>, String> {
     Ok(Arc::new(source))
 }
 
-fn expect<T: PartialEq + std::fmt::Debug>(what: &str, got: T, want: T) -> Result<(), String> {
+pub fn expect<T: PartialEq + std::fmt::Debug>(what: &str, got: T, want: T) -> Result<(), String> {
     if got == want {
         Ok(())
     } else {
@@ -221,6 +228,11 @@ fn check_rar(fixture: &Comic) -> Result<(), String> {
 
     let theirs = RarDecoder::entry_names(&path).map_err(|e| format!("libarchive: {e}"))?;
     let their_paths: Vec<&str> = theirs.iter().map(|e| e.path.as_str()).collect();
+    // A vendored fixture is one whose contents libarchive's own suite documents, so it
+    // always records the names to hold the decoder to.
+    if fixture.is_vendored == Some(true) && fixture.expected_entry_names.is_none() {
+        return Err("a vendored fixture records no expected entry names".to_owned());
+    }
     if let Some(names) = &fixture.expected_entry_names {
         let names: Vec<&str> = names.iter().map(String::as_str).collect();
         expect("libarchive's entry names", their_paths.clone(), names)?;

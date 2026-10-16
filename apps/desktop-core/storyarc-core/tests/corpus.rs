@@ -10,6 +10,7 @@
 //! in wave 1.
 
 mod corpus {
+    pub mod archives;
     pub mod comics;
     pub mod ebooks;
     pub mod filenames;
