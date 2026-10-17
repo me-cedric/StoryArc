@@ -244,6 +244,30 @@ int32_t storyarc_storage_bytes(const uint8_t *path, size_t path_len, uint64_t *o
 /* Seals secrets for an export: {"passphrase", "secrets": {id: text}}. */
 int32_t storyarc_secrets_seal(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
 
+/* Wave 4: reading. The EPUB manifest and positions the desktop EPUB bundle takes (task 4.3)
+ * and the PDF engine (task 4.4). */
+
+/* Opens the EPUB at `path`, builds its Readium Web Publication Manifest with `self_url` as
+ * the manifest's own address, and writes an EPUB handle to `out_epub`. Not an EPUB is
+ * STORYARC_ERROR_UNSUPPORTED; no package document is STORYARC_ERROR_UNREADABLE. */
+int32_t storyarc_epub_open(const uint8_t *path, size_t path_len, const uint8_t *self_url,
+                           size_t self_url_len, void **out_epub);
+
+/* Writes the manifest as UTF-8 JSON: metadata with layout and readingProgression,
+ * readingOrder, resources, toc and the self link. Every other href is a container path. */
+int32_t storyarc_epub_manifest(const void *epub, StoryArcBuffer *out);
+
+/* Writes the positions list as a UTF-8 JSON array of locators, the numbers the phones show. */
+int32_t storyarc_epub_positions(const void *epub, StoryArcBuffer *out);
+
+/* Writes the resource at the container path `href` to `out_bytes` and its declared media
+ * type to `out_media_type`, for the scheme handler. Missing is STORYARC_ERROR_NOT_FOUND. */
+int32_t storyarc_epub_resource(const void *epub, const uint8_t *href, size_t href_len,
+                               StoryArcBuffer *out_bytes, StoryArcBuffer *out_media_type);
+
+/* Releases an EPUB handle. */
+void storyarc_epub_free(void *epub);
+
 #ifdef __cplusplus
 }
 #endif

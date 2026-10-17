@@ -621,6 +621,69 @@ namespace StoryArc.Interop
         [DllImport(__DllName, EntryPoint = "storyarc_secrets_seal", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern int storyarc_secrets_seal(byte* request, nuint request_len, StoryArcBuffer* @out);
 
+        /// <summary>
+        ///  Opens the EPUB at the UTF-8 path `path` (`path_len` bytes), builds its Readium Web
+        ///  Publication Manifest with `self_url` (`self_url_len` bytes) as the manifest's own
+        ///  address, and writes an EPUB handle to `out_epub`, freed with `storyarc_epub_free`. A
+        ///  file that is not an EPUB is `STORYARC_ERROR_UNSUPPORTED`; one with no package document
+        ///  is `STORYARC_ERROR_UNREADABLE`, named in the message.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` and `self_url` must point to their lengths in readable bytes. `out_epub` must
+        ///  point to writable storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_epub_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_epub_open(byte* path, nuint path_len, byte* self_url, nuint self_url_len, void** out_epub);
+
+        /// <summary>
+        ///  Writes the manifest to `out` as UTF-8 JSON: `metadata` with `layout` and
+        ///  `readingProgression`, `readingOrder`, `resources`, `toc` and the self link. Every href
+        ///  but the self link is a container path. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `epub` must be null or a live EPUB handle. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_epub_manifest", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_epub_manifest(void* epub, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the positions list to `out` as a UTF-8 JSON array of locators, the numbers iOS
+        ///  and Android show for the same book. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  As `storyarc_epub_manifest`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_epub_positions", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_epub_positions(void* epub, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the bytes of the resource at the container path `href` (`href_len` UTF-8 bytes)
+        ///  to `out_bytes` and its declared media type, or nothing when the package declares none,
+        ///  to `out_media_type`, for the host's scheme handler. A path the container does not hold
+        ///  is `STORYARC_ERROR_NOT_FOUND`. Free both with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `epub` must be null or a live EPUB handle. `href` must point to `href_len` readable
+        ///  bytes. `out_bytes` and `out_media_type` must each point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_epub_resource", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_epub_resource(void* epub, byte* href, nuint href_len, StoryArcBuffer* out_bytes, StoryArcBuffer* out_media_type);
+
+        /// <summary>
+        ///  Releases an EPUB handle. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `epub` must be null or a live EPUB handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_epub_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_epub_free(void* epub);
+
 
     }
 

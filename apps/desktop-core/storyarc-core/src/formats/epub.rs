@@ -29,6 +29,15 @@ pub struct EpubSpineItem {
     pub is_fixed_layout: Option<bool>,
 }
 
+/// One item of the package manifest: a file the container holds, by its resolved path.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EpubResource {
+    pub href: String,
+    pub media_type: String,
+    /// The item's `properties` attribute, space-separated: `nav`, `cover-image`, and so on.
+    pub properties: String,
+}
+
 /// One entry in the table of contents, from a nav document or an NCX.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EpubTocEntry {
@@ -83,6 +92,8 @@ pub struct EpubReader {
     pub metadata: EpubMetadata,
     /// Reading order, as the spine declares it.
     pub spine: Vec<EpubSpineItem>,
+    /// Every manifest item, in package order, the spine's among them.
+    pub resources: Vec<EpubResource>,
     pub toc: Vec<EpubTocEntry>,
     /// The cover image's path inside the container, when the publication names one.
     pub cover_href: Option<String>,
@@ -101,6 +112,7 @@ struct Package {
     version: u32,
     metadata: EpubMetadata,
     spine: Vec<EpubSpineItem>,
+    resources: Vec<EpubResource>,
     cover_href: Option<String>,
     nav_href: Option<String>,
     ncx_href: Option<String>,
@@ -169,6 +181,7 @@ impl EpubReader {
             version: package.version,
             metadata: package.metadata,
             spine: package.spine,
+            resources: package.resources,
             toc,
             cover_href: package.cover_href,
             is_fixed_layout: package.is_fixed_layout,
@@ -177,6 +190,12 @@ impl EpubReader {
             reader,
             path_to_entry: index,
         })
+    }
+
+    /// The container's record of an item, by its path: its sizes are what the positions
+    /// rule of the desktop EPUB bundle divides (design.md, Decision 6).
+    pub fn entry(&self, href: &str) -> Option<&ZipEntry> {
+        self.path_to_entry.get(href)
     }
 
     /// One item's bytes, by its container path.
@@ -313,6 +332,14 @@ impl EpubReader {
         let page_progression_direction =
             xml::attribute_of_first(text, "spine", "page-progression-direction");
 
+        let resources = items
+            .iter()
+            .map(|(_, item)| EpubResource {
+                href: item.href.clone(),
+                media_type: item.media_type.clone(),
+                properties: item.properties.clone(),
+            })
+            .collect();
         let series = Self::series(&metas);
         let either =
             |a: &str, b: &str| xml::first_text(text, a).or_else(|| xml::first_text(text, b));
@@ -330,6 +357,7 @@ impl EpubReader {
                 identifiers: xml::texts_of(text, "dc:identifier"),
             },
             spine,
+            resources,
             cover_href,
             nav_href,
             ncx_href,

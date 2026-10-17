@@ -20,7 +20,13 @@ fn main() {
     let crate_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR"));
     // Every file that holds exports: csbindgen reads each, and the rest of `src/` holds none.
-    let inputs = ["src/lib.rs", "src/network.rs", "src/data.rs"].map(|f| crate_dir.join(f));
+    let inputs = [
+        "src/lib.rs",
+        "src/network.rs",
+        "src/data.rs",
+        "src/reading.rs",
+    ]
+    .map(|f| crate_dir.join(f));
     let committed = crate_dir.join("generated/NativeMethods.g.cs");
     let fresh = out_dir.join("NativeMethods.g.cs");
     for input in &inputs {
