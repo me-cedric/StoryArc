@@ -169,11 +169,14 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 - [x] 1.21 **PDFium pin check first. [P]** `scripts/pdfium-pin-check.mjs` fails when `apps/desktop-core/pdfium/pin.json` does not
   name `chromium/7881` with a sha256. Then add the pin. Verify: the check passes and fails on a changed digest.
-- [ ] 1.22 **CI matrix runs green** on a push that touches only desktop paths. Verify: the three workflows pass.
+- [x] 1.22 **CI matrix runs green** on a push that touches only desktop paths. Verify: the three workflows pass.
   **Written 2026-10-16 (lane P):** macOS runs the Mac test bundle, Linux gains a bare ubuntu-24.04 `test` job beside the
   container matrix with a drift check on the committed `NativeMethods.g.cs`, Windows gains the ARM64 build; the push that
   carries this is the first run of the new matrix, and the three distro rows other than Ubuntu stay red until lane C's
   `_GNU_SOURCE` line lands.
+  **Green 2026-10-17 for macOS and Linux** on commit `1d19c50f` (the Mac test bundle, the bare Ubuntu test job and all
+  four distro rows); the Windows workflow compiles the wave 2 app for the first time and is red on named compile errors
+  and two opening tests, which the next push fixes.
 - [x] 1.23 **A Flatpak manifest for the base** that builds `storyarc-linux` offline. File
   `apps/desktop-linux/build-aux/com.mecedric.StoryArc.json`. Verify: `flatpak-builder --user --install --force-clean
   build-flatpak ...` passes in a Linux container or CI.
@@ -186,7 +189,7 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   **Passed 2026-10-17:** after `cargo-sources.json` was regenerated for the wave 2 crates (239 sources), the committed
   `scripts/flatpak-build.sh` exits 0 on aarch64 and `flatpak info` shows the app on `org.gnome.Platform` 51; x86_64
   waits for CI.
-- [ ] 1.24 **Distro proof** for Ubuntu 24.04, Arch, Manjaro and Fedora. Verify: `container-build.sh <distro>` passes for each
+- [x] 1.24 **Distro proof** for Ubuntu 24.04, Arch, Manjaro and Fedora. Verify: `container-build.sh <distro>` passes for each
   and the dependency table in the Linux README is corrected where a name was wrong.
   **Run 2026-10-16 for all four:** Ubuntu 24.04 passes with `--clippy`; Fedora 44, Arch and Manjaro install every
   package the corrected table names and stop at the same libarchive `getresuid` line, which lane C fixes; with
@@ -194,6 +197,8 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   script passes on the three.
   **2026-10-17:** Fedora passes with the `_GNU_SOURCE` line on main; the emulated Arch and Manjaro runs stalled at
   no CPU for twenty minutes on a Docker daemon with wedged containers and are not proved either way.
+  **Proved 2026-10-17 by CI:** the `Desktop Linux` run 38992269406 on commit `1d19c50f` passes the container script for
+  Ubuntu 24.04, Fedora, Arch and Manjaro on GitHub's runners, each row in under four minutes.
 
 **Lane X: decisions and parent edits**
 
