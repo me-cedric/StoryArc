@@ -127,6 +127,7 @@ private struct DownloadsSettingsTab: View {
             }
             .foregroundStyle(.secondary)
         }
+        StorageSection(library: library)
     }
 
     private var connection: Text {
@@ -180,7 +181,16 @@ private struct PrivacySettingsTab: View {
                 }
         }
         Section {
-            Text("desktop.privacy.diagnosticLater").foregroundStyle(.secondary)
+            Button {
+                Task { MacSettings.shared.diagnostic = DiagnosticText(text: await library.diagnosticText()) }
+            } label: {
+                Text("desktop.diagnostic.export")
+            }
+            .sheet(item: Binding(get: { MacSettings.shared.diagnostic }, set: { MacSettings.shared.diagnostic = $0 })) {
+                DiagnosticSheet(text: $0.text).macChrome()
+            }
+        } footer: {
+            Text("desktop.diagnostic.footer").foregroundStyle(.secondary)
         }
         Section {
             Button(role: .destructive) { isConfirmingReset = true } label: { Text("desktop.settings.reset") }

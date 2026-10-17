@@ -19,6 +19,34 @@ struct DownloadsView: View {
     @State private var removing: Download?
 
     var body: some View {
+        VStack(spacing: 0) {
+            if let storage = MacLibrary.live?.storage, storage.isFull {
+                FullDiskNotice(storage: storage)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(theme.palette.surfaceSunken)
+            }
+            content
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(theme.palette.surfaceCanvas)
+        .confirmationDialog(
+            Text("desktop.downloads.remove.title \(removing?.title ?? "")"),
+            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive) {
+                if let removing { downloads.remove(removing.id) }
+                removing = nil
+            } label: { Text("desktop.downloads.remove.confirm") }
+        } message: {
+            Text("desktop.downloads.remove.body")
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
         Group {
             if downloads.downloads.isEmpty {
                 ContentUnavailableView {
@@ -36,20 +64,6 @@ struct DownloadsView: View {
                 .formStyle(.grouped)
                 .scrollContentBackground(.hidden)
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(theme.palette.surfaceCanvas)
-        .confirmationDialog(
-            Text("desktop.downloads.remove.title \(removing?.title ?? "")"),
-            isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                if let removing { downloads.remove(removing.id) }
-                removing = nil
-            } label: { Text("desktop.downloads.remove.confirm") }
-        } message: {
-            Text("desktop.downloads.remove.body")
         }
     }
 

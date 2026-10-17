@@ -74,6 +74,9 @@ final class MacSettings {
     /// The preferences tab on show. Not stored: the window opens on Sources each launch.
     var settingsTab: SettingsTab = .sources
 
+    /// The diagnostic on show, built when asked for and dropped with its sheet. Never stored.
+    var diagnostic: DiagnosticText?
+
     private let store: SettingsStore
     private let defaults: UserDefaults
 

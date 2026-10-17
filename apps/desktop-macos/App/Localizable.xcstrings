@@ -1541,6 +1541,258 @@
         }
       }
     },
+    "desktop.diagnostic.another": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anderen Ort wählen …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Another Place…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir otro lugar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisir un autre emplacement…"
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.export": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnose exportieren …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export Diagnostic…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exportar diagnóstico…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporter un diagnostic…"
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.failed %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc konnte nicht in „%@“ schreiben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc could not write in “%@”."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc no pudo escribir en «%@»."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc n’a pas pu écrire dans « %@ »."
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.failed.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es wurde nichts geschrieben. Wählen Sie einen anderen Ort für die Datei."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing was written. Choose another place for the file."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se escribió nada. Elige otro lugar para el archivo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien n’a été écrit. Choisissez un autre emplacement pour le fichier."
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.fileName %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc-Diagnose %@.txt"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc diagnostic %@.txt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnóstico de StoryArc %@.txt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostic StoryArc %@.txt"
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.footer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine Textdatei, die beschreibt, wie StoryArc eingerichtet ist, für eine Fehlermeldung. Sie sehen sie vollständig, bevor sie gesichert wird."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A text file that says how StoryArc is set up, for a problem report. You see all of it before it is saved."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un archivo de texto que describe cómo está configurado StoryArc, para informar de un problema. Lo ves entero antes de guardarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un fichier texte qui décrit la configuration de StoryArc, pour signaler un problème. Vous le voyez en entier avant de l’enregistrer."
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.redacted": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwörter, Tokens und Servernamen werden vor der Anzeige entfernt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwords, tokens and server names are removed before it is shown."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las contraseñas, los tokens y los nombres de servidor se quitan antes de mostrarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les mots de passe, jetons et noms de serveurs sont retirés avant l’affichage."
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.save": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sichern …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enregistrer…"
+          }
+        }
+      }
+    },
+    "desktop.diagnostic.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnose"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostic"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnóstico"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostic"
+          }
+        }
+      }
+    },
     "desktop.downloads.actions %@": {
       "localizations": {
         "de": {
@@ -8789,6 +9041,566 @@
           "stringUnit": {
             "state": "translated",
             "value": "Injoignable pour l’instant. La bibliothèque garde ce qu’elle a lu."
+          }
+        }
+      }
+    },
+    "desktop.storage.clear": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer"
+          }
+        }
+      }
+    },
+    "desktop.storage.clear.label %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer %@"
+          }
+        }
+      }
+    },
+    "desktop.storage.covers": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover und zwischengespeicherte Seiten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Covers and Cached Pages"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Portadas y páginas en caché"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couvertures et pages en cache"
+          }
+        }
+      }
+    },
+    "desktop.storage.covers.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc erzeugt sie bei Bedarf aus Ihren Büchern neu. Nichts von Ihrer Lektüre geht verloren."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc draws them again from your books when it needs them. Nothing you read is lost."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc las vuelve a dibujar desde tus libros cuando las necesita. No se pierde nada de lo que lees."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "StoryArc les redessine à partir de vos livres quand il en a besoin. Rien de ce que vous lisez n’est perdu."
+          }
+        }
+      }
+    },
+    "desktop.storage.covers.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover und zwischengespeicherte Seiten löschen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the covers and cached pages?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Borrar las portadas y las páginas en caché?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer les couvertures et les pages en cache ?"
+          }
+        }
+      }
+    },
+    "desktop.storage.downloads": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargas"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Téléchargements"
+          }
+        }
+      }
+    },
+    "desktop.storage.downloads.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Dateien werden von diesem Mac entfernt und die Warteschlange geleert. Ihre Lesepositionen bleiben, und jedes Buch lässt sich erneut laden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The files leave this Mac and the queue empties. Your reading positions stay, and each book can be downloaded again."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los archivos salen de este Mac y la cola se vacía. Tus posiciones de lectura se conservan y cada libro puede descargarse de nuevo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les fichiers quittent ce Mac et la file se vide. Vos positions de lecture restent, et chaque livre peut être téléchargé de nouveau."
+          }
+        }
+      }
+    },
+    "desktop.storage.downloads.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Downloads entfernen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove every download?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar todas las descargas?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer tous les téléchargements ?"
+          }
+        }
+      }
+    },
+    "desktop.storage.footer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles bleibt im eigenen Ordner von StoryArc auf diesem Mac, außerhalb jedes Ordners, der zwischen Geräten synchronisiert wird. Downloads sind von Backups ausgenommen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything stays inside StoryArc’s own folder on this Mac, out of any folder that syncs between machines. Downloads are left out of backups."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo se queda en la carpeta de StoryArc en este Mac, fuera de cualquier carpeta que se sincronice entre equipos. Las descargas quedan fuera de las copias de seguridad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout reste dans le dossier de StoryArc sur ce Mac, hors de tout dossier synchronisé entre machines. Les téléchargements sont exclus des sauvegardes."
+          }
+        }
+      }
+    },
+    "desktop.storage.full": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Mac ist fast voll. StoryArc behält, was es hat, und wartet auf Platz."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This Mac is almost full. StoryArc keeps what it has and waits for room."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este Mac está casi lleno. StoryArc conserva lo que tiene y espera a que haya espacio."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce Mac est presque plein. StoryArc garde ce qu’il a et attend de la place."
+          }
+        }
+      }
+    },
+    "desktop.storage.full.clear": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover und zwischengespeicherte Seiten löschen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear Covers and Cached Pages"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Borrar portadas y páginas en caché"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer les couvertures et les pages en cache"
+          }
+        }
+      }
+    },
+    "desktop.storage.records": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leseverlauf"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading Records"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Registro de lectura"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Historique de lecture"
+          }
+        }
+      }
+    },
+    "desktop.storage.records.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Lesepositionen und Gelesen-Markierungen auf diesem Mac werden entfernt. Ihre Bücher und Downloads bleiben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every reading position and finished mark on this Mac goes. Your books and downloads stay."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borran todas las posiciones de lectura y marcas de leído de este Mac. Tus libros y descargas se conservan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toutes les positions de lecture et marques de lecture terminée de ce Mac disparaissent. Vos livres et téléchargements restent."
+          }
+        }
+      }
+    },
+    "desktop.storage.records.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leseverlauf löschen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the reading records?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Borrar el registro de lectura?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Effacer l’historique de lecture ?"
+          }
+        }
+      }
+    },
+    "desktop.storage.removeAll": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle StoryArc-Daten entfernen …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove All StoryArc Data…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar todos los datos de StoryArc…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer toutes les données de StoryArc…"
+          }
+        }
+      }
+    },
+    "desktop.storage.removeAll.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads, Cover, Leseverlauf, Quellen mit ihren Passwörtern und Einstellungen werden entfernt. Ihre eigenen Dateien und Ordner bleiben unberührt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloads, covers, reading records, sources with their passwords, and preferences go. Your own files and folders are never touched."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borran las descargas, las portadas, el registro de lectura, las fuentes con sus contraseñas y los ajustes. Tus archivos y carpetas nunca se tocan."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Les téléchargements, couvertures, l’historique, les sources avec leurs mots de passe et les réglages disparaissent. Vos fichiers et dossiers ne sont jamais touchés."
+          }
+        }
+      }
+    },
+    "desktop.storage.removeAll.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Daten entfernen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove All Data"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eliminar todos los datos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout supprimer"
+          }
+        }
+      }
+    },
+    "desktop.storage.removeAll.footer": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevor Sie StoryArc entfernen, bleibt damit nichts davon auf diesem Mac. Das System entfernt die App selbst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Before you remove StoryArc, this leaves nothing of it on this Mac. The system removes the app itself."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Antes de eliminar StoryArc, esto no deja nada de él en este Mac. El sistema elimina la app en sí."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avant de supprimer StoryArc, ceci ne laisse rien de lui sur ce Mac. Le système supprime l’app elle-même."
+          }
+        }
+      }
+    },
+    "desktop.storage.removeAll.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles entfernen, was StoryArc auf diesem Mac aufbewahrt?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove everything StoryArc keeps on this Mac?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Eliminar todo lo que StoryArc guarda en este Mac?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer tout ce que StoryArc garde sur ce Mac ?"
+          }
+        }
+      }
+    },
+    "desktop.storage.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicher"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almacenamiento"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stockage"
           }
         }
       }

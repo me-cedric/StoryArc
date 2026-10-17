@@ -25,6 +25,8 @@ final class MacLibrary {
     let downloads: MacDownloads
     /// Library sync at start and at quit. Wave 3.
     let sync: MacSync
+    /// What the app keeps on this Mac, store by store. Wave 3.
+    let storage: MacStorage
 
     /// Every folder the reader chose, with its state. Grey ones keep their place.
     private(set) var sources: [FolderSource] = []
@@ -73,6 +75,7 @@ final class MacLibrary {
         sync = MacSync(runner: MacSyncWiring.runner(progress: store)) {
             await MacSyncWiring.latestChange(in: store)
         }
+        storage = MacStorageWiring.storage(progress: store, queue: downloads.queue)
         Self.live = self
     }
 
@@ -295,6 +298,33 @@ final class MacLibrary {
         ) else { return false }
         downloads.enqueue(found.entry, using: found.acquisition, sourceID: found.sourceID)
         return true
+    }
+
+    /// The diagnostic as the preferences export it, redacted (task 3.14).
+    func diagnosticText() async -> String {
+        let history = await progress?.sizeOnDisk() ?? 0
+        return MacDiagnostic.text(
+            settings: MacSettings.shared.settings, sources: model.registry,
+            cacheBytes: StorageUsage().cacheBytes(), historyBytes: history,
+            extra: [
+                "connection = \(downloads.monitor.condition)",
+                "downloadsPending = \(downloads.pending.count)",
+                "downloadsHeldOnMeteredLink = \(downloads.held.count)",
+                "sync = \(sync.runner.map { String(describing: $0.status) } ?? "unavailable")",
+            ]
+        )
+    }
+
+    /// Everything StoryArc keeps on this Mac, removed: the way to leave nothing behind before
+    /// the system's own uninstall (`desktop-experience`, *Removing the app*). Confirmed first.
+    func removeAllData() async {
+        for store in MacStorage.Store.allCases { await storage.clear(store) }
+        for source in servers.servers { servers.remove(source.id) }
+        for folder in sources { removeFolder(folder) }
+        recents.clear()
+        NSDocumentController.shared.clearRecentDocuments(nil)
+        MacSettings.shared.reset()
+        await refreshProgress()
     }
 
     func dismissRefused() { refused = [] }

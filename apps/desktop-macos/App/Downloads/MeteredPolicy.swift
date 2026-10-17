@@ -60,7 +60,8 @@ final class MeteredMonitor {
         observer.start { [weak self] condition in self?.note(condition) }
     }
 
-    private func note(_ condition: NetworkCondition) {
+    /// Internal rather than private so the screen catalogue can pin what it draws.
+    func note(_ condition: NetworkCondition) {
         guard condition != self.condition else { return }
         self.condition = condition
         onChange?()

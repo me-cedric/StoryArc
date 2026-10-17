@@ -28,6 +28,10 @@ enum MacCatalogue {
 
     /// Sets the fixture library to its catalogue state.
     static func prepare() async throws -> (library: MacLibrary, reading: Publication) {
+        // The shelf scanned afresh: a walk that added a server or finished a download leaves
+        // rows and titles in the model that removing the source or the download does not take
+        // back until a relaunch, and the catalogue draws the fixture library alone.
+        if let live = MacLibrary.live { live.model.reset() }
         let library = try await Walk.fixtureLibrary()
         let reading = try #require(Walk.publication(named: "natural-sort", in: library))
         let finished = try #require(Walk.publication(named: "image-pages", in: library))
@@ -161,13 +165,39 @@ enum MacCatalogue {
             MacSettings.shared.settingsTab = .sources
             window.close()
         }
-        for tab in [SettingsTab.sources, .appearance, .reading, .privacy, .about] {
+        // The Downloads tab draws live sizes and the live connection; the catalogue pins both.
+        library.storage.pinned = MacStorage.Sizes(downloads: 1_258_291, covers: 44_032, records: 3_276_800)
+        library.downloads.monitor.note(.unmetered)
+        defer {
+            library.storage.pinned = nil
+            Task { await library.storage.refresh() }
+        }
+        for tab in [SettingsTab.sources, .appearance, .reading, .downloads, .privacy, .about] {
             MacSettings.shared.settingsTab = tab
             try await Task.sleep(for: .milliseconds(600))
             window.makeKeyAndOrderFront(nil)
             try await visit("settings-\(tab.rawValue)", window)
             if tab == .sources { try await sourceSheets(library: library, on: window, visit) }
+            if tab == .privacy { try await diagnosticSheet(on: window, visit) }
         }
+    }
+
+    /// The diagnostic sheet over the Privacy tab, with an export built from fixed inputs and
+    /// the system's version left out, so the image does not follow a minor update. Task 3.14.
+    private static func diagnosticSheet(on window: NSWindow, _ visit: Visit) async throws {
+        let text = MacDiagnostic.text(
+            settings: AppSettings(), sources: SourceRegistry(), cacheBytes: 0, historyBytes: 0
+        )
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.hasPrefix("platform = ") ? "platform = macOS" : String($0) }
+            .joined(separator: "\n")
+        MacSettings.shared.diagnostic = DiagnosticText(text: text)
+        let sheet = try #require(await Walk.until { window.attachedSheet }, "the diagnostic sheet did not open")
+        try await Task.sleep(for: .milliseconds(700))
+        try await visit("diagnostic", sheet)
+        MacSettings.shared.diagnostic = nil
+        _ = await Walk.until { window.attachedSheet == nil ? true : nil }
+        try await Task.sleep(for: .milliseconds(300))
     }
 
     /// The three add sheets, empty, over the Sources tab. Wave 3, task 3.10.
