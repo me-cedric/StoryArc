@@ -37,18 +37,19 @@ describe('a locator round trip', () => {
 
     await reader.send({
       type: 'go',
-      locator: { href: CH2, type: 'application/xhtml+xml', locations: { progression: 0.5 } },
+      locator: { href: CH2, type: 'application/xhtml+xml', locations: { progression: 1 } },
     })
-    const there = await reader.waitFor('locator', (m) => m.locator.href === CH2 && m.locator.locations.progression > 0)
+    const there = await reader.waitFor('locator', (m) => m.locator.href === CH2 && m.locator.locations.progression === 1)
     assert.ok(there.locator.locations.totalProgression >= 0.5, 'chapter two is the second half of the book')
+    // Progression is a share of what can be scrolled, so 1 is the last page of the chapter.
 
     // The host stores the JSON, restarts, and hands it back.
     const stored = JSON.stringify(there.locator)
     await reader.send({ type: 'go', locator: { href: CH1, type: 'application/xhtml+xml', locations: { progression: 0 } } })
-    await reader.waitFor('locator', (m) => m.locator.href === CH1 && m.seq > there.seq)
+    const away = await reader.waitFor('locator', (m) => m.locator.href === CH1 && m.seq > there.seq)
 
     await reader.send({ type: 'go', locator: JSON.parse(stored) })
-    const back = await reader.waitFor('locator', (m) => m.locator.href === CH2 && m.seq > there.seq)
+    const back = await reader.waitFor('locator', (m) => m.locator.href === CH2 && m.seq > away.seq)
     assert.equal(back.locator.href, there.locator.href)
     assert.equal(back.locator.locations.progression, there.locator.locations.progression)
     assert.equal(back.locator.locations.position, there.locator.locations.position)
@@ -132,13 +133,14 @@ describe('links and footnotes', () => {
   it('a footnote reference posts the note and does not move the reader', async () => {
     const reader = await openReader(harness)
     await reader.waitFor('locator')
-    const before = (await reader.messages('locator')).length
 
     await reader.frame().locator('#noteref').click()
     const note = await reader.waitFor('footnote')
     assert.equal(note.text, 'The footnote says so.')
     assert.equal(note.href, `${CH1}#fn1`)
-    assert.equal((await reader.messages('locator')).length, before, 'the reader stayed where it was')
+    await reader.page.waitForTimeout(300)
+    const where = (await reader.messages('locator')).map((m) => [m.locator.href, m.locator.locations.progression])
+    assert.ok(where.every(([href, progression]) => href === CH1 && progression === 0), 'the reader stayed where it was')
     await reader.page.close()
   })
 

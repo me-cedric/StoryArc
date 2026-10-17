@@ -5,5 +5,6 @@
 import * as navigator from '@readium/navigator'
 import * as shared from '@readium/shared'
 import { open } from './reader.js'
+import { hostPost } from './transport.js'
 
-export { navigator, shared, open }
+export { navigator, shared, open, hostPost }
