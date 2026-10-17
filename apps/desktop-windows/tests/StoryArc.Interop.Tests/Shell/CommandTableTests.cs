@@ -38,7 +38,7 @@ public sealed class CommandTableTests
         Assert.Equal(MenuName.File, quit.Menu);
         Assert.Null(quit.Shortcut);
         Assert.Null(quit.AlternateShortcut);
-        Assert.Empty(CommandTable.All.Where(command => command.Shortcut == Shortcut.Control(ShortcutKey.Q)));
+        Assert.DoesNotContain(CommandTable.All, command => command.Shortcut == Shortcut.Control(ShortcutKey.Q));
     }
 
     [Fact]
