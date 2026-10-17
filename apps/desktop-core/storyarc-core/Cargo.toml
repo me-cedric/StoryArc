@@ -79,6 +79,19 @@ futures-util = { version = "0.3.34", default-features = false, features = ["std"
 # std::fs impls off, so less of the crate parses what a server sends. Its tree carries no GPL
 # or LGPL crate (sspi and picky are MIT OR Apache-2.0). Pinned exactly: pre-1.0, one maintainer.
 smb = { version = "=0.12.1", default-features = false, features = ["async", "sign", "encrypt"] }
+# reqwest 0.13.5, MIT OR Apache-2.0: HTTP for OPDS, Kavita and downloads (design.md, Decision
+# 5, pinned here by task 3.4). rustls with no provider of its own: the core hands it a
+# configuration whose verifier asks the system first and then the reader's pins.
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+# rustls 0.23.46, Apache-2.0 OR ISC OR MIT, with the `ring` provider (Apache-2.0 AND ISC),
+# which builds with a C compiler alone where aws-lc needs CMake and NASM on Windows.
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+# rustls-platform-verifier 0.7.1, MIT OR Apache-2.0: "a certificate the system does not
+# trust" is the system's own answer — Keychain, CryptoAPI, or the distro's trust store.
+rustls-platform-verifier = "0.7.1"
+# quick-xml 0.42.0, MIT: OPDS 1.2 Atom feeds and OpenSearch descriptions. A real XML reader
+# here, unlike ComicInfo's flat scrape, because a feed nests links inside entries.
+quick-xml = "0.42.0"
 
 # The secure stores of task 3.3 (design.md, Decision 7), each built only on its own system.
 # design.md names `keyring` 4.2.0; that crate is now an umbrella whose default feature pulls
@@ -107,3 +120,6 @@ tempfile = "3.27.0"
 # log 0.4.34, MIT OR Apache-2.0: tests/secrets.rs installs a logger that keeps every line the
 # core and its crates write, and searches it for a secret.
 log = "0.4.34"
+# rcgen 0.14.10, MIT OR Apache-2.0: a self-signed certificate made at test time, so the pin
+# flow of tests/opds.rs meets a server the system does not trust. No key file is committed.
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "crypto"] }

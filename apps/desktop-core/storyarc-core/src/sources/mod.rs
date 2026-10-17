@@ -4,6 +4,7 @@
 
 pub mod index;
 pub mod local;
+pub mod opds;
 pub mod smb;
 pub mod snapshot;
 pub mod watch;

@@ -20,12 +20,13 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `io` | `RandomAccessSource`, file and memory sources, `CancelToken` |
 | `library` | **The public API the apps call** (`facade`) and the shelf queries (`query`) |
 | `locale` | ICU4X collation, the search fold, number and date formatting |
+| `net` | HTTP over reqwest and rustls: credentials only to the configured origin, no `https` to `http` step, redirects by hand, the system's trust then the reader's pins (`net::trust`) |
 | `paths` | Per-user storage folders per system, the Flatpak and MSIX redirects |
 | `diagnostics` | The diagnostic export's text and the phones' five redaction rules, plus every held secret removed |
 | `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
 | `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
 | `secure_store` | `SecretStore`, `Vault`, Credential Manager on Windows, Secret Service through `oo7` on Linux, the session-only fallback |
-| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`) |
+| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`); OPDS catalogues (`sources::opds`) |
 | `store` | The SQLite store: progress, sources, publications |
 
 ## Public Rust API (`storyarc_core::library`)
@@ -62,6 +63,12 @@ runtime.
 | `SmbShare::open(path)` | An `SmbFile`, a `RandomAccessSource` that reconnects once on a failed read |
 | `SmbFile::status()` / `health()` | The two-second indicator and the sixty-second download offer |
 | `SmbFile::drop_session()` | Called on a wake or a network change; the next read opens a new session |
+
+| `HttpClient::new(&runtime, trust)` | The HTTP client every catalogue, server and download shares |
+| `OpdsCatalogue::new(&http, root, credential)` then `validate()` | The root feed, for the add sheet's title and dialect confirmation |
+| `OpdsCatalogue::feed(&url)` / `search(&feed, terms)` / `bytes(&url)` | A page in either dialect; a server search or `LocalOnly`; a cover or a file |
+| `OpdsError::Unauthorized(challenge)` / `Untrusted(certificate)` | Prompt for Basic or Bearer; show the fingerprint, then `TrustStore::pin` and retry |
+| `OpdsEntry::best_acquisition()` / `unreadable_formats()` / `unsupported_kinds()` | EPUB, then comics, then PDF; what to name when nothing opens |
 
 ### Secrets and the diagnostic
 
@@ -107,6 +114,10 @@ apps/desktop-linux/scripts/container-build.sh ubuntu-24.04
 
 The corpus is `packages/test-fixtures`; `storyarc-core/tests/images` holds one small page in
 each decoded format.
+
+`tests/opds.rs` runs StoryArcKit's OPDS parsing expectations, then the `pnpm opds` fixture
+(`STORYARC_OPDS_URL`, default port 4444) when it answers, and brings its own servers for the
+origin, downgrade and pinned-certificate cases.
 
 `tests/smb.rs` runs against the Samba fixture (`pnpm smb`) and skips each case whose port does
 not answer. `STORYARC_SMB_PORT`, `STORYARC_SMB_ENCRYPTED_PORT`, `STORYARC_SMB1_PORT` and
