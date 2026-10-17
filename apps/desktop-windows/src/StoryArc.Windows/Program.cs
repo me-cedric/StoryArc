@@ -39,7 +39,11 @@ public static class Program
         }
 
         FirstActivation = activation;
-        Application.Start(_ =>
+        // Microsoft.UI.Xaml.Application.Start (Microsoft Learn): "Use the specified
+        // ApplicationInitializationCallback to instantiate the Application class." The callback takes
+        // an ApplicationInitializationCallbackParams. Its parameter is named, not `_`: a lone `_` lambda
+        // parameter is a real parameter in C#, so `_ = new App()` assigned the App to it (CS0029).
+        Application.Start(initialization =>
         {
             var dispatcher = DispatcherQueue.GetForCurrentThread();
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(dispatcher));
