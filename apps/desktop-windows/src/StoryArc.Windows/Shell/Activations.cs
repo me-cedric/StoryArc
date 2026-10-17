@@ -9,6 +9,9 @@ internal sealed record LaunchRequest(IReadOnlyList<string> Paths, OpenOrigin Ori
 {
     public static LaunchRequest Nothing { get; } = new([], OpenOrigin.CommandLine);
 
+    /// <summary>The <c>storyarc://</c> links the launch carries (task 5.8): names to open, never paths.</summary>
+    public IReadOnlyList<string> Links { get; init; } = [];
+
     /// <summary>A file from Explorer or a path on the command line: the reader opens without the library in front of it.</summary>
     public bool OpensFiles => Paths.Count > 0;
 }
@@ -18,7 +21,9 @@ internal sealed record LaunchRequest(IReadOnlyList<string> Paths, OpenOrigin Ori
 /// task 2.42): <c>ExtendedActivationKind.File</c> carries <c>IFileActivatedEventArgs.Files</c>, the
 /// files of a double click or Open With; <c>ExtendedActivationKind.Launch</c> carries
 /// <c>ILaunchActivatedEventArgs.Arguments</c>, the paths of the execution alias, a redirected
-/// command line or a Jump List item. The first process also has its own command line.
+/// command line or a Jump List item; <c>ExtendedActivationKind.Protocol</c> carries
+/// <c>IProtocolActivatedEventArgs.Uri</c>, a <c>storyarc://</c> link (task 5.8). The first process
+/// also has its own command line.
 /// </summary>
 internal static class Activations
 {
@@ -30,14 +35,26 @@ internal static class Activations
             return new LaunchRequest(paths, OpenOrigin.FileActivation);
         }
 
-        if (activation?.Kind == ExtendedActivationKind.Launch && activation.Data is ILaunchActivatedEventArgs launch
-            && LaunchArguments.PathsIn(launch.Arguments) is { Count: > 0 } launched)
+        if (activation?.Kind == ExtendedActivationKind.Protocol && activation.Data is IProtocolActivatedEventArgs protocol)
         {
-            return new LaunchRequest(launched, OpenOrigin.CommandLine);
+            return new LaunchRequest([], OpenOrigin.CommandLine) { Links = [protocol.Uri.AbsoluteUri] };
+        }
+
+        if (activation?.Kind == ExtendedActivationKind.Launch && activation.Data is ILaunchActivatedEventArgs launch)
+        {
+            var launchedPaths = LaunchArguments.PathsIn(launch.Arguments);
+            var launchedLinks = LaunchArguments.LinksIn(launch.Arguments);
+            if (launchedPaths.Count > 0 || launchedLinks.Count > 0)
+            {
+                return new LaunchRequest(launchedPaths, OpenOrigin.CommandLine) { Links = launchedLinks };
+            }
         }
 
         return commandLine is null
             ? LaunchRequest.Nothing
-            : new LaunchRequest(LaunchArguments.Paths(commandLine, skipExecutable: true), OpenOrigin.CommandLine);
+            : new LaunchRequest(LaunchArguments.Paths(commandLine, skipExecutable: true), OpenOrigin.CommandLine)
+            {
+                Links = LaunchArguments.Links(commandLine, skipExecutable: true),
+            };
     }
 }

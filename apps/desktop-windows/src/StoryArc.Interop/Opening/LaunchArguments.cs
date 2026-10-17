@@ -88,8 +88,23 @@ public static class LaunchArguments
     public static IReadOnlyList<string> Paths(IEnumerable<string> arguments, bool skipExecutable) =>
         arguments
             .Skip(skipExecutable ? 1 : 0)
-            .Where(argument => argument.Length > 0 && !argument.StartsWith('-'))
+            .Where(argument => argument.Length > 0 && !argument.StartsWith('-') && !StoryArcLink.IsLink(argument))
             .ToList();
+
+    /// <summary>The <c>storyarc://</c> links among <paramref name="arguments"/> (task 5.8): never paths, so <see cref="Paths"/> leaves them out.</summary>
+    public static IReadOnlyList<string> Links(IEnumerable<string> arguments, bool skipExecutable) =>
+        arguments.Skip(skipExecutable ? 1 : 0).Where(StoryArcLink.IsLink).ToList();
+
+    /// <summary>The links in a launch's argument string, as <see cref="PathsIn"/> reads its paths.</summary>
+    public static IReadOnlyList<string> LinksIn(string? commandLine)
+    {
+        if (string.IsNullOrWhiteSpace(commandLine))
+        {
+            return [];
+        }
+
+        return Links(Split(commandLine), skipExecutable: false);
+    }
 
     /// <summary>
     /// The paths in a launch's argument string. A redirected launch and an execution alias may or

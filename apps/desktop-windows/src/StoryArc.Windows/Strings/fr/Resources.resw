@@ -2070,6 +2070,10 @@
     <value>Affichage</value>
     <comment>library.view</comment>
   </data>
+  <data name="link_notFound___" xml:space="preserve">
+    <value>Rien nommé « {0} » dans votre bibliothèque</value>
+    <comment>link.notFound %@</comment>
+  </data>
   <data name="menu_main" xml:space="preserve">
     <value>Menu principal</value>
     <comment>menu.main</comment>

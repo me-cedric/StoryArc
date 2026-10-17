@@ -65,6 +65,14 @@
             </uap:SupportedFileTypes>
           </uap:FileTypeAssociation>
         </uap:Extension>
+        <!-- desktop-clients task 5.8. A storyarc:// link names a publication or a source to open and nothing
+             else. The app reads the link as a name in StoryArc.Interop.Opening.StoryArcLink; the interop
+             tests hold this scheme to StoryArcLink.Scheme. -->
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="storyarc">
+            <uap:DisplayName>StoryArc</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
         <!-- "storyarc C:\path\to\comic.cbz" from a terminal: the paths arrive as the launch arguments. -->
         <uap5:Extension Category="windows.appExecutionAlias" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
           <uap5:AppExecutionAlias>
