@@ -14,7 +14,7 @@ specs by name, so a scenario added to a spec later is missing here until the wal
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another platform's scenario. |
 | not walked | Built in wave 2 and not exercised here, for the reason given. |
 
-Totals: pass 169, seen 70, fail 41, later 110, n/a 46, not walked 73, of 509 scenarios.
+Totals: pass 170, seen 70, fail 40, later 110, n/a 46, not walked 73, of 509 scenarios.
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`):
 the fixture comics of `packages/test-fixtures` are copied into the container and scanned as
@@ -52,7 +52,6 @@ Every **fail** below, by capability and requirement, so the next wave can take t
 - `native-experience` · Visual proof of interface changes: No accessibility audit runs on the Mac yet.
 - `settings-and-about` · Settings organisation: No reset on the Mac preferences.
 - `settings-and-about` · About: The system About panel only; no support link, acknowledgements or problem report on the Mac yet.
-- `home-screen` · Keep reading: A card whose file is gone is not dimmed or explained on the Mac Home.
 - `home-screen` · The rest of the home surface: Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home.
 - `publication-detail` · What the page shows: No other-issues shelf on the Mac page.
 
@@ -407,7 +406,7 @@ Source: `docs/openspec/changes/one-library-three-destinations/specs/home-screen/
 | Keep reading | Resuming | seen | A Keep reading card opens the reader at its page (frames `home-*.png`, `reader-*.png`) |
 | Keep reading | Order | pass | `HomePlanTests` |
 | Keep reading | Nothing in progress | pass | `HomePlanTests` *An empty shelf is absent* |
-| Keep reading | A publication in progress is not currently readable | **fail** | A card whose file is gone is not dimmed or explained on the Mac Home. |
+| Keep reading | A publication in progress is not currently readable | pass | `HomePlanTests` *A book that cannot be opened now keeps its place in Keep reading, marked*; the card is dimmed and captioned (built on this branch, `f97a186a`), not imaged |
 | Keep reading | The card shows how far through, not only how much is left | seen | Progress rail and percentage, frames `home-*.png` |
 | Keep reading | Resuming is an action, not only a target | seen | The card is a button with a context menu (frames) |
 | Keep reading | A publication with nothing meaningful left | not walked | No fixture is at its last page. |
