@@ -328,6 +328,45 @@ pub unsafe extern "C" fn storyarc_pdf_render_page(
     })
 }
 
+/// Renders page `index` as `storyarc_pdf_render_page` does, at `scale` device pixels per
+/// point (2.0 on a high-density window; at or under zero renders one pixel a point), then
+/// shrunk to at most `max_edge` pixels on its longest edge (zero for no cap). The page view
+/// asks for its own density so a 612 by 792 point page is sharp on a large or dense window.
+///
+/// # Safety
+///
+/// As `storyarc_pdf_render_page`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_pdf_render_page_scaled(
+    pdf: *const c_void,
+    index: u32,
+    scale: f32,
+    max_edge: u32,
+    out_pixels: *mut StoryArcBuffer,
+    out_width: *mut u32,
+    out_height: *mut u32,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on; every output is zeroed before any work.
+        unsafe {
+            clear(out_pixels)?;
+            write(out_width, 0, "out_width")?;
+            write(out_height, 0, "out_height")?;
+        }
+        let document: &PdfDocument = unsafe { borrow(pdf, PDF, "pdf")? };
+        let cap = (max_edge > 0).then_some(max_edge);
+        let page = document
+            .render_page_scaled(index, scale, cap)
+            .map_err(|e| pdf_failure(&e))?;
+        // SAFETY: all three checked writable above.
+        unsafe {
+            out_width.write(page.width);
+            out_height.write(page.height);
+            write_bytes(out_pixels, page.rgba)
+        }
+    })
+}
+
 /// Writes page `index`'s text, in content order, to `out` as UTF-8; empty for a page with
 /// no text layer. Free `out` with `storyarc_buffer_free`.
 ///

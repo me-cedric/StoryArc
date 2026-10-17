@@ -291,6 +291,13 @@ int32_t storyarc_pdf_render_page(const void *pdf, uint32_t index, uint32_t max_p
                                  StoryArcBuffer *out_pixels, uint32_t *out_width,
                                  uint32_t *out_height);
 
+/* Renders a page as storyarc_pdf_render_page does, at `scale` device pixels per point (at or
+ * under zero: one pixel a point), then shrunk to at most `max_edge` pixels on its longest
+ * edge (zero for no cap). The three outputs are zeroed on failure. */
+int32_t storyarc_pdf_render_page_scaled(const void *pdf, uint32_t index, float scale,
+                                        uint32_t max_edge, StoryArcBuffer *out_pixels,
+                                        uint32_t *out_width, uint32_t *out_height);
+
 /* Writes a page's text as UTF-8, empty for a page with no text layer. */
 int32_t storyarc_pdf_page_text(const void *pdf, uint32_t index, StoryArcBuffer *out);
 

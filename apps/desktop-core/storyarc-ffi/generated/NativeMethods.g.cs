@@ -752,6 +752,19 @@ namespace StoryArc.Interop
         internal static extern int storyarc_pdf_render_page(void* pdf, uint index, uint max_pixel_size, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
 
         /// <summary>
+        ///  Renders page `index` as `storyarc_pdf_render_page` does, at `scale` device pixels per
+        ///  point (2.0 on a high-density window; at or under zero renders one pixel a point), then
+        ///  shrunk to at most `max_edge` pixels on its longest edge (zero for no cap). The page view
+        ///  asks for its own density so a 612 by 792 point page is sharp on a large or dense window.
+        ///
+        ///  # Safety
+        ///
+        ///  As `storyarc_pdf_render_page`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_render_page_scaled", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_render_page_scaled(void* pdf, uint index, float scale, uint max_edge, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
+
+        /// <summary>
         ///  Writes page `index`'s text, in content order, to `out` as UTF-8; empty for a page with
         ///  no text layer. Free `out` with `storyarc_buffer_free`.
         ///

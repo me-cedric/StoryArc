@@ -255,6 +255,22 @@ fn a_pdf_renders_reads_searches_and_lists_its_outline_across_the_seam() {
     assert_eq!((w, h), (236, 306));
     assert_eq!(take(pixels).len(), 236 * 306 * 4);
 
+    // Two device pixels a point for a high-density window; the edge cap wins over the scale.
+    let mut pixels = empty();
+    assert_eq!(
+        unsafe { storyarc_pdf_render_page_scaled(pdf, 0, 2.0, 0, &mut pixels, &mut w, &mut h) },
+        STORYARC_OK
+    );
+    assert_eq!((w, h), (1224, 1584));
+    assert_eq!(take(pixels).len(), 1224 * 1584 * 4);
+    let mut pixels = empty();
+    assert_eq!(
+        unsafe { storyarc_pdf_render_page_scaled(pdf, 0, 4.0, 1000, &mut pixels, &mut w, &mut h) },
+        STORYARC_OK
+    );
+    assert_eq!((w, h), (773, 1000));
+    take(pixels);
+
     let mut out = empty();
     assert_eq!(
         unsafe { storyarc_pdf_page_text(pdf, 1, &mut out) },
