@@ -1,5 +1,5 @@
-//! A publication as the library shows it. A stand-in for the core's record (task 2.1),
-//! with the fields the shared fixtures name.
+//! A publication as a library cell shows it, with the fields the shared fixtures name.
+//! Built from the core's record by `adapter.rs`.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Format {
@@ -9,17 +9,19 @@ pub enum Format {
     Cb7,
     Epub,
     Pdf,
+    Folder,
     Audiobook,
 }
 
 impl Format {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Cbz,
         Self::Cbr,
         Self::Cbt,
         Self::Cb7,
         Self::Epub,
         Self::Pdf,
+        Self::Folder,
         Self::Audiobook,
     ];
 
@@ -32,6 +34,7 @@ impl Format {
             Self::Cb7 => "CB7",
             Self::Epub => "EPUB",
             Self::Pdf => "PDF",
+            Self::Folder => "Image Folder",
             Self::Audiobook => "Audiobook",
         }
     }

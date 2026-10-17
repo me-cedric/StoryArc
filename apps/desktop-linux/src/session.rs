@@ -24,6 +24,7 @@ use crate::windows::{RestorePlan, SessionState};
 /// The session file keeps wave 1's name: a wave 1 file still reads as the library window.
 const SESSION_FILE: &str = "window-state";
 const PREFERENCES_FILE: &str = "preferences";
+const SOURCES_FILE: &str = "sources";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -101,6 +102,15 @@ pub fn load_preferences() -> Preferences {
 
 pub fn save_preferences(preferences: &Preferences) {
     write_file(&data_path(PREFERENCES_FILE), &preferences.save());
+}
+
+/// The chosen folders as the sources file keeps them (`folders.rs`).
+pub fn load_sources() -> String {
+    std::fs::read_to_string(data_path(SOURCES_FILE)).unwrap_or_default()
+}
+
+pub fn save_sources(text: &str) {
+    write_file(&data_path(SOURCES_FILE), text);
 }
 
 /// Opens the core's progress store (ADR-0006) where the core says it lives, or one in

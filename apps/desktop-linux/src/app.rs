@@ -8,13 +8,19 @@ use std::rc::Rc;
 
 use storyarc_core::library;
 
+use crate::library_window::LibraryUi;
+use crate::opening::LaunchAction;
 use crate::reader_window::Reader;
 use crate::session;
 use crate::settings::{Preferences, Rgb};
+use crate::sources::Sources;
 use crate::theme::Theme;
 use crate::windows::{Open, ReaderWindowState, SessionState};
 
 pub type Shared = Rc<App>;
+
+/// The library window's refresh: `true` for the whole library, `false` for Home only.
+pub type LibraryRefresh = Box<dyn Fn(bool)>;
 
 /// One open reader window and the state behind it.
 pub struct ReaderHandle {
@@ -43,8 +49,17 @@ pub struct App {
     pub library_toasts: RefCell<Option<adw::ToastOverlay>>,
     /// The core's progress store, opened once in startup.
     progress: OnceCell<Rc<library::ProgressStore>>,
-    /// What the library window does when a reader moved or closed: rebuild Home.
-    pub on_library_changed: RefCell<Option<Box<dyn Fn()>>>,
+    /// What the library window does when the folders or the reading positions changed.
+    /// `true` rebuilds the grid as well as Home; `false` rebuilds Home only.
+    pub on_library_changed: RefCell<Option<LibraryRefresh>>,
+    /// The folder libraries.
+    pub sources: Sources,
+    /// The library window's widgets while it is open.
+    pub library_ui: RefCell<Option<Rc<LibraryUi>>>,
+    /// A static action of the desktop entry the first launch runs instead of restoring.
+    pub launch_action: Cell<Option<LaunchAction>>,
+    /// Whether the missing file chooser was named this session; it is named once.
+    pub chooser_named: Cell<bool>,
 }
 
 impl App {
@@ -62,10 +77,17 @@ impl App {
             .clone()
     }
 
-    /// The reading positions changed: the library refreshes what it shows from them.
+    /// The folders changed: the library rebuilds what it shows.
     pub fn library_changed(&self) {
         if let Some(refresh) = self.on_library_changed.borrow().as_ref() {
-            refresh();
+            refresh(true);
+        }
+    }
+
+    /// A reading position was written: Home follows it, and the grid keeps its scroll.
+    pub fn progress_changed(&self) {
+        if let Some(refresh) = self.on_library_changed.borrow().as_ref() {
+            refresh(false);
         }
     }
 

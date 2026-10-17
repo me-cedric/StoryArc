@@ -1,27 +1,34 @@
-//! StoryArc for Linux. The shell: windows, commands, preferences, theme and session.
+//! StoryArc for Linux. The shell: windows, commands, preferences, theme and session, the
+//! library over the core's folder sources, and readers over the core's decoder.
 
 mod app;
-#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
+#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod commands;
+mod covers;
+mod folders;
 mod fullscreen;
 mod idle;
-#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
+#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod keys;
+mod launch;
+mod library_views;
 mod library_window;
 mod menus;
+mod opening;
 mod page_view;
 mod portal;
 mod preferences_dialog;
-#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
+#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod progress;
 mod publication;
 mod reader_input;
 mod reader_window;
 mod reading;
 mod session;
-#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
+#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
-#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
+mod sources;
+#[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod strings;
 mod style;
 mod theme;
@@ -29,10 +36,12 @@ mod window_state;
 #[allow(dead_code)] // pure model; recording and forgetting a reader is the session file's own tests
 mod windows;
 
-// The grid, list and query rules are pure and tested; their widgets (tasks 2.35a to
-// 2.35d) wait for the core's library API, so nothing calls them yet.
+// The grid's tier rules, the selection model and the local query over cells are pure
+// and tested; GTK's own grid selection and the core's queries are what the window uses.
 #[allow(dead_code)]
 mod library;
+
+use std::path::PathBuf;
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
@@ -40,15 +49,20 @@ use gtk::{gdk, gio, glib};
 use app::{App, Shared};
 use publication::Publication;
 use theme::Theme;
-use windows::Open;
 
 pub(crate) const APP_ID: &str = "com.mecedric.StoryArc";
 
 fn main() -> glib::ExitCode {
-    let application = adw::Application::builder().application_id(APP_ID).build();
+    // HANDLES_OPEN: the desktop entry declares the comic types and `Exec=storyarc %F`,
+    // and a second launch hands its files to the running instance (task 2.30).
+    let application = adw::Application::builder()
+        .application_id(APP_ID)
+        .flags(gio::ApplicationFlags::HANDLES_OPEN)
+        .build();
     let shared = App::new();
     let _ = shared.application.set(application.clone());
 
+    launch::install(&application, &shared);
     let on = shared.clone();
     application.connect_startup(move |application| startup(application, &on));
     let on = shared.clone();
@@ -66,7 +80,9 @@ fn startup(application: &adw::Application, shared: &Shared) {
     find_icon_when_uninstalled();
     install_theme(shared);
     install_actions(application, shared);
+    launch::add_actions(application, shared);
     menus::install_accelerators(application);
+    sources::start(shared);
 }
 
 // ponytail: a debug build run from the tree has no installed icon, so it reads the source copy.
@@ -116,14 +132,14 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
     let about = gio::ActionEntry::builder("about")
         .activate(|app: &adw::Application, _, _| show_about(app))
         .build();
-    // The walk path until file opening lands (task 2.30): `gapplication action
-    // com.mecedric.StoryArc open-reader "'/path/to/book.cbz'"`.
+    // Kept for scripted walks: `gapplication action com.mecedric.StoryArc open-reader
+    // "'/path/to/book.cbz'"` opens a file as a drop does.
     let on = shared.clone();
     let open_reader = gio::ActionEntry::builder("open-reader")
         .parameter_type(Some(glib::VariantTy::STRING))
         .activate(move |_: &adw::Application, _, parameter| {
             if let Some(path) = parameter.and_then(|value| value.get::<String>()) {
-                open_publication(&on, &path);
+                launch::open_paths(&on, &[PathBuf::from(path)]);
             }
         })
         .build();
@@ -172,8 +188,13 @@ fn show_about(application: &adw::Application) {
 }
 
 /// Launch, or a second launch: present the library, restoring every window the last
-/// run left open when there is none yet.
+/// run left open when there is none yet. A first launch from one of the desktop entry's
+/// static actions runs that action instead.
 fn activate(shared: &Shared) {
+    if let Some(action) = shared.launch_action.take() {
+        launch::run(shared, action);
+        return;
+    }
     let library = shared.library.borrow().clone();
     if let Some(window) = library.filter(|window| window.is_visible()) {
         window.present();
@@ -192,37 +213,12 @@ fn activate(shared: &Shared) {
         }
     }
     *shared.missing.borrow_mut() = missing.clone();
-    let names: Vec<String> = missing.iter().map(|path| file_name(path)).collect();
+    let names: Vec<String> = missing
+        .iter()
+        .map(|path| opening::name(std::path::Path::new(path)))
+        .collect();
     library_window::open(shared, &plan.library, &names);
     for (publication, reader) in readers {
         reader_window::open(shared, publication, reader.page, Some(reader.window));
     }
-}
-
-/// Opens a publication in a reader window, or brings forward the one that reads it.
-fn open_publication(shared: &Shared, path: &str) {
-    match shared.open(path) {
-        Open::Present(_) => {
-            if let Some(window) = shared.reader_for(path) {
-                window.present();
-            }
-        }
-        Open::New => match Publication::open(std::path::Path::new(path)) {
-            Ok(publication) => {
-                let store = shared.progress_store();
-                let page =
-                    session::CoreProgress::page(&store, &publication.record.identity).unwrap_or(0);
-                reader_window::open(shared, publication, page, None);
-                shared.save_session();
-            }
-            Err(reason) => shared.toast(&reason),
-        },
-    }
-}
-
-fn file_name(path: &str) -> String {
-    std::path::Path::new(path).file_name().map_or_else(
-        || path.to_owned(),
-        |name| name.to_string_lossy().into_owned(),
-    )
 }

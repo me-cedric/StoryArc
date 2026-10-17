@@ -214,6 +214,12 @@ pub fn init<S: AsRef<str>>(system_languages: &[S]) -> &'static Catalogue {
     })
 }
 
+/// The language the catalogue speaks, for the collation and the formats: English
+/// before `init` has run.
+pub fn language() -> &'static str {
+    CATALOGUE.get().map_or("en", Catalogue::language)
+}
+
 /// The string for `key`, or `english` where the catalogue has no entry (and before
 /// `init` has run, which only tests do).
 pub fn tr(key: &str, english: &str) -> String {

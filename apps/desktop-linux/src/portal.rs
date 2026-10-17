@@ -1,4 +1,5 @@
-//! The settings portal's accent colour, for the chrome accent's System choice.
+//! The portals: the settings portal's accent colour, for the chrome accent's System
+//! choice, and the file chooser portal's absence, named once (task 2.31).
 //!
 //! `AdwStyleManager::accent_color` arrived in libadwaita 1.6 and the floor is 1.5, so
 //! the crate feature that exposes it is never enabled. The portal key it reads,
@@ -83,9 +84,42 @@ pub fn watch_accent(on_accent: impl Fn(Option<Rgb>) + 'static) {
     });
 }
 
+/// What the app says, once, when the file chooser cannot be shown: the session has no
+/// file chooser portal (`desktop-experience`, A missing portal).
+pub const NO_CHOOSER: &str = "No file chooser is available in this session. Drop a file \
+     or a folder on the window, or start StoryArc with its path.";
+
+/// Whether a chooser error is the reader closing it, which says nothing.
+pub fn is_dismissal(error: &glib::Error) -> bool {
+    error.matches(gtk::DialogError::Dismissed)
+        || error.matches(gtk::DialogError::Cancelled)
+        || error.matches(gio::IOErrorEnum::Cancelled)
+}
+
+/// A chooser that failed: a dismissal is silent, anything else names the missing
+/// service once a session, in grey, in the library.
+pub fn chooser_failed(shared: &crate::app::Shared, error: &glib::Error) {
+    if is_dismissal(error) || shared.chooser_named.replace(true) {
+        return;
+    }
+    glib::g_warning!(crate::session::LOG_DOMAIN, "File chooser: {error}");
+    shared.toast(NO_CHOOSER);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn closing_the_chooser_is_not_a_failure_and_a_missing_portal_is() {
+        let dismissed = glib::Error::new(gtk::DialogError::Dismissed, "closed");
+        assert!(is_dismissal(&dismissed));
+        let cancelled = glib::Error::new(gio::IOErrorEnum::Cancelled, "cancelled");
+        assert!(is_dismissal(&cancelled));
+        let missing = glib::Error::new(gtk::DialogError::Failed, "no portal");
+        assert!(!is_dismissal(&missing));
+        assert!(NO_CHOOSER.contains("Drop"));
+    }
 
     #[test]
     fn a_portal_answer_unwraps_to_the_accent_however_it_is_boxed() {

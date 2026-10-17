@@ -13,7 +13,7 @@ use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use adw::prelude::*;
-use gtk::{gdk, gio, glib};
+use gtk::{gio, glib};
 use storyarc_core::domain::{ReadingDirection, SpreadLayout};
 
 use crate::app::{ReaderHandle, Shared};
@@ -329,19 +329,7 @@ impl Reader {
     }
 }
 
-/// A decoded page as a texture GTK can draw: straight RGBA, rows without padding.
-fn texture(page: storyarc_core::image::DecodedPage) -> gdk::Texture {
-    let stride = page.width as usize * 4;
-    let bytes = glib::Bytes::from_owned(page.rgba);
-    gdk::MemoryTexture::new(
-        i32::try_from(page.width).unwrap_or(i32::MAX),
-        i32::try_from(page.height).unwrap_or(i32::MAX),
-        gdk::MemoryFormat::R8g8b8a8,
-        &bytes,
-        stride,
-    )
-    .upcast()
-}
+use crate::covers::texture;
 
 /// Opens a reader window for `publication`. `page` and `state` come from the session
 /// file on a restore, or are the reader's last place and the default size for a new one.
@@ -444,6 +432,7 @@ pub fn open(
     install_idle_inhibit(&window, &reader, &app);
     keep_chrome_while_menu_is_open(&menu_button, &reader);
     install_timer(&reader, shared);
+    crate::launch::install_drop(window.upcast_ref(), shared);
 
     let weak_shared = Rc::downgrade(shared);
     let weak_reader = Rc::downgrade(&reader);
@@ -460,7 +449,7 @@ pub fn open(
                 if !shared.quitting.get() {
                     shared.forget_reader(&reader.publication.id);
                     shared.save_session();
-                    shared.library_changed();
+                    shared.progress_changed();
                 }
             }
         }
@@ -580,6 +569,7 @@ fn install_timer(reader: &Rc<Reader>, shared: &Shared) {
             && let Some(shared) = weak_shared.upgrade()
         {
             shared.save_session();
+            shared.progress_changed();
         }
         glib::ControlFlow::Continue
     });

@@ -1,13 +1,17 @@
-//! The library's view-models: what the grid, the list and the search show, decided
-//! without a widget in sight so the rules test on any host (tasks 2.35a and 2.35b).
+//! The library's view-models: what the grid, the list, the search, Home and the detail
+//! page show, decided without a widget in sight so the rules test on any host (tasks
+//! 2.35a to 2.35d).
 //!
-//! `entry.rs` is a local record shaped like the shared fixtures (`packages/test-fixtures`:
-//! the comics manifest and the portability document's progress records). It stands in
-//! for the core's library record until lane C's queries land, when the GTK side swaps
-//! it for the core's type and these rules move behind them.
+//! `entry.rs` is a cell, shaped like the shared fixtures (`packages/test-fixtures`).
+//! `adapter.rs` builds it from the core's record and hands the query state to the core's
+//! `LibraryIndex`, so search, filters and sorting are lane C's rules of task 2.8a.
+//! `query.rs` also keeps a local `apply` over cells, which its own tests pin.
 
+pub mod adapter;
+pub mod detail;
 pub mod entry;
 pub mod grid;
+pub mod home;
 pub mod query;
 
 #[allow(unused_imports)]
