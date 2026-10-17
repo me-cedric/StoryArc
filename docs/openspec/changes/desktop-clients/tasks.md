@@ -664,7 +664,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   row, and a missing row is named as unproved.
 - [ ] 6.3 **[P] Licence notices** for the Rust crates, the .NET packages, PDFium and libarchive, in the About windows. Verify:
   `pnpm notices:check` covers the desktop manifests and fails on an unlisted component.
-- [ ] 6.4 **[P] `SECURITY.md`** lists PDF parsing next to archive parsing. Verify: the file names both.
+- [x] 6.4 **[P] `SECURITY.md`** lists PDF parsing next to archive parsing. Verify: the file names both.
+  **Done 2026-10-17:** the *PDF parsing* row sits under the RAR rows, naming PDFKit, `PdfRenderer` and the pinned PDFium.
 - [ ] 6.5 **[P] Flatpak for release**, human-written Flathub copy, after Flathub's answer (task 1.25). Verify: the submission is
   filed or the fallback recorded.
 - [ ] 6.6 **[P] AUR `PKGBUILD`** and a documented source build per distro. Verify: `container-build.sh` passes for Arch and
