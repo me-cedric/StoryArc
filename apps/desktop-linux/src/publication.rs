@@ -6,9 +6,12 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use storyarc_core::domain;
+use storyarc_core::domain::{self, ImageAdjustments, PublicationFormat};
+use storyarc_core::formats::ComicArchive;
 use storyarc_core::image::{self, DecodedPage, PageSize};
 use storyarc_core::library::{LibraryError, OpenPublication};
+
+use crate::reading::chapters::{self, Marker};
 
 /// A decode never asks for more than this on a page's longest edge: sharp at the zoom
 /// a reader uses, and about 36 MB for the tallest page.
@@ -24,6 +27,8 @@ pub struct Publication {
     pub record: domain::Publication,
     /// The pages the container declares as double spreads.
     pub declared_spreads: HashSet<usize>,
+    /// Where the container declares each chapter starts, with its name when it has one.
+    pub markers: Vec<Marker>,
     open: Arc<Mutex<OpenPublication>>,
 }
 
@@ -63,26 +68,77 @@ impl Publication {
             title: record.display_title.clone(),
             page_count: u32::try_from(open.page_count()).unwrap_or(u32::MAX),
             declared_spreads: open.declared_spreads().into_iter().collect(),
+            markers: chapter_markers(path, record.format),
             record,
             open: Arc::new(Mutex::new(open)),
         })
     }
 
-    /// Decodes one page to RGBA, at most [`MAX_DECODE_EDGE`] on its longest edge. Blocks:
-    /// call it from a worker. The reason names the codec when the bytes say which.
-    pub fn decode(&self, index: usize) -> Result<DecodedPage, String> {
+    /// Decodes one page to RGBA, at most `edge` on its longest edge, with the reader's
+    /// adjustments applied. Blocks: call it from a worker. The reason names the codec when
+    /// the bytes say which.
+    pub fn decode_adjusted(
+        &self,
+        index: usize,
+        edge: u32,
+        adjustments: &ImageAdjustments,
+    ) -> Result<DecodedPage, String> {
         let open = self
             .open
             .lock()
             .map_err(|_| "the publication is no longer readable".to_owned())?;
-        open.decode_page(index, Some(MAX_DECODE_EDGE))
-            .map_err(|error| error.to_string())
+        let page = open
+            .decode_page(index, Some(edge))
+            .map_err(|error| error.to_string())?;
+        Ok(if adjustments.is_neutral() {
+            page
+        } else {
+            image::adjusted(&page, adjustments)
+        })
+    }
+
+    /// Decodes one page to RGBA, at most [`MAX_DECODE_EDGE`] on its longest edge.
+    pub fn decode(&self, index: usize) -> Result<DecodedPage, String> {
+        self.decode_adjusted(index, MAX_DECODE_EDGE, &ImageAdjustments::default())
+    }
+
+    /// Every page's shape from its header, without decoding: what continuous scroll
+    /// lays the strip out with. A page whose header cannot be read takes a portrait shape.
+    pub fn page_sizes(&self) -> Vec<(i32, i32)> {
+        let Ok(open) = self.open.lock() else {
+            return Vec::new();
+        };
+        (0..open.page_count())
+            .map(|index| {
+                open.page_size(index).map_or((2, 3), |size| {
+                    (
+                        i32::try_from(size.width).unwrap_or(2),
+                        i32::try_from(size.height).unwrap_or(3),
+                    )
+                })
+            })
+            .collect()
     }
 
     /// Whether the publication can be reopened now, for restoration.
     pub fn is_reachable(id: &str) -> bool {
         Path::new(id).exists()
     }
+}
+
+/// The chapters a comic archive declares (ComicInfo's bookmarks). A folder of images and
+/// an archive that declares none have no markers.
+fn chapter_markers(path: &Path, format: PublicationFormat) -> Vec<Marker> {
+    if !matches!(
+        format,
+        PublicationFormat::Cbz | PublicationFormat::Cbr | PublicationFormat::Cbt
+    ) {
+        return Vec::new();
+    }
+    ComicArchive::open_file(path).map_or_else(
+        |_| Vec::new(),
+        |archive| chapters::markers(&archive.chapter_start_indices(), &archive.chapter_titles()),
+    )
 }
 
 /// Whether a decoded page is a landscape spread that stands alone (`PageDecoder.isSpread`).
@@ -165,6 +221,27 @@ pub(crate) mod tests {
         let page = publication.decode(0).expect("the first page decodes");
         assert_eq!(page.rgba.len(), (page.width * page.height * 4) as usize);
         assert!(page.width.max(page.height) <= MAX_DECODE_EDGE);
+    }
+
+    #[test]
+    fn a_page_decodes_with_the_reader_s_adjustments_and_every_page_has_a_shape() {
+        let publication = Publication::open(&fixture("natural-sort.cbz")).expect("opens");
+        let grey = ImageAdjustments {
+            is_greyscale: true,
+            ..ImageAdjustments::default()
+        };
+        let page = publication.decode_adjusted(0, 256, &grey).expect("decodes");
+        assert!(page.width.max(page.height) <= 256);
+        assert!(
+            page.rgba
+                .chunks(4)
+                .all(|pixel| pixel[0] == pixel[1] && pixel[1] == pixel[2]),
+            "greyscale reached every pixel"
+        );
+        let sizes = publication.page_sizes();
+        assert_eq!(sizes.len(), publication.page_count as usize);
+        assert!(sizes.iter().all(|(width, height)| *width > 0 && *height > 0));
+        assert!(publication.markers.is_empty(), "the fixture declares no chapters");
     }
 
     #[test]

@@ -12,9 +12,11 @@ use storyarc_core::library;
 use crate::library_window::LibraryUi;
 use crate::opening::LaunchAction;
 use crate::reader_window::Reader;
+use crate::reading::adjust::Adjustments;
 use crate::reading::direction::DirectionChoices;
+use crate::reading::modes::{Mode, ModeChoice, ModeChoices};
 use crate::session;
-use crate::settings::{Preferences, Rgb};
+use crate::settings::{Layout, Preferences, Rgb};
 use crate::sources::Sources;
 use crate::theme::Theme;
 use crate::windows::{Open, ReaderWindowState, SessionState};
@@ -64,6 +66,10 @@ pub struct App {
     pub chooser_named: Cell<bool>,
     /// The reading directions the reader chose, by series or publication.
     directions: RefCell<DirectionChoices>,
+    /// How pages change, by series, and where Scroll left each publication.
+    pub modes: RefCell<ModeChoices>,
+    /// The image adjustments, by series.
+    pub adjustments: RefCell<Adjustments>,
 }
 
 impl App {
@@ -71,8 +77,33 @@ impl App {
         Rc::new(Self {
             preferences: RefCell::new(session::load_preferences()),
             directions: RefCell::new(session::load_directions()),
+            modes: RefCell::new(session::load_modes()),
+            adjustments: RefCell::new(session::load_adjustments()),
             ..Self::default()
         })
+    }
+
+    /// The page turn a publication opens with: its series' choice, else the default the
+    /// preferences hold (Continuous scroll there means Scroll).
+    pub fn mode_for(&self, publication: &library_record::Publication) -> ModeChoice {
+        let default = if self.preferences.borrow().layout == Layout::Scroll {
+            Mode::Scroll
+        } else {
+            Mode::Slide
+        };
+        self.modes.borrow().for_publication(publication, default)
+    }
+
+    /// Remembers a page turn for the publication's series, and writes it.
+    pub fn choose_mode(&self, publication: &library_record::Publication, choice: ModeChoice) {
+        self.modes.borrow_mut().choose(publication, choice);
+        session::save_modes(&self.modes.borrow());
+    }
+
+    /// Changes the adjustments, then writes them.
+    pub fn update_adjustments(&self, change: impl FnOnce(&mut Adjustments)) {
+        change(&mut self.adjustments.borrow_mut());
+        session::save_adjustments(&self.adjustments.borrow());
     }
 
     /// The direction a publication opens in: the reader's choice, else its own.

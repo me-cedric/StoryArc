@@ -19,7 +19,9 @@ use storyarc_core::paths::StorageLocations;
 use crate::library::search::SearchMemory;
 use crate::library::shelf::ViewChoice;
 use crate::progress::ProgressStore;
+use crate::reading::adjust::Adjustments;
 use crate::reading::direction::DirectionChoices;
+use crate::reading::modes::ModeChoices;
 use crate::settings::Preferences;
 use crate::window_state::{Display, WindowState};
 use crate::windows::{RestorePlan, SessionState};
@@ -33,6 +35,8 @@ const SEARCH_FILE: &str = "search";
 const VIEW_FILE: &str = "library-view";
 const LOOKED_FILE: &str = "last-looked";
 const SEEN_FILE: &str = "seen-version";
+const MODES_FILE: &str = "page-turns";
+const ADJUSTMENTS_FILE: &str = "image-adjustments";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -161,6 +165,24 @@ pub fn seen_version() -> Option<String> {
 
 pub fn save_seen_version(version: &str) {
     write_file(&data_path(SEEN_FILE), &format!("{version}\n"));
+}
+
+/// The page turns by series and the scroll places (`reading/modes.rs`).
+pub fn load_modes() -> ModeChoices {
+    ModeChoices::restore(&std::fs::read_to_string(data_path(MODES_FILE)).unwrap_or_default())
+}
+
+pub fn save_modes(modes: &ModeChoices) {
+    write_file(&data_path(MODES_FILE), &modes.save());
+}
+
+/// The image adjustments by series (`reading/adjust.rs`).
+pub fn load_adjustments() -> Adjustments {
+    Adjustments::restore(&std::fs::read_to_string(data_path(ADJUSTMENTS_FILE)).unwrap_or_default())
+}
+
+pub fn save_adjustments(adjustments: &Adjustments) {
+    write_file(&data_path(ADJUSTMENTS_FILE), &adjustments.save());
 }
 
 /// The reading directions the reader chose (`reading/direction.rs`).
