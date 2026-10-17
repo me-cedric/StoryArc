@@ -5,6 +5,7 @@ public enum PublicationFormat
     Cbz,
     Cbr,
     Cbt,
+    ImageFolder,
     Epub,
     Pdf,
     Audiobook,
@@ -18,12 +19,14 @@ public enum ReadingState
 }
 
 /// <summary>
-/// One publication as the library shows it. A local record for the view-model tests of tasks
-/// 2.47a and 2.47b; the seam's record (lane C, task 2.1) replaces it when its JSON shape lands,
-/// and the view models keep their tests.
+/// One publication as the library shows it (tasks 2.47a and 2.47b). The view models test over
+/// hand-made records; the app makes them from the seam's records with <see cref="CoreLibrary.Record"/>,
+/// which keeps the core's record in <paramref name="Core"/> for the detail page and the reader.
 /// </summary>
+/// <param name="Id">The publication's file path for a folder source: the key a reader window and the session use.</param>
 /// <param name="Progress">0 to 1. Finished at 1.</param>
 /// <param name="UnreadableReason">Why the file could not be opened, or <c>null</c> when it opens.</param>
+/// <param name="Core">The core's record, or <c>null</c> for a record made by hand.</param>
 public sealed record LibraryRecord(
     string Id,
     string Title,
@@ -38,7 +41,8 @@ public sealed record LibraryRecord(
     DateTimeOffset? LastReadAt,
     int? Year,
     long FileSize,
-    string? UnreadableReason)
+    string? UnreadableReason,
+    CorePublication? Core = null)
 {
     public bool IsUnreadable => UnreadableReason is not null;
 
