@@ -652,6 +652,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
 - [ ] 5.12 **[X] Parent edit, `apps/ios`:** an `AppSupport` package that holds the iOS shell code the Mac duplicates. Deferral:
   the Mac keeps its copy until the iOS owner schedules it. Verify: the Mac target builds against the package.
+  **Deferred 2026-10-17:** the Mac keeps its copy (about 3.4k lines, design Risks); the move is the iOS owner's to
+  schedule, and this change ships without it.
 - [ ] 5.13 **[L, W] The pseudo-locale walk** on each desktop for the longest language at the largest size. Verify: each walk's
   findings sit in `docs/delivery/desktop-pseudo-<os>.md`.
 
@@ -675,6 +677,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   `docs/delivery/desktop-spike-store.md`.
 - [ ] 6.8 **[X] Owner: Apple Developer Program and notarisation**, and the Windows signing identity. Deferral: builds stay ad
   hoc and unsigned until the owner decides. Verify: the decision is in `design.md`.
+  **Waiting on the owner, 2026-10-17:** design Open Question 8 records that both are owner purchases and that builds stay
+  ad hoc and unsigned until then; task 5.7 (Handoff) waits with it.
 - [ ] 6.9 **[X] Verify and archive.** Run `/opsx:verify` on this change, resolve each critical finding, update the `Desktop`
   section of `docs/openspec/STATUS.md`, then `/opsx:archive`. Verify: `pnpm spec:guard` reports no error.
 
