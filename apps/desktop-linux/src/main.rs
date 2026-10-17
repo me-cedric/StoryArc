@@ -9,6 +9,10 @@ mod cover_colour;
 mod covers;
 mod detail_panes;
 mod detail_view;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod diagnostic_export;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod download_rules;
 mod folders;
 mod fullscreen;
 mod home_view;
@@ -52,9 +56,13 @@ mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
 mod sources;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod storage_rules;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod strings;
 mod style;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod sync_rules;
 mod theme;
 mod window_state;
 #[allow(dead_code)] // pure model; recording and forgetting a reader is the session file's own tests
