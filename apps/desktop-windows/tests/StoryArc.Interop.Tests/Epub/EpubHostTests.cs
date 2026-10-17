@@ -167,7 +167,8 @@ public sealed class EpubHostTests
         Assert.Equal(length, answer.Body.Length);
         if (status == 206)
         {
-            var start = int.Parse(contentRange![6..contentRange.IndexOf('-', StringComparison.Ordinal)], System.Globalization.CultureInfo.InvariantCulture);
+            var range = contentRange!;
+            var start = int.Parse(range[6..range.IndexOf('-', StringComparison.Ordinal)], System.Globalization.CultureInfo.InvariantCulture);
             Assert.Equal(Container["OEBPS/cover.png"].Bytes.Skip(start).Take(length), answer.Body.ToArray());
         }
     }

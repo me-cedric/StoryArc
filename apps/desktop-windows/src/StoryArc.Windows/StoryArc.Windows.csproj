@@ -69,9 +69,9 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- The pinned PDFium (desktop-clients task 4.17, design.md Decision 7), fetched by `pnpm pdfium:fetch --platform win-x64`
-       or `win-arm64` into .build/pdfium; the core binds to it beside the executable. A build without it still compiles,
-       and a PDF then opens as Unsupported, named. -->
+  <!-- The pinned PDFium (desktop-clients task 4.17, design.md Decision 7), fetched by `pnpm pdfium:fetch` with the
+       platform flag set to win-x64 or win-arm64 into .build/pdfium; the core binds to it beside the executable. A build
+       without it still compiles, and a PDF then opens as Unsupported, named. -->
   <PropertyGroup>
     <PdfiumPlatform Condition="'$(Platform)' == 'ARM64'">win-arm64</PdfiumPlatform>
     <PdfiumPlatform Condition="'$(Platform)' != 'ARM64'">win-x64</PdfiumPlatform>

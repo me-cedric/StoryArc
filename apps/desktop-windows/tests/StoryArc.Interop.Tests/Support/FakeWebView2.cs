@@ -172,7 +172,7 @@ public static class ContentSecurityPolicy
             return request.Scheme == self.Scheme && string.Equals(request.Host, self.Host, StringComparison.OrdinalIgnoreCase);
         }
 
-        if (source.EndsWith(':', StringComparison.Ordinal))
+        if (source.EndsWith(':'))
         {
             return string.Equals(request.Scheme, source[..^1], StringComparison.OrdinalIgnoreCase);
         }
