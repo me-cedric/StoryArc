@@ -251,9 +251,10 @@ private struct ShelvesHeader: View {
             .menuStyle(.automatic)
             .menuIndicator(.hidden)
             .fixedSize()
-            // macOS 26 lays the menu out 17 points high; the audit's floor is 20.
-            .frame(minWidth: 20, minHeight: 20)
         }
+        // macOS 26 exposes the whole header row as the menu button, 17 points high; the
+        // audit's floor is 20.
+        .frame(minHeight: 20)
     }
 }
 

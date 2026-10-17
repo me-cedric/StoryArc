@@ -19,10 +19,12 @@ struct ReaderScrollCanvas: View {
 
     @State private var position = ScrollPosition(idType: Int.self)
     @State private var visible: Int?
-    /// True while a scroll the reader asked for is still landing: the pages the view reports
-    /// on the way are not where the reader is, and reporting them would move it (CI read the
-    /// page after the one chosen).
-    @State private var settling = false
+    /// True from the moment the reader scrolls by hand until the reader itself asks for a
+    /// scroll. Only a scroll by hand moves the reader: the pages the view reports while a
+    /// programmatic scroll lands, or while decoded pages change the strip's length under the
+    /// viewport, are not where the reader is (the runner's macOS 26 read page 5 after a
+    /// choice of page 4 that way).
+    @State private var scrolledByHand = false
     @State private var restored = false
 
     private var model: ReaderModel { state.model }
@@ -36,9 +38,11 @@ struct ReaderScrollCanvas: View {
             }
             .scrollPosition($position, anchor: .topLeading)
             .onScrollTargetVisibilityChange(idType: Int.self, threshold: 0.3) { ids in
-                if settling, !ids.contains(state.shownIndex) { return }
-                settling = false
+                guard scrolledByHand else { return }
                 visible = ids.min()
+            }
+            .onScrollPhaseChange { _, phase in
+                if phase == .interacting || phase == .decelerating { scrolledByHand = true }
             }
             .onScrollGeometryChange(for: Double.self) { geometry in
                 axis == .vertical ? geometry.contentOffset.y : geometry.contentOffset.x
@@ -53,7 +57,7 @@ struct ReaderScrollCanvas: View {
             .onChange(of: state.shownIndex) { _, index in
                 // A key, the slider or the browser moved the reader: bring that page into view.
                 guard visible != index else { return }
-                settling = true
+                scrolledByHand = false
                 withAnimation(state.reduceMotion ? nil : .easeOut) { position.scrollTo(id: index) }
             }
             .onChange(of: model.pages.count, initial: true) { restore(viewport: geometry.size) }
@@ -105,7 +109,7 @@ struct ReaderScrollCanvas: View {
     private func restore(viewport: CGSize) {
         guard !restored, !model.pages.isEmpty else { return }
         restored = true
-        settling = true
+        scrolledByHand = false
         let index = state.shownIndex
         if let fraction = model.takeScrollRestore(forPage: index) {
             let start = (0..<index).reduce(0.0) { $0 + pageExtent($1, viewport: viewport) }
