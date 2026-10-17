@@ -19,6 +19,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkDesktop } from './notices-desktop.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const INVENTORY = join(ROOT, 'packages/licences/notices.json')
@@ -31,6 +32,26 @@ const PLATFORM_NAMES = { ios: 'iOS', android: 'Android', macos: 'macOS', windows
 
 const { notices } = JSON.parse(readFileSync(INVENTORY, 'utf8'))
 
+// Escaped because a `why` may hold a pipe, and one pipe silently splits a table cell.
+const cell = (text) => String(text).replaceAll('|', '\\|')
+
+// The desktop manifests (Cargo.lock, the .csproj files) are read, not hand-listed; a component
+// with no row in desktop-deps.json fails the check by name. See scripts/notices-desktop.mjs.
+const desktop = checkDesktop(notices)
+const DESKTOP_BEGIN = '<!-- generated:desktop -->'
+const DESKTOP_END = '<!-- /generated:desktop -->'
+const desktopRows = [
+  ...Object.entries(desktop.table.nuget).map(([k, v]) => [`NuGet ${k.replace('@', ' ')}`, v]),
+  ...Object.entries(desktop.table.crates).map(([k, v]) => [`Rust ${k.replace('@', ' ')}`, v]),
+].map(([name, v]) => `| [${cell(name)}](${v.source}) | \`${cell(v.licence)}\` |`)
+const desktopBlock = [
+  DESKTOP_BEGIN,
+  '| Component | Licence |',
+  '| --- | --- |',
+  ...desktopRows,
+  DESKTOP_END,
+].join('\n')
+
 const platformsOf = (notice) =>
   notice.platforms?.length
     ? notice.platforms.map((p) => PLATFORM_NAMES[p] ?? p).join(', ')
@@ -38,9 +59,6 @@ const platformsOf = (notice) =>
 
 const titleOf = (notice) =>
   notice.version ? `${notice.name} ${notice.version}` : notice.name
-
-// Escaped because a `why` may hold a pipe, and one pipe silently splits a table cell.
-const cell = (text) => String(text).replaceAll('|', '\\|')
 
 const rows = notices.map(
   (notice) =>
@@ -78,13 +96,38 @@ if (begins >= 0 && ends > begins) {
   next = [...lines.slice(0, first), generated, ...lines.slice(last + 1)].join('\n')
 }
 
+// The desktop table follows the main one, under its own markers. First run: insert it after.
+{
+  const b = next.indexOf(DESKTOP_BEGIN)
+  const e = next.indexOf(DESKTOP_END)
+  if (b >= 0 && e > b) next = next.slice(0, b) + desktopBlock + next.slice(e + DESKTOP_END.length)
+  else {
+    const at = next.indexOf(END) + END.length
+    next = `${next.slice(0, at)}
+
+## Desktop dependencies
+
+The Rust crates of \`Cargo.lock\` and the NuGet packages of \`apps/desktop-windows\`, read from
+those manifests and joined to the licence expression in
+[\`packages/licences/desktop-deps.json\`](packages/licences/desktop-deps.json). PDFium and
+libarchive are in the table above. Each crate carries its own licence and copyright files in its
+published package; a crate that offers \`MIT OR Apache-2.0\` is used under either.
+
+${desktopBlock}${next.slice(at)}`
+  }
+}
+
 if (process.argv.includes('--check')) {
+  for (const problem of desktop.problems) console.error(problem)
+  if (desktop.problems.length > 0) process.exitCode = 1
   if (next !== current) {
     console.error('THIRD_PARTY_NOTICES.md is out of date. Run: pnpm notices')
     process.exit(1)
   }
-  console.log(`THIRD_PARTY_NOTICES.md is in sync (${notices.length} components).`)
+  console.log(`THIRD_PARTY_NOTICES.md is in sync (${notices.length} components, ${desktop.count} desktop packages).`)
 } else {
+  for (const problem of desktop.problems) console.error(problem)
+  if (desktop.problems.length > 0) process.exit(1)
   writeFileSync(TARGET, next)
   console.log(`Wrote ${notices.length} components to THIRD_PARTY_NOTICES.md.`)
 }

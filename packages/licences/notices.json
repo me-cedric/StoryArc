@@ -250,7 +250,9 @@
       "url": "https://github.com/libarchive/libarchive",
       "platforms": [
         "ios",
-        "android"
+        "android",
+        "windows",
+        "linux"
       ],
       "why": "Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md.",
       "copyright": "The libarchive distribution as a whole is Copyright by Tim Kientzle"
