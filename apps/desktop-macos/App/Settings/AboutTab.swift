@@ -16,7 +16,7 @@ struct AboutSettingsTab: View {
             }
             // The byline is the way to the author, so no other row opens that address.
             if let author = MacAbout.author {
-                Link(destination: author) { Text("desktop.about.author") }
+                Link(destination: author) { Text("desktop.about.author").hitTarget() }
             }
             Text("desktop.about.free").foregroundStyle(.secondary)
         }
@@ -39,7 +39,7 @@ struct AboutSettingsTab: View {
                         } label: {
                             Text(verbatim: notice.version.map { "\(notice.name) \($0)" } ?? notice.name)
                         }
-                        .contentShape(Rectangle())
+                        .hitTarget()
                     }
                     .buttonStyle(.plain)
                     .accessibilityHint(Text("desktop.about.acknowledgements.hint"))
@@ -56,7 +56,7 @@ struct AboutSettingsTab: View {
 
     @ViewBuilder
     private func link(_ title: LocalizedStringKey, _ url: URL?) -> some View {
-        if let url { Link(destination: url) { Text(title) } }
+        if let url { Link(destination: url) { Text(title).hitTarget() } }
     }
 }
 

@@ -105,6 +105,7 @@ struct DetailView: View {
         // A secondary action beside the prominent one is borderless (AGENTS.md section 6).
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .hitTarget()
     }
 
     private func whereItLives(_ detail: DetailPresentation) -> some View {

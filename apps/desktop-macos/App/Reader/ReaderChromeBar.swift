@@ -66,6 +66,7 @@ struct ReaderChromeBar: View {
             if let back = state.returnIndex {
                 Button { state.goBack() } label: {
                     Label("desktop.reader.backToPage \(back + 1)", systemImage: "arrow.uturn.backward")
+                        .hitTarget()
                 }
                 .buttonStyle(.borderless)
                 .help(Text("desktop.reader.backToPage \(back + 1)"))
@@ -99,16 +100,18 @@ struct ReaderChromeBar: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .padding(8)
+        .hitTarget(HitTarget.icon)
+        .padding(4)
         .help(Text("desktop.reader.contents"))
     }
 
     private var adjustButton: some View {
         Button { isAdjusting.toggle() } label: {
             Label("desktop.reader.adjust", systemImage: "slider.horizontal.3")
+                .hitTarget(HitTarget.icon)
         }
         .buttonStyle(.borderless)
-        .padding(8)
+        .padding(4)
         .help(Text("desktop.menu.adjustImage"))
         .popover(isPresented: $isAdjusting, arrowEdge: .bottom) {
             AdjustmentsPanel(state: state)
@@ -123,7 +126,8 @@ struct ReaderChromeBar: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .padding(8)
+        .hitTarget(HitTarget.icon)
+        .padding(4)
         .help(Text("desktop.reader.pageMode"))
     }
 
@@ -144,7 +148,8 @@ struct ReaderChromeBar: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .padding(8)
+        .hitTarget(HitTarget.icon)
+        .padding(4)
         .help(Text("desktop.reader.layout"))
         .disabled(state.isScrolling)
     }
@@ -160,7 +165,8 @@ struct ReaderChromeBar: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
-        .padding(8)
+        .hitTarget(HitTarget.icon)
+        .padding(4)
         .help(Text("desktop.reader.zoom"))
         .disabled(state.isScrolling)
     }
@@ -193,6 +199,9 @@ struct ReaderSlider: View {
             }
         }
         .labelsHidden()
+        // The large slider: the regular one is 16 points tall, under the 20-point floor, and an
+        // AppKit slider keeps its own height whatever frame it is given.
+        .controlSize(.large)
         .accessibilityValue(Text("desktop.reader.pageLabel \(shownPage + 1) \(count)"))
         .environment(\.layoutDirection, state.isRightToLeft ? .rightToLeft : .leftToRight)
         .background(alignment: .bottom) { ticks }

@@ -37,8 +37,8 @@ struct EndOfPublicationView: View {
                 .keyboardShortcut(.defaultAction)
             }
             HStack(spacing: 12) {
-                Button { state.isAtEnd = false } label: { Text("desktop.end.back") }
-                Button { onClose() } label: { Text("desktop.end.close") }
+                Button { state.isAtEnd = false } label: { Text("desktop.end.back").hitTarget() }
+                Button { onClose() } label: { Text("desktop.end.close").hitTarget() }
             }
             .buttonStyle(.borderless)
         }

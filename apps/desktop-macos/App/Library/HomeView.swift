@@ -109,7 +109,7 @@ struct HomeView: View {
             Text(title).scaledFont(.title2, weight: .semibold).accessibilityAddTraits(.isHeader)
             Spacer()
             if let showAll {
-                Button(action: showAll) { Text("desktop.home.showAll") }
+                Button(action: showAll) { Text("desktop.home.showAll").hitTarget() }
                     .buttonStyle(.borderless)
                     .accessibilityLabel(Text("desktop.home.showAll.label \(Text(title))"))
             }
