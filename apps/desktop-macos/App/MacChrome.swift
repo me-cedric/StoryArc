@@ -72,6 +72,25 @@ extension View {
     }
 }
 
+/// The smallest a control is drawn on the Mac: 20 by 20 points, Apple's *Layout* minimum
+/// for macOS (28 is the default size). `Tests/AccessibilityAudit.swift` measures every
+/// control of the screen catalogue against it.
+enum HitTarget {
+    static let minimum: CGFloat = 20
+    /// An icon control in the reader's chrome, where a target is reached across the artwork.
+    static let icon: CGFloat = 28
+}
+
+extension View {
+    /// Grows a control's label to at least `side` by `side` and makes all of it clickable.
+    ///
+    /// Applied to the label of a borderless or link button, whose clickable area is its label,
+    /// or to an AppKit-backed control, which takes the frame as its own.
+    func hitTarget(_ side: CGFloat = HitTarget.minimum) -> some View {
+        frame(minWidth: side, minHeight: side).contentShape(Rectangle())
+    }
+}
+
 private struct ScaledFont: ViewModifier {
     let style: Font.TextStyle
     let weight: Font.Weight?

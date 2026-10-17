@@ -1,4 +1,5 @@
 import AppKit
+import StoryArcCore
 import SwiftUI
 
 /// What the key library window can do, handed to the menu bar through the focus system.
@@ -23,6 +24,10 @@ enum LibraryNavigation: Equatable {
     case details(publicationID: String)
     /// Back to the root of the row on show.
     case root
+    /// One of the library's sidebar filters, where a Home shelf leads.
+    case filter(LibraryShelfFilter)
+    /// The library narrowed to what has been finished, where Home's *Finished* leads.
+    case finished
 }
 
 /// What the key reader window can do.
@@ -35,8 +40,12 @@ struct ReaderActions {
     let twoPages: () -> Void
     let zoomIn: () -> Void
     let zoomOut: () -> Void
-    let fitPage: () -> Void
+    let fit: (PageFit) -> Void
     let showControls: () -> Void
+    /// -1 for the previous chapter, 1 for the next.
+    let chapter: (Int) -> Void
+    let showPages: () -> Void
+    let adjust: () -> Void
 }
 
 extension FocusedValues {
@@ -54,6 +63,11 @@ struct StoryArcMacCommands: Commands {
     @FocusedValue(\.readerActions) private var reader
 
     var body: some Commands {
+        // `settings-and-about`, *About*: the app menu's About opens the About tab, which
+        // carries what the system panel cannot (the byline, the support link, the licences).
+        CommandGroup(replacing: .appInfo) {
+            AboutMenuItem()
+        }
         CommandGroup(after: .newItem) {
             item("openFile") { (library?.openFile ?? reader?.openFile)?() }
             item("addFolder") { (library?.addFolder ?? reader?.addFolder)?() }
@@ -86,14 +100,21 @@ struct StoryArcMacCommands: Commands {
             item("firstPage") { reader?.page(.first) }
             item("lastPage") { reader?.page(.last) }
             item("goToPage") { reader?.goToPage() }
+            item("previousChapter") { reader?.chapter(-1) }
+            item("nextChapter") { reader?.chapter(1) }
+            item("showPages") { reader?.showPages() }
             Divider()
             item("singlePage") { reader?.singlePage() }
             item("twoPages") { reader?.twoPages() }
             Divider()
             item("zoomIn") { reader?.zoomIn() }
             item("zoomOut") { reader?.zoomOut() }
-            item("fitPage") { reader?.fitPage() }
+            item("fitPage") { reader?.fit(.screen) }
+            item("fitWidth") { reader?.fit(.width) }
+            item("fitHeight") { reader?.fit(.height) }
+            item("originalSize") { reader?.fit(.original) }
             Divider()
+            item("adjustImage") { reader?.adjust() }
             item("showControls") { reader?.showControls() }
         }
     }
@@ -126,5 +147,19 @@ struct StoryArcMacCommands: Commands {
         if command.modifiers.contains(.option) { modifiers.insert(.option) }
         if command.modifiers.contains(.control) { modifiers.insert(.control) }
         return KeyboardShortcut(KeyEquivalent(key), modifiers: modifiers)
+    }
+}
+
+/// *About StoryArc*, opening the preferences on their About tab.
+private struct AboutMenuItem: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button {
+            MacSettings.shared.settingsTab = .about
+            openSettings()
+        } label: {
+            Text("desktop.menu.about")
+        }
     }
 }

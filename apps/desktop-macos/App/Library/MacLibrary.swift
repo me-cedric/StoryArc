@@ -32,6 +32,8 @@ final class MacLibrary {
     var offeredFolder: URL?
     /// Where something outside the library window asked it to go: the Dock menu, or a walk.
     var navigationRequest: LibraryNavigation?
+    /// A *Start from the Beginning* waiting for the reader to confirm it.
+    var restartRequest: RestartRequest?
     /// The reading record of each publication on the shelf, keyed by publication id.
     ///
     /// A Mac-side copy of `LibraryModel.record(of:)`, which is internal to `LibraryFeature`:

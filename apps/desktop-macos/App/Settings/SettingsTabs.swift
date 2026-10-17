@@ -1,3 +1,4 @@
+import Persistence
 import StoryArcCore
 import SwiftUI
 
@@ -15,6 +16,7 @@ struct SettingsTabContent: View {
             case .downloads: DownloadsSettingsTab()
             case .language: LanguageSettingsTab()
             case .privacy: PrivacySettingsTab(library: library)
+            case .about: AboutSettingsTab()
             }
         }
         .formStyle(.grouped)
@@ -93,6 +95,18 @@ private struct AppearanceSettingsTab: View {
 /// Reading: the edge click zones, the spread's cover, the transition that runs.
 private struct ReadingSettingsTab: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Redraws the picker after a write, since the reading preferences are not observable.
+    @State private var refresh = 0
+    private let preferences = ReaderPreferences()
+
+    private var defaultTransition: PageTransition {
+        _ = refresh
+        return MacReadingDefaults.transition(in: preferences)
+    }
+
+    private var choices: TransitionChoices {
+        TransitionChoices(chosen: defaultTransition, axis: .vertical, reduceMotion: false, canCurl: false)
+    }
 
     var body: some View {
         let settings = MacSettings.shared
@@ -110,13 +124,20 @@ private struct ReadingSettingsTab: View {
             Text("desktop.reading.clickZones.footer").foregroundStyle(.secondary)
         }
         Section {
-            LabeledContent {
-                Text(reduceMotion ? "desktop.reading.transition.fade" : "desktop.reading.transition.slide")
+            // `comic-reader`, *Mode persistence*: the default for a series never opened. A
+            // series the reader chose a mode for keeps it; the reader's page mode menu sets that.
+            Picker(selection: Binding(
+                get: { defaultTransition }, set: { MacReadingDefaults.setTransition($0, in: preferences); refresh += 1 }
+            )) {
+                ForEach(TransitionMenu.rows(choices)) { row in
+                    Text(LocalizedStringKey(row.titleKey)).tag(row.mode)
+                }
             } label: {
                 Text("desktop.reading.transition")
             }
         } footer: {
-            // *The curl where it is not available*: the settings say why in grey.
+            // *The curl where it is not available* and *Reduce Motion is on*: said in grey.
+            Text("desktop.reading.transition.default").foregroundStyle(.secondary)
             Text(reduceMotion ? "desktop.reading.transition.reduceMotion" : "desktop.reading.transition.curlLater")
                 .foregroundStyle(.secondary)
         }
@@ -168,6 +189,7 @@ private struct PrivacySettingsTab: View {
     let library: MacLibrary
 
     @State private var isConfirmingClear = false
+    @State private var isConfirmingReset = false
 
     var body: some View {
         Section {
@@ -181,6 +203,17 @@ private struct PrivacySettingsTab: View {
         }
         Section {
             Text("desktop.privacy.diagnosticLater").foregroundStyle(.secondary)
+        }
+        Section {
+            Button(role: .destructive) { isConfirmingReset = true } label: { Text("desktop.settings.reset") }
+                // `settings-and-about`, *Resetting*: confirmed, and saying what it leaves alone.
+                .confirmationDialog(Text("desktop.settings.reset"), isPresented: $isConfirmingReset) {
+                    Button(role: .destructive) { MacSettings.shared.reset() } label: {
+                        Text("desktop.settings.reset.confirm")
+                    }
+                } message: {
+                    Text("desktop.settings.reset.body")
+                }
         }
     }
 

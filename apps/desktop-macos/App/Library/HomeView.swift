@@ -24,6 +24,14 @@ struct HomeView: View {
                 if !plan.upNext.isEmpty {
                     shelf("desktop.home.upNext", plan.upNext)
                 }
+                if !plan.recentlyAdded.isEmpty {
+                    coverShelf("desktop.home.recentlyAdded", plan.recentlyAdded, showAll: plan.recentlyAddedHasMore ? {
+                        library.navigationRequest = .filter(.recentlyAdded)
+                    } : nil)
+                }
+                if !plan.finished.isEmpty {
+                    finishedSection(plan)
+                }
                 if plan.isEmpty {
                     ContentUnavailableView {
                         Label("desktop.home.nothing.title", systemImage: "book")
@@ -50,15 +58,69 @@ struct HomeView: View {
             finished: finished,
             next: { model.next(after: $0) },
             isUnread: { library.record(of: $0) == nil },
-            isReadable: { library.model.location(of: $0).map(MacLibrary.isReachable) ?? false }
+            isReadable: { library.model.location(of: $0).map(MacLibrary.isReachable) ?? false },
+            library: model.publications,
+            finishedAt: { library.record(of: $0).map { $0.finishedAt ?? $0.updatedAt } }
         )
+    }
+
+    /// A shelf of covers, with a Show All in its heading when it holds more than it shows.
+    private func coverShelf(
+        _ title: LocalizedStringKey, _ publications: [Publication], showAll: (() -> Void)?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            heading(title, showAll: showAll)
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    ForEach(publications) { publication in
+                        HomeCover(library: library, publication: publication, onOpen: onOpen, onShow: onShow)
+                    }
+                }
+            }
+            .scrollClipDisabled()
+        }
+    }
+
+    /// *Finished*, last on the surface, grouped by the month each was finished.
+    private func finishedSection(_ plan: HomePlan) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            heading("desktop.home.finished", showAll: plan.finishedHasMore ? {
+                library.navigationRequest = .finished
+            } : nil)
+            ForEach(plan.finished) { month in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(month.month, format: .dateTime.month(.wide).year().locale(Locale.storyArc))
+                        .scaledFont(.headline).foregroundStyle(theme.palette.textSecondary)
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 16) {
+                            ForEach(month.publications) { publication in
+                                HomeCover(library: library, publication: publication, onOpen: onOpen, onShow: onShow)
+                            }
+                        }
+                    }
+                    .scrollClipDisabled()
+                }
+            }
+        }
+    }
+
+    private func heading(_ title: LocalizedStringKey, showAll: (() -> Void)?) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).scaledFont(.title2, weight: .semibold).accessibilityAddTraits(.isHeader)
+            Spacer()
+            if let showAll {
+                Button(action: showAll) { Text("desktop.home.showAll").hitTarget() }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(Text("desktop.home.showAll.label \(Text(title))"))
+            }
+        }
     }
 
     private func shelf(
         _ title: LocalizedStringKey, _ publications: [Publication], unreadable: Set<String> = []
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).scaledFont(.title2, weight: .semibold)
+            heading(title, showAll: nil)
             ScrollView(.horizontal) {
                 HStack(spacing: 16) {
                     ForEach(publications) { publication in
@@ -117,6 +179,38 @@ private struct HomeCard: View {
         .buttonStyle(.plain)
         .disabled(!isReadable)
         .opacity(isReadable ? 1 : 0.55)
+        .contextMenu { PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: onShow) }
+        .accessibilityLabel(Text(CoverCell.label(for: publication, fraction: fraction)))
+    }
+}
+
+/// A cover with its title under it, for the shelves below the two lead ones.
+private struct HomeCover: View {
+    @Environment(\.theme) private var theme
+
+    let library: MacLibrary
+    let publication: Publication
+    let onOpen: (Publication) -> Void
+    let onShow: (Publication) -> Void
+
+    var body: some View {
+        let fraction = library.model.readFraction(of: publication)
+        Button { onShow(publication) } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                ZStack(alignment: .bottom) {
+                    CoverImage(library: library, publication: publication, maxPixelSize: 300)
+                        .frame(width: 110, height: 165)
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                    if let fraction { ProgressRail(fraction: fraction) }
+                }
+                .frame(width: 110, height: 165)
+                Text(publication.displayTitle).scaledFont(.callout, weight: .medium).lineLimit(2)
+                    .foregroundStyle(theme.palette.textPrimary)
+            }
+            .frame(width: 110, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .simultaneousGesture(TapGesture(count: 2).onEnded { onOpen(publication) })
         .contextMenu { PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: onShow) }
         .accessibilityLabel(Text(CoverCell.label(for: publication, fraction: fraction)))
     }

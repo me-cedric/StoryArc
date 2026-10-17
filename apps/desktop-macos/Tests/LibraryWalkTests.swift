@@ -1,4 +1,6 @@
 import AppKit
+import LibraryFeature
+import StoryArcCore
 import Testing
 
 @testable import StoryArc
@@ -37,6 +39,19 @@ extension WindowWalks {
 
             library.navigationRequest = .root
             _ = await Walk.until { window.title != publication.displayTitle ? true : nil }
+        }
+
+        @Test("Home's Finished heading leads to the library narrowed to what has been finished")
+        func finishedLeadsToTheLibrary() async throws {
+            let library = try await Walk.fixtureLibrary()
+            defer {
+                library.model.clearFilters()
+                library.navigationRequest = .go(.home)
+            }
+            library.navigationRequest = .finished
+            let narrowed = await Walk.until { library.model.query.readStates == [.finished] ? true : nil }
+            #expect(narrowed == true, "the library was not narrowed: \(library.model.query.readStates)")
+            #expect(library.navigationRequest == nil)
         }
     }
 }

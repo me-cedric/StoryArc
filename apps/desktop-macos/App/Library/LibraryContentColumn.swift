@@ -61,6 +61,12 @@ struct LibraryContentColumn: View {
         }
     }
 
+    /// Whether the shelf is in the sort's own order, so headings and the index describe it:
+    /// not a search's results, not the series grouping, not Recently added's arrival order.
+    private var divides: Bool {
+        !search.isShowingResults && filter == .all
+    }
+
     @ViewBuilder
     private func shelf(_ publications: [Publication]) -> some View {
         let shown = filter.apply(publications, model: library.model)
@@ -73,11 +79,14 @@ struct LibraryContentColumn: View {
                 Button { library.model.clearFilters() } label: { Text("desktop.library.filtered.clear") }
             }
         } else if library.model.layout == .list {
-            CoverListView(library: library, publications: shown, selection: $selection, onOpen: onOpen, onShow: onShow)
+            CoverListView(
+                library: library, publications: shown, selection: $selection, onOpen: onOpen, onShow: onShow,
+                divides: divides
+            )
         } else {
             CoverGridView(
                 library: library, publications: shown, groupSeries: filter == .series,
-                selection: $selection, onOpen: onOpen, onShow: onShow
+                selection: $selection, onOpen: onOpen, onShow: onShow, divides: divides
             )
         }
     }

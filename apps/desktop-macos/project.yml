@@ -32,6 +32,9 @@ packages:
   # products it needs; wave 2 adds the format layer and the comic reader's model.
   StoryArcKit:
     path: ../ios/Packages/StoryArcKit
+  # The licence inventory the phone apps read, for the About tab's acknowledgements.
+  licences:
+    path: ../../packages/licences
 
 targets:
   StoryArc:
@@ -108,6 +111,8 @@ targets:
         product: Formats
       - package: StoryArcKit
         product: ReaderFeature
+      - package: licences
+        product: StoryArcLicences
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
@@ -122,16 +127,6 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-    # A shared scheme rather than the one Xcode makes up. The made-up scheme gathers
-    # coverage, and with the test bundle and the app both linking `LibraryFeature`, Xcode
-    # turns the package products into dynamic frameworks; libarchive's C framework then
-    # fails to link against the profile runtime (`___llvm_profile_runtime`). No gate reads
-    # the coverage, so it is off.
-    scheme:
-      testTargets:
-        - StoryArcMacTests
-      gatherCoverageData: false
-
   # Hosted in the app on purpose. The process the tests run in is the ad-hoc signed,
   # sandboxed StoryArc.app, so the entitlement, bookmark and keychain tests measure what
   # a local run measures and not what an unsandboxed xctest runner would. XcodeGen sets
@@ -143,6 +138,12 @@ targets:
       - path: Tests
         excludes:
           - "*.md"
+          - "__Snapshots__/**"
+      # The snapshot references, read from the bundle for the same reason as the fixtures
+      # below. `Tests/MacSnapshot.swift` says how they are recorded.
+      - path: Tests/__Snapshots__
+        type: folder
+        buildPhase: resources
       # Copied into the test bundle, never read from the checkout. The tests run inside the
       # sandboxed app, and a checkout under ~/Documents is a protected folder: an `open()` of
       # a path there waits on a privacy prompt nobody answers and the run hangs (measured
@@ -162,6 +163,8 @@ targets:
         product: StoryArcCore
       - package: StoryArcKit
         product: Formats
+      - package: licences
+        product: StoryArcLicences
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.Tests
@@ -171,3 +174,38 @@ targets:
         # The project-level entitlements belong to the app. A test bundle signed with the
         # sandbox entitlement is a bundle that claims to be a sandboxed process.
         CODE_SIGN_ENTITLEMENTS: ""
+
+schemes:
+  # A shared scheme rather than the one Xcode makes up. The made-up scheme gathers coverage,
+  # and with the test bundle and the app both linking `LibraryFeature`, Xcode turns the
+  # package products into dynamic frameworks; libarchive's C framework then fails to link
+  # against the profile runtime (`___llvm_profile_runtime`). No gate reads the coverage, so
+  # it is off. Declared here rather than on the target so the test action alone carries the
+  # settings below; a run from Xcode keeps the Mac's own language and region.
+  StoryArc:
+    build:
+      targets:
+        StoryArc: all
+        StoryArcMacTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - StoryArcMacTests
+      # The tests draw the app in English for the United States on every Mac, whatever the
+      # Mac's own languages and region: the snapshot references hold words and numbers, and
+      # a Mac set to a French region draws "36 %" where another draws "36%".
+      language: en
+      region: US
+      # Scroll bars only while scrolling, as on a Mac with no mouse attached. With a mouse
+      # the system shows them always, and every screen with a scroll view draws one.
+      commandLineArguments:
+        "-AppleShowScrollBars WhenScrolling": true
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

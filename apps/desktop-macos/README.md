@@ -61,6 +61,11 @@ apps/desktop-macos/
 │   ├── WindowWalk.swift        the serialized parent of every suite that drives windows
 │   ├── ReaderWalkTests.swift, PointerAndFilesWalkTests.swift, ShellTests.swift   the walks
 │   ├── CaptureTests.swift, Wave2CaptureTests.swift   the frames, on request
+│   ├── MacCatalogue.swift      the screen catalogue: each screen brought up over the fixtures
+│   ├── AccessibilityAudit.swift, AccessibilityAuditTests.swift   every catalogue control
+│   │                           named and at least 20 × 20 points, as VoiceOver reads it
+│   ├── MacSnapshot.swift, SnapshotTests.swift   every catalogue screen held against a reference
+│   ├── __Snapshots__/          the references, light, dark and largest, and the macOS version
 │   ├── TestFixtures.swift      fixtures and the entitlements file, read from the test bundle
 │   └── KeychainSpike.md        the spike's result, 2026-10-16
 └── README.md
@@ -87,6 +92,22 @@ writes the window frames into the container's `tmp/captures/`; see
 [`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md) and
 [`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md)
 for how and for what they do and do not show.
+
+The snapshot suite holds each screen of `Tests/MacCatalogue.swift` against
+`Tests/__Snapshots__/`, drawn in-process at one pixel per point, so materials are absent.
+To record again, run the test command with `TEST_RUNNER_STORYARC_SNAPSHOT_RECORD=1` in
+front, then copy the images and `macos-version.txt` from the container's
+`tmp/snapshots/record/` into `Tests/__Snapshots__/`. A failing run leaves the drawn image in
+`tmp/snapshots/failures/`. On a major macOS version other than the one the references name
+the screen test is skipped, with that reason.
+
+The references draw the same on every Mac because the run pins what the Mac would
+otherwise choose. The first walk of a run copies the fixture comics into the container
+afresh, each on its own fixed date a day apart in name order (`TestFixtures.layDownComics`),
+so *Recently Added* does not follow the checkout's or the copy's clock, and empties the cover
+cache. The scheme's test action runs in English for the US region, with scroll bars shown
+only while scrolling (`project.yml`). What it does not pin: the system accent colour (the
+references assume the default, Multicolor), Reduce Transparency and Increase Contrast.
 
 Requires macOS 26, Xcode 27.1 with the Metal toolchain component (`AGENTS.md`
 section 3b) and `brew install xcodegen`. For the Xcode IDE, run

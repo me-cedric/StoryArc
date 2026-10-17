@@ -1,4 +1,5 @@
 import CoreGraphics
+import StoryArcCore
 
 /// The zoom of one page in a Mac reader window, as a multiple of its fit.
 ///
@@ -56,6 +57,21 @@ struct ZoomModel: Equatable, Sendable {
         let slackY = max(0, (fittedSize.height * scale - viewport.height) / 2)
         next.offset = CGSize(width: isRightToLeft ? -slackX : slackX, height: slackY)
         return next
+    }
+
+    /// The page sized by a fit mode, opened at its top on the side reading starts from.
+    ///
+    /// `comic-reader`, *Fit modes*: fit to screen, width, height and original size, each a
+    /// multiple of fit-to-screen (`PageFit.scale`), so pinch, the keys and a double click
+    /// keep working on the one number. Never past the ceiling.
+    func fitting(
+        _ fit: PageFit, fittedSize: CGSize, viewport: CGSize, pixelWidth: CGFloat, isRightToLeft: Bool
+    ) -> ZoomModel {
+        let proposed = fit.scale(fitted: fittedSize, viewport: viewport, pixelWidth: pixelWidth)
+        var next = ZoomModel()
+        next.scale = min(max(proposed, 1), Self.ceiling)
+        guard next.isZoomed else { return ZoomModel() }
+        return next.turned(isRightToLeft: isRightToLeft, fittedSize: fittedSize, viewport: viewport)
     }
 
     /// A pan by `delta`, kept inside the page's edges for this viewport.

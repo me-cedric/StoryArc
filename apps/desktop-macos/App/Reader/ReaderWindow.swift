@@ -15,31 +15,26 @@ enum SpreadMode: Equatable, Sendable {
 /// One reader window: a comic or fixed-layout publication, read with keys, pointer and drag.
 ///
 /// The model is `ReaderFeature`'s `ReaderModel` — it opens the archive through `Formats`,
-/// decodes pages around the current one and records progress on every turn — and the page
-/// view is the Mac's own (`ReaderCanvas`), because `ZoomablePage` is UIKit. The curl is
-/// wave 5; the drag slides. Tasks 2.9, 2.11 to 2.17 and 2.22.
+/// decodes pages around the current one and records progress on every turn — and the rest of
+/// the window's state is `ReaderState`. The page view is the Mac's own: `ReaderCanvas` for the
+/// paged modes, `ReaderScrollCanvas` for the continuous scroll, because `ZoomablePage` and
+/// `PageScrollView` are UIKit. The curl is wave 5. Tasks 2.9, 2.11 to 2.17 and 2.22.
 struct ReaderWindow: View {
     @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dismissWindow) private var dismissWindow
     @Environment(\.openWindow) private var openWindow
 
     let target: ReaderTarget
     let library: MacLibrary
 
-    @State private var model: ReaderModel
-    @State private var writer: ProgressWriter?
-    @State private var zoom = ZoomModel()
-    @State private var spreadMode: SpreadMode = .automatic
+    @State private var state: ReaderState
     @State private var isChromeVisible = true
     @State private var chromeTimer: Task<Void, Never>?
     @State private var isAskingForPage = false
+    @State private var isAdjusting = false
     @State private var pageField = ""
     @State private var observer: ReaderWindowObserver?
     @State private var window: NSWindow?
-    /// The page a turn asked for while the model is still getting there. Turns count from
-    /// it, so two presses in quick succession move two pages and not one.
-    @State private var pendingIndex: Int?
     @FocusState private var isFocused: Bool
 
     init(target: ReaderTarget, library: MacLibrary) {
@@ -47,11 +42,10 @@ struct ReaderWindow: View {
         self.library = library
         let publication = library.model.publications.first { $0.id == target.publicationID }
             ?? Self.placeholder(for: target)
-        _model = State(initialValue: ReaderModel(
-            publication: publication, url: target.url, progress: library.progress,
-            preferences: ReaderPreferences(), canCurl: false
-        ))
+        _state = State(initialValue: ReaderState(target: target, publication: publication, progress: library.progress))
     }
+
+    private var model: ReaderModel { state.model }
 
     var body: some View {
         GeometryReader { geometry in
@@ -59,24 +53,31 @@ struct ReaderWindow: View {
                 theme.palette.surfaceReader.ignoresSafeArea()
                 if let failure = model.failure {
                     unavailable(failure)
+                } else if state.isScrolling {
+                    ReaderScrollCanvas(state: state, onPointerMoved: { revealChrome() })
                 } else {
                     ReaderCanvas(
-                        model: model, zoom: $zoom, layout: layout(for: geometry.size),
-                        viewport: geometry.size, reduceMotion: reduceMotion,
+                        state: state, viewport: geometry.size,
                         zonesOn: MacSettings.shared.settings.turnPagesByTappingTheEdges,
-                        onTurn: { turn(by: $0) }, onToggleChrome: { toggleChrome() },
-                        onPointerMoved: { revealChrome() }
+                        onToggleChrome: { toggleChrome() }, onPointerMoved: { revealChrome() }
                     )
                 }
-                if isChromeVisible, model.failure == nil {
-                    ReaderChromeBar(
-                        model: model, layout: layout(for: geometry.size),
-                        spreadMode: $spreadMode, zoom: $zoom, onJump: { jump(to: $0) }
-                    )
-                    .transition(.opacity)
+                if isChromeVisible, model.failure == nil, !state.isAtEnd {
+                    ReaderChromeBar(state: state, isAdjusting: $isAdjusting, onChapter: { chapter($0) })
+                        .transition(.opacity)
+                }
+                if state.isAtEnd {
+                    EndOfPublicationView(state: state, next: library.model.next(after: model.publication)) {
+                        open($0)
+                    } onClose: {
+                        window?.performClose(nil)
+                    }
                 }
             }
-            .onChange(of: geometry.size) { _, size in zoom = zoom.settled(fittedSize: size, viewport: size) }
+            .onChange(of: geometry.size, initial: true) { _, size in
+                state.viewport = size
+                state.zoom = state.zoom.settled(fittedSize: size, viewport: size)
+            }
         }
         .focusable()
         .focused($isFocused)
@@ -88,7 +89,9 @@ struct ReaderWindow: View {
         .sheet(isPresented: $isAskingForPage) { goToPageSheet }
         .acceptsDroppedFiles()
         .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
-        .task { await open() }
+        .onChange(of: reduceMotion, initial: true) { _, now in state.reduceMotion = now }
+        .onChange(of: isAdjusting) { _, now in if now { revealChrome() } else { scheduleChromeHide() } }
+        .task { await openReader() }
         .onDisappear { close() }
     }
 
@@ -103,16 +106,18 @@ struct ReaderWindow: View {
         )
     }
 
-    private func open() async {
+    private func openReader() async {
         isFocused = true
         if let progress = library.progress {
             let writer = ProgressWriter(store: progress)
-            self.writer = writer
+            state.writer = writer
             ProgressFlushers.shared.register(writer, for: target.publicationID)
         }
         ReaderWindows.shared.didOpen(target)
+        ReaderStates.shared.register(state)
         await model.open(maxPixelSize: 2048)
         scheduleChromeHide()
+        await state.loadMarkers()
     }
 
     private func close() {
@@ -122,6 +127,7 @@ struct ReaderWindow: View {
         ProgressFlushers.shared.finish(target.publicationID)
         ReaderWindows.shared.didClose(target)
         ReaderWindowRegistry.detach(target)
+        ReaderStates.shared.unregister(target)
         DisplayAwake.shared.release(for: target.publicationID)
         observer?.detach()
         Task { await library.refreshProgress() }
@@ -150,63 +156,49 @@ struct ReaderWindow: View {
         observer?.attach(window)
     }
 
+    /// Another publication, in its own window: the end screen's next issue, or a chapter
+    /// action past this publication's first or last chapter.
+    private func open(_ publication: Publication) {
+        guard let target = library.target(for: publication) else { return }
+        library.recents.note(target)
+        openWindow.reader(target)
+    }
+
     // MARK: - Turning
-
-    private func layout(for size: CGSize) -> SpreadLayout {
-        let pairs: Bool = switch spreadMode {
-        case .automatic: SpreadDecision.pairs(viewport: size)
-        case .single: false
-        case .double: true
-        }
-        return SpreadDecision.layout(
-            pageCount: model.pages.count, wide: model.wideIndices, pairs: pairs,
-            coverAlone: MacSettings.shared.coverAlone
-        )
-    }
-
-    private var currentLayout: SpreadLayout {
-        layout(for: window?.contentView?.bounds.size ?? CGSize(width: 980, height: 820))
-    }
-
-    /// Moves by whole slots, so a pair turns as one.
-    private func turn(by step: Int) {
-        let layout = currentLayout
-        let slot = layout.slot(containing: pendingIndex ?? model.currentIndex) + step
-        guard let spread = layout[slot] else { return }
-        go(to: spread.leading)
-    }
-
-    private func jump(to index: Int) { go(to: index) }
-
-    private func go(to index: Int) {
-        guard model.pages.indices.contains(index) else { return }
-        // The zoom stays; the canvas moves it to the new page's top (`ZoomModel.turned`).
-        pendingIndex = index
-        // Owed from the moment of the turn, not from when the model has caught up with it: a
-        // window closed or an app quit straight after a press still writes this page.
-        writer?.note(ReadingProgress(
-            identity: model.publication.identity,
-            position: .page(index: index, of: model.pages.count),
-            isFinished: index == model.pages.count - 1,
-            updatedAt: Date()
-        ))
-        Task {
-            await model.go(to: index)
-            if pendingIndex == index { pendingIndex = nil }
-        }
-    }
 
     private func perform(_ action: PageAction) {
         switch action {
         case .toggleChrome: toggleChrome()
-        case .next: turn(by: 1)
-        case .previous: turn(by: -1)
-        case .first: go(to: 0)
-        case .last: go(to: model.pages.count - 1)
+        case .next: state.turn(by: 1)
+        case .previous: state.turn(by: -1)
+        case .first: state.go(to: 0, step: -1)
+        case .last: state.go(to: model.pages.count - 1, step: 1)
         }
     }
 
+    /// Previous or next chapter: within the publication first, then the neighbouring issue.
+    private func chapter(_ step: Int) {
+        let index = state.shownIndex
+        let within = step > 0
+            ? ReaderChapters.nextStart(from: index, markers: state.markers)
+            : ReaderChapters.previousStart(from: index, markers: state.markers)
+        if let within {
+            state.jump(to: within)
+        } else if let neighbour = neighbour(step) {
+            open(neighbour)
+        }
+    }
+
+    private func neighbour(_ step: Int) -> Publication? {
+        step > 0 ? library.model.next(after: model.publication) : library.model.previous(before: model.publication)
+    }
+
     private func handle(_ press: KeyPress) -> KeyPress.Result {
+        if press.key == .escape {
+            if state.isAtEnd { state.isAtEnd = false; return .handled }
+            if state.isBrowsingPages { state.isBrowsingPages = false; return .handled }
+            return .ignored
+        }
         guard let key = PageKey(press) else { return .ignored }
         guard let action = PageKeyMapper.action(for: key, direction: model.readingDirection) else { return .ignored }
         perform(action)
@@ -228,12 +220,13 @@ struct ReaderWindow: View {
     }
 
     /// *Revealing chrome*: after the pointer rests for three seconds the chrome and the
-    /// pointer hide, and the page does not move.
+    /// pointer hide, and the page does not move. Held while the adjustments or the page
+    /// browser are open, because a live preview whose controls vanish cannot be judged.
     private func scheduleChromeHide() {
         chromeTimer?.cancel()
         chromeTimer = Task {
             try? await Task.sleep(for: PointerIdle.hideAfter)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, !isAdjusting, !state.isBrowsingPages else { return }
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { isChromeVisible = false }
             if window?.isKeyWindow == true { NSCursor.setHiddenUntilMouseMoves(true) }
         }
@@ -244,13 +237,16 @@ struct ReaderWindow: View {
             openFile: { Task { for target in await library.chooseFile() { openWindow.reader(target) } } },
             addFolder: { library.chooseFolder() },
             page: { perform($0) },
-            goToPage: { pageField = String(model.currentIndex + 1); isAskingForPage = true },
-            singlePage: { spreadMode = .single },
-            twoPages: { spreadMode = .double },
-            zoomIn: { zoom = zoom.zoomedIn() },
-            zoomOut: { zoom = zoom.zoomedOut() },
-            fitPage: { zoom = zoom.fitted() },
-            showControls: { toggleChrome() }
+            goToPage: { pageField = String(state.shownIndex + 1); isAskingForPage = true },
+            singlePage: { state.spreadMode = .single },
+            twoPages: { state.spreadMode = .double },
+            zoomIn: { state.zoom = state.zoom.zoomedIn() },
+            zoomOut: { state.zoom = state.zoom.zoomedOut() },
+            fit: { state.applyFit($0) },
+            showControls: { toggleChrome() },
+            chapter: { chapter($0) },
+            showPages: { state.isBrowsingPages.toggle(); revealChrome() },
+            adjust: { isAdjusting.toggle() }
         )
     }
 
@@ -272,7 +268,7 @@ struct ReaderWindow: View {
     }
 
     private func submitPage() {
-        if let page = Int(pageField), model.pages.indices.contains(page - 1) { jump(to: page - 1) }
+        if let page = Int(pageField), model.pages.indices.contains(page - 1) { state.jump(to: page - 1) }
         isAskingForPage = false
     }
 
@@ -312,4 +308,17 @@ extension PublicationFormat {
         default: nil
         }
     }
+}
+
+/// The open readers' states, so a walk can read what a window holds.
+@MainActor
+final class ReaderStates {
+    static let shared = ReaderStates()
+    private var states: [String: ReaderState] = [:]
+
+    func register(_ state: ReaderState) { states[state.target.publicationID] = state }
+
+    func unregister(_ target: ReaderTarget) { states[target.publicationID] = nil }
+
+    func state(for target: ReaderTarget) -> ReaderState? { states[target.publicationID] }
 }

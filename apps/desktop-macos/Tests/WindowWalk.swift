@@ -1,4 +1,5 @@
 import AppKit
+import Formats
 import LibraryFeature
 import StoryArcCore
 import Testing
@@ -27,15 +28,23 @@ enum Walk {
         return library
     }
 
-    /// `packages/test-fixtures/comics`, copied once into the container and scanned.
+    /// Whether this run has laid the fixture folder down and emptied the cover cache.
+    private static var isFixtureFolderLaid = false
+
+    /// `packages/test-fixtures/comics`, copied into the container once a run and scanned.
     ///
     /// The copy is the folder the library reads: the bundle sits inside the app, and a
-    /// library folder inside the app it scans is a folder nobody would choose.
+    /// library folder inside the app it scans is a folder nobody would choose. The first walk
+    /// of a run replaces it with fresh copies on fixed dates and empties the cover cache, so
+    /// a run starts from what a clean machine has, whatever an earlier run left in the
+    /// container.
     static func fixtureLibrary() async throws -> MacLibrary {
         let library = try await library()
         let folder = URL.temporaryDirectory.appending(path: "walk-library", directoryHint: .isDirectory)
-        if !FileManager.default.fileExists(atPath: folder.path(percentEncoded: false)) {
-            try FileManager.default.copyItem(at: TestFixtures.comics, to: folder)
+        if !isFixtureFolderLaid {
+            try TestFixtures.layDownComics(at: folder)
+            CoverCache().clear()
+            isFixtureFolderLaid = true
         }
         if publication(named: "natural-sort", in: library) == nil {
             library.model.addFolder(folder)

@@ -57,7 +57,7 @@ struct SkippedNotice: View {
             case .reachable:
                 HStack {
                     Spacer()
-                    Button { isShowingList = true } label: { Text("desktop.skipped.list") }
+                    Button { isShowingList = true } label: { Text("desktop.skipped.list").hitTarget() }
                         .buttonStyle(.link)
                         .scaledFont(.callout)
                 }
@@ -73,9 +73,9 @@ struct SkippedNotice: View {
             Spacer()
             // The notice's own action, then its close, as the iOS notice draws them: a link and
             // a borderless mark rather than two buttons side by side (AGENTS.md section 6).
-            Button { isShowingList = true } label: { Text("desktop.skipped.show") }
+            Button { isShowingList = true } label: { Text("desktop.skipped.show").hitTarget() }
                 .buttonStyle(.link)
-            Button { library.model.dismissSkipped() } label: { Image(systemName: "xmark") }
+            Button { library.model.dismissSkipped() } label: { Image(systemName: "xmark").hitTarget() }
                 .buttonStyle(.borderless)
                 .accessibilityLabel(Text("desktop.skipped.dismiss"))
                 .help(Text("desktop.skipped.dismiss"))
