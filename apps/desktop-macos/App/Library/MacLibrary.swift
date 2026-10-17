@@ -23,6 +23,8 @@ final class MacLibrary {
     let servers: MacSources
     /// The download queue and the metered rule over it. Wave 3.
     let downloads: MacDownloads
+    /// Library sync at start and at quit. Wave 3.
+    let sync: MacSync
 
     /// Every folder the reader chose, with its state. Grey ones keep their place.
     private(set) var sources: [FolderSource] = []
@@ -68,6 +70,9 @@ final class MacLibrary {
         )
         servers = MacSources(model: model)
         downloads = MacDownloads()
+        sync = MacSync(runner: MacSyncWiring.runner(progress: store)) {
+            await MacSyncWiring.latestChange(in: store)
+        }
         Self.live = self
     }
 

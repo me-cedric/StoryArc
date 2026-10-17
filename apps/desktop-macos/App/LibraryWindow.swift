@@ -94,6 +94,11 @@ struct LibraryWindow: View {
             WindowOpener.shared.openReader = { openWindow.reader($0) }
             WindowOpener.shared.openLibrary = { openWindow(id: Self.id) }
             await library.restore()
+            // `desktop-experience`, *At start*: beside the window, never in front of it.
+            library.sync.start {
+                await library.model.reloadAfterImport()
+                await library.refreshProgress()
+            }
             for session in library.restorableReaders() { openWindow.reader(session.target) }
             await library.openHandedOver { openWindow.reader($0) }
         }

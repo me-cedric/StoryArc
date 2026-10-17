@@ -18,7 +18,8 @@ struct HomeView: View {
         let plan = plan
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                if !plan.keepReading.isEmpty {
+                // Held back until the start's sync has merged, so the shelf is not drawn twice.
+                if !plan.keepReading.isEmpty, library.sync.hasSettledStart {
                     shelf("desktop.home.keepReading", plan.keepReading, unreadable: plan.unreadable)
                 }
                 if !plan.upNext.isEmpty {

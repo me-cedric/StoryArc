@@ -17,6 +17,7 @@ struct SourcesSettingsTab: View {
         Group {
             list
             addSection
+            SyncSettingsSection(library: library)
         }
         .addingSources(library.servers)
         .confirmationDialog(
