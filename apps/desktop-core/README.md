@@ -24,6 +24,7 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `net` | HTTP over reqwest and rustls: credentials only to the configured origin, no `https` to `http` step, redirects by hand, the system's trust then the reader's pins (`net::trust`) |
 | `paths` | Per-user storage folders per system, the Flatpak and MSIX redirects |
 | `diagnostics` | The diagnostic export's text and the phones' five redaction rules, plus every held secret removed |
+| `portability` | The library document both phones write: decode with the version rules, encode with secrets out of every address, sealed secrets, the merge, and the sync document in a place the reader chose |
 | `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
 | `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
 | `secure_store` | `SecretStore`, `Vault`, Credential Manager on Windows, Secret Service through `oo7` on Linux, the session-only fallback |
@@ -102,6 +103,17 @@ runtime.
 | `PinnedShelves::of_tokens` / `tokens` / `ordering` and `RememberedShelf::stored` / `of_stored` | The pins the library document carries, and the server shelves home draws without asking |
 | `SourceHealth::refreshing` / `refreshed(now)` / `failed(&failure, now)` / `actions(..)` | Grey since a moment, never red; reconnect first only when a credential was refused |
 | `MetadataCache::write(id, &value, now)` / `read(id)` / `clear(id)` / `bytes()` | What a source listed when it last answered |
+
+### Library portability and sync
+
+| Call | Does |
+| --- | --- |
+| `portability::decode(bytes)` / `encode(&document)` | One versioned document; over 64 MiB or a newer format is a `DocumentFailure` by name; an unreadable progress record is dropped alone |
+| `exportable_address(locator)` | The address with its password and any secret query or fragment item removed |
+| `sealing::seal(&secrets, &passphrase)` / `open(&sealed, &passphrase)` | PBKDF2-HMAC-SHA256 at 600,000 rounds over the NFC passphrase, AES-256-GCM per secret |
+| `LibrarySnapshot::document(app_version, now, device, for_sync)` | What this device writes; a sync document leaves Kavita's positions to Kavita |
+| `merging(&document, &snapshot, device)` | The import and sync merge: furthest position, shelf members united, deletions as tombstones, settings by last writer, sources, pins and covers added |
+| `LibrarySync::new(FolderPlace::new(dir), device, version).sync(&snapshot, now)` | Read, merge, write only over the version read, retry on a lost race, fold in a provider's conflicted copies; `Err(Unreachable)` is grey |
 
 ### Secrets and the diagnostic
 

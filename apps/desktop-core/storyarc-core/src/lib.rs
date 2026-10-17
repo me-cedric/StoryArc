@@ -10,6 +10,7 @@ pub mod library;
 pub mod locale;
 pub mod net;
 pub mod paths;
+pub mod portability;
 pub mod runtime;
 pub mod secrets;
 pub mod secure_store;

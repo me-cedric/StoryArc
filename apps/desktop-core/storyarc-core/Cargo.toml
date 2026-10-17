@@ -92,6 +92,17 @@ rustls-platform-verifier = "0.7.1"
 # uuid 1.28.0, MIT OR Apache-2.0: shelf ids, read in either case from iOS and Android and
 # minted as version 4 for a new collection or reading list. Already in the tree through smb.
 uuid = { version = "1.28.0", default-features = false, features = ["std", "v4"] }
+# The library document's sealed secrets (`library-portability`, task 3.8): PBKDF2-HMAC-SHA256
+# and AES-256-GCM, the two the phones use, with the parameters in the document. All three are
+# already in the tree through smb's NTLM and SMB 3 encryption.
+# aes-gcm 0.11.1, MIT OR Apache-2.0, without its own random source.
+aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
+# pbkdf2 0.13.0, MIT OR Apache-2.0, with HMAC over the sha2 above.
+pbkdf2 = { version = "0.13.0", default-features = false, features = ["hmac"] }
+# getrandom 0.3.4, MIT OR Apache-2.0: the salt and each nonce, from the system.
+getrandom = "0.3.4"
+# base64 0.22.1, MIT OR Apache-2.0: the salt, nonces, ciphertexts and chosen covers.
+base64 = "0.22.1"
 # quick-xml 0.42.0, MIT: OPDS 1.2 Atom feeds and OpenSearch descriptions. A real XML reader
 # here, unlike ComicInfo's flat scrape, because a feed nests links inside entries.
 quick-xml = "0.42.0"

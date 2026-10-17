@@ -18,3 +18,15 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
+
+# The library document's key derivation runs 600,000 rounds of PBKDF2-HMAC-SHA256, which an
+# unoptimised test build takes seconds over. The digest and cipher crates are built optimised
+# in debug builds too, so `pnpm test:desktop:core` stays quick; nothing else changes.
+[profile.dev.package.sha2]
+opt-level = 3
+
+[profile.dev.package.hmac]
+opt-level = 3
+
+[profile.dev.package.pbkdf2]
+opt-level = 3
