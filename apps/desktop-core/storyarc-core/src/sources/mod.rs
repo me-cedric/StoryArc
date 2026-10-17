@@ -3,6 +3,7 @@
 //! Wave 3 adds the network sources: SMB, OPDS and Kavita (design.md, Decision 5, item 4).
 
 pub mod index;
+pub mod kavita;
 pub mod local;
 pub mod opds;
 pub mod smb;

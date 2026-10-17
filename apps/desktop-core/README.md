@@ -26,7 +26,7 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
 | `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
 | `secure_store` | `SecretStore`, `Vault`, Credential Manager on Windows, Secret Service through `oo7` on Linux, the session-only fallback |
-| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`); OPDS catalogues (`sources::opds`) |
+| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`); OPDS catalogues (`sources::opds`); Kavita servers and the progress exchange (`sources::kavita`) |
 | `store` | The SQLite store: progress, sources, publications |
 
 ## Public Rust API (`storyarc_core::library`)
@@ -69,6 +69,11 @@ runtime.
 | `OpdsCatalogue::feed(&url)` / `search(&feed, terms)` / `bytes(&url)` | A page in either dialect; a server search or `LocalOnly`; a cover or a file |
 | `OpdsError::Unauthorized(challenge)` / `Untrusted(certificate)` | Prompt for Basic or Bearer; show the fingerprint, then `TrustStore::pin` and retry |
 | `OpdsEntry::best_acquisition()` / `unreadable_formats()` / `unsupported_kinds()` | EPUB, then comics, then PDF; what to name when nothing opens |
+| `KavitaClient::new(&http, KavitaAddress::parse(typed, key))` then `connect()` | Signs in with the API key; a refused key is `KavitaError::KeyRejected` |
+| `libraries()` / `series(library)` / `volumes(series)` / `continue_point(series)` | The server's shelves, with `pages` and `pagesRead` per chapter |
+| `ProgressPull::merging(remote, local)` then `KavitaExchange::of(&pull, &chapters)` | ADR-0006's merge sorted into records to save and positions owed |
+| `KavitaClient::push(&owed, library, series, volume)` | A page, or a mark for a finished record; write `owed.settled` only when it succeeds |
+| `chapter_request(id)` | The download request, signed for the server alone |
 
 ### Secrets and the diagnostic
 
@@ -118,6 +123,9 @@ each decoded format.
 `tests/opds.rs` runs StoryArcKit's OPDS parsing expectations, then the `pnpm opds` fixture
 (`STORYARC_OPDS_URL`, default port 4444) when it answers, and brings its own servers for the
 origin, downgrade and pinned-certificate cases.
+
+`tests/kavita.rs` runs StoryArcKit's Kavita exchange cases, then `pnpm kavita` at
+`STORYARC_KAVITA_URL` (default port 5000, which on a Mac is the AirPlay receiver's, so set it).
 
 `tests/smb.rs` runs against the Samba fixture (`pnpm smb`) and skips each case whose port does
 not answer. `STORYARC_SMB_PORT`, `STORYARC_SMB_ENCRYPTED_PORT`, `STORYARC_SMB1_PORT` and

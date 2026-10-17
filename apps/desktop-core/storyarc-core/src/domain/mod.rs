@@ -6,6 +6,7 @@ pub mod border_crop;
 pub mod identity;
 pub mod natural_order;
 pub mod progress;
+pub mod progress_pull;
 pub mod publication;
 pub mod reading_direction;
 pub mod spread_layout;
@@ -16,6 +17,7 @@ pub use border_crop::{BorderCrop, BorderInset};
 pub use identity::{PublicationIdentity, ServerIdentifier};
 pub use natural_order::NaturalOrder;
 pub use progress::{ProgressMerge, ProgressMergeOutcome, ReadingPosition, ReadingProgress};
+pub use progress_pull::{ProgressPull, PullConflict};
 pub use publication::{
     MetadataOrigin, Publication, PublicationFormat, PublicationStatus, StreamingCapability,
 };
