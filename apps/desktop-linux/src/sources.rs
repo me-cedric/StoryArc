@@ -373,6 +373,15 @@ pub fn choose(shared: &Shared, parent: &gtk::Window, again: Option<usize>) {
 /// A folder dropped or opened is offered as a folder library, and added only when the
 /// reader agrees (`desktop-experience`, Dropping a folder).
 pub fn offer(shared: &Shared, folder: &Path) {
+    // A folder that is already a library has nothing to offer: the library shows it.
+    if shared
+        .sources
+        .records()
+        .iter()
+        .any(|record| record.path == folder)
+    {
+        return;
+    }
     let name = FolderRecord::new(folder.to_path_buf()).name();
     let dialog = adw::AlertDialog::new(
         Some("Add Folder?"),

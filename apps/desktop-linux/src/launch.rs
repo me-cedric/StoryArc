@@ -231,7 +231,11 @@ pub fn notify(shared: &Shared, notes: &[String]) {
     }
 }
 
-/// A folder handed over is offered as a folder library (task 2.31).
+/// A folder handed over is offered as a folder library (task 2.31), over the library
+/// window, which opens first when the folder came with no window up.
 fn offer_folder(shared: &Shared, folder: &Path) {
+    if shared.library_toasts.borrow().is_none() {
+        show_library(shared, LaunchAction::Library);
+    }
     sources::offer(shared, folder);
 }
