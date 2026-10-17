@@ -6,8 +6,12 @@ using StoryArc.Interop.Network;
 
 namespace StoryArc.Interop.Sources;
 
-/// <summary>The three kinds of network source. A folder on disk is a <see cref="FolderSource"/>.</summary>
-[JsonConverter(typeof(JsonStringEnumConverter<NetworkSourceKind>))]
+/// <summary>
+/// The three kinds of network source. A folder on disk is a <see cref="FolderSource"/>. Saved in lower camel case
+/// (<c>networkShare</c>, <c>opdsCatalogue</c>, <c>kavitaServer</c>), the spelling the mobile source registries and the
+/// core's source store write; the library document's own <c>opdsCatalog</c> is <see cref="NetworkSource.DocumentKind"/>.
+/// </summary>
+[JsonConverter(typeof(CamelCaseKindConverter))]
 public enum NetworkSourceKind
 {
     /// <summary>An SMB share, spoken to by the core's own client and not the system redirector.</summary>
@@ -19,6 +23,9 @@ public enum NetworkSourceKind
     /// <summary>A Kavita server, signed in with an API key.</summary>
     KavitaServer,
 }
+
+/// <summary>Writes and reads <see cref="NetworkSourceKind"/> by its lower camel case name.</summary>
+public sealed class CamelCaseKindConverter() : JsonStringEnumConverter<NetworkSourceKind>(JsonNamingPolicy.CamelCase);
 
 /// <summary>
 /// One network source as its record holds it: an id, what the reader called it, the address, and the user name when there
