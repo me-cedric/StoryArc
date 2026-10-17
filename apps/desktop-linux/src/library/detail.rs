@@ -8,6 +8,27 @@ use storyarc_core::library::{ProgressSummary, ReadState};
 
 use crate::folders::Access;
 
+/// From this window width the page stands beside the library (`publication-detail`, The
+/// page on a large screen); below it the page is pushed over the library.
+pub const TWO_PANES_FROM: i32 = 1024;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum Placement {
+    #[default]
+    Pushed,
+    Beside,
+}
+
+impl Placement {
+    pub fn for_width(width: i32) -> Self {
+        if width >= TWO_PANES_FROM {
+            Self::Beside
+        } else {
+            Self::Pushed
+        }
+    }
+}
+
 /// The one primary action.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Primary {
@@ -149,6 +170,15 @@ mod tests {
             reading(&p, 10, 11, 10).finished(true, storyarc_core::domain::Timestamp(100));
         let again = Detail::of(&p, ProgressSummary::of(Some(&finished)), None);
         assert_eq!(again.primary, Primary::ReadAgain);
+    }
+
+    #[test]
+    fn from_1024_the_page_stands_beside_the_library_and_below_it_is_pushed() {
+        assert_eq!(Placement::for_width(1024), Placement::Beside);
+        assert_eq!(Placement::for_width(1600), Placement::Beside);
+        assert_eq!(Placement::for_width(1023), Placement::Pushed);
+        assert_eq!(Placement::for_width(360), Placement::Pushed);
+        assert_eq!(Placement::default(), Placement::Pushed);
     }
 
     #[test]

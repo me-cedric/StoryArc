@@ -17,6 +17,7 @@ use storyarc_core::locale::Collation;
 use crate::app::Shared;
 use crate::commands::Scope;
 use crate::covers::Covers;
+use crate::detail_panes::{self, DetailPanes};
 use crate::folders::Access;
 use crate::library::detail::Detail;
 use crate::library::entry::{Format, LibraryEntry};
@@ -53,18 +54,19 @@ const IMPLEMENTED: [&str; 10] = [
 
 /// The library window's widgets and what the header bar holds.
 pub struct LibraryUi {
-    window: adw::ApplicationWindow,
+    pub(crate) window: adw::ApplicationWindow,
     split: adw::NavigationSplitView,
     sections: gtk::ListBox,
     folders: gtk::ListBox,
-    navigation: adw::NavigationView,
+    pub(crate) navigation: adw::NavigationView,
+    pub(crate) panes: DetailPanes,
     stack: gtk::Stack,
     home: adw::Bin,
     layouts: gtk::Stack,
     store: gio::ListStore,
     search: gtk::SearchEntry,
     state: RefCell<QueryState>,
-    covers: Rc<Covers>,
+    pub(crate) covers: Rc<Covers>,
     collation: Collation,
 }
 
@@ -109,7 +111,18 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
         .build();
     let navigation = adw::NavigationView::new();
     navigation.add(&content_page(&stack, &search));
-    split.set_content(Some(&adw::NavigationPage::new(&navigation, "StoryArc")));
+    let pane = adw::Bin::new();
+    let panes = adw::OverlaySplitView::builder()
+        .content(&navigation)
+        .sidebar(&pane)
+        .sidebar_position(gtk::PackType::End)
+        .collapsed(false)
+        .show_sidebar(false)
+        .min_sidebar_width(320.0)
+        .max_sidebar_width(480.0)
+        .sidebar_width_fraction(0.4)
+        .build();
+    split.set_content(Some(&adw::NavigationPage::new(&panes, "StoryArc")));
 
     let overlay = adw::ToastOverlay::new();
     overlay.set_child(Some(&split));
@@ -130,6 +143,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
         sections,
         folders,
         navigation,
+        panes: DetailPanes::new(panes, pane),
         stack,
         home,
         layouts,
@@ -141,6 +155,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     });
     install_actions(shared, &ui);
     connect(shared, &ui, &grid, &list);
+    detail_panes::follow_width(shared, &ui);
     launch::install_drop(window.upcast_ref(), shared);
 
     *shared.library_toasts.borrow_mut() = Some(overlay);
@@ -492,22 +507,27 @@ fn progress_index(shared: &Shared) -> ProgressIndex {
     )
 }
 
+/// Shows a publication's page: beside the library in a wide window, pushed over it in a
+/// narrow one (`detail_panes.rs`).
 fn push_detail(shared: &Shared, publication: &Publication) {
     let Some(ui) = shared.library_ui.borrow().clone() else {
         return;
     };
-    let progress = progress_index(shared);
-    let detail = Detail::of(
+    *ui.panes.chosen.borrow_mut() = Some(publication.clone());
+    detail_panes::place(shared, &ui);
+}
+
+/// The detail of a publication as it stands now: its progress and its folder's access.
+pub(crate) fn detail_of(shared: &Shared, publication: &Publication) -> Detail {
+    Detail::of(
         publication,
-        progress.summary(publication),
+        progress_index(shared).summary(publication),
         shared.sources.source_of(publication),
-    );
-    let page = library_views::detail_page(&detail, publication, &ui.covers, read(shared));
-    ui.navigation.push(&page);
+    )
 }
 
 /// Opens a publication in a reader window, naming a refusal in grey.
-fn read(shared: &Shared) -> Rc<dyn Fn(&Publication)> {
+pub(crate) fn read(shared: &Shared) -> Rc<dyn Fn(&Publication)> {
     let weak = Rc::downgrade(shared);
     Rc::new(move |publication: &Publication| {
         let Some(shared) = weak.upgrade() else {

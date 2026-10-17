@@ -5,6 +5,7 @@ mod app;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod commands;
 mod covers;
+mod detail_panes;
 mod folders;
 mod fullscreen;
 mod idle;

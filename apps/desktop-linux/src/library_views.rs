@@ -329,14 +329,85 @@ fn shelf_row(
     section
 }
 
-/// The detail page: the cover on a wash, the title, one primary action, a menu, and the
-/// line that names where the file lives.
+/// The detail page pushed over the library in a narrow window.
 pub fn detail_page(
     detail: &Detail,
     publication: &Publication,
     covers: &Rc<Covers>,
     read: Rc<dyn Fn(&Publication)>,
 ) -> adw::NavigationPage {
+    adw::NavigationPage::builder()
+        .title(&detail.title)
+        .tag("detail")
+        .child(&detail_view(detail, publication, covers, read))
+        .build()
+}
+
+/// The second pane of a wide window before a cover is chosen: one sentence.
+pub fn pane_placeholder() -> gtk::Widget {
+    let toolbar = adw::ToolbarView::new();
+    toolbar.add_top_bar(&adw::HeaderBar::builder().show_title(false).build());
+    toolbar.set_content(Some(
+        &adw::StatusPage::builder()
+            .title("No Publication Chosen")
+            .description("Choose a cover to see its page here.")
+            .build(),
+    ));
+    toolbar.upcast()
+}
+
+/// The detail page's content, with its own header bar: the cover on a wash, the title,
+/// one primary action, a menu, and the line that names where the file lives. The same
+/// view is pushed in a narrow window and stands beside the library in a wide one.
+pub fn detail_view(
+    detail: &Detail,
+    publication: &Publication,
+    covers: &Rc<Covers>,
+    read: Rc<dyn Fn(&Publication)>,
+) -> adw::ToolbarView {
+    let path = publication.identity.normalized_path.clone();
+    let column = detail_column(detail, publication, covers, read);
+    let toolbar = adw::ToolbarView::new();
+    let header = adw::HeaderBar::new();
+    header.set_title_widget(Some(&adw::WindowTitle::new(&detail.title, "")));
+    toolbar.add_top_bar(&header);
+    toolbar.set_content(Some(
+        &gtk::ScrolledWindow::builder()
+            .hscrollbar_policy(gtk::PolicyType::Never)
+            .child(
+                &adw::Clamp::builder()
+                    .maximum_size(640)
+                    .child(&column)
+                    .build(),
+            )
+            .build(),
+    ));
+    toolbar.insert_action_group("detail", Some(&show_in_files(path)));
+    toolbar
+}
+
+fn show_in_files(path: Option<String>) -> gio::SimpleActionGroup {
+    let group = gio::SimpleActionGroup::new();
+    let show = gio::SimpleAction::new("show-in-files", None);
+    show.connect_activate(move |_, _| {
+        if let Some(path) = &path {
+            gtk::FileLauncher::new(Some(&gio::File::for_path(path))).open_containing_folder(
+                gtk::Window::NONE,
+                None::<&gio::Cancellable>,
+                |_| {},
+            );
+        }
+    });
+    group.add_action(&show);
+    group
+}
+
+fn detail_column(
+    detail: &Detail,
+    publication: &Publication,
+    covers: &Rc<Covers>,
+    read: Rc<dyn Fn(&Publication)>,
+) -> gtk::Box {
     let picture = cover_picture(220);
     picture.set_halign(gtk::Align::Center);
     let path = publication.identity.normalized_path.clone();
@@ -420,36 +491,5 @@ pub fn detail_page(
             .css_classes(["dimmed", "caption"])
             .build(),
     );
-
-    let group = gio::SimpleActionGroup::new();
-    let show = gio::SimpleAction::new("show-in-files", None);
-    show.connect_activate(move |_, _| {
-        if let Some(path) = &path {
-            gtk::FileLauncher::new(Some(&gio::File::for_path(path))).open_containing_folder(
-                gtk::Window::NONE,
-                None::<&gio::Cancellable>,
-                |_| {},
-            );
-        }
-    });
-    group.add_action(&show);
-
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&adw::HeaderBar::new());
-    toolbar.set_content(Some(
-        &gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::Never)
-            .child(
-                &adw::Clamp::builder()
-                    .maximum_size(640)
-                    .child(&column)
-                    .build(),
-            )
-            .build(),
-    ));
-    toolbar.insert_action_group("detail", Some(&group));
-    adw::NavigationPage::builder()
-        .title(&detail.title)
-        .child(&toolbar)
-        .build()
+    column
 }
