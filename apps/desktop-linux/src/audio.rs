@@ -1,0 +1,351 @@
+//! Audio playback through GStreamer (task 4.12, the spike design.md Decision 5b assumed;
+//! `audio-playback`, Playback controls). One `GstPlay` over playbin: a file plays, pauses,
+//! seeks, changes rate and reports its position and duration. The player's state is read
+//! from the play bus on the GLib main loop, so the window and MPRIS see one truth.
+//!
+//! Where GStreamer cannot be initialised, or the file's decoder is not installed, the
+//! error names it and the control stays absent (`desktop-experience`, A Linux system
+//! without an optional service). The audio sink is the system's own; a test with no
+//! sound device asks for a `fakesink` that keeps the clock.
+
+use std::cell::{Cell, RefCell};
+use std::path::Path;
+use std::rc::Rc;
+use std::time::Duration;
+
+use gst::prelude::*;
+use gstreamer as gst;
+use gstreamer_play as gst_play;
+use gtk::glib;
+
+/// What the player is doing, as the bus last said.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum PlayState {
+    #[default]
+    Stopped,
+    Buffering,
+    Paused,
+    Playing,
+}
+
+impl PlayState {
+    /// The MPRIS `PlaybackStatus` word.
+    pub fn mpris(self) -> &'static str {
+        match self {
+            Self::Stopped => "Stopped",
+            Self::Buffering | Self::Paused => "Paused",
+            Self::Playing => "Playing",
+        }
+    }
+}
+
+/// Where the sound goes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Sink {
+    /// The system's: autoaudiosink, which is PipeWire or PulseAudio on a desktop.
+    System,
+    /// A `fakesink` that keeps the clock: a host with no sound device, such as a container.
+    Null,
+}
+
+/// Something the player tells its listeners.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PlayerEvent {
+    State(PlayState),
+    Position(Duration),
+    Duration(Duration),
+    EndOfStream,
+    /// The engine's own words: a missing decoder, an unreadable file.
+    Error(String),
+}
+
+type Listener = Box<dyn Fn(&PlayerEvent)>;
+
+pub struct AudioPlayer {
+    play: gst_play::Play,
+    state: Cell<PlayState>,
+    listeners: RefCell<Vec<Listener>>,
+    /// The bus watch lives as long as the player; dropping the guard removes the watch.
+    watch: RefCell<Option<gst::bus::BusWatchGuard>>,
+}
+
+impl AudioPlayer {
+    /// Starts GStreamer (once per process) and makes a player over `sink`.
+    pub fn new(sink: Sink) -> Result<Rc<Self>, String> {
+        gst::init().map_err(|error| format!("GStreamer is not available: {error}"))?;
+        let play = gst_play::Play::new(None::<gst_play::PlayVideoRenderer>);
+        if sink == Sink::Null {
+            let sink = gst::ElementFactory::make("fakesink")
+                .property("sync", true)
+                .build()
+                .map_err(|error| format!("no fakesink: {error}"))?;
+            play.pipeline().set_property("audio-sink", &sink);
+        }
+        let player = Rc::new(Self {
+            play,
+            state: Cell::new(PlayState::Stopped),
+            listeners: RefCell::default(),
+            watch: RefCell::default(),
+        });
+        player.watch_bus();
+        Ok(player)
+    }
+
+    /// Whether a file of this media type has a decoder here, before it is offered.
+    pub fn can_decode(media_type: &str) -> bool {
+        // The registry answers only once GStreamer is initialised; the bindings panic before.
+        if gst::init().is_err() {
+            return false;
+        }
+        let factory = match media_type {
+            "audio/mpeg" => "mpg123audiodec",
+            "audio/mp4" | "audio/x-m4a" | "audio/x-m4b" => "qtdemux",
+            "audio/flac" | "audio/x-flac" => "flacdec",
+            "audio/ogg" | "audio/x-vorbis+ogg" => "oggdemux",
+            _ => return false,
+        };
+        gst::ElementFactory::find(factory).is_some()
+    }
+
+    pub fn connect(&self, listener: impl Fn(&PlayerEvent) + 'static) {
+        self.listeners.borrow_mut().push(Box::new(listener));
+    }
+
+    #[cfg(test)]
+    pub fn state(&self) -> PlayState {
+        self.state.get()
+    }
+
+    /// Loads a file. Playback starts with [`play`](Self::play).
+    pub fn load(&self, path: &Path) {
+        let uri = glib::filename_to_uri(path, None)
+            .map(|uri| uri.to_string())
+            .unwrap_or_else(|_| format!("file://{}", path.display()));
+        self.play.set_uri(Some(&uri));
+    }
+
+    pub fn play(&self) {
+        self.play.play();
+    }
+
+    pub fn pause(&self) {
+        self.play.pause();
+    }
+
+    pub fn stop(&self) {
+        self.play.stop();
+        self.set_state(PlayState::Stopped);
+    }
+
+    pub fn toggle(&self) {
+        match self.state.get() {
+            PlayState::Playing => self.pause(),
+            _ => self.play(),
+        }
+    }
+
+    pub fn seek(&self, to: Duration) {
+        self.play.seek(gst::ClockTime::from_nseconds(
+            to.as_nanos().min(u128::from(u64::MAX)) as u64,
+        ));
+    }
+
+    /// Skips by `by`, which may be negative, clamped to the file.
+    pub fn skip(&self, by: i64) {
+        let now = self.position().unwrap_or_default().as_secs() as i64;
+        let duration = self.duration().map_or(i64::MAX, |d| d.as_secs() as i64);
+        let target = (now + by).clamp(0, duration);
+        self.seek(Duration::from_secs(target as u64));
+    }
+
+    pub fn set_rate(&self, rate: f64) {
+        self.play.set_rate(rate.clamp(0.5, 3.0));
+    }
+
+    pub fn rate(&self) -> f64 {
+        self.play.rate()
+    }
+
+    pub fn position(&self) -> Option<Duration> {
+        self.play
+            .position()
+            .map(|time| Duration::from_nanos(time.nseconds()))
+    }
+
+    pub fn duration(&self) -> Option<Duration> {
+        self.play
+            .duration()
+            .map(|time| Duration::from_nanos(time.nseconds()))
+    }
+
+    fn set_state(&self, state: PlayState) {
+        if self.state.replace(state) != state {
+            self.emit(&PlayerEvent::State(state));
+        }
+    }
+
+    fn emit(&self, event: &PlayerEvent) {
+        for listener in self.listeners.borrow().iter() {
+            listener(event);
+        }
+    }
+
+    /// Reads the play bus on the main loop and tells the listeners.
+    fn watch_bus(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        let bus = self.play.message_bus();
+        let guard = bus.add_watch_local(move |_, message| {
+            let Some(player) = weak.upgrade() else {
+                return glib::ControlFlow::Break;
+            };
+            if let Ok(parsed) = gst_play::PlayMessage::parse(message) {
+                player.on_message(&parsed);
+            }
+            glib::ControlFlow::Continue
+        });
+        *self.watch.borrow_mut() = guard.ok();
+    }
+
+    fn on_message(&self, message: &gst_play::PlayMessage<'_>) {
+        use gst_play::PlayMessage;
+        match message {
+            PlayMessage::StateChanged(changed) => {
+                let state = match changed.state() {
+                    gst_play::PlayState::Playing => PlayState::Playing,
+                    gst_play::PlayState::Paused => PlayState::Paused,
+                    gst_play::PlayState::Buffering => PlayState::Buffering,
+                    _ => PlayState::Stopped,
+                };
+                self.set_state(state);
+            }
+            PlayMessage::PositionUpdated(updated) => {
+                if let Some(position) = updated.position() {
+                    self.emit(&PlayerEvent::Position(Duration::from_nanos(
+                        position.nseconds(),
+                    )));
+                }
+            }
+            PlayMessage::DurationChanged(changed) => {
+                if let Some(duration) = changed.duration() {
+                    self.emit(&PlayerEvent::Duration(Duration::from_nanos(
+                        duration.nseconds(),
+                    )));
+                }
+            }
+            PlayMessage::EndOfStream(_) => {
+                self.set_state(PlayState::Stopped);
+                self.emit(&PlayerEvent::EndOfStream);
+            }
+            PlayMessage::Error(error) => {
+                self.set_state(PlayState::Stopped);
+                self.emit(&PlayerEvent::Error(error.error().to_string()));
+            }
+            _ => {}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    //! The spike's exit: a chapter plays, seeks and reports its position, on a null sink.
+    //! Skips by name where GStreamer or the MP3 decoder is not installed.
+
+    use std::time::Instant;
+
+    use super::*;
+
+    fn fixture(name: &str) -> std::path::PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../packages/test-fixtures/audiobooks")
+            .join(name)
+    }
+
+    fn pump_until(deadline: Duration, mut done: impl FnMut() -> bool) -> bool {
+        let context = glib::MainContext::thread_default().unwrap_or_default();
+        let end = Instant::now() + deadline;
+        while Instant::now() < end {
+            context.iteration(false);
+            if done() {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        false
+    }
+
+    #[test]
+    fn the_mpris_word_follows_the_state() {
+        assert_eq!(PlayState::Playing.mpris(), "Playing");
+        assert_eq!(PlayState::Paused.mpris(), "Paused");
+        assert_eq!(PlayState::Buffering.mpris(), "Paused");
+        assert_eq!(PlayState::Stopped.mpris(), "Stopped");
+    }
+
+    #[test]
+    fn a_chapter_plays_seeks_and_reports_its_position_on_a_null_sink() {
+        // A main context of this test's own, as the MPRIS test has: the egress test's GTK
+        // owns the default one from its thread.
+        let context = glib::MainContext::new();
+        context
+            .with_thread_default(a_chapter_on_a_null_sink)
+            .expect("the context is this thread's");
+    }
+
+    fn a_chapter_on_a_null_sink() {
+        let player = match AudioPlayer::new(Sink::Null) {
+            Ok(player) => player,
+            Err(reason) => {
+                eprintln!("skipped: {reason}");
+                return;
+            }
+        };
+        if !AudioPlayer::can_decode("audio/mpeg") {
+            eprintln!("skipped: no MP3 decoder (gstreamer1.0-plugins-good)");
+            return;
+        }
+        let events: Rc<RefCell<Vec<PlayerEvent>>> = Rc::default();
+        let seen = events.clone();
+        player.connect(move |event| seen.borrow_mut().push(event.clone()));
+
+        // The three-chapter fixture is six seconds: One, Two and Three, two seconds each.
+        player.load(&fixture("id3-chapters.mp3"));
+        player.play();
+        assert!(
+            pump_until(Duration::from_secs(10), || player.state()
+                == PlayState::Playing),
+            "never played: {:?}",
+            events.borrow()
+        );
+        let duration = player.duration().expect("a duration once playing");
+        assert!((5..=7).contains(&duration.as_secs()), "{duration:?}");
+
+        // Seek into chapter Two and read the position back.
+        player.seek(Duration::from_millis(2500));
+        assert!(
+            pump_until(Duration::from_secs(5), || player
+                .position()
+                .is_some_and(|p| p >= Duration::from_millis(2400))),
+            "the position did not follow the seek: {:?}",
+            player.position()
+        );
+        player.pause();
+        assert!(pump_until(Duration::from_secs(5), || player.state()
+            == PlayState::Paused));
+        let held = player.position().expect("a position while paused");
+        assert!(
+            held >= Duration::from_millis(2400) && held < Duration::from_secs(6),
+            "{held:?}"
+        );
+        assert!(
+            events
+                .borrow()
+                .iter()
+                .any(|event| matches!(event, PlayerEvent::Position(_))),
+            "no position report arrived"
+        );
+        player.set_rate(1.5);
+        assert!((player.rate() - 1.5).abs() < 0.01);
+        player.stop();
+        assert_eq!(player.state(), PlayState::Stopped);
+    }
+}
