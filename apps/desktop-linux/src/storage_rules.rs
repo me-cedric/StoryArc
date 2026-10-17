@@ -22,7 +22,7 @@ impl Store {
 
     pub fn label(self) -> String {
         match self {
-            Self::Downloads => tr("downloads.total", "Downloads"),
+            Self::Downloads => tr("storage.downloads", "Downloads"),
             Self::Covers => tr("downloads.cache", "Cover cache"),
             Self::Records => tr("storage.records", "Library records"),
         }

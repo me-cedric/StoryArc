@@ -63,8 +63,8 @@ pub fn fill_sidebar(shared: &Shared, list: &gtk::ListBox) {
         list.append(&line);
     }
     for (key, english) in [
-        ("shelves.new", "New Shelf…"),
-        ("shelves.newList", "New Reading List…"),
+        ("shelves.new.collection", "New collection"),
+        ("shelves.new.list", "New reading list"),
     ] {
         list.append(
             &gtk::Label::builder()
@@ -99,13 +99,13 @@ fn open_shelf(shared: &Shared, shelf: &ShelfRef) {
 /// Asks for a name and makes a collection; the publications given join it at once.
 pub fn new_shelf_dialog(shared: &Shared, then_add: Vec<Publication>, reading_list: bool) {
     let entry = gtk::Entry::builder()
-        .placeholder_text(tr("shelves.name", "Name"))
+        .placeholder_text(tr("shelves.new.field", "Name"))
         .activates_default(true)
         .build();
     let title = if reading_list {
-        tr("shelves.newList", "New Reading List…")
+        tr("shelves.new.list", "New reading list")
     } else {
-        tr("shelves.new", "New Shelf…")
+        tr("shelves.new.collection", "New collection")
     };
     let alert = adw::AlertDialog::new(Some(&title), None);
     alert.set_extra_child(Some(&entry));
@@ -229,7 +229,7 @@ fn add_menu(shared: &Shared) -> gio::Menu {
         menu.append_item(&item);
     }
     menu.append(
-        Some(&tr("shelves.new", "New Shelf…")),
+        Some(&tr("shelves.new.collection", "New collection")),
         Some("win.new-shelf"),
     );
     menu
@@ -238,7 +238,7 @@ fn add_menu(shared: &Shared) -> gio::Menu {
 /// The selection bar's Add to Shelf button, and the actions behind it.
 pub fn install(shared: &Shared, ui: &Rc<library_window::LibraryUi>) {
     let button = gtk::MenuButton::builder()
-        .label(tr("shelves.add", "Add to Shelf"))
+        .label(tr("shelves.addTo", "Add to…"))
         .build();
     let on = Rc::downgrade(shared);
     button.set_create_popup_func(move |button| {
@@ -286,7 +286,7 @@ pub fn extend_cell_menu(
         group.add_action(&action);
     }
     sub.append(
-        Some(&tr("shelves.new", "New Shelf…")),
+        Some(&tr("shelves.new.collection", "New collection")),
         Some("cell.shelf-new"),
     );
     let action = gio::SimpleAction::new("shelf-new", None);
@@ -294,7 +294,7 @@ pub fn extend_cell_menu(
     let publication = publication.clone();
     action.connect_activate(move |_, _| new_shelf_dialog(&on, vec![publication.clone()], false));
     group.add_action(&action);
-    menu.append_submenu(Some(&tr("shelves.add", "Add to Shelf")), &sub);
+    menu.append_submenu(Some(&tr("shelves.addTo", "Add to…")), &sub);
 }
 
 /// A shelf's page: its publications, with Remove from Shelf as the bulk action and a menu
@@ -352,10 +352,7 @@ pub fn shelf_page(shared: &Shared, shelf: &ShelfRef) -> adw::NavigationPage {
 
     let menu = gio::Menu::new();
     menu.append(Some(&tr("shelves.pin", "Pin to Home")), Some("shelf.pin"));
-    menu.append(
-        Some(&tr("shelves.delete", "Delete Shelf…")),
-        Some("shelf.delete"),
-    );
+    menu.append(Some(&tr("shelves.delete", "Delete")), Some("shelf.delete"));
     let actions = gio::SimpleActionGroup::new();
     let pin = gio::SimpleAction::new("pin", None);
     let (on, which) = (shared.clone(), shelf.clone());
@@ -429,7 +426,11 @@ pub fn shelf_page(shared: &Shared, shelf: &ShelfRef) -> adw::NavigationPage {
 fn confirm_delete(shared: &Shared, shelf: &ShelfRef) {
     let name = name_of(shared, shelf);
     let alert = adw::AlertDialog::new(
-        Some(&tr_args("shelves.delete.title %s", "Delete %s?", &[&name])),
+        Some(&tr_args(
+            "shelves.delete.title %s",
+            "Delete “%s”?",
+            &[&name],
+        )),
         Some(&tr(
             "shelves.delete.body",
             "The shelf goes. The titles on it stay in your library, and so do your reading positions.",
@@ -437,7 +438,7 @@ fn confirm_delete(shared: &Shared, shelf: &ShelfRef) {
     );
     alert.add_responses(&[
         ("cancel", &tr("sources.rename.cancel", "Cancel")),
-        ("delete", &tr("shelves.delete.confirm", "Delete")),
+        ("delete", &tr("shelves.delete", "Delete")),
     ]);
     alert.set_response_appearance("delete", adw::ResponseAppearance::Destructive);
     alert.set_close_response("cancel");

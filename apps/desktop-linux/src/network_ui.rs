@@ -144,6 +144,7 @@ fn sheet(title: &str, rows: &[&adw::PreferencesGroup]) -> Sheet {
         .content_height(520)
         .child(&toolbar)
         .build();
+    dialog.set_default_widget(Some(&connect));
     Sheet {
         dialog,
         status,
@@ -152,6 +153,14 @@ fn sheet(title: &str, rows: &[&adw::PreferencesGroup]) -> Sheet {
 }
 
 impl Sheet {
+    /// Return in any field presses Connect.
+    fn submit_on_enter(&self, rows: &[&adw::EntryRow]) {
+        for row in rows {
+            let connect = self.connect.clone();
+            row.connect_entry_activated(move |_| connect.emit_clicked());
+        }
+    }
+
     fn say(&self, said: &Said) {
         let mut text = said.text.clone();
         if let Some(remedy) = &said.remedy {
@@ -170,12 +179,28 @@ impl Sheet {
     }
 }
 
+/// Keeps the sheet alive until its dialog closes: the handlers hold it weakly, and the
+/// caller's own reference ends with the function that presented it.
+fn hold(sheet: &Rc<Sheet>) {
+    let held = Rc::new(RefCell::new(Some(sheet.clone())));
+    sheet.dialog.connect_closed(move |_| {
+        held.borrow_mut().take();
+    });
+}
+
 fn entry(title: &str, text: &str) -> adw::EntryRow {
-    adw::EntryRow::builder().title(title).text(text).build()
+    adw::EntryRow::builder()
+        .title(title)
+        .text(text)
+        .activates_default(true)
+        .build()
 }
 
 fn password(title: &str) -> adw::PasswordEntryRow {
-    adw::PasswordEntryRow::builder().title(title).build()
+    adw::PasswordEntryRow::builder()
+        .title(title)
+        .activates_default(true)
+        .build()
 }
 
 fn group(rows: &[&gtk::Widget]) -> adw::PreferencesGroup {
@@ -221,6 +246,9 @@ pub fn present_share(shared: &Shared, parent: &gtk::Window) {
         &tr("smb.title", "Add a shared folder"),
         &[&found, &form],
     ));
+    hold(&sheet);
+    sheet.dialog.set_focus(Some(&host));
+    sheet.submit_on_enter(&[&host, &share, &folder, &user, pass.upcast_ref()]);
     discover(&found, &host, &sheet);
 
     let on = shared.clone();
@@ -359,18 +387,24 @@ fn run(shared: &Shared, sheet: &Rc<Sheet>, work: impl FnOnce() -> Attempt + Send
 /// and the reader presses Connect again.
 fn offer_trust(shared: &Shared, sheet: &Rc<Sheet>, host: &str, fingerprint: &str) {
     let alert = adw::AlertDialog::new(
-        Some(&tr("catalogue.untrusted.title", "Trust this server?")),
+        Some(&tr(
+            "catalogue.untrusted.title",
+            "This server’s certificate is not trusted",
+        )),
         Some(&format!(
             "{}\n\n{host}\n{fingerprint}",
             tr(
                 "catalogue.untrusted.explanation",
-                "This server's certificate is not one this system trusts. Trust it only if you set the server up yourself and the fingerprint below is the one you expect."
+                "Anyone on the network between you and this server could be reading what you send. Add it only if the fingerprint below matches the one your server printed."
             )
         )),
     );
     alert.add_responses(&[
         ("cancel", &tr("sources.rename.cancel", "Cancel")),
-        ("trust", &tr("catalogue.untrusted.trust", "Trust")),
+        (
+            "trust",
+            &tr("catalogue.untrusted.trust", "Trust this certificate"),
+        ),
     ]);
     alert.set_close_response("cancel");
     let (host, fingerprint) = (host.to_owned(), fingerprint.to_owned());
@@ -397,6 +431,9 @@ pub fn present_catalogue(shared: &Shared, parent: &gtk::Window) {
             &group(&[user.upcast_ref(), pass.upcast_ref()]),
         ],
     ));
+    hold(&sheet);
+    sheet.dialog.set_focus(Some(&address));
+    sheet.submit_on_enter(&[&address, &user, pass.upcast_ref()]);
     let on = shared.clone();
     let weak = Rc::downgrade(&sheet);
     sheet.connect.connect_clicked(move |_| {
@@ -472,9 +509,12 @@ pub fn present_kavita(shared: &Shared, parent: &gtk::Window) {
     let address = entry(&tr("kavita.address.label", "Address"), "");
     let key = password(&tr("kavita.key.label", "API key"));
     let sheet = Rc::new(sheet(
-        &tr("kavita.add", "Add a Kavita library"),
+        &tr("kavita.add.title", "Add a Kavita library"),
         &[&group(&[address.upcast_ref(), key.upcast_ref()])],
     ));
+    hold(&sheet);
+    sheet.dialog.set_focus(Some(&address));
+    sheet.submit_on_enter(&[&address, key.upcast_ref()]);
     let on = shared.clone();
     let weak = Rc::downgrade(&sheet);
     sheet.connect.connect_clicked(move |_| {

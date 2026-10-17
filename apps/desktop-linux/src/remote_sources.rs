@@ -239,9 +239,11 @@ pub fn opds_failure(error: &OpdsError) -> Said {
             "catalogue.error.malformed",
             "The catalogue could not be read.",
         ),
-        OpdsError::Http(status) => {
-            tr_args("catalogue.error.http", "The server refused: %d.", &[status])
-        }
+        OpdsError::Http(status) => tr_args(
+            "catalogue.error.http",
+            "The server refused: %1$d.",
+            &[status],
+        ),
         OpdsError::Unauthorized(_) => tr(
             "catalogue.error.unauthorized",
             "This catalogue refused the sign-in it was given.",

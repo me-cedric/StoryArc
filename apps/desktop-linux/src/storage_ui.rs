@@ -85,15 +85,15 @@ pub fn remote_rows(
         group.add(&row);
     }
     for (label, action) in [
-        (tr("sources.add.share", "Network share…"), "win.add-share"),
         (
-            tr("sources.add.catalogue", "Online library…"),
+            tr("sources.add.share", "A computer on your network"),
+            "win.add-share",
+        ),
+        (
+            tr("sources.add.catalogue", "Online library"),
             "win.add-catalogue",
         ),
-        (
-            tr("sources.add.kavita", "Kavita library…"),
-            "win.add-kavita",
-        ),
+        (tr("sources.add.kavita", "Kavita library"), "win.add-kavita"),
     ] {
         let row = adw::ActionRow::builder()
             .title(label)

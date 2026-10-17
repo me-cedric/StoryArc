@@ -184,7 +184,46 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             }
         })
         .build();
-    application.add_action_entries([quit, preferences, shortcuts, about, open_reader]);
+    // Kept for scripted walks beside `open-reader`: `gapplication action com.mecedric.StoryArc
+    // add-network-source "'catalogue'"` presents the same sheet the sidebar's add menu does.
+    let on = shared.clone();
+    let add_network = gio::ActionEntry::builder("add-network-source")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let Some(window) = on.library.borrow().clone() else {
+                return;
+            };
+            let name = parameter.and_then(|value| value.get::<String>());
+            let action = match name.as_deref() {
+                Some("share") => "win.add-share",
+                Some("kavita") => "win.add-kavita",
+                _ => "win.add-catalogue",
+            };
+            let _ = gtk::prelude::WidgetExt::activate_action(&window, action, None);
+        })
+        .build();
+    // And `show-network-source "'0'"` opens the first network library's page, as its sidebar
+    // row does.
+    let on = shared.clone();
+    let show_network = gio::ActionEntry::builder("show-network-source")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let index = parameter
+                .and_then(|value| value.get::<String>())
+                .and_then(|text| text.parse().ok())
+                .unwrap_or(0);
+            remote_browse::open(&on, index);
+        })
+        .build();
+    application.add_action_entries([
+        quit,
+        preferences,
+        shortcuts,
+        about,
+        open_reader,
+        add_network,
+        show_network,
+    ]);
     // Commands the table has and no wave 2 task implements yet stay in the menus, grey.
     for command in commands::COMMANDS {
         if let Some(name) = command.action.strip_prefix("app.")

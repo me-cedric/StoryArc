@@ -135,14 +135,14 @@ fn load(services: &Services, record: &RemoteRecord, path: &str) -> Result<Vec<Ro
                         title: entry.title.clone(),
                         subtitle: Some(tr(
                             "catalogue.acquire.unreadable",
-                            "This publication is in a format StoryArc cannot open.",
+                            "What the server sent could not be opened.",
                         )),
                     }),
                 }
             }
             if let Some(next) = feed.next {
                 rows.push(Row::Folder {
-                    title: tr("catalogue.group.more", "More"),
+                    title: tr("browse.more", "More"),
                     subtitle: None,
                     path: next.to_string(),
                 });
@@ -184,7 +184,7 @@ fn kavita_level(
             .into_iter()
             .map(|series| Row::Folder {
                 subtitle: Some(tr_args(
-                    "sources.detail.progress %d %d",
+                    "browse.pagesRead %d %d",
                     "%d of %d pages read",
                     &[&series.pages_read, &series.pages],
                 )),
@@ -259,12 +259,10 @@ fn push(shared: &Shared, record: RemoteRecord, path: String, title: String) {
     toolbar.set_content(Some(&body));
     let page = adw::NavigationPage::builder()
         .title(&title)
-        .tag("remote")
         .child(&toolbar)
         .build();
     ui.navigation.push(&page);
     ui.split.set_show_content(true);
-
     let Some(services) = shared.services.get() else {
         body.set_child(Some(&status(&Said {
             text: tr(
@@ -312,11 +310,14 @@ fn list(shared: &Shared, record: &RemoteRecord, rows: &[Row]) -> gtk::Widget {
     if rows.is_empty() {
         return adw::StatusPage::builder()
             .icon_name("folder-symbolic")
-            .title(tr("catalogue.empty", "Nothing here"))
+            .title(tr("catalogue.empty", "This section is empty."))
             .build()
             .upcast();
     }
     let group = adw::PreferencesGroup::new();
+    // Keyboard focus lands on the first thing that can be pressed, so a level opens ready
+    // for Return.
+    let mut first: Option<gtk::Widget> = None;
     for row in rows {
         match row {
             Row::Folder {
@@ -337,6 +338,7 @@ fn list(shared: &Shared, record: &RemoteRecord, rows: &[Row]) -> gtk::Widget {
                 line.connect_activated(move |_| {
                     push(&on, record.clone(), path.clone(), title.clone())
                 });
+                first.get_or_insert_with(|| line.clone().upcast());
                 group.add(&line);
             }
             Row::File { title, subtitle } => {
@@ -384,9 +386,17 @@ fn list(shared: &Shared, record: &RemoteRecord, rows: &[Row]) -> gtk::Widget {
                     button.set_label(&tr("downloads.queuedLabel", "In Downloads"));
                 });
                 line.add_suffix(&button);
+                if !queued {
+                    first.get_or_insert_with(|| button.clone().upcast());
+                }
                 group.add(&line);
             }
         }
+    }
+    if let Some(first) = first {
+        glib::idle_add_local_once(move || {
+            first.grab_focus();
+        });
     }
     gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)

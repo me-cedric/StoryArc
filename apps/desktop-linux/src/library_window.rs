@@ -336,15 +336,15 @@ fn sidebar_page(
         Some("win.add-source"),
     );
     add_menu.append(
-        Some(&tr("sources.add.share", "Network share…")),
+        Some(&tr("sources.add.share", "A computer on your network")),
         Some("win.add-share"),
     );
     add_menu.append(
-        Some(&tr("sources.add.catalogue", "Online library…")),
+        Some(&tr("sources.add.catalogue", "Online library")),
         Some("win.add-catalogue"),
     );
     add_menu.append(
-        Some(&tr("sources.add.kavita", "Kavita library…")),
+        Some(&tr("sources.add.kavita", "Kavita library")),
         Some("win.add-kavita"),
     );
     let add = gtk::MenuButton::builder()

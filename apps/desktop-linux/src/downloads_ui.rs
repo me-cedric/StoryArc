@@ -499,7 +499,7 @@ fn subtitle(download: &Download, full_disk: bool) -> (String, bool) {
                 (Some(total), Some(fraction)) => (
                     tr_args(
                         "downloads.progress %d %s %s",
-                        "%d%% · %s of %s",
+                        "%1$d%% · %2$s of %3$s",
                         &[&((fraction * 100.0) as u32), &done, &size(total)],
                     ),
                     false,
@@ -514,7 +514,7 @@ fn subtitle(download: &Download, full_disk: bool) -> (String, bool) {
             let text = match reason {
                 FailureReason::Disk if full_disk => storage_rules::full_disk_line(),
                 FailureReason::Unsupported(format) => tr_args(
-                    "catalogue.detail.unsupported %s",
+                    "library.skipped.reason.unsupported %s",
                     "%s is not a format StoryArc reads",
                     &[format],
                 ),
