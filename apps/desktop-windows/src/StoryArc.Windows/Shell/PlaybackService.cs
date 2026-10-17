@@ -175,7 +175,7 @@ internal sealed class PlaybackService : IDisposable
         // Something else taking the audio, and the headphones going: the two events the spike page names.
         try
         {
-            _monitor = AudioStateMonitor.CreateForRenderMonitoring(global::Windows.Media.Capture.MediaCategory.Media);
+            _monitor = AudioStateMonitor.CreateForRenderMonitoring(global::Windows.Media.Render.AudioRenderCategory.Media);
             _monitor.SoundLevelChanged += (monitor, args) =>
             {
                 var level = monitor.SoundLevel;
