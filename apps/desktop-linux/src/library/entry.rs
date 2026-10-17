@@ -93,7 +93,17 @@ pub struct LibraryEntry {
     pub cover: Cover,
     /// The named reason the file could not be opened, as a string key, when it could not.
     pub cannot_open: Option<String>,
+    /// Its library cannot be reached now (offline, or access withdrawn): the cell stays,
+    /// dimmed, and says so (`library-browsing`, A publication that cannot be opened
+    /// right now).
+    pub unavailable: bool,
 }
+
+/// What a cell whose library cannot be reached says, in the catalogue and in English.
+pub const UNAVAILABLE: (&str, &str) = (
+    "library.cell.unavailable",
+    "Needs its library to be reachable",
+);
 
 impl LibraryEntry {
     /// What the cell says under the cover: the reason it cannot open, else the title.
@@ -121,6 +131,9 @@ impl LibraryEntry {
         }
         if self.cannot_open.is_some() {
             parts.push("cannot be opened".into());
+        }
+        if self.unavailable {
+            parts.push(crate::strings::tr(UNAVAILABLE.0, UNAVAILABLE.1));
         }
         parts.join(", ")
     }

@@ -7,6 +7,7 @@
 //! lands; the sort keys are plain string order for the same reason.
 
 use super::entry::{Format, LibraryEntry, Progress};
+use super::search::Scope;
 
 /// The sidebar destinations and filters a reader can be at.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -84,6 +85,11 @@ pub struct QueryState {
     pub text: String,
     pub filters: Filters,
     pub sort: Sort,
+    /// Whether the search field was entered: the search page shows before a word is
+    /// typed, with the recent searches (`navigation-shell`, What search opens onto).
+    pub searching: bool,
+    /// Where search looks: everything, or only what can be read now.
+    pub scope: Scope,
 }
 
 impl QueryState {
@@ -104,9 +110,20 @@ impl QueryState {
         self.text.clear();
     }
 
-    /// Whether the results view has taken over the content column.
+    /// The field took the focus: the search page opens even before a word is typed.
+    pub fn entered_search(&mut self) {
+        self.searching = true;
+    }
+
+    /// Escape, or the focus left an empty field: back to the destination.
+    pub fn left_search(&mut self) {
+        self.searching = false;
+        self.text.clear();
+    }
+
+    /// Whether the search page has taken over the content column.
     pub fn results_take_over(&self) -> bool {
-        !self.text.trim().is_empty()
+        self.searching || !self.text.trim().is_empty()
     }
 
     /// The entries the content column shows: searched, filtered, sorted. The
@@ -209,6 +226,18 @@ mod tests {
             Destination::Library,
             "clearing returns to the destination"
         );
+    }
+
+    #[test]
+    fn entering_the_field_opens_search_and_leaving_it_returns_to_the_destination() {
+        let mut query = QueryState::at(Destination::Library);
+        query.entered_search();
+        assert!(query.results_take_over(), "the page opens before a word");
+        query.typed("saga");
+        query.left_search();
+        assert!(!query.results_take_over());
+        assert!(query.text.is_empty());
+        assert_eq!(query.destination, Destination::Library);
     }
 
     #[test]

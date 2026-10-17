@@ -90,6 +90,14 @@ pub fn add(records: &mut Vec<FolderRecord>, path: PathBuf) -> bool {
     true
 }
 
+/// Removes a folder library by its path. The files are untouched, and so are the reading
+/// positions, which a folder added again finds. Returns whether it was there.
+pub fn remove(records: &mut Vec<FolderRecord>, path: &Path) -> bool {
+    let before = records.len();
+    records.retain(|record| record.path != path);
+    records.len() != before
+}
+
 /// Whether a folder can be read now.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Access {
@@ -167,6 +175,24 @@ mod tests {
         assert!(add(&mut records, "/Comics".into()));
         assert!(!add(&mut records, "/Comics".into()));
         assert_eq!(records.len(), 1);
+    }
+
+    #[test]
+    fn a_removed_folder_leaves_the_list_and_the_others_keep_their_order() {
+        let mut records = vec![
+            FolderRecord::new("/a".into()),
+            FolderRecord::new("/b".into()),
+            FolderRecord::new("/c".into()),
+        ];
+        assert!(remove(&mut records, Path::new("/b")));
+        assert!(!remove(&mut records, Path::new("/b")));
+        assert_eq!(
+            records,
+            [
+                FolderRecord::new("/a".into()),
+                FolderRecord::new("/c".into())
+            ]
+        );
     }
 
     #[test]

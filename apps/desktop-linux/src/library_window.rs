@@ -1,16 +1,21 @@
 //! The library window (tasks 2.30, 2.31, 2.35a to 2.35d): a sidebar with Home, Library,
 //! Downloads and the folder libraries, and a content column that holds Home, the cover
 //! grid or the list, and the detail page pushed over them. The search field stays in the
-//! header bar; while text is in it, its results take over the content column, and
-//! clearing it returns to the destination the reader came from.
+//! header bar; once entered, its page takes over the content column, and leaving it
+//! returns to the destination the reader came from.
+//!
+//! The menus are `library_menus.rs`, the search page `library_search.rs` and its
+//! behaviour `library_find.rs`, the header bar and selection mode `library_selection.rs`,
+//! the notices `library_notices.rs`, what the cells are made from `library_data.rs`, and
+//! what the window does with its cells `library_cells.rs`.
 
-use std::cell::RefCell;
-use std::path::PathBuf;
+use std::cell::{Cell, RefCell};
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use adw::prelude::*;
 use gtk::{gio, glib};
-use storyarc_core::domain::Publication;
+use storyarc_core::domain::{Publication, Timestamp};
 use storyarc_core::library::ProgressIndex;
 use storyarc_core::locale::Collation;
 
@@ -19,16 +24,24 @@ use crate::commands::Scope;
 use crate::covers::Covers;
 use crate::detail_panes::{self, DetailPanes};
 use crate::folders::Access;
-use crate::library::detail::Detail;
-use crate::library::entry::{Format, LibraryEntry};
+use crate::home_view::{self, HomeHooks};
+use crate::library::entry::LibraryEntry;
 use crate::library::grid::CoverTier;
-use crate::library::home::Home;
-use crate::library::query::{Destination, QueryState, ReadState, Sort};
-use crate::library_views::{self, Item};
+use crate::library::home::{Home, Moment, Shelf};
+use crate::library::notice::Skipped;
+use crate::library::query::{Destination, QueryState};
+use crate::library::search::{SearchMemory, SearchPage};
+use crate::library::shelf::{self, Grouping, Layout, Row, ViewChoice};
+use crate::library_cells;
+use crate::library_menus;
+use crate::library_search::SearchUi;
+use crate::library_views::{self, CellHooks, Item};
 use crate::opening::LaunchAction;
 use crate::strings::{tr, tr_args};
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
-use crate::{launch, menus, session, sources};
+use crate::{
+    launch, library_data, library_find, library_notices, library_selection, menus, session, sources,
+};
 
 const SECTIONS: [(&str, &str, Destination); 3] = [
     ("sidebar.home", "Home", Destination::Home),
@@ -36,10 +49,7 @@ const SECTIONS: [(&str, &str, Destination); 3] = [
     ("sidebar.downloads", "Downloads", Destination::Downloads),
 ];
 
-/// The progress records the library reads at most, newest first.
-const PROGRESS_RECORDS: usize = 100_000;
-
-const IMPLEMENTED: [&str; 10] = [
+const IMPLEMENTED: [&str; 11] = [
     "win.open-file",
     "win.add-source",
     "win.refresh-sources",
@@ -50,24 +60,54 @@ const IMPLEMENTED: [&str; 10] = [
     "win.show-library",
     "win.show-downloads",
     "win.back",
+    "win.select-all",
 ];
 
 /// The library window's widgets and what the header bar holds.
 pub struct LibraryUi {
     pub(crate) window: adw::ApplicationWindow,
-    split: adw::NavigationSplitView,
-    sections: gtk::ListBox,
-    folders: gtk::ListBox,
+    pub(crate) split: adw::NavigationSplitView,
+    pub(crate) sections: gtk::ListBox,
+    pub(crate) folders: gtk::ListBox,
     pub(crate) navigation: adw::NavigationView,
     pub(crate) panes: DetailPanes,
-    stack: gtk::Stack,
-    home: adw::Bin,
-    layouts: gtk::Stack,
-    store: gio::ListStore,
-    search: gtk::SearchEntry,
-    state: RefCell<QueryState>,
+    pub(crate) stack: gtk::Stack,
+    pub(crate) home: adw::Bin,
+    pub(crate) layouts: gtk::Stack,
+    pub(crate) grid: gtk::GridView,
+    pub(crate) list: gtk::ListView,
+    pub(crate) rail: gtk::Box,
+    pub(crate) store: gio::ListStore,
+    pub(crate) selection: gtk::MultiSelection,
+    pub(crate) selecting: Rc<Cell<bool>>,
+    pub(crate) header: gtk::Stack,
+    pub(crate) selection_title: adw::WindowTitle,
+    pub(crate) selection_bar: gtk::ActionBar,
+    pub(crate) mark_read: gtk::Button,
+    pub(crate) search: gtk::SearchEntry,
+    pub(crate) search_ui: SearchUi,
+    pub(crate) filter_button: gtk::MenuButton,
+    pub(crate) sort_button: gtk::MenuButton,
+    pub(crate) skipped_banner: adw::Banner,
+    pub(crate) access_banner: adw::Banner,
+    /// The files the reader dismissed the notice for.
+    pub(crate) dismissed: RefCell<BTreeSet<Skipped>>,
+    /// The folder the access banner offers to choose again.
+    pub(crate) withdrawn: Cell<Option<usize>>,
+    pub(crate) state: RefCell<QueryState>,
+    pub(crate) memory: RefCell<SearchMemory>,
+    pub(crate) view: Cell<ViewChoice>,
+    /// When the reader last looked before this session, for Recently added.
+    pub(crate) last_looked: Option<Timestamp>,
     pub(crate) covers: Rc<Covers>,
-    collation: Collation,
+    pub(crate) tier: Cell<CoverTier>,
+    pub(crate) collation: Collation,
+}
+
+impl LibraryUi {
+    pub fn tier(&self) -> CoverTier {
+        self.tier.get()
+    }
 }
 
 /// Builds and presents the library window. `missing` names the readers that could not
@@ -76,7 +116,6 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     let sections = sections_list();
     let folders = gtk::ListBox::builder()
         .css_classes(["navigation-sidebar"])
-        .selection_mode(gtk::SelectionMode::None)
         .build();
     let split = adw::NavigationSplitView::builder()
         .sidebar(&sidebar_page(&sections, &folders))
@@ -86,31 +125,65 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     let selection = gtk::MultiSelection::new(Some(store.clone()));
     let covers = Rc::new(Covers::default());
     let tier = CoverTier::for_width(state.width, shared.preferences().cover_size);
-    let grid = library_views::grid_view(&selection, &covers, tier);
-    let list = library_views::list_view(&selection, &covers);
+    let selecting = Rc::new(Cell::new(false));
+    let counted = selection.clone();
+    let hooks = CellHooks {
+        model: selection.clone(),
+        covers: covers.clone(),
+        menu: library_cells::cell_menu(shared, move || {
+            usize::try_from(counted.selection().size()).unwrap_or(usize::MAX)
+        }),
+        selecting: selecting.clone(),
+    };
+    let grid = library_views::grid_view(&hooks, tier);
+    let list = library_views::list_view(&hooks);
     let layouts = gtk::Stack::new();
     layouts.add_named(&scrolled(&grid), Some("grid"));
     layouts.add_named(&scrolled(&list), Some("list"));
+    let rail = library_cells::index_rail();
+    let shelf = gtk::Overlay::builder().child(&layouts).build();
+    shelf.add_overlay(&rail);
     let downloads = adw::StatusPage::builder()
         .icon_name("folder-download-symbolic")
         .title(tr("sidebar.downloads", "Downloads"))
-        .description("Publications you download from a server appear here.")
+        .description(tr(
+            "library.empty.onDevice",
+            "Nothing in your library is on this device yet. What you keep here can be read without a connection.",
+        ))
         .build();
+    let search_ui = SearchUi::new();
     let home = adw::Bin::new();
     let stack = gtk::Stack::builder()
         .transition_type(gtk::StackTransitionType::Crossfade)
         .build();
     stack.add_named(&home, Some("home"));
-    stack.add_named(&layouts, Some("library"));
+    stack.add_named(&shelf, Some("library"));
     stack.add_named(&downloads, Some("downloads"));
+    stack.add_named(&search_ui.page, Some("search"));
 
     let search = gtk::SearchEntry::builder()
         .placeholder_text(tr("library.search", "Search"))
         .hexpand(true)
         .max_width_chars(32)
         .build();
+    let content = library_selection::ContentBars::new(&search);
+    let skipped_banner = adw::Banner::new("");
+    let access_banner = adw::Banner::new("");
+    let toolbar = adw::ToolbarView::new();
+    toolbar.add_top_bar(&content.header);
+    toolbar.add_top_bar(&access_banner);
+    toolbar.add_top_bar(&skipped_banner);
+    toolbar.add_top_bar(&search_ui.strip);
+    toolbar.add_bottom_bar(&content.selection_bar);
+    toolbar.set_content(Some(&stack));
     let navigation = adw::NavigationView::new();
-    navigation.add(&content_page(&stack, &search));
+    navigation.add(
+        &adw::NavigationPage::builder()
+            .title("StoryArc")
+            .tag("content")
+            .child(&toolbar)
+            .build(),
+    );
     let pane = adw::Bin::new();
     let panes = adw::OverlaySplitView::builder()
         .content(&navigation)
@@ -137,6 +210,8 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     window.add_breakpoint(narrow_breakpoint(&split));
     search.set_key_capture_widget(Some(&window));
 
+    let memory = session::load_search();
+    let view = session::load_view();
     let ui = Rc::new(LibraryUi {
         window: window.clone(),
         split,
@@ -147,11 +222,38 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
         stack,
         home,
         layouts,
+        grid: grid.clone(),
+        list: list.clone(),
+        rail,
         store,
+        selection,
+        selecting,
+        header: content.stack,
+        selection_title: content.selection_title,
+        selection_bar: content.selection_bar,
+        mark_read: content.mark_read,
         search,
-        state: RefCell::new(QueryState::at(Destination::Home)),
+        search_ui,
+        filter_button: content.filter,
+        sort_button: content.sort,
+        skipped_banner,
+        access_banner,
+        dismissed: RefCell::default(),
+        withdrawn: Cell::new(None),
+        state: RefCell::new(QueryState {
+            scope: memory.scope,
+            ..QueryState::at(Destination::Home)
+        }),
+        memory: RefCell::new(memory),
+        view: Cell::new(view),
+        last_looked: session::looked_now(),
         covers,
+        tier: Cell::new(tier),
         collation: Collation::new(crate::strings::language()),
+    });
+    ui.layouts.set_visible_child_name(match view.layout {
+        Layout::Grid => "grid",
+        Layout::List => "list",
     });
     install_actions(shared, &ui);
     connect(shared, &ui, &grid, &list);
@@ -233,7 +335,7 @@ fn sidebar_page(sections: &gtk::ListBox, folders: &gtk::ListBox) -> adw::Navigat
     column.append(sections);
     column.append(
         &gtk::Label::builder()
-            .label("Folders")
+            .label(tr("sidebar.libraries", "Libraries"))
             .xalign(0.0)
             .margin_start(12)
             .margin_top(12)
@@ -245,91 +347,6 @@ fn sidebar_page(sections: &gtk::ListBox, folders: &gtk::ListBox) -> adw::Navigat
     toolbar.add_top_bar(&header);
     toolbar.set_content(Some(&scrolled(&column)));
     adw::NavigationPage::new(&toolbar, "StoryArc")
-}
-
-fn content_page(stack: &gtk::Stack, search: &gtk::SearchEntry) -> adw::NavigationPage {
-    let header = adw::HeaderBar::new();
-    header.set_title_widget(Some(search));
-    let view = gtk::MenuButton::builder()
-        .icon_name("view-grid-symbolic")
-        .tooltip_text("View")
-        .menu_model(&view_menu())
-        .build();
-    let filter = gtk::MenuButton::builder()
-        .label("Filter")
-        .tooltip_text("Filter")
-        .menu_model(&filter_menu())
-        .build();
-    let sort = gtk::MenuButton::builder()
-        .icon_name("view-sort-ascending-symbolic")
-        .tooltip_text("Sort")
-        .menu_model(&sort_menu())
-        .build();
-    header.pack_end(&view);
-    header.pack_end(&sort);
-    header.pack_end(&filter);
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&header);
-    toolbar.set_content(Some(stack));
-    adw::NavigationPage::builder()
-        .title("StoryArc")
-        .tag("content")
-        .child(&toolbar)
-        .build()
-}
-
-fn view_menu() -> gio::Menu {
-    let menu = gio::Menu::new();
-    menu.append(Some("Grid"), Some("win.view-grid"));
-    menu.append(Some("List"), Some("win.view-list"));
-    menu
-}
-
-const FORMATS: [(&str, Option<Format>); 5] = [
-    ("any", None),
-    ("cbz", Some(Format::Cbz)),
-    ("cbr", Some(Format::Cbr)),
-    ("cbt", Some(Format::Cbt)),
-    ("folder", Some(Format::Folder)),
-];
-const STATES: [(&str, &str, Option<ReadState>); 4] = [
-    ("any", "Any State", None),
-    ("unread", "Unread", Some(ReadState::Unread)),
-    ("reading", "Reading", Some(ReadState::Reading)),
-    ("finished", "Finished", Some(ReadState::Finished)),
-];
-const SORTS: [(&str, &str, Sort); 4] = [
-    ("title", "Title", Sort::Title),
-    ("series", "Series", Sort::Series),
-    ("date-added", "Date Added", Sort::DateAdded),
-    ("last-read", "Last Read", Sort::LastRead),
-];
-
-/// How a filter or sort choice changes the header bar's state.
-type FilterChange = fn(&mut QueryState, &str);
-
-fn filter_menu() -> gio::Menu {
-    let menu = gio::Menu::new();
-    let formats = gio::Menu::new();
-    for (target, format) in FORMATS {
-        let label = format.map_or("Any Format", Format::display_name);
-        formats.append(Some(label), Some(&format!("win.filter-format::{target}")));
-    }
-    menu.append_section(Some("Format"), &formats);
-    let states = gio::Menu::new();
-    for (target, label, _) in STATES {
-        states.append(Some(label), Some(&format!("win.filter-state::{target}")));
-    }
-    menu.append_section(Some("Reading State"), &states);
-    menu
-}
-
-fn sort_menu() -> gio::Menu {
-    let menu = gio::Menu::new();
-    for (target, label, _) in SORTS {
-        menu.append(Some(label), Some(&format!("win.sort::{target}")));
-    }
-    menu
 }
 
 fn install_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
@@ -351,14 +368,11 @@ fn install_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
             ui.search.grab_focus();
         }
     });
-    for (name, child) in [("view-grid", "grid"), ("view-list", "list")] {
-        let weak = Rc::downgrade(ui);
-        add(window, name, move |_| {
-            if let Some(ui) = weak.upgrade() {
-                ui.layouts.set_visible_child_name(child);
-            }
-        });
+    for (name, layout) in [("view-grid", Layout::Grid), ("view-list", Layout::List)] {
+        let on = shared.clone();
+        add(window, name, move |_| set_layout(&on, layout));
     }
+    install_view_actions(shared, ui);
     for (index, name) in ["show-home", "show-library", "show-downloads"]
         .into_iter()
         .enumerate()
@@ -377,48 +391,88 @@ fn install_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
             ui.navigation.pop();
         }
     });
-    let filters: [(&str, &str, FilterChange); 3] = [
-        ("filter-format", "any", |state, target| {
-            state.filters.format = FORMATS
-                .iter()
-                .find(|(name, _)| *name == target)
-                .and_then(|(_, format)| *format);
-        }),
-        ("filter-state", "any", |state, target| {
-            state.filters.read_state = STATES
-                .iter()
-                .find(|(name, _, _)| *name == target)
-                .and_then(|(_, _, read)| *read);
-        }),
-        ("sort", "title", |state, target| {
-            state.sort = SORTS
-                .iter()
-                .find(|(name, _, _)| *name == target)
-                .map_or(Sort::Title, |(_, _, sort)| *sort);
-        }),
-    ];
-    for (name, initial, change) in filters {
-        let action = gio::SimpleAction::new_stateful(
-            name,
-            Some(glib::VariantTy::STRING),
-            &initial.to_variant(),
-        );
-        let on = shared.clone();
-        action.connect_activate(move |action, target| {
-            let Some(target) = target.and_then(|target| target.get::<String>()) else {
-                return;
+    library_menus::install(window, shared, |shared| {
+        refresh(shared);
+    });
+    library_selection::install_selection_actions(shared, ui);
+}
+
+/// The View menu's two choices, kept across visits.
+fn install_view_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
+    let view = ui.view.get();
+    let layout = gio::SimpleAction::new_stateful(
+        "layout",
+        Some(glib::VariantTy::STRING),
+        &match view.layout {
+            Layout::Grid => "grid",
+            Layout::List => "list",
+        }
+        .to_variant(),
+    );
+    let on = shared.clone();
+    layout.connect_activate(move |_, target| {
+        let list = target.and_then(|t| t.get::<String>()).as_deref() == Some("list");
+        set_layout(&on, if list { Layout::List } else { Layout::Grid });
+    });
+    ui.window.add_action(&layout);
+    let grouping = gio::SimpleAction::new_stateful(
+        "grouping",
+        Some(glib::VariantTy::STRING),
+        &match view.grouping {
+            Grouping::Series => "series",
+            Grouping::Issues => "issues",
+        }
+        .to_variant(),
+    );
+    let on = shared.clone();
+    grouping.connect_activate(move |action, target| {
+        let Some(target) = target.and_then(|t| t.get::<String>()) else {
+            return;
+        };
+        action.set_state(&target.to_variant());
+        if let Some(ui) = on.library_ui.borrow().clone() {
+            let grouping = if target == "issues" {
+                Grouping::Issues
+            } else {
+                Grouping::Series
             };
-            action.set_state(&target.to_variant());
-            if let Some(ui) = on.library_ui.borrow().clone() {
-                change(&mut ui.state.borrow_mut(), &target);
-            }
-            refresh(&on);
-        });
-        window.add_action(&action);
+            let view = ViewChoice {
+                grouping,
+                ..ui.view.get()
+            };
+            ui.view.set(view);
+            session::save_view(view);
+        }
+        refresh(&on);
+    });
+    ui.window.add_action(&grouping);
+}
+
+fn set_layout(shared: &Shared, layout: Layout) {
+    let Some(ui) = shared.library_ui.borrow().clone() else {
+        return;
+    };
+    let view = ViewChoice {
+        layout,
+        ..ui.view.get()
+    };
+    ui.view.set(view);
+    session::save_view(view);
+    let name = match layout {
+        Layout::Grid => "grid",
+        Layout::List => "list",
+    };
+    ui.layouts.set_visible_child_name(name);
+    if let Some(action) = ui
+        .window
+        .lookup_action("layout")
+        .and_downcast::<gio::SimpleAction>()
+    {
+        action.set_state(&name.to_variant());
     }
 }
 
-fn add(
+pub(crate) fn add(
     window: &adw::ApplicationWindow,
     name: &str,
     activate: impl Fn(&adw::ApplicationWindow) + 'static,
@@ -443,20 +497,42 @@ fn connect(shared: &Shared, ui: &Rc<LibraryUi>, grid: &gtk::GridView, list: &gtk
             return;
         };
         if let Some(ui) = on.library_ui.borrow().clone() {
-            ui.state.borrow_mut().destination = *destination;
+            ui.folders.unselect_all();
+            {
+                let mut state = ui.state.borrow_mut();
+                state.destination = *destination;
+                state.filters.source = None;
+            }
+            library_find::leave_search(&on, &ui);
+            library_menus::reflect(&ui.window, &ui.state.borrow());
             ui.navigation.pop_to_tag("content");
             ui.split.set_show_content(true);
         }
         refresh(&on);
     });
+    // A folder in the sidebar is a second way into the library: the library, narrowed to
+    // that folder by the same filter the Filter menu offers by name.
     let on = shared.clone();
-    ui.search.connect_search_changed(move |entry| {
-        if let Some(ui) = on.library_ui.borrow().clone() {
-            ui.state.borrow_mut().typed(&entry.text());
+    ui.folders.connect_row_activated(move |_, row| {
+        let Some(ui) = on.library_ui.borrow().clone() else {
+            return;
+        };
+        let Some((name, _, _)) = on.sources.summary().into_iter().nth(row.index() as usize) else {
+            return;
+        };
+        ui.sections.unselect_all();
+        {
+            let mut state = ui.state.borrow_mut();
+            state.destination = Destination::Library;
+            state.filters.source = Some(name);
         }
+        library_find::leave_search(&on, &ui);
+        library_menus::reflect(&ui.window, &ui.state.borrow());
+        ui.navigation.pop_to_tag("content");
+        ui.split.set_show_content(true);
         refresh(&on);
     });
-    ui.search.connect_stop_search(|entry| entry.set_text(""));
+    library_find::connect_search(shared, ui);
     let on = shared.clone();
     grid.connect_activate(move |grid, position| activate_item(&on, grid.model(), position));
     let on = shared.clone();
@@ -467,6 +543,7 @@ fn connect(shared: &Shared, ui: &Rc<LibraryUi>, grid: &gtk::GridView, list: &gtk
             sources::refresh(&on);
         }
     });
+    library_notices::connect_banners(shared, ui);
     let weak = Rc::downgrade(shared);
     ui.window.connect_close_request(move |_| {
         if let Some(shared) = weak.upgrade() {
@@ -481,65 +558,28 @@ fn connect(shared: &Shared, ui: &Rc<LibraryUi>, grid: &gtk::GridView, list: &gtk
     });
 }
 
-/// Enter or a double click on a cell: the detail page, or the reason a file that could
-/// not be opened gives.
-fn activate_item(shared: &Shared, model: Option<gtk::SelectionModel>, position: u32) {
+/// Enter or a double click on a cell: a series opens on its own page, a publication its
+/// detail page, and a file that could not be opened says why.
+pub(crate) fn activate_item(shared: &Shared, model: Option<gtk::SelectionModel>, position: u32) {
     let Some(item) = model.and_then(|model| library_views::item_at(&model, position)) else {
         return;
     };
     let item = item.borrow::<Item>();
+    if item.is_series() {
+        if let Some(ui) = shared.library_ui.borrow().clone() {
+            let page = library_cells::series_page(shared, &item.entry.title, &item.issues);
+            ui.navigation.push(&page);
+        }
+        return;
+    }
     match &item.publication {
-        Some(publication) => push_detail(shared, publication),
+        Some(publication) => library_data::show_detail(shared, publication),
         None => {
             if let Some(reason) = &item.entry.cannot_open {
                 shared.toast(&format!("{}: {reason}", item.entry.title));
             }
         }
     }
-}
-
-fn progress_index(shared: &Shared) -> ProgressIndex {
-    ProgressIndex::new(
-        shared
-            .progress_store()
-            .recent(PROGRESS_RECORDS)
-            .unwrap_or_default(),
-    )
-}
-
-/// Shows a publication's page: beside the library in a wide window, pushed over it in a
-/// narrow one (`detail_panes.rs`).
-fn push_detail(shared: &Shared, publication: &Publication) {
-    let Some(ui) = shared.library_ui.borrow().clone() else {
-        return;
-    };
-    *ui.panes.chosen.borrow_mut() = Some(publication.clone());
-    detail_panes::place(shared, &ui);
-}
-
-/// The detail of a publication as it stands now: its progress and its folder's access.
-pub(crate) fn detail_of(shared: &Shared, publication: &Publication) -> Detail {
-    Detail::of(
-        publication,
-        progress_index(shared).summary(publication),
-        shared.sources.source_of(publication),
-    )
-}
-
-/// Opens a publication in a reader window, naming a refusal in grey.
-pub(crate) fn read(shared: &Shared) -> Rc<dyn Fn(&Publication)> {
-    let weak = Rc::downgrade(shared);
-    Rc::new(move |publication: &Publication| {
-        let Some(shared) = weak.upgrade() else {
-            return;
-        };
-        let Some(path) = publication.identity.normalized_path.clone() else {
-            return;
-        };
-        if let Err(reason) = launch::open_publication(&shared, &PathBuf::from(path)) {
-            shared.toast(&reason);
-        }
-    })
 }
 
 /// Brings the library to a destination of the desktop entry's static actions.
@@ -556,13 +596,34 @@ pub fn show(shared: &Shared, action: LaunchAction) {
         .select_row(ui.sections.row_at_index(index).as_ref());
 }
 
+/// A shelf's heading on Home: the library, filtered and sorted the way the shelf is.
+fn show_shelf(shared: &Shared, shelf: Shelf) {
+    let Some(ui) = shared.library_ui.borrow().clone() else {
+        return;
+    };
+    ui.sections.select_row(ui.sections.row_at_index(1).as_ref());
+    let (read_state, sort) = shelf.link();
+    {
+        let mut state = ui.state.borrow_mut();
+        state.filters.read_state = read_state;
+        state.sort = sort;
+    }
+    library_menus::reflect(&ui.window, &ui.state.borrow());
+    refresh(shared);
+}
+
 /// A position was written: Home follows, and the grid keeps its scroll and selection.
 fn refresh_home(shared: &Shared) {
     let Some(ui) = shared.library_ui.borrow().clone() else {
         return;
     };
     let publications = shared.sources.publications();
-    show_home(shared, &ui, &publications, &progress_index(shared));
+    show_home(
+        shared,
+        &ui,
+        &publications,
+        &library_data::progress_index(shared),
+    );
 }
 
 fn show_home(
@@ -571,55 +632,99 @@ fn show_home(
     publications: &[Publication],
     progress: &ProgressIndex,
 ) {
-    let home = Home::of(publications, progress);
-    ui.home.set_child(Some(&library_views::home_page(
-        &home,
-        &ui.covers,
-        read(shared),
-    )));
+    let moment = Moment {
+        last_looked: ui.last_looked,
+        now: Timestamp::now(),
+    };
+    let home = Home::of(publications, progress, moment);
+    let weak = Rc::downgrade(shared);
+    let card_shared = Rc::downgrade(shared);
+    let card_progress = library_data::progress_index(shared);
+    let hooks = HomeHooks {
+        open: library_data::read(shared),
+        card: Rc::new(move |publication: &Publication| {
+            card_shared
+                .upgrade()
+                .map(|shared| library_data::card_state(&shared, &card_progress, publication))
+                .unwrap_or_default()
+        }),
+        show_all: Rc::new(move |shelf| {
+            if let Some(shared) = weak.upgrade() {
+                show_shelf(&shared, shelf);
+            }
+        }),
+    };
+    ui.home
+        .set_child(Some(&home_view::home_page(&home, &ui.covers, &hooks)));
 }
 
 /// Rebuilds what the library shows from the folders and the progress store: the folder
-/// rows, Home, and the grid's model under the header bar's query.
+/// rows, Home, the banners, the header bar's buttons, the search page and the grid's
+/// model under the header bar's query.
 pub fn refresh(shared: &Shared) {
     let Some(ui) = shared.library_ui.borrow().clone() else {
         return;
     };
     let publications = shared.sources.publications();
-    let progress = progress_index(shared);
+    let progress = library_data::progress_index(shared);
     refresh_folders(shared, &ui);
+    library_notices::refresh_banners(shared, &ui);
     show_home(shared, &ui, &publications, &progress);
 
     let state = ui.state.borrow().clone();
-    let source_name =
-        |publication: &Publication| shared.sources.source_of(publication).map(|(name, _)| name);
-    let shown = state.arrange(&publications, &progress, &ui.collation, source_name);
-    let mut items: Vec<glib::BoxedAnyObject> = shown
+    let source = |publication: &Publication| shared.sources.source_of(publication);
+    let shown = state.arrange(&publications, &progress, &ui.collation, source);
+    let found = shown.len();
+    let grouping = if state.results_take_over() {
+        Grouping::Issues
+    } else {
+        ui.view.get().grouping
+    };
+    let rows = shelf::rows(shown, grouping);
+    let titles: Vec<&str> = rows.iter().map(Row::title).collect();
+    let index = shelf::index(&titles, state.sort);
+    let mut items: Vec<glib::BoxedAnyObject> = rows
         .into_iter()
-        .map(|publication| {
-            let source = source_name(&publication).unwrap_or_default();
-            let entry =
-                LibraryEntry::from_core(&publication, progress.summary(&publication), &source);
-            library_views::boxed(Item {
-                entry,
-                publication: Some(publication),
-            })
+        .map(|row| match row {
+            Row::Publication(publication) => library_data::item_for(shared, &publication),
+            Row::Series { name, issues } => {
+                library_data::series_item(shared, &progress, name, issues)
+            }
         })
+        .map(library_views::boxed)
         .collect();
     if state.destination == Destination::Library
+        && !state.results_take_over()
         && state.to_core() == QueryState::at(Destination::Library).to_core()
+        && state.filters.source.is_none()
     {
         items.extend(shared.sources.skipped().into_iter().map(|(name, reason)| {
             library_views::boxed(Item {
                 entry: LibraryEntry::could_not_open(&name, &reason, ""),
                 publication: None,
+                issues: Vec::new(),
             })
         }));
     }
     ui.store.splice(0, ui.store.n_items(), &items);
+    fill_index(&ui, &index);
+    refresh_header(&ui, &state);
 
-    let child = if state.results_take_over() {
-        "library"
+    let page = SearchPage::of(
+        &state.text,
+        found,
+        &ui.memory.borrow(),
+        publications.is_empty(),
+    );
+    let searching = state.results_take_over();
+    let offered = if searching && state.text.trim().is_empty() {
+        crate::library::search::suggestions(&publications, &progress)
+    } else {
+        Vec::new()
+    };
+    let show_results = ui.search_ui.show(&page, searching, offered);
+    let child = if searching {
+        if show_results { "library" } else { "search" }
     } else {
         match state.destination {
             Destination::Home => "home",
@@ -630,45 +735,55 @@ pub fn refresh(shared: &Shared) {
     ui.stack.set_visible_child_name(child);
 }
 
-/// The folder rows: each folder's name, a grey line when it is offline, needs access or
-/// is not watched live, and Choose Again on one that needs access.
+fn fill_index(ui: &Rc<LibraryUi>, index: &[shelf::IndexEntry]) {
+    let weak = Rc::downgrade(ui);
+    library_cells::fill_index(
+        &ui.rail,
+        index,
+        Rc::new(move |position| {
+            if let Some(ui) = weak.upgrade() {
+                let flags = gtk::ListScrollFlags::FOCUS;
+                if ui.layouts.visible_child_name().as_deref() == Some("list") {
+                    ui.list.scroll_to(position, flags, None);
+                } else {
+                    ui.grid.scroll_to(position, flags, None);
+                }
+            }
+        }),
+    );
+}
+
+/// The header bar's buttons say what they hold: the filters active, the ordering, and
+/// one entry per folder in the Filter menu.
+fn refresh_header(ui: &LibraryUi, state: &QueryState) {
+    ui.filter_button
+        .set_label(&library_menus::filter_label(state));
+    ui.filter_button
+        .update_property(&[gtk::accessible::Property::Label(
+            &library_menus::filter_description(state),
+        )]);
+    ui.sort_button
+        .set_label(&library_menus::sort_label(state.sort));
+}
+
+/// The folder rows: each folder by name, a way into the library narrowed to it. The
+/// state of a folder and what can be done about it live in Settings, under Libraries
+/// (`navigation-shell`, Reaching a source's configuration).
 fn refresh_folders(shared: &Shared, ui: &Rc<LibraryUi>) {
+    let chosen = ui.state.borrow().filters.source.clone();
     ui.folders.remove_all();
-    for (index, (name, access, not_live)) in shared.sources.summary().into_iter().enumerate() {
-        let row = gtk::Box::builder().spacing(6).build();
-        let text = gtk::Box::new(gtk::Orientation::Vertical, 2);
-        text.set_hexpand(true);
+    for (name, access, _) in shared.sources.summary() {
         let title = gtk::Label::builder()
             .label(&name)
             .xalign(0.0)
             .ellipsize(gtk::pango::EllipsizeMode::Middle)
             .build();
-        if access != Access::Readable {
-            title.add_css_class("dimmed");
+        library_views::set_class(&title, "dimmed", access != Access::Readable);
+        ui.folders.append(&title);
+        if chosen.as_deref() == Some(name.as_str())
+            && let Some(row) = ui.folders.last_child().and_downcast::<gtk::ListBoxRow>()
+        {
+            ui.folders.select_row(Some(&row));
         }
-        text.append(&title);
-        if let Some(note) = access.note().map(str::to_owned).or(not_live) {
-            text.append(
-                &gtk::Label::builder()
-                    .label(&note)
-                    .xalign(0.0)
-                    .wrap(true)
-                    .css_classes(["dimmed", "caption"])
-                    .build(),
-            );
-        }
-        row.append(&text);
-        if access == Access::Withdrawn {
-            let again = gtk::Button::builder()
-                .label("Choose Again…")
-                .valign(gtk::Align::Center)
-                .css_classes(["flat"])
-                .build();
-            let on = shared.clone();
-            let window = ui.window.clone();
-            again.connect_clicked(move |_| sources::choose_again(&on, window.upcast_ref(), index));
-            row.append(&again);
-        }
-        ui.folders.append(&row);
     }
 }

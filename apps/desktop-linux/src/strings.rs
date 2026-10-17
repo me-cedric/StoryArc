@@ -230,6 +230,39 @@ pub fn tr(key: &str, english: &str) -> String {
         .to_owned()
 }
 
+/// The plural form of `key` for `count`, with the count filled in: the catalogue's rule
+/// for its language (French counts 0 as singular), or the English `one` and `other`.
+pub fn tr_plural(key: &str, one: &str, other: &str, count: u64) -> String {
+    let template = CATALOGUE
+        .get()
+        .and_then(|catalogue| catalogue.get_plural(key, count))
+        .unwrap_or(if count == 1 { one } else { other });
+    fill(template, &[&group_digits(count, language())])
+}
+
+/// A count written the way its language groups digits: a comma in English, a point in
+/// German, a narrow no-break space in French, a point from five digits in Spanish.
+pub fn group_digits(count: u64, language: &str) -> String {
+    let digits = count.to_string();
+    let (separator, minimum) = match language {
+        "de" => ("\u{2e}", 4),
+        "fr" => ("\u{202f}", 4),
+        "es" => ("\u{2e}", 5),
+        _ => (",", 4),
+    };
+    if digits.len() < minimum {
+        return digits;
+    }
+    let mut grouped = String::with_capacity(digits.len() + digits.len() / 3);
+    for (index, digit) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
+            grouped.push_str(separator);
+        }
+        grouped.push(digit);
+    }
+    grouped
+}
+
 /// `tr` with the catalogue's `%s`, `%d` and positional `%1$s` placeholders filled in order.
 pub fn tr_args(key: &str, english: &str, args: &[&dyn std::fmt::Display]) -> String {
     fill(&tr(key, english), args)
@@ -374,8 +407,31 @@ msgstr ""
     }
 
     #[test]
+    fn a_count_is_grouped_as_its_language_writes_it() {
+        assert_eq!(group_digits(999, "en"), "999");
+        assert_eq!(group_digits(10_000, "en"), "10,000");
+        assert_eq!(group_digits(1_234_567, "en"), "1,234,567");
+        assert_eq!(group_digits(1_234, "de"), "1.234");
+        assert_eq!(group_digits(1_234, "fr"), "1\u{202f}234");
+        // Spanish groups from five digits (CLDR minimum grouping digits of two).
+        assert_eq!(group_digits(1_234, "es"), "1234");
+        assert_eq!(group_digits(12_345, "es"), "12.345");
+        assert_eq!(group_digits(0, "en"), "0");
+    }
+
+    #[test]
+    fn a_plural_count_is_filled_in_grouped() {
+        assert_eq!(
+            tr_plural("missing %d", "%d title", "%d titles", 10_000),
+            "10,000 titles"
+        );
+    }
+
+    #[test]
     fn tr_falls_back_to_english_before_init_and_for_a_desktop_only_key() {
         assert_eq!(tr("desktop.command.openFile", "Open File…"), "Open File…");
         assert_eq!(tr_args("missing %s", "Hello %s", &[&"you"]), "Hello you");
+        assert_eq!(tr_plural("missing %d", "%d page", "%d pages", 1), "1 page");
+        assert_eq!(tr_plural("missing %d", "%d page", "%d pages", 6), "6 pages");
     }
 }

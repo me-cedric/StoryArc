@@ -16,7 +16,12 @@ use storyarc_core::domain::{PublicationIdentity, ReadingPosition, ReadingProgres
 use storyarc_core::library;
 use storyarc_core::paths::StorageLocations;
 
+use crate::library::search::SearchMemory;
+use crate::library::shelf::ViewChoice;
 use crate::progress::ProgressStore;
+use crate::reading::adjust::Adjustments;
+use crate::reading::direction::DirectionChoices;
+use crate::reading::modes::ModeChoices;
 use crate::settings::Preferences;
 use crate::window_state::{Display, WindowState};
 use crate::windows::{RestorePlan, SessionState};
@@ -25,6 +30,13 @@ use crate::windows::{RestorePlan, SessionState};
 const SESSION_FILE: &str = "window-state";
 const PREFERENCES_FILE: &str = "preferences";
 const SOURCES_FILE: &str = "sources";
+const DIRECTIONS_FILE: &str = "reading-directions";
+const SEARCH_FILE: &str = "search";
+const VIEW_FILE: &str = "library-view";
+const LOOKED_FILE: &str = "last-looked";
+const SEEN_FILE: &str = "seen-version";
+const MODES_FILE: &str = "page-turns";
+const ADJUSTMENTS_FILE: &str = "image-adjustments";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -102,6 +114,85 @@ pub fn load_preferences() -> Preferences {
 
 pub fn save_preferences(preferences: &Preferences) {
     write_file(&data_path(PREFERENCES_FILE), &preferences.save());
+}
+
+/// The recent searches and the search scope (`library/search.rs`).
+pub fn load_search() -> SearchMemory {
+    SearchMemory::restore(&std::fs::read_to_string(data_path(SEARCH_FILE)).unwrap_or_default())
+}
+
+pub fn save_search(memory: &SearchMemory) {
+    write_file(&data_path(SEARCH_FILE), &memory.save());
+}
+
+/// Grid or list, series or issues (`library/shelf.rs`).
+pub fn load_view() -> ViewChoice {
+    ViewChoice::restore(&std::fs::read_to_string(data_path(VIEW_FILE)).unwrap_or_default())
+}
+
+pub fn save_view(view: ViewChoice) {
+    write_file(&data_path(VIEW_FILE), &view.save());
+}
+
+/// When the reader last looked at the library before now, and records now as the next
+/// run's answer. `None` on a first launch.
+pub fn looked_now() -> Option<Timestamp> {
+    let path = data_path(LOOKED_FILE);
+    let previous = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|text| text.trim().parse::<i64>().ok())
+        .map(Timestamp);
+    write_file(&path, &format!("{}\n", Timestamp::now().0));
+    previous
+}
+
+/// Forgets every reading position this device holds (`reading-progress`, Clearing
+/// history).
+pub fn forget_history(store: &library::ProgressStore) -> Result<(), String> {
+    store
+        .store()
+        .clear_progress()
+        .map_err(|error| error.to_string())
+}
+
+/// The version whose changes the reader was last told about (`about.rs`).
+pub fn seen_version() -> Option<String> {
+    std::fs::read_to_string(data_path(SEEN_FILE))
+        .ok()
+        .map(|text| text.trim().to_owned())
+        .filter(|version| !version.is_empty())
+}
+
+pub fn save_seen_version(version: &str) {
+    write_file(&data_path(SEEN_FILE), &format!("{version}\n"));
+}
+
+/// The page turns by series and the scroll places (`reading/modes.rs`).
+pub fn load_modes() -> ModeChoices {
+    ModeChoices::restore(&std::fs::read_to_string(data_path(MODES_FILE)).unwrap_or_default())
+}
+
+pub fn save_modes(modes: &ModeChoices) {
+    write_file(&data_path(MODES_FILE), &modes.save());
+}
+
+/// The image adjustments by series (`reading/adjust.rs`).
+pub fn load_adjustments() -> Adjustments {
+    Adjustments::restore(&std::fs::read_to_string(data_path(ADJUSTMENTS_FILE)).unwrap_or_default())
+}
+
+pub fn save_adjustments(adjustments: &Adjustments) {
+    write_file(&data_path(ADJUSTMENTS_FILE), &adjustments.save());
+}
+
+/// The reading directions the reader chose (`reading/direction.rs`).
+pub fn load_directions() -> DirectionChoices {
+    let text = std::fs::read_to_string(data_path(DIRECTIONS_FILE)).unwrap_or_default();
+    DirectionChoices::restore(&text)
+}
+
+pub fn save_directions(text: &str) {
+    write_file(&data_path(DIRECTIONS_FILE), text);
 }
 
 /// The chosen folders as the sources file keeps them (`folders.rs`).
@@ -187,5 +278,23 @@ mod tests {
         progress.write("/comics/a.cbz", 9).expect("written");
         let record = store.read(&identity).expect("read").expect("a record");
         assert!(record.is_finished);
+    }
+
+    #[test]
+    fn clearing_the_history_forgets_every_position_and_nothing_else() {
+        let store = Rc::new(library::ProgressStore::in_memory().expect("store"));
+        let first = PublicationIdentity::path("/comics/a.cbz");
+        let second = PublicationIdentity::path("/comics/b.cbz");
+        for (identity, path, page) in [(&first, "/comics/a.cbz", 3), (&second, "/comics/b.cbz", 9)]
+        {
+            CoreProgress::new(store.clone(), identity.clone(), 10)
+                .write(path, page)
+                .expect("written");
+        }
+        assert_eq!(store.recent(usize::MAX).expect("recent").len(), 2);
+        forget_history(&store).expect("cleared");
+        assert_eq!(store.recent(usize::MAX).expect("recent").len(), 0);
+        assert_eq!(CoreProgress::page(&store, &first), None);
+        assert_eq!(CoreProgress::page(&store, &second), None);
     }
 }

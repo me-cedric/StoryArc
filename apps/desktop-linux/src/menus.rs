@@ -78,6 +78,52 @@ pub fn reader_menu(menu: &gio::Menu, full_screen_note: Option<&str>) {
         section.append(Some(&text), Some(command.action));
     }
     menu.append_section(None, &section);
+    let direction = gio::Menu::new();
+    direction.append(
+        Some(&tr("reader.leftToRight", "Left to right")),
+        Some("win.reading-direction::ltr"),
+    );
+    direction.append(
+        Some(&tr("reader.rightToLeft", "Right to left")),
+        Some("win.reading-direction::rtl"),
+    );
+    menu.append_section(
+        Some(&tr("reader.direction", "Reading direction")),
+        &direction,
+    );
+    let turn = gio::Menu::new();
+    for mode in crate::reading::modes::Mode::ALL {
+        let item = gio::MenuItem::new(
+            Some(&mode.label()),
+            Some(&format!("win.page-turn::{}", mode.key())),
+        );
+        if mode.unavailable_reason().is_some() {
+            // The curl is offered and greyed, with its reason as the tooltip.
+            item.set_action_and_target_value(Some("win.page-turn-curl"), None);
+        }
+        turn.append_item(&item);
+    }
+    let scrolling = gio::Menu::new();
+    scrolling.append(
+        Some(&tr("reader.scroll.vertical", "Scroll vertically")),
+        Some("win.scroll-axis::vertical"),
+    );
+    scrolling.append(
+        Some(&tr("reader.scroll.horizontal", "Scroll horizontally")),
+        Some("win.scroll-axis::horizontal"),
+    );
+    scrolling.append(
+        Some(&tr("reader.scroll.gap", "Gap between pages")),
+        Some("win.scroll-gap"),
+    );
+    turn.append_section(None, &scrolling);
+    menu.append_section(Some(&tr("reader.pageTurn", "Page turn")), &turn);
+    let image = gio::Menu::new();
+    image.append(
+        Some(&tr("reader.adjust.menu", "Image Adjustments…")),
+        Some("win.adjust-image"),
+    );
+    menu.append_section(None, &image);
     let rest = gio::Menu::new();
     rest.append(
         Some(&tr("settings.title", "Settings…")),

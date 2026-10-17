@@ -11,6 +11,7 @@
 use adw::prelude::*;
 
 use crate::app::Shared;
+use crate::preferences_pages;
 use crate::settings::{Accent, Appearance, Fit, Label, Layout};
 use crate::strings::tr;
 use crate::theme::Theme;
@@ -136,8 +137,11 @@ pub fn present(shared: &Shared, parent: Option<&gtk::Window>) {
         .title(tr("settings.title", "Settings"))
         .search_enabled(true)
         .build();
+    reading_page.add(&preferences_pages::reset_group(shared, &dialog));
+    dialog.add(&preferences_pages::libraries_page(shared, &dialog));
     dialog.add(&appearance_page);
     dialog.add(&reading_page);
+    dialog.add(&preferences_pages::privacy_page(shared));
     let on = shared.clone();
     dialog.connect_closed(move |_| {
         on.preferences_dialog.borrow_mut().take();

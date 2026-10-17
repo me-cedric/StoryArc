@@ -76,7 +76,7 @@ fn install_clicks(reader: &Rc<Reader>) {
                     return;
                 };
                 let zones_on = reader.preferences.borrow().click_zones;
-                let direction = reader.publication.direction;
+                let direction = reader.direction();
                 match keys::click_action(keys::zone(x, width), direction, zones_on) {
                     ClickAction::Turn(action) => reader.turn(action),
                     ClickAction::ToggleChrome => reader.toggle_chrome(),
@@ -224,6 +224,10 @@ pub fn install_keys(reader: &Rc<Reader>) {
         let Some(reader) = weak.upgrade() else {
             return glib::Propagation::Proceed;
         };
+        // A dialog over the window (the page browser, the adjustments) keeps its own keys.
+        if reader.window.visible_dialog().is_some() {
+            return glib::Propagation::Proceed;
+        }
         let focused_text = gtk::prelude::GtkWindowExt::focus(&reader.window)
             .is_some_and(|widget| widget.is::<gtk::Editable>() || widget.is::<gtk::Text>());
         let mapped = match key {
@@ -251,12 +255,7 @@ pub fn install_keys(reader: &Rc<Reader>) {
             control: state.contains(gdk::ModifierType::CONTROL_MASK),
             alt: state.contains(gdk::ModifierType::ALT_MASK),
         };
-        match keys::page_action(
-            mapped,
-            modifiers,
-            reader.publication.direction,
-            focused_text,
-        ) {
+        match keys::page_action(mapped, modifiers, reader.direction(), focused_text) {
             Some(action) => {
                 reader.turn(action);
                 glib::Propagation::Stop
