@@ -1,10 +1,14 @@
 # StoryArc for macOS
 
-**Status: wave 1, the shell.** One library window with a sidebar of the four
-destinations, their empty states, a toolbar search field and a `Settings` window
-with six empty tabs. Folder bookmarks and secrets have their sandbox-correct Mac
-wrappers. No source can be added yet and no reading feature exists: menus,
-readers and the data behind the sidebar are wave 2. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
+**Status: wave 2, open and read a comic.** The library window opens on Home (Keep
+reading, Up next), lists the chosen folders' publications as a grid or a list over
+`StoryArcKit`'s `LibraryModel`, with search, filters, sorting and a publication page. Each
+publication reads in its own window with keys, the edge click zones, zoom and pan, spreads
+by window shape and a sliding drag; positions are written on every turn and before a
+window closes or the app quits. Files open from Finder, a drop and the Dock menu; folders
+keep their bookmarks and are watched with FSEvents. The preferences have a search, the
+accent choice and the app's own text size. A PDF opens through the same reader model and
+is not walked yet; EPUB, audio, network sources and secrets are later waves. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
 timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 
 - Plan: [`docs/openspec/changes/desktop-clients`](../../docs/openspec/changes/desktop-clients)
@@ -19,7 +23,7 @@ timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 | Language and UI | Swift 6, SwiftUI. AppKit only where SwiftUI has no desktop control. |
 | Floor | macOS 26. It matches `StoryArcKit`'s `.macOS(.v26)`. |
 | Project | Its own XcodeGen project: `project.yml` makes `StoryArcMac.xcodeproj`. Scheme `StoryArc`. |
-| Shared code | `apps/ios/Packages/StoryArcKit`, consumed by path. Wave 0 links `DesignSystem` and `StoryArcCore`. Each wave adds the products it needs. |
+| Shared code | `apps/ios/Packages/StoryArcKit`, consumed by path. Wave 2 links `DesignSystem`, `StoryArcCore`, `LibraryFeature`, `Persistence`, `Formats` and `ReaderFeature`. Each wave adds the products it needs. |
 | Bundle id | `com.mecedric.storyarc` |
 | Sandbox | App Sandbox on. Entitlements: `app-sandbox`, `files.user-selected.read-write`, `files.bookmarks.app-scope`, `network.client`, and no other — `Tests/EntitlementsTests.swift` pins the set. No keychain access group: an ad-hoc build cannot use the data-protection keychain (`Tests/KeychainSpike.md`), so secrets go to the login keychain until the signed build of task 6.8. |
 | EPUB | `WKWebView` with the pinned Readium ts-toolkit renderer. Readium swift-toolkit is iOS only and cannot serve macOS. |
@@ -33,22 +37,31 @@ own source folder.
 
 ```
 apps/desktop-macos/
-├── project.yml                 XcodeGen spec; StoryArcMac.xcodeproj is generated
+├── project.yml                 XcodeGen spec; StoryArcMac.xcodeproj and App/Info.plist are generated
 ├── App/
-│   ├── StoryArcMacApp.swift    the @main entry: one Window scene, one Settings scene
-│   ├── LibraryWindow.swift     sidebar of LibraryDestination, content column, search field
-│   ├── DestinationEmptyState.swift  what each destination shows with no source
-│   ├── SettingsRoot.swift      the six Settings tabs, each a grouped form
-│   ├── MacFolderBookmarks.swift     security-scoped bookmarks, until task 1.30 moves them in
-│   ├── MacCredentialStore.swift     the keychain path an ad-hoc build can use
+│   ├── StoryArcMacApp.swift    the @main entry: the library Window, the reader WindowGroup(for:), Settings
+│   ├── LibraryWindow.swift     sidebar, content column, toolbar search, drops, navigation requests
+│   ├── MacChrome.swift         theme, accent, appearance, language, and the scaled text size
+│   ├── SettingsRoot.swift      the six preferences tabs and the preferences search
+│   ├── DestinationEmptyState.swift, MacFolderBookmarks.swift, MacCredentialStore.swift   wave 1
+│   ├── Library/                MacLibrary (the composition root), Home, grid and list, detail,
+│   │                           search state, selection, folder source states, toolbar menus
+│   ├── Reader/                 the reader window and its Mac page view, chrome, key mapper,
+│   │                           click zones, zoom model, spreads, drag turn, progress writer,
+│   │                           reader targets and restoration, the window registry
+│   ├── Settings/               MacSettings (the preferences model), the tabs, the search index
+│   ├── System/                 the app delegate (files, Dock menu, quit), the command table and
+│   │                           menus, FSEvents watching, files handed over, the power assertion
 │   ├── StoryArcMac.entitlements
 │   └── Localizable.xcstrings   en, fr, de, es
 ├── Tests/                      StoryArcMacTests, hosted in the app
-│   ├── EntitlementsTests.swift      the exact entitlement set, in the file and the signature
-│   ├── MacFolderBookmarksTests.swift  spy on the options, real round trip in the sandbox
-│   ├── MacCredentialStoreTests.swift  the keychain spike, round trip, no secret in a file
-│   ├── ShellTests.swift        the window is open, ⌘, opens Settings once
-│   ├── CaptureTests.swift      the frames, on request
+│   ├── *Tests.swift            one suite per rule: window model, commands, keys, pointer, zoom,
+│   │                           spreads, drag, progress writer, display awake, folders, watcher,
+│   │                           files, search, settings search, Home, detail, accent, localisation
+│   ├── WindowWalk.swift        the serialized parent of every suite that drives windows
+│   ├── ReaderWalkTests.swift, PointerAndFilesWalkTests.swift, ShellTests.swift   the walks
+│   ├── CaptureTests.swift, Wave2CaptureTests.swift   the frames, on request
+│   ├── TestFixtures.swift      fixtures and the entitlements file, read from the test bundle
 │   └── KeychainSpike.md        the spike's result, 2026-10-16
 └── README.md
 ```
@@ -65,9 +78,14 @@ cd apps/desktop-macos && xcodebuild test -project StoryArcMac.xcodeproj -scheme 
 
 The tests are hosted in the app, so they run inside the ad-hoc signed, sandboxed
 process: the entitlement, bookmark and keychain tests measure a local run, not an
-`xctest` runner. `TEST_RUNNER_STORYARC_CAPTURE=1` in front of the test command also
+`xctest` runner. The test bundle carries `packages/test-fixtures/comics` and the
+entitlements file as resources; a test in the sandboxed app that opens a path under
+`~/Documents` waits on a privacy prompt and the run hangs. The walks copy the comics into
+the container and read them as the app's library, so a run needs no setup. Suites that
+open windows run one after another under `WindowWalks`. `TEST_RUNNER_STORYARC_CAPTURE=1` in front of the test command also
 writes the window frames into the container's `tmp/captures/`; see
-[`docs/designs/screenshots/desktop/macos/wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md)
+[`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md) and
+[`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md)
 for how and for what they do and do not show.
 
 Requires macOS 26, Xcode 27.1 with the Metal toolchain component (`AGENTS.md`
@@ -133,9 +151,10 @@ Liquid Glass is for chrome only. The artwork stays the interface.
 
 ## Open questions
 
-1. The page curl on a desktop: default transition, or a different default for a Mac reader?
-2. Does the reader belong in its own window, or as a mode of the library window? The plan assumes its own window.
-3. Chrome accent: the StoryArc brand colour, or the system accent colour?
-4. Edge click zones: off by default on desktop?
+Questions 2 to 4 are answered: the reader has its own windows, the chrome accent is the
+brand colour with a System choice in Appearance, and the edge click zones are on by
+default with a Reading setting to turn them off (task 1.26).
+
+1. The page curl on a desktop: default transition, or a different default for a Mac reader? Wave 5.
 5. Which path serves a user who mounted SMB in Finder? The `Smb` package covers it. Low priority.
-6. Is `PageCurl.metal` valid on macOS? The audit did not build it.
+6. Is `PageCurl.metal` valid on macOS? The app builds it (`ReaderFeature` is linked); the curl is wave 5.

@@ -1,0 +1,3 @@
+# `xcodegen generate` writes the app's Info.plist from the `info:` block of project.yml on
+# every build. The plist is an output, never edited and never committed.
+/App/Info.plist

@@ -22,14 +22,9 @@ struct EntitlementsTests {
         "com.apple.security.network.client",
     ]
 
-    /// `App/StoryArcMac.entitlements`, found from this file rather than from a bundle: the
-    /// entitlements are not a resource of anything.
-    static var file: URL {
-        URL(filePath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "App/StoryArcMac.entitlements")
-    }
+    /// `App/StoryArcMac.entitlements`, copied into the test bundle by `project.yml`: a
+    /// test hosted in the sandboxed app cannot read the checkout without a privacy prompt.
+    static var file: URL { TestFixtures.entitlements }
 
     @Test("The file holds exactly the four keys, each true")
     func fileHoldsExactlyTheFourKeys() throws {

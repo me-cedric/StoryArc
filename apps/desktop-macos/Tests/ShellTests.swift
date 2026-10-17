@@ -3,39 +3,41 @@ import Testing
 
 @testable import StoryArc
 
-/// The UI walk task 1.14 asks for, run inside the app: the library window is open, and the
-/// preferences open on the system's own action and open once.
-///
-/// AppKit windows rather than SwiftUI views, because what a reader sees is a window. The
-/// sidebar and the empty states are proved by `CaptureTests`' frames, not by a class name.
-@MainActor
-@Suite("Shell")
-struct ShellTests {
-    @Test("The library window is open at launch, resizable, with the documented minimum")
-    func libraryWindowIsOpen() throws {
-        let window = try #require(ShellWalk.waitForLibraryWindow())
+extension WindowWalks {
+    /// The UI walk task 1.14 asks for, run inside the app: the library window is open, and the
+    /// preferences open on the system's own action and open once.
+    ///
+    /// AppKit windows rather than SwiftUI views, because what a reader sees is a window. The
+    /// sidebar and the empty states are proved by `CaptureTests`' frames, not by a class name.
+    @MainActor
+    @Suite("Shell")
+    struct ShellTests {
+        @Test("The library window is open at launch, resizable, with the documented minimum")
+        func libraryWindowIsOpen() throws {
+            let window = try #require(ShellWalk.waitForLibraryWindow())
 
-        #expect(window.isVisible)
-        #expect(window.styleMask.contains(.resizable))
-        #expect(window.contentMinSize.width >= LibraryWindow.minimumSize.width)
-        #expect(window.contentMinSize.height >= LibraryWindow.minimumSize.height)
-    }
+            #expect(window.isVisible)
+            #expect(window.styleMask.contains(.resizable))
+            #expect(window.contentMinSize.width >= LibraryWindow.minimumSize.width)
+            #expect(window.contentMinSize.height >= LibraryWindow.minimumSize.height)
+        }
 
-    @Test("The settings action opens one preferences window, and a second call opens no other")
-    func settingsOpenOnce() throws {
-        let before = ShellWalk.visibleWindows()
+        @Test("The settings action opens one preferences window, and a second call opens no other")
+        func settingsOpenOnce() throws {
+            let before = ShellWalk.visibleWindows()
 
-        ShellWalk.openSettings()
-        let settings = try #require(ShellWalk.waitForNewWindow(since: before))
+            ShellWalk.openSettings()
+            let settings = try #require(ShellWalk.waitForNewWindow(since: before))
 
-        #expect(settings.isVisible)
-        #expect(settings.frame.width == SettingsRoot.width)
+            #expect(settings.isVisible)
+            #expect(settings.frame.width == SettingsRoot.width)
 
-        let after = ShellWalk.visibleWindows()
-        ShellWalk.openSettings()
-        ShellWalk.settle()
-        #expect(ShellWalk.visibleWindows().count == after.count)
-        settings.close()
+            let after = ShellWalk.visibleWindows()
+            ShellWalk.openSettings()
+            ShellWalk.settle()
+            #expect(ShellWalk.visibleWindows().count == after.count)
+            settings.close()
+        }
     }
 }
 

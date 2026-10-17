@@ -1,0 +1,12 @@
+{
+  "colors" : [
+    {
+      "color" : {
+        "color-space" : "srgb",
+        "components" : { "alpha" : "1.000", "blue" : "0xF0", "green" : "0x4D", "red" : "0x8A" }
+      },
+      "idiom" : "universal"
+    }
+  ],
+  "info" : { "author" : "storyarc-brand-mark", "version" : 1 }
+}
