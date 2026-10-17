@@ -123,6 +123,19 @@ pub fn open_paths(shared: &Shared, paths: &[PathBuf]) {
 /// Opens a publication in a reader window, or brings forward the one that reads it, and
 /// records it with the desktop's recent files. The error names the file and the reason.
 pub fn open_publication(shared: &Shared, path: &Path) -> Result<(), String> {
+    if crate::epub_window::is_epub(path) {
+        return crate::epub_window::open(shared, path);
+    }
+    if crate::player::is_audio_path(path) {
+        let name = crate::opening::name(path);
+        let record = storyarc_core::sources::PublicationIndexer::index_path(path, None)
+            .map_err(|error| format!("{name}: {error}"))?;
+        if record.format.is_audio() {
+            shared.player().play_audiobook(&record, path)?;
+            record_recent(path);
+            return Ok(());
+        }
+    }
     let id = path.to_string_lossy().into_owned();
     if let Open::Present(_) = shared.open(&id) {
         if let Some(window) = shared.reader_for(&id) {
@@ -141,7 +154,7 @@ pub fn open_publication(shared: &Shared, path: &Path) -> Result<(), String> {
 
 /// `desktop-experience`, Recent publications on Linux: file managers and file dialogs
 /// list what the reader opened. A file that is gone later drops out of their lists.
-fn record_recent(path: &Path) {
+pub(crate) fn record_recent(path: &Path) {
     let uri = gio::File::for_path(path).uri();
     gtk::RecentManager::default().add_item(&uri);
 }
@@ -227,6 +240,8 @@ pub fn notify(shared: &Shared, notes: &[String]) {
         show_library(shared, LaunchAction::Library);
     }
     for note in notes {
+        // Logged as well, so a headless walk can read what a toast said.
+        glib::g_warning!(crate::session::LOG_DOMAIN, "{note}");
         shared.toast(note);
     }
 }

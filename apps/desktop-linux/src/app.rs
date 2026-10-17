@@ -43,6 +43,10 @@ pub struct App {
     pub system_accent: Cell<Option<Rgb>>,
     pub library: RefCell<Option<adw::ApplicationWindow>>,
     pub readers: RefCell<Vec<ReaderHandle>>,
+    /// The EPUB windows, by the path they read (task 4.10). Not in the session file yet.
+    pub epub_windows: RefCell<Vec<(String, adw::ApplicationWindow)>>,
+    /// The one player for audiobooks and read-aloud (task 4.14), made when first asked.
+    player: RefCell<Option<Rc<crate::player::Player>>>,
     /// Set while Quit closes the windows, so each one keeps its place in the session.
     pub quitting: Cell<bool>,
     /// The publications whose window could not be restored at launch, for the library
@@ -144,6 +148,16 @@ impl App {
     }
 
     /// The core's progress store, opened on first use.
+    /// The player, made on first use so a session that never plays starts no engine.
+    pub fn player(self: &Rc<Self>) -> Rc<crate::player::Player> {
+        if let Some(player) = self.player.borrow().as_ref() {
+            return player.clone();
+        }
+        let player = crate::player::Player::new(self);
+        *self.player.borrow_mut() = Some(player.clone());
+        player
+    }
+
     pub fn progress_store(&self) -> Rc<library::ProgressStore> {
         self.progress
             .get_or_init(|| Rc::new(session::open_progress_store()))
