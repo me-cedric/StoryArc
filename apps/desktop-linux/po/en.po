@@ -455,6 +455,9 @@ msgstr "This changes the cover for everyone who can see that list."
 msgid "covers.writeBack.send"
 msgstr "Send"
 
+msgid "desktop.command.openFile"
+msgstr "Open File…"
+
 msgid "detail.chapter.finished"
 msgstr "Finished"
 
@@ -520,6 +523,9 @@ msgstr "From %s, not on this device"
 msgid "detail.provenance.unattributed"
 msgstr "Not in a library you added, not on this device"
 
+msgid "detail.readAgain"
+msgstr "Read again"
+
 #, c-format
 msgid "detail.readAloud.noVoice %s"
 msgstr "No voice on this device reads %s"
@@ -530,6 +536,9 @@ msgstr "Read aloud by %s"
 
 msgid "detail.series.title"
 msgstr "Other issues in this series"
+
+msgid "detail.showInFolder"
+msgstr "Show in folder"
 
 msgid "detail.unavailable"
 msgstr "This cannot be opened until it is on this device."
@@ -1220,6 +1229,9 @@ msgstr "More from %s"
 msgid "library.neverReached %s"
 msgstr "%s hasn’t been read yet"
 
+msgid "library.notWatched"
+msgstr "Not watched live: checked every 10 seconds and when this window comes forward."
+
 msgid "library.openFile"
 msgstr "Choose a file"
 
@@ -1269,6 +1281,9 @@ msgstr "Show"
 msgid "library.scope.all"
 msgstr "Everywhere"
 
+msgid "library.search"
+msgstr "Search"
+
 #, c-format
 msgid "library.search.onServer %s"
 msgstr "Search “%s” for this instead"
@@ -1281,6 +1296,10 @@ msgstr "Recent searches"
 
 msgid "library.search.recent.clear"
 msgstr "Clear recent searches"
+
+#, c-format
+msgid "library.search.results %s"
+msgstr "Results for “%s”"
 
 msgid "library.section.other"
 msgstr "Other"
@@ -1392,6 +1411,12 @@ msgstr "Library"
 
 msgid "library.view"
 msgstr "View"
+
+msgid "menu.main"
+msgstr "Main menu"
+
+msgid "menu.openRecent"
+msgstr "Open Recent"
 
 #, c-format
 msgid "open.in.damaged %s"
@@ -2133,8 +2158,20 @@ msgstr "Still looking…"
 msgid "settings.about"
 msgstr "About"
 
+msgid "settings.accent"
+msgstr "Accent"
+
 msgid "settings.appearance"
 msgstr "Appearance"
+
+msgid "settings.appearance.noPortal"
+msgstr "This session does not state its appearance, so System draws light."
+
+msgid "settings.appearance.pending"
+msgstr "Saved. This appearance is drawn in a later version; the chrome shows the nearest one for now."
+
+msgid "settings.clickZones"
+msgstr "Turn pages by clicking the edges"
 
 msgid "settings.done"
 msgstr "Done"
@@ -2149,6 +2186,9 @@ msgstr "Nothing downloaded"
 msgid "settings.downloads.summary %s"
 msgstr "%s downloaded"
 
+msgid "settings.fit"
+msgstr "Fit"
+
 msgid "settings.language"
 msgstr "Language"
 
@@ -2157,6 +2197,9 @@ msgstr "StoryArc speaks English, German, Spanish and French. Everything else fol
 
 msgid "settings.language.system"
 msgstr "System"
+
+msgid "settings.layout"
+msgstr "Page layout"
 
 msgid "settings.privacy"
 msgstr "Privacy"
@@ -2201,6 +2244,9 @@ msgstr[1] "%d libraries"
 
 msgid "settings.title"
 msgstr "Settings"
+
+msgid "settings.transparency.note"
+msgstr "Follows the Windows setting for transparency effects."
 
 msgid "shelves.addTo"
 msgstr "Add to…"
@@ -2414,8 +2460,26 @@ msgstr "Downloads"
 msgid "shortcut.library"
 msgstr "Library"
 
+msgid "shortcuts.general"
+msgstr "General"
+
+msgid "shortcuts.library"
+msgstr "Library"
+
+msgid "shortcuts.player"
+msgstr "Player"
+
+msgid "shortcuts.reader"
+msgstr "Reader"
+
+msgid "shortcuts.title"
+msgstr "Keyboard Shortcuts"
+
 msgid "sidebar.allShelves"
 msgstr "All shelves"
+
+msgid "sidebar.downloads"
+msgstr "Downloads"
 
 msgid "sidebar.library"
 msgstr "Library"
@@ -2587,6 +2651,9 @@ msgstr "Not answering"
 msgid "source.unauthorized.body %s"
 msgstr "StoryArc has lost its sign-in for %s. Open it in Settings and sign in again."
 
+msgid "source.unauthorized.choose"
+msgstr "Choose this folder again"
+
 #, c-format
 msgid "source.unauthorized.refused.body %s"
 msgstr "%s refused the sign-in StoryArc had. Open it in Settings and sign in again."
@@ -2617,6 +2684,10 @@ msgstr "Online library"
 
 msgid "sources.add.folder"
 msgstr "Files and folders"
+
+#, c-format
+msgid "sources.add.folder.ask %s"
+msgstr "Add “%s” as a library?"
 
 msgid "sources.add.import"
 msgstr "Open a file"

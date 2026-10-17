@@ -455,6 +455,9 @@ msgstr "Cela change la couverture pour toute personne qui voit cette liste."
 msgid "covers.writeBack.send"
 msgstr "Envoyer"
 
+msgid "desktop.command.openFile"
+msgstr "Ouvrir un fichier…"
+
 msgid "detail.chapter.finished"
 msgstr "Terminé"
 
@@ -520,6 +523,9 @@ msgstr "De %s, pas sur cet appareil"
 msgid "detail.provenance.unattributed"
 msgstr "Dans aucune bibliothèque que vous avez ajoutée, pas sur cet appareil"
 
+msgid "detail.readAgain"
+msgstr "Relire"
+
 #, c-format
 msgid "detail.readAloud.noVoice %s"
 msgstr "Aucune voix de cet appareil ne lit cette langue : %s"
@@ -530,6 +536,9 @@ msgstr "Lu à voix haute par %s"
 
 msgid "detail.series.title"
 msgstr "Autres numéros de cette série"
+
+msgid "detail.showInFolder"
+msgstr "Afficher dans le dossier"
 
 msgid "detail.unavailable"
 msgstr "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil."
@@ -1220,6 +1229,9 @@ msgstr "Plus depuis %s"
 msgid "library.neverReached %s"
 msgstr "Rien n’a encore été lu depuis %s"
 
+msgid "library.notWatched"
+msgstr "Non surveillé en direct : vérifié toutes les 10 secondes et quand cette fenêtre passe au premier plan."
+
 msgid "library.openFile"
 msgstr "Choisir un fichier"
 
@@ -1269,6 +1281,9 @@ msgstr "Afficher"
 msgid "library.scope.all"
 msgstr "Partout"
 
+msgid "library.search"
+msgstr "Rechercher"
+
 #, c-format
 msgid "library.search.onServer %s"
 msgstr "Chercher plutôt sur « %s »"
@@ -1281,6 +1296,10 @@ msgstr "Recherches récentes"
 
 msgid "library.search.recent.clear"
 msgstr "Effacer les recherches récentes"
+
+#, c-format
+msgid "library.search.results %s"
+msgstr "Résultats pour « %s »"
 
 msgid "library.section.other"
 msgstr "Autres"
@@ -1392,6 +1411,12 @@ msgstr "Bibliothèque"
 
 msgid "library.view"
 msgstr "Affichage"
+
+msgid "menu.main"
+msgstr "Menu principal"
+
+msgid "menu.openRecent"
+msgstr "Ouvrir un fichier récent"
 
 #, c-format
 msgid "open.in.damaged %s"
@@ -2133,8 +2158,20 @@ msgstr "Recherche en cours…"
 msgid "settings.about"
 msgstr "À propos"
 
+msgid "settings.accent"
+msgstr "Accent"
+
 msgid "settings.appearance"
 msgstr "Apparence"
+
+msgid "settings.appearance.noPortal"
+msgstr "Cette session n’indique pas son apparence, donc Système dessine en clair."
+
+msgid "settings.appearance.pending"
+msgstr "Enregistré. Cette apparence sera dessinée dans une version ultérieure ; l’interface affiche la plus proche pour l’instant."
+
+msgid "settings.clickZones"
+msgstr "Tourner les pages en cliquant sur les bords"
 
 msgid "settings.done"
 msgstr "Terminé"
@@ -2149,6 +2186,9 @@ msgstr "Rien de téléchargé"
 msgid "settings.downloads.summary %s"
 msgstr "%s téléchargés"
 
+msgid "settings.fit"
+msgstr "Ajuster"
+
 msgid "settings.language"
 msgstr "Langue"
 
@@ -2157,6 +2197,9 @@ msgstr "StoryArc parle anglais, allemand, espagnol et français. Le reste suit v
 
 msgid "settings.language.system"
 msgstr "Système"
+
+msgid "settings.layout"
+msgstr "Mise en page"
 
 msgid "settings.privacy"
 msgstr "Confidentialité"
@@ -2201,6 +2244,9 @@ msgstr[1] "%d bibliothèques"
 
 msgid "settings.title"
 msgstr "Réglages"
+
+msgid "settings.transparency.note"
+msgstr "Suit le réglage Windows des effets de transparence."
 
 msgid "shelves.addTo"
 msgstr "Ajouter à…"
@@ -2414,8 +2460,26 @@ msgstr "Téléchargements"
 msgid "shortcut.library"
 msgstr "Bibliothèque"
 
+msgid "shortcuts.general"
+msgstr "Général"
+
+msgid "shortcuts.library"
+msgstr "Bibliothèque"
+
+msgid "shortcuts.player"
+msgstr "Lecteur audio"
+
+msgid "shortcuts.reader"
+msgstr "Liseuse"
+
+msgid "shortcuts.title"
+msgstr "Raccourcis clavier"
+
 msgid "sidebar.allShelves"
 msgstr "Toutes les étagères"
+
+msgid "sidebar.downloads"
+msgstr "Téléchargements"
 
 msgid "sidebar.library"
 msgstr "Bibliothèque"
@@ -2587,6 +2651,9 @@ msgstr "Sans réponse"
 msgid "source.unauthorized.body %s"
 msgstr "StoryArc a perdu la connexion à %s. Ouvrez-la dans Réglages et reconnectez-vous."
 
+msgid "source.unauthorized.choose"
+msgstr "Choisir ce dossier à nouveau"
+
 #, c-format
 msgid "source.unauthorized.refused.body %s"
 msgstr "%s a refusé la connexion enregistrée par StoryArc. Ouvrez-la dans Réglages et reconnectez-vous."
@@ -2617,6 +2684,10 @@ msgstr "Bibliothèque en ligne"
 
 msgid "sources.add.folder"
 msgstr "Fichiers et dossiers"
+
+#, c-format
+msgid "sources.add.folder.ask %s"
+msgstr "Ajouter « %s » comme bibliothèque ?"
 
 msgid "sources.add.import"
 msgstr "Ouvrir un fichier"

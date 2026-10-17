@@ -11,6 +11,16 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, wave 2.** A comic opens and reads on the Mac: reader windows that come back
+  after a relaunch, the menu bar with its shortcuts, keys and pointer reading with the edge click
+  zones on by default, zoom and spreads, a drag to turn, full screen, progress written within five
+  seconds and before a close, files opened by drop and from the Dock menu, folders kept through
+  bookmarks and watched live, a searchable preferences window, the library grid and list, search,
+  Home and the publication page. The Windows and Linux apps carry the same screens over the shared
+  core, which now holds the progress store, folder scanning and watching, page decoding for six
+  formats, the image adjustments, collation and the library queries behind twenty seam calls; the
+  Linux app is proved by its tests in an Ubuntu container and a headless walk, the Windows app by
+  CI's first compile. Each platform's walk records every scenario and what a real desktop still owes.
 - **Desktop clients, wave 1.** The three desktop apps of ADR-0018 move from an empty window to
   their foundations, built in parallel lanes on 2026-10-16. The shared Rust core reads the whole
   fixture corpus: its own ZIP and TAR readers, RAR headers by hand with the vendored libarchive

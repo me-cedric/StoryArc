@@ -578,6 +578,10 @@
     <value>Send</value>
     <comment>covers.writeBack.send</comment>
   </data>
+  <data name="desktop_command_openFile" xml:space="preserve">
+    <value>Open File…</value>
+    <comment>desktop.command.openFile</comment>
+  </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Finished</value>
     <comment>detail.chapter.finished</comment>
@@ -654,6 +658,10 @@
     <value>Not in a library you added, not on this device</value>
     <comment>detail.provenance.unattributed</comment>
   </data>
+  <data name="detail_readAgain" xml:space="preserve">
+    <value>Read again</value>
+    <comment>detail.readAgain</comment>
+  </data>
   <data name="detail_readAloud_noVoice___" xml:space="preserve">
     <value>No voice on this device reads {0}</value>
     <comment>detail.readAloud.noVoice %@</comment>
@@ -665,6 +673,10 @@
   <data name="detail_series_title" xml:space="preserve">
     <value>Other issues in this series</value>
     <comment>detail.series.title</comment>
+  </data>
+  <data name="detail_showInFolder" xml:space="preserve">
+    <value>Show in folder</value>
+    <comment>detail.showInFolder</comment>
   </data>
   <data name="detail_unavailable" xml:space="preserve">
     <value>This cannot be opened until it is on this device.</value>
@@ -1526,6 +1538,10 @@
     <value>{0} hasn’t been read yet</value>
     <comment>library.neverReached %@</comment>
   </data>
+  <data name="library_notWatched" xml:space="preserve">
+    <value>Not watched live: checked every 10 seconds and when this window comes forward.</value>
+    <comment>library.notWatched</comment>
+  </data>
   <data name="library_openFile" xml:space="preserve">
     <value>Choose a file</value>
     <comment>library.openFile</comment>
@@ -1590,6 +1606,10 @@
     <value>Everywhere</value>
     <comment>library.scope.all</comment>
   </data>
+  <data name="library_search" xml:space="preserve">
+    <value>Search</value>
+    <comment>library.search</comment>
+  </data>
   <data name="library_search_onServer___" xml:space="preserve">
     <value>Search “{0}” for this instead</value>
     <comment>library.search.onServer %@</comment>
@@ -1605,6 +1625,10 @@
   <data name="library_search_recent_clear" xml:space="preserve">
     <value>Clear recent searches</value>
     <comment>library.search.recent.clear</comment>
+  </data>
+  <data name="library_search_results___" xml:space="preserve">
+    <value>Results for “{0}”</value>
+    <comment>library.search.results %@</comment>
   </data>
   <data name="library_section_other" xml:space="preserve">
     <value>Other</value>
@@ -1749,6 +1773,14 @@
   <data name="library_view" xml:space="preserve">
     <value>View</value>
     <comment>library.view</comment>
+  </data>
+  <data name="menu_main" xml:space="preserve">
+    <value>Main menu</value>
+    <comment>menu.main</comment>
+  </data>
+  <data name="menu_openRecent" xml:space="preserve">
+    <value>Open Recent</value>
+    <comment>menu.openRecent</comment>
   </data>
   <data name="open_in_damaged___" xml:space="preserve">
     <value>{0} could not be read. It may be damaged.</value>
@@ -2690,9 +2722,25 @@
     <value>About</value>
     <comment>settings.about</comment>
   </data>
+  <data name="settings_accent" xml:space="preserve">
+    <value>Accent</value>
+    <comment>settings.accent</comment>
+  </data>
   <data name="settings_appearance" xml:space="preserve">
     <value>Appearance</value>
     <comment>settings.appearance</comment>
+  </data>
+  <data name="settings_appearance_noPortal" xml:space="preserve">
+    <value>This session does not state its appearance, so System draws light.</value>
+    <comment>settings.appearance.noPortal</comment>
+  </data>
+  <data name="settings_appearance_pending" xml:space="preserve">
+    <value>Saved. This appearance is drawn in a later version; the chrome shows the nearest one for now.</value>
+    <comment>settings.appearance.pending</comment>
+  </data>
+  <data name="settings_clickZones" xml:space="preserve">
+    <value>Turn pages by clicking the edges</value>
+    <comment>settings.clickZones</comment>
   </data>
   <data name="settings_done" xml:space="preserve">
     <value>Done</value>
@@ -2710,6 +2758,10 @@
     <value>{0} downloaded</value>
     <comment>settings.downloads.summary %@</comment>
   </data>
+  <data name="settings_fit" xml:space="preserve">
+    <value>Fit</value>
+    <comment>settings.fit</comment>
+  </data>
   <data name="settings_language" xml:space="preserve">
     <value>Language</value>
     <comment>settings.language</comment>
@@ -2721,6 +2773,10 @@
   <data name="settings_language_system" xml:space="preserve">
     <value>System</value>
     <comment>settings.language.system</comment>
+  </data>
+  <data name="settings_layout" xml:space="preserve">
+    <value>Page layout</value>
+    <comment>settings.layout</comment>
   </data>
   <data name="settings_privacy" xml:space="preserve">
     <value>Privacy</value>
@@ -2777,6 +2833,10 @@
   <data name="settings_title" xml:space="preserve">
     <value>Settings</value>
     <comment>settings.title</comment>
+  </data>
+  <data name="settings_transparency_note" xml:space="preserve">
+    <value>Follows the Windows setting for transparency effects.</value>
+    <comment>settings.transparency.note</comment>
   </data>
   <data name="shelves_addTo" xml:space="preserve">
     <value>Add to…</value>
@@ -3046,9 +3106,33 @@
     <value>Library</value>
     <comment>shortcut.library</comment>
   </data>
+  <data name="shortcuts_general" xml:space="preserve">
+    <value>General</value>
+    <comment>shortcuts.general</comment>
+  </data>
+  <data name="shortcuts_library" xml:space="preserve">
+    <value>Library</value>
+    <comment>shortcuts.library</comment>
+  </data>
+  <data name="shortcuts_player" xml:space="preserve">
+    <value>Player</value>
+    <comment>shortcuts.player</comment>
+  </data>
+  <data name="shortcuts_reader" xml:space="preserve">
+    <value>Reader</value>
+    <comment>shortcuts.reader</comment>
+  </data>
+  <data name="shortcuts_title" xml:space="preserve">
+    <value>Keyboard Shortcuts</value>
+    <comment>shortcuts.title</comment>
+  </data>
   <data name="sidebar_allShelves" xml:space="preserve">
     <value>All shelves</value>
     <comment>sidebar.allShelves</comment>
+  </data>
+  <data name="sidebar_downloads" xml:space="preserve">
+    <value>Downloads</value>
+    <comment>sidebar.downloads</comment>
   </data>
   <data name="sidebar_library" xml:space="preserve">
     <value>Library</value>
@@ -3266,6 +3350,10 @@
     <value>StoryArc has lost its sign-in for {0}. Open it in Settings and sign in again.</value>
     <comment>source.unauthorized.body %@</comment>
   </data>
+  <data name="source_unauthorized_choose" xml:space="preserve">
+    <value>Choose this folder again</value>
+    <comment>source.unauthorized.choose</comment>
+  </data>
   <data name="source_unauthorized_refused_body___" xml:space="preserve">
     <value>{0} refused the sign-in StoryArc had. Open it in Settings and sign in again.</value>
     <comment>source.unauthorized.refused.body %@</comment>
@@ -3305,6 +3393,10 @@
   <data name="sources_add_folder" xml:space="preserve">
     <value>Files and folders</value>
     <comment>sources.add.folder</comment>
+  </data>
+  <data name="sources_add_folder_ask___" xml:space="preserve">
+    <value>Add “{0}” as a library?</value>
+    <comment>sources.add.folder.ask %@</comment>
   </data>
   <data name="sources_add_import" xml:space="preserve">
     <value>Open a file</value>

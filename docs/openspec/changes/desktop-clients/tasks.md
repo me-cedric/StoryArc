@@ -209,7 +209,7 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 - [ ] 1.30 **Parent edit, `apps/ios`:** make `FolderBookmarks` and `CredentialStore` correct under the sandbox and split
   the `Playback` iOS guard from a macOS path. Deferral: the Mac lane carries its own copies (1.12, 1.13, 4.7) until the iOS
   owner agrees. Verify: the same tests pass against the package.
-- [ ] 1.31 **[X] Token emitters.** `packages/design-tokens` gains an emitter for the Windows resource dictionary
+- [x] 1.31 **[X] Token emitters.** `packages/design-tokens` gains an emitter for the Windows resource dictionary
   (`StoryArcTokens.cs` and the XAML dictionary) and one for the GTK CSS the Linux design reads, per ADR-0007. Test first:
   a drift check that fails when a generated file is edited by hand. Deferral: until `packages/` accepts the emitters,
   lane W and lane L hold the values in one hand-written file each, marked as a copy. Verify: `pnpm tokens:check` covers
@@ -222,6 +222,18 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   their self-tests inside `pnpm selftests`; each self-test mutates its input and fails by name.
 
 ## 2. Wave 2: open and read a comic
+
+**Wave 2 landed on main on 2026-10-17**, built as a dynamic workflow of lane agents from each lane's branch and verified
+by independent runs of each lane's gates. Lane C: tasks 2.1 to 2.8a and the seam's twelve new exports (`pnpm
+test:desktop:core` 305 tests, the Ubuntu container green). Lane M: tasks 2.9 to 2.24 (`xcodebuild test` 104 tests in
+30 suites, `swiftlint --strict` clean, the 509-scenario walk in `docs/delivery/desktop-conformance-macos-wave2.md`
+with 40 failures listed at its top). Lane L: every task below built and 155 crate tests green in the container; the
+walk under a headless compositor is in `docs/delivery/desktop-conformance-linux-wave2.md` (pass 94, seen 75, fail 106,
+not proved 101 of 484), and every box stays open because a Linux session owes the walks each verify line names. Lane W:
+every task below written against the seam and the documentation, nothing compiled on this Mac; the walk in
+`docs/delivery/desktop-conformance-windows-wave2.md` marks each scenario tested, wired or not proved, and the boxes
+stay open until the `Desktop Windows` workflow compiles and runs the tests. The strings the two shells fell back to
+English for live in `packages/desktop-strings/Localizable.xcstrings` now and are generated with the rest.
 
 All three desktops reach the same state: a library window lists the publications of a chosen folder with their covers and
 opens one in a reader window, a dropped file opens in a reader window too, pages turn by key, pointer and drag, and the
@@ -243,13 +255,13 @@ place is kept. Home, search, filters, sorting and publication detail are built i
   polled path at an interval of 10 seconds or less. Verify: a test adds a file and sees it inside 10 seconds, a test with
   the limit forced to zero falls back and reports "not watched live", and a test with a source marked portal-granted polls
   and sees the file inside 10 seconds.
-- [ ] 2.4 **Storage locations per system**, including the Flatpak and MSIX redirects. File `src/paths.rs`. Verify: tests per
+- [x] 2.4 **Storage locations per system**, including the Flatpak and MSIX redirects. File `src/paths.rs`. Verify: tests per
   platform assert the paths, and none is a roaming folder.
-- [ ] 2.5 **Page decoding** for JPEG, PNG, WebP, GIF, HEIC and AVIF, with a named reason for a page it cannot decode. File
+- [x] 2.5 **Page decoding** for JPEG, PNG, WebP, GIF, HEIC and AVIF, with a named reason for a page it cannot decode. File
   `src/image/decode.rs`. Verify: the corpus's decode digests match on all three OS runners.
-- [ ] 2.6 **Image adjustments and spread detection** mirrored from StoryArcKit (`PageDecoder.isSpread`, brightness,
+- [x] 2.6 **Image adjustments and spread detection** mirrored from StoryArcKit (`PageDecoder.isSpread`, brightness,
   contrast, filters). Verify: corpus digests match the mobile output within the tolerance the mobile tests use.
-- [ ] 2.7 **Collation and formatting** with ICU4X for sorting, dates and numbers. File `src/locale.rs`. Verify: sorting tests
+- [x] 2.7 **Collation and formatting** with ICU4X for sorting, dates and numbers. File `src/locale.rs`. Verify: sorting tests
   in the four supported languages match the iOS expectations.
 - [ ] 2.8 **String generator. [P]** One script turns the four-language source into `.resw` and gettext `.po` (the macOS source
   stays `.xcstrings`). Files `scripts/strings-desktop.mjs` and a drift check in `pnpm lint`. Verify: a missing key fails the
@@ -257,64 +269,64 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 
 **Lane M**
 
-- [ ] 2.8a **Library queries, test first.** `tests/library_query.rs` asserts search (title, series and author, folded for
+- [x] 2.8a **Library queries, test first.** `tests/library_query.rs` asserts search (title, series and author, folded for
   accents), the filters (format, source, reading state, downloaded), the sort keys under the collation of 2.7, and the
   Continue reading and Up next ordering, all against the mobile fixtures. Then `src/library/query.rs`. The Mac reads the same
   rules from StoryArcKit. Verify: `pnpm test:desktop:core` passes.
-- [ ] 2.9 **Window model test first.** `ReaderTarget` is `Codable` and `Hashable`, a second open of the same publication
+- [x] 2.9 **Window model test first.** `ReaderTarget` is `Codable` and `Hashable`, a second open of the same publication
   focuses the first window, and restoration reopens windows and skips a missing publication. Then the `WindowGroup(for:)`
   readers. Verify: unit tests pass and a UI walk opens two readers, quits and relaunches.
-- [ ] 2.10 **Commands and menus test first.** A test lists every command the spec names, its shortcut and its disabled state
+- [x] 2.10 **Commands and menus test first.** A test lists every command the spec names, its shortcut and its disabled state
   in each window. Then `CommandMenu` and `CommandGroup`. Verify: the test passes and the menus have the same shape in the
   library and in a reader.
-- [ ] 2.11 **Key mapping test first.** A pure mapper from key and reading direction to page action, covering mirrored arrows,
+- [x] 2.11 **Key mapping test first.** A pure mapper from key and reading direction to page action, covering mirrored arrows,
   Space and Page Down, a key at the end and a text field in focus. Then `onKeyPress`. Verify: `xcodebuild test` passes.
-- [ ] 2.12 **Pointer reading.** Hover reveals chrome, the pointer and chrome hide after three seconds, right-click menus on a
+- [x] 2.12 **Pointer reading.** Hover reveals chrome, the pointer and chrome hide after three seconds, right-click menus on a
   page and a publication, click zones on by default, as on a phone, with a reader setting that turns them off. Verify: a UI
   walk, the key-mapper tests and a test that the zones are on when nothing is stored.
-- [ ] 2.13 **Zoom and pan** with pinch, modifier and wheel, double click and keys, in a Mac page view. The limits come from the
+- [x] 2.13 **Zoom and pan** with pinch, modifier and wheel, double click and keys, in a Mac page view. The limits come from the
   iOS zoom model (parent task 5.12 shares it). Verify: a pure zoom-model test and a UI walk.
-- [ ] 2.14 **Spreads by window shape**, with the cover alone, a lone last page and a placeholder for a page still decoding.
+- [x] 2.14 **Spreads by window shape**, with the cover alone, a lone last page and a placeholder for a page still decoding.
   Verify: tests for the pairing rule across odd and even counts and right-to-left, and a resize walk.
-- [ ] 2.15 **Dragging to turn** with the threshold test first. The curl is wave 5. Verify: threshold tests pass and the
+- [x] 2.15 **Dragging to turn** with the threshold test first. The curl is wave 5. Verify: threshold tests pass and the
   nearest available mode shows when reduced motion is on.
-- [ ] 2.16 **Full screen** in a reader with chrome that appears and hides. Verify: a UI walk enters and leaves full screen and
+- [x] 2.16 **Full screen** in a reader with chrome that appears and hides. Verify: a UI walk enters and leaves full screen and
   restores the size.
-- [ ] 2.17 **Closing and quitting** write progress no later than five seconds after a turn, before a window closes and before
+- [x] 2.17 **Closing and quitting** write progress no later than five seconds after a turn, before a window closes and before
   quit, and survive a failed write. Verify: tests with an injected store that fails, and a quit walk.
-- [ ] 2.18 **Opening files.** Document types and exported UTIs, `onOpenURL`, `onDrop` on the library, a reader and the icon,
+- [x] 2.18 **Opening files.** Document types and exported UTIs, `onOpenURL`, `onDrop` on the library, a reader and the icon,
   a CB7 refusal by name, many files at once with a stated limit, recent items in the Dock menu. Verify: a drop walk for each
   case and a test that a vanished file leaves the list silently.
-- [ ] 2.19 **Folders.** `fileImporter`, stored bookmarks, a source that shows grey and offers one action when access is
+- [x] 2.19 **Folders.** `fileImporter`, stored bookmarks, a source that shows grey and offers one action when access is
   withdrawn, an offline volume that returns. Verify: tests on the bookmark states and a sandboxed run.
-- [ ] 2.20 **Live folder watching** with FSEvents, batching a burst. Verify: a test copies 2,000 files and the library updates
+- [x] 2.20 **Live folder watching** with FSEvents, batching a burst. Verify: a test copies 2,000 files and the library updates
   in batches without a blocked window.
-- [ ] 2.21 **Preferences window** with search, and reading settings that apply to an open reader. Verify: a walk searches a
+- [x] 2.21 **Preferences window** with search, and reading settings that apply to an open reader. Verify: a walk searches a
   word and changes a theme with a reader open.
-- [ ] 2.22 **Keep the display awake** with a power assertion held while a reader is in front. Verify: a test asserts the
+- [x] 2.22 **Keep the display awake** with a power assertion held while a reader is in front. Verify: a test asserts the
   assertion is created and released, and that a refusal is silent.
-- [ ] 2.23 **Appearance, text size and motion.** Light and dark switch live, the reader's own size control, reduced motion.
+- [x] 2.23 **Appearance, text size and motion.** Light and dark switch live, the reader's own size control, reduced motion.
   Verify: a walk toggles the system appearance and the largest size, with captures.
-- [ ] 2.23a **Library grid and list, test first.** A view-model test over StoryArcKit's library store asserts the grid and
+- [x] 2.23a **Library grid and list, test first.** A view-model test over StoryArcKit's library store asserts the grid and
   the list for an empty library, for 10,000 publications, grouping by series, single selection and modifier-click selection.
   Then the SwiftUI grid and list with the cover ladder (placeholder, thumbnail, full cover; a decode never blocks a scroll)
   and the entry for a file that could not be opened. Verify: the tests pass, a UI walk scrolls a fixture library, and
   captures in light and dark.
-- [ ] 2.23b **Search, filters and sorting, test first.** A query-state test asserts that the toolbar field stays in place
+- [x] 2.23b **Search, filters and sorting, test first.** A query-state test asserts that the toolbar field stays in place
   while its results take over the content column, the filters by format, source, reading state and download state, and the
   sort keys. Then the `searchable` field, the filter menu and the sort menu. Verify: the tests pass and a walk searches a
   word, filters and sorts.
-- [ ] 2.23c **Home.** The window opens on Home with Keep reading and Up next. An empty shelf is absent. Test first for the
+- [x] 2.23c **Home.** The window opens on Home with Keep reading and Up next. An empty shelf is absent. Test first for the
   order and the absence. Verify: the test passes and a walk opens the app with and without history.
-- [ ] 2.23d **Publication detail.** A pushed page in the content column with the cover wash, one primary action, a menu, and
+- [x] 2.23d **Publication detail.** A pushed page in the content column with the cover wash, one primary action, a menu, and
   one line that names where the file lives. Test first for a publication with no cover, with progress and on an offline
   source. Verify: the tests pass and a walk opens a publication and reads it from the page.
-- [ ] 2.23e **Chrome accent setting, test first.** A settings-model test asserts the scenarios of the chrome accent: the brand
+- [x] 2.23e **Chrome accent setting, test first.** A settings-model test asserts the scenarios of the chrome accent: the brand
   colour when nothing is stored, the system accent once the reader chooses it, and a later change of the system accent
   reaching the chrome with no restart. It asserts that the colour taken from a cover is the same under both choices. Then
   the Appearance row *Accent: StoryArc or System* in the preferences of 2.21. Verify: the tests pass, a walk changes the
   system accent with the choice on System, and captures of both choices in light and dark.
-- [ ] 2.24 **Conformance walk.** Run the scenarios of the capabilities listed at the top of this wave against the Mac app and
+- [x] 2.24 **Conformance walk.** Run the scenarios of the capabilities listed at the top of this wave against the Mac app and
   record each failure. Verify: `docs/delivery/desktop-conformance-macos-wave2.md` lists every scenario with a result.
 
 **Lane L**

@@ -455,6 +455,9 @@ msgstr "Esto cambia la portada para todas las personas que ven esa lista."
 msgid "covers.writeBack.send"
 msgstr "Enviar"
 
+msgid "desktop.command.openFile"
+msgstr "Abrir archivo…"
+
 msgid "detail.chapter.finished"
 msgstr "Terminado"
 
@@ -520,6 +523,9 @@ msgstr "De %s, no está en este dispositivo"
 msgid "detail.provenance.unattributed"
 msgstr "En ninguna biblioteca que hayas añadido, no está en este dispositivo"
 
+msgid "detail.readAgain"
+msgstr "Leer de nuevo"
+
 #, c-format
 msgid "detail.readAloud.noVoice %s"
 msgstr "Ninguna voz en este dispositivo lee %s"
@@ -530,6 +536,9 @@ msgstr "Leído en voz alta por %s"
 
 msgid "detail.series.title"
 msgstr "Otros números de esta serie"
+
+msgid "detail.showInFolder"
+msgstr "Mostrar en la carpeta"
 
 msgid "detail.unavailable"
 msgstr "Esto no se puede abrir hasta que esté en este dispositivo."
@@ -1220,6 +1229,9 @@ msgstr "Más de %s"
 msgid "library.neverReached %s"
 msgstr "%s aún no se ha leído"
 
+msgid "library.notWatched"
+msgstr "No se vigila en directo: se comprueba cada 10 segundos y cuando esta ventana pasa al frente."
+
 msgid "library.openFile"
 msgstr "Elegir un archivo"
 
@@ -1269,6 +1281,9 @@ msgstr "Mostrar"
 msgid "library.scope.all"
 msgstr "En todas partes"
 
+msgid "library.search"
+msgstr "Buscar"
+
 #, c-format
 msgid "library.search.onServer %s"
 msgstr "Buscar en «%s» en su lugar"
@@ -1281,6 +1296,10 @@ msgstr "Búsquedas recientes"
 
 msgid "library.search.recent.clear"
 msgstr "Borrar las búsquedas recientes"
+
+#, c-format
+msgid "library.search.results %s"
+msgstr "Resultados de «%s»"
 
 msgid "library.section.other"
 msgstr "Otros"
@@ -1392,6 +1411,12 @@ msgstr "Biblioteca"
 
 msgid "library.view"
 msgstr "Vista"
+
+msgid "menu.main"
+msgstr "Menú principal"
+
+msgid "menu.openRecent"
+msgstr "Abrir reciente"
 
 #, c-format
 msgid "open.in.damaged %s"
@@ -2133,8 +2158,20 @@ msgstr "Sigue buscando…"
 msgid "settings.about"
 msgstr "Acerca de"
 
+msgid "settings.accent"
+msgstr "Acento"
+
 msgid "settings.appearance"
 msgstr "Apariencia"
+
+msgid "settings.appearance.noPortal"
+msgstr "Esta sesión no indica su apariencia, así que Sistema dibuja en claro."
+
+msgid "settings.appearance.pending"
+msgstr "Guardado. Esta apariencia se dibujará en una versión posterior; por ahora la interfaz muestra la más cercana."
+
+msgid "settings.clickZones"
+msgstr "Pasar páginas haciendo clic en los bordes"
 
 msgid "settings.done"
 msgstr "Listo"
@@ -2149,6 +2186,9 @@ msgstr "Nada descargado"
 msgid "settings.downloads.summary %s"
 msgstr "%s descargados"
 
+msgid "settings.fit"
+msgstr "Ajustar"
+
 msgid "settings.language"
 msgstr "Idioma"
 
@@ -2157,6 +2197,9 @@ msgstr "StoryArc habla inglés, alemán, español y francés. Todo lo demás sig
 
 msgid "settings.language.system"
 msgstr "Sistema"
+
+msgid "settings.layout"
+msgstr "Diseño de página"
 
 msgid "settings.privacy"
 msgstr "Privacidad"
@@ -2201,6 +2244,9 @@ msgstr[1] "%d bibliotecas"
 
 msgid "settings.title"
 msgstr "Ajustes"
+
+msgid "settings.transparency.note"
+msgstr "Sigue el ajuste de Windows para los efectos de transparencia."
 
 msgid "shelves.addTo"
 msgstr "Añadir a…"
@@ -2414,8 +2460,26 @@ msgstr "Descargas"
 msgid "shortcut.library"
 msgstr "Biblioteca"
 
+msgid "shortcuts.general"
+msgstr "General"
+
+msgid "shortcuts.library"
+msgstr "Biblioteca"
+
+msgid "shortcuts.player"
+msgstr "Reproductor"
+
+msgid "shortcuts.reader"
+msgstr "Lector"
+
+msgid "shortcuts.title"
+msgstr "Atajos de teclado"
+
 msgid "sidebar.allShelves"
 msgstr "Todas las estanterías"
+
+msgid "sidebar.downloads"
+msgstr "Descargas"
 
 msgid "sidebar.library"
 msgstr "Biblioteca"
@@ -2587,6 +2651,9 @@ msgstr "Sin respuesta"
 msgid "source.unauthorized.body %s"
 msgstr "StoryArc ha perdido el inicio de sesión de %s. Ábrela en Ajustes e inicia sesión de nuevo."
 
+msgid "source.unauthorized.choose"
+msgstr "Elegir esta carpeta de nuevo"
+
 #, c-format
 msgid "source.unauthorized.refused.body %s"
 msgstr "%s rechazó el inicio de sesión guardado. Ábrela en Ajustes e inicia sesión de nuevo."
@@ -2617,6 +2684,10 @@ msgstr "Biblioteca en línea"
 
 msgid "sources.add.folder"
 msgstr "Archivos y carpetas"
+
+#, c-format
+msgid "sources.add.folder.ask %s"
+msgstr "¿Añadir «%s» como biblioteca?"
 
 msgid "sources.add.import"
 msgstr "Abrir un archivo"

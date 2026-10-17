@@ -8,8 +8,8 @@
  *
  * `localization` promises four languages, and `desktop-experience` promises them in the
  * menus and dialogs of three desktops. The iOS string catalogues are the source: every
- * `Localizable.xcstrings` under the StoryArcKit and StoryArcEpub feature modules and the iOS
- * app target. macOS reads them as they are. Windows reads `.resw`, one per language, and
+ * `Localizable.xcstrings` under the StoryArcKit and StoryArcEpub feature modules, the iOS app
+ * target, and `packages/desktop-strings` for the keys only a desktop needs. macOS reads them as they are. Windows reads `.resw`, one per language, and
  * Linux reads gettext `.po`, one per language, so this writes both from the same catalogues
  * and `--check` fails `pnpm lint` the day either drifts from the source (task 2.8 of
  * `desktop-clients`).
@@ -45,6 +45,8 @@ const CATALOGUE_ROOTS = [
   join(ROOT, 'apps', 'ios', 'App', 'Resources'),
   join(ROOT, 'apps', 'ios', 'Packages', 'StoryArcKit', 'Sources'),
   join(ROOT, 'apps', 'ios', 'Packages', 'StoryArcEpub', 'Sources'),
+  // The strings only a desktop needs, in the same catalogue format. See its README.
+  join(ROOT, 'packages', 'desktop-strings'),
 ]
 
 /** Where the generated files go. Each desktop commits its copy, like the design tokens. */

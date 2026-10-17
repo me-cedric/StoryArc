@@ -150,7 +150,8 @@ shows a warning that is correct (`AGENTS.md` section 3b), so only an `xcodebuild
 
 **Accessibility.** SwiftUI controls carry VoiceOver names and roles. Custom readers (page surface, spread, zoom)
 need explicit labels. macOS has no system text scaling, so the reader's own size control meets the largest-text
-scenarios.
+scenarios. **Measured 2026-10-17:** `dynamicTypeSize` does nothing on macOS, so every Mac window scales its fonts
+through its own size setting, and the largest-size frames are taken that way.
 
 **Distribution.** Local run is ad hoc signed (`CODE_SIGN_IDENTITY=-`). A downloaded build is quarantined and
 Gatekeeper blocks it unless notarised (Reported). Notarisation and the Mac App Store need the 99 USD Apple Developer
@@ -244,7 +245,10 @@ Kept: `AdwNavigationSplitView`, `AdwOverlaySplitView`, `AdwToolbarView`, `AdwBre
   the Wayland application id and the class a Hyprland rule matches (class equals id: Inferred).
 - Minimum size set through `set_size_request` (360 by 200 or more). libadwaita sets one only from 1.6. A breakpoint
   below about 600 px collapses the split view (600 px: Inferred, a spike confirms).
-- GTK saves no session before 4.26, so the app saves window state itself (Known: 4.23.3 deferred it).
+- GTK saves no session before 4.26, so the app saves window state itself (Known: 4.23.3 deferred it). **As built, 2026-10-17:** the
+tokens arrive as `data/style/storyarc-tokens.css` through a `GtkCssProvider` and the file is one of the sync's targets;
+the headless walk under cage sometimes lost the first key of a `wtype` run and could not tell whether the harness or
+the app lost it, so a first-key check on a real session is owed.
 - Renderer: leave the choice to GTK. `ngl` is the 4.14 default. `GSK_RENDERER=ngl` is the documented fallback for
   NVIDIA problems (GTK issues 8364 and 6689 are open). The curl runs in a `GtkGLArea`, which works under every
   renderer. It is present on Wayland. It is absent on X11 until spike 1.17 shows it holds the frame budget there (`desktop-experience`, Linux display servers).
@@ -347,6 +351,22 @@ Apache-2.0, raw DEFLATE), `regex-lite` 0.1.9 (MIT or Apache-2.0, the filename co
 the OPF are scraped flat the way the Swift readers do. `RandomAccessSource` is synchronous and readers take an
 `Arc<dyn RandomAccessSource>`; the tokio runtime of Open Question 5 sits above it, for the sources that are async.
 On Windows `build.rs` skips libarchive and `RarDecoder` answers `Unavailable` until task 1.7 lands the MSVC header.
+
+**As built, 2026-10-17 (wave 2, lane C).** HEIC decodes through `zune-heic` =0.5.0 (MIT or Apache-2.0 or Zlib, pure
+Rust, behind the default-on feature `heic`), not libheif, because libheif and libde265 are LGPL-3.0; the crate was
+published on 2026-10-11 with one release, which is a supply-chain risk to watch. AVIF stays behind the off-by-default
+feature `avif` (`image` with `dav1d` 0.11.1 MIT over the system libdav1d, BSD-2-Clause, plus `mp4parse` MPL-2.0): it
+builds and passes on a Mac with Homebrew's dav1d, and stays off because the CI runners and the distro containers do not
+install libdav1d, so an AVIF page is refused by name there. The library store is SQLite through `rusqlite` with the
+bundled feature. Image adjustments follow the iOS order, greyscale then brightness then contrast then invert, in 8-bit
+sRGB with a clamp after each step, pinned against iOS arithmetic worked by hand because no mobile fixture records
+adjusted pixels; Android applies brightness after contrast, so the two phones disagree when both are set, which is a
+finding for the phone owners. Library search folds accents as well as case, which the phones' `LibraryIndex.rank`
+does not. The seam has twenty exports with status codes 0 to 7 (ok, invalid argument, cancelled, not found,
+unsupported, unreadable, storage, internal), every handle is a `void*` with a four-byte kind tag so a wrong kind is an
+invalid argument, every export runs under `catch_unwind` and reports a panic as internal, and `build.rs` emits the
+status constants into the generated C#. The public Rust facade for the GTK app is `storyarc_core::library`
+(`FolderSource`, `OpenPublication`, `ProgressStore`, `LibraryError`), documented in `apps/desktop-core/README.md`.
 
 Three places where the mirror found the Swift reader and the corpus disagreeing, for the iOS and Android owners
 rather than for this lane: a RAR4 written on Windows carries backslashes in its entry names, which libarchive
@@ -497,8 +517,9 @@ matrix are manual, as `AGENTS.md` section 6 already states for mobile.
 The four-language string source must feed three formats: `.xcstrings` (macOS, already the iOS source), `.resw`
 (Windows) and gettext `.po` (Linux). A generator reads the single source and writes the three, and a drift check joins
 `pnpm lint`. macOS follows a per-app language. Windows and Linux follow the system list. Every language is tested with
-the pseudo-locale walk on each desktop. The generator and its source are a wave 2 task: the exact source file is Assumed
-until it is read in task 2.8.
+the pseudo-locale walk on each desktop. The generator is `scripts/strings-desktop.mjs` (task 2.8, built): the source is every iOS
+`Localizable.xcstrings` plus `packages/desktop-strings/Localizable.xcstrings` for the keys only a desktop needs, and the
+check is in `pnpm lint`.
 
 ## Where each desktop reading lands
 

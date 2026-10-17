@@ -455,6 +455,9 @@ msgstr "Das ändert das Cover für jede Person, die diese Liste sieht."
 msgid "covers.writeBack.send"
 msgstr "Senden"
 
+msgid "desktop.command.openFile"
+msgstr "Datei öffnen…"
+
 msgid "detail.chapter.finished"
 msgstr "Beendet"
 
@@ -520,6 +523,9 @@ msgstr "Aus %s, nicht auf diesem Gerät"
 msgid "detail.provenance.unattributed"
 msgstr "In keiner Bibliothek, die Sie hinzugefügt haben, nicht auf diesem Gerät"
 
+msgid "detail.readAgain"
+msgstr "Erneut lesen"
+
 #, c-format
 msgid "detail.readAloud.noVoice %s"
 msgstr "Keine Stimme auf diesem Gerät liest %s"
@@ -530,6 +536,9 @@ msgstr "Vorgelesen von %s"
 
 msgid "detail.series.title"
 msgstr "Weitere Ausgaben dieser Reihe"
+
+msgid "detail.showInFolder"
+msgstr "Im Ordner anzeigen"
 
 msgid "detail.unavailable"
 msgstr "Das lässt sich erst öffnen, wenn es auf diesem Gerät ist."
@@ -1220,6 +1229,9 @@ msgstr "Mehr aus %s"
 msgid "library.neverReached %s"
 msgstr "%s wurde noch nicht gelesen"
 
+msgid "library.notWatched"
+msgstr "Nicht live überwacht: alle 10 Sekunden und beim Vorholen dieses Fensters geprüft."
+
 msgid "library.openFile"
 msgstr "Datei auswählen"
 
@@ -1269,6 +1281,9 @@ msgstr "Anzeigen"
 msgid "library.scope.all"
 msgstr "Überall"
 
+msgid "library.search"
+msgstr "Suchen"
+
 #, c-format
 msgid "library.search.onServer %s"
 msgstr "Stattdessen auf „%s“ suchen"
@@ -1281,6 +1296,10 @@ msgstr "Letzte Suchen"
 
 msgid "library.search.recent.clear"
 msgstr "Letzte Suchen löschen"
+
+#, c-format
+msgid "library.search.results %s"
+msgstr "Ergebnisse für „%s“"
 
 msgid "library.section.other"
 msgstr "Weitere"
@@ -1392,6 +1411,12 @@ msgstr "Bibliothek"
 
 msgid "library.view"
 msgstr "Ansicht"
+
+msgid "menu.main"
+msgstr "Hauptmenü"
+
+msgid "menu.openRecent"
+msgstr "Zuletzt verwendet"
 
 #, c-format
 msgid "open.in.damaged %s"
@@ -2133,8 +2158,20 @@ msgstr "Suche läuft…"
 msgid "settings.about"
 msgstr "Über"
 
+msgid "settings.accent"
+msgstr "Akzent"
+
 msgid "settings.appearance"
 msgstr "Erscheinungsbild"
+
+msgid "settings.appearance.noPortal"
+msgstr "Diese Sitzung nennt ihr Erscheinungsbild nicht, daher zeichnet System hell."
+
+msgid "settings.appearance.pending"
+msgstr "Gespeichert. Dieses Erscheinungsbild wird in einer späteren Version gezeichnet; die Oberfläche zeigt vorerst das nächstliegende."
+
+msgid "settings.clickZones"
+msgstr "Seiten durch Klicken auf die Ränder umblättern"
 
 msgid "settings.done"
 msgstr "Fertig"
@@ -2149,6 +2186,9 @@ msgstr "Nichts heruntergeladen"
 msgid "settings.downloads.summary %s"
 msgstr "%s heruntergeladen"
 
+msgid "settings.fit"
+msgstr "Einpassen"
+
 msgid "settings.language"
 msgstr "Sprache"
 
@@ -2157,6 +2197,9 @@ msgstr "StoryArc spricht Englisch, Deutsch, Spanisch und Französisch. Alles Üb
 
 msgid "settings.language.system"
 msgstr "System"
+
+msgid "settings.layout"
+msgstr "Seitenlayout"
 
 msgid "settings.privacy"
 msgstr "Datenschutz"
@@ -2201,6 +2244,9 @@ msgstr[1] "%d Bibliotheken"
 
 msgid "settings.title"
 msgstr "Einstellungen"
+
+msgid "settings.transparency.note"
+msgstr "Folgt der Windows-Einstellung für Transparenzeffekte."
 
 msgid "shelves.addTo"
 msgstr "Hinzufügen zu…"
@@ -2414,8 +2460,26 @@ msgstr "Downloads"
 msgid "shortcut.library"
 msgstr "Bibliothek"
 
+msgid "shortcuts.general"
+msgstr "Allgemein"
+
+msgid "shortcuts.library"
+msgstr "Bibliothek"
+
+msgid "shortcuts.player"
+msgstr "Player"
+
+msgid "shortcuts.reader"
+msgstr "Reader"
+
+msgid "shortcuts.title"
+msgstr "Tastenkürzel"
+
 msgid "sidebar.allShelves"
 msgstr "Alle Regale"
+
+msgid "sidebar.downloads"
+msgstr "Downloads"
 
 msgid "sidebar.library"
 msgstr "Bibliothek"
@@ -2587,6 +2651,9 @@ msgstr "Keine Antwort"
 msgid "source.unauthorized.body %s"
 msgstr "StoryArc hat die Anmeldung für %s verloren. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an."
 
+msgid "source.unauthorized.choose"
+msgstr "Diesen Ordner erneut wählen"
+
 #, c-format
 msgid "source.unauthorized.refused.body %s"
 msgstr "%s hat die gespeicherte Anmeldung abgelehnt. Öffnen Sie sie in den Einstellungen und melden Sie sich erneut an."
@@ -2617,6 +2684,10 @@ msgstr "Online-Bibliothek"
 
 msgid "sources.add.folder"
 msgstr "Dateien und Ordner"
+
+#, c-format
+msgid "sources.add.folder.ask %s"
+msgstr "„%s“ als Bibliothek hinzufügen?"
 
 msgid "sources.add.import"
 msgstr "Datei öffnen"
