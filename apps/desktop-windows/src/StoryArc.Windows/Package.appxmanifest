@@ -3,9 +3,10 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
   xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap10 rescap">
+  IgnorableNamespaces="uap uap5 uap10 rescap">
 
   <!-- Name and Publisher are placeholders. The Store association replaces both. -->
   <Identity
@@ -46,6 +47,31 @@
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
+
+      <Extensions>
+        <!-- desktop-clients task 2.42. The comics the core opens page by page, and nothing else: the
+             package never claims a file it cannot open, so CB7 is absent here and refused by name when
+             it arrives by drop or by command line. Name is the ProgID Windows derives the association
+             from; StoryArc can register for these types but never sets itself as the default. The list
+             is held to StoryArc.Interop.Opening.OpenRequest.Associated by the interop tests. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="storyarc.comicarchive">
+            <uap:DisplayName>Comic book archive</uap:DisplayName>
+            <uap:Logo>Assets\StoreLogo.png</uap:Logo>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.cbz</uap:FileType>
+              <uap:FileType>.cbr</uap:FileType>
+              <uap:FileType>.cbt</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <!-- "storyarc C:\path\to\comic.cbz" from a terminal: the paths arrive as the launch arguments. -->
+        <uap5:Extension Category="windows.appExecutionAlias" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
+          <uap5:AppExecutionAlias>
+            <uap5:ExecutionAlias Alias="storyarc.exe" />
+          </uap5:AppExecutionAlias>
+        </uap5:Extension>
+      </Extensions>
     </Application>
   </Applications>
 

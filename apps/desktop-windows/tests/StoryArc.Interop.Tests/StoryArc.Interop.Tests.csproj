@@ -36,5 +36,7 @@
     <None Include="$(RepoRoot)Cargo.toml" Link="workspace.Cargo.toml" CopyToOutputDirectory="PreserveNewest" />
     <!-- The generated token file: the chrome accent test holds the C# brand constant to it. -->
     <None Include="..\..\src\StoryArc.Windows\Tokens\StoryArcTokens.xaml" Link="StoryArcTokens.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The package manifest: the file association test holds its file types to OpenRequest.Associated. -->
+    <None Include="..\..\src\StoryArc.Windows\Package.appxmanifest" Link="Package.appxmanifest" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
