@@ -21,8 +21,10 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `library` | **The public API the apps call** (`facade`) and the shelf queries (`query`) |
 | `locale` | ICU4X collation, the search fold, number and date formatting |
 | `paths` | Per-user storage folders per system, the Flatpak and MSIX redirects |
+| `diagnostics` | The diagnostic export's text and the phones' five redaction rules, plus every held secret removed |
 | `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
 | `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
+| `secure_store` | `SecretStore`, `Vault`, Credential Manager on Windows, Secret Service through `oo7` on Linux, the session-only fallback |
 | `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`) |
 | `store` | The SQLite store: progress, sources, publications |
 
@@ -59,7 +61,22 @@ runtime.
 | `SmbShare::list(path)` | One folder, folders first, natural order |
 | `SmbShare::open(path)` | An `SmbFile`, a `RandomAccessSource` that reconnects once on a failed read |
 | `SmbFile::status()` / `health()` | The two-second indicator and the sixty-second download offer |
-| `SmbFile::drop_session()` | Called on a wake or a network change; the next read opens a new session | `paths::StorageLocations::current()` gives the store file and cache folders, and
+| `SmbFile::drop_session()` | Called on a wake or a network change; the next read opens a new session |
+
+### Secrets and the diagnostic
+
+| Call | Does |
+| --- | --- |
+| `secrets::system_store(&runtime)` | Credential Manager on Windows, Secret Service or the portal keyring on Linux, else the session-only store |
+| `Vault::new(store)` then `save(&key, secret)` | `Stored`, or `SessionOnly { notice }` with the grey line's text the first time only; a refusal keeps no copy |
+| `Vault::load(&key)` / `delete(&key)` | The secret, from the session first; removal everywhere |
+| `SecretKey::for_source(id, field)` | The reference: a source's record holds only its id |
+| `DiagnosticReport::new(title).section(name, lines).render(&[&secret])` | The export's text, every held secret and every hostname redacted |
+
+The Windows and Linux backends compile only on their own systems. The Mac host runs the
+in-memory and session-only stores; the Ubuntu container compiles the Linux one and, having no
+Secret Service, takes the session-only path; the `desktop-windows` workflow is the first to
+compile the Windows one. `paths::StorageLocations::current()` gives the store file and cache folders, and
 `image::adjusted` applies an `ImageAdjustments` to a decoded page.
 
 ## The C seam (`storyarc-ffi`)

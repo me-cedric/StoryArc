@@ -7,6 +7,12 @@
 
 use std::fmt;
 
+pub use crate::secure_store::{
+    Availability, MemorySecretStore, Notice, SERVICE, SaveOutcome, SecretKey, SecretStore,
+    SecretStoreError, UNAVAILABLE_REMEDY, UnavailableStore, Vault, WINDOWS_BLOB_LIMIT,
+    system_store,
+};
+
 /// What `Debug` prints in place of a secret. Never the length, which would tell a reader of a
 /// log how long the password is.
 pub const REDACTED: &str = "<redacted>";

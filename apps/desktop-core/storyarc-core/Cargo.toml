@@ -80,6 +80,21 @@ futures-util = { version = "0.3.34", default-features = false, features = ["std"
 # or LGPL crate (sspi and picky are MIT OR Apache-2.0). Pinned exactly: pre-1.0, one maintainer.
 smb = { version = "=0.12.1", default-features = false, features = ["async", "sign", "encrypt"] }
 
+# The secure stores of task 3.3 (design.md, Decision 7), each built only on its own system.
+# design.md names `keyring` 4.2.0; that crate is now an umbrella whose default feature pulls
+# every platform's store, so the core takes its two Windows parts directly.
+[target.'cfg(windows)'.dependencies]
+# keyring-core 1.0.1, MIT OR Apache-2.0: the entry API the Windows store implements.
+keyring-core = "=1.0.1"
+# windows-native-keyring-store 1.1.0, MIT OR Apache-2.0: Credential Manager. Without its
+# `search` feature, which only adds the regex crate.
+windows-native-keyring-store = { version = "=1.1.0", default-features = false }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# oo7 0.6.0, MIT: Secret Service on the host and the Secret portal's file keyring in a
+# Flatpak, on tokio (Open Question 5) with its pure-Rust crypto. Pinned exactly: pre-1.0.
+oo7 = { version = "=0.6.0", default-features = false, features = ["tokio", "native_crypto"] }
+
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the
 # third build system over the one copy under third_party/ (design.md, Decision 7). Pinned
@@ -89,3 +104,6 @@ cc = "=1.6.0"
 [dev-dependencies]
 # tempfile 3.27.0, MIT OR Apache-2.0: scratch folders for the scanner, watcher and store tests.
 tempfile = "3.27.0"
+# log 0.4.34, MIT OR Apache-2.0: tests/secrets.rs installs a logger that keeps every line the
+# core and its crates write, and searches it for a secret.
+log = "0.4.34"
