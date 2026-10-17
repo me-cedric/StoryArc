@@ -148,7 +148,8 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
             var options = new CoreWebView2EnvironmentOptions();
             options.CustomSchemeRegistrations.Add(new CoreWebView2CustomSchemeRegistration(EpubHost.Scheme)
             {
-                TreatAsSecure = true,
+                // The WinRT projection types this flag as an integer; CI's compiler refused `true`.
+                TreatAsSecure = 1,
                 HasAuthorityComponent = true,
             });
             _environment = await CoreWebView2Environment.CreateWithOptionsAsync(string.Empty, StateFiles.WebViewDataFolder, options);
