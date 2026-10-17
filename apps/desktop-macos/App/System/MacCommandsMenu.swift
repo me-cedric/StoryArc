@@ -21,6 +21,8 @@ enum LibraryNavigation: Equatable {
     case go(LibraryGo)
     case search(String)
     case details(publicationID: String)
+    /// Back to the root of the row on show.
+    case root
 }
 
 /// What the key reader window can do.

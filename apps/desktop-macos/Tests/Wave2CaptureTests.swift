@@ -84,6 +84,9 @@ extension WindowWalks {
             }
             library.navigationRequest = .search("")
             try await Task.sleep(for: .milliseconds(300))
+            // Library keeps its pushed page now (each row remembers); the next pass starts at its root.
+            library.navigationRequest = .root
+            try await Task.sleep(for: .milliseconds(300))
             library.navigationRequest = .go(.home)
             return methods
         }

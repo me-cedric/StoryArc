@@ -53,6 +53,23 @@ struct ZoomModelTests {
         #expect(again.offset == CGSize(width: 200, height: 600))
     }
 
+    @Test("A turn keeps the zoom and opens the page at its top, on the side reading starts from")
+    func turnKeepsZoom() {
+        let fitted = CGSize(width: 400, height: 600)
+        let viewport = CGSize(width: 400, height: 600)
+        let zoomed = ZoomModel().magnified(by: 2)
+            .panned(by: CGSize(width: -50, height: -300), fittedSize: fitted, viewport: viewport)
+
+        let next = zoomed.turned(isRightToLeft: false, fittedSize: fitted, viewport: viewport)
+        #expect(next.scale == 2)
+        #expect(next.offset == CGSize(width: 200, height: 300))
+
+        let manga = zoomed.turned(isRightToLeft: true, fittedSize: fitted, viewport: viewport)
+        #expect(manga.offset == CGSize(width: -200, height: 300))
+
+        #expect(ZoomModel().turned(isRightToLeft: false, fittedSize: fitted, viewport: viewport) == ZoomModel())
+    }
+
     @Test("Fit clears the pan, and a resize settles the pan inside the new edges")
     func fitAndSettle() {
         let zoomed = ZoomModel().magnified(by: 3)

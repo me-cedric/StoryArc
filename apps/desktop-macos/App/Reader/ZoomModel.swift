@@ -44,6 +44,20 @@ struct ZoomModel: Equatable, Sendable {
         isZoomed ? fitted() : scaled(to: Self.doubleClickFactor)
     }
 
+    /// The zoom for the page a turn lands on.
+    ///
+    /// `comic-reader`, *Zoom persists across pages*: the next page keeps the zoom level and
+    /// opens at its top, on the side reading starts from — the left edge, or the right in a
+    /// right-to-left publication. A fitted page stays fitted.
+    func turned(isRightToLeft: Bool, fittedSize: CGSize, viewport: CGSize) -> ZoomModel {
+        guard isZoomed else { return fitted() }
+        var next = self
+        let slackX = max(0, (fittedSize.width * scale - viewport.width) / 2)
+        let slackY = max(0, (fittedSize.height * scale - viewport.height) / 2)
+        next.offset = CGSize(width: isRightToLeft ? -slackX : slackX, height: slackY)
+        return next
+    }
+
     /// A pan by `delta`, kept inside the page's edges for this viewport.
     func panned(by delta: CGSize, fittedSize: CGSize, viewport: CGSize) -> ZoomModel {
         var next = self

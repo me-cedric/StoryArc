@@ -45,6 +45,9 @@ struct ReaderCanvas: View {
         .simultaneousGesture(magnify)
         .onContinuousHover { phase in if case .active = phase { onPointerMoved() } }
         .contextMenu { pageMenu(spread) }
+        .onChange(of: model.currentIndex) {
+            zoom = zoom.turned(isRightToLeft: isRightToLeft, fittedSize: fittedSize, viewport: viewport)
+        }
         .onAppear { installWheelMonitor() }
         .onDisappear { wheelMonitor?.remove(); wheelMonitor = nil }
         .accessibilityElement(children: .ignore)

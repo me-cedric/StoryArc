@@ -180,7 +180,7 @@ struct ReaderWindow: View {
 
     private func go(to index: Int) {
         guard model.pages.indices.contains(index) else { return }
-        zoom = zoom.fitted()
+        // The zoom stays; the canvas moves it to the new page's top (`ZoomModel.turned`).
         pendingIndex = index
         // Owed from the moment of the turn, not from when the model has caught up with it: a
         // window closed or an app quit straight after a press still writes this page.

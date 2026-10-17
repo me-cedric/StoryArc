@@ -22,7 +22,9 @@ struct LibraryWindow: View {
 
     @State private var selection: SidebarRow? = .destination(.home)
     @State private var search = SearchState()
-    @State private var path = NavigationPath()
+    /// One path per sidebar row: `navigation-shell`, *Each destination remembers where the
+    /// reader had got to*, so coming back to a row returns to its page, not its root.
+    @State private var paths: [SidebarRow: NavigationPath] = [:]
     @State private var libraryFilter: LibraryShelfFilter = .all
     @State private var gridSelection = LibrarySelection()
     @State private var isSearchFocused = false
@@ -33,11 +35,11 @@ struct LibraryWindow: View {
         NavigationSplitView {
             sidebar
         } detail: {
-            NavigationStack(path: $path) {
+            NavigationStack(path: path) {
                 LibraryContentColumn(
                     library: library, search: search, destination: current,
                     filter: libraryFilter, selection: $gridSelection,
-                    onOpen: open, onShow: { path.append(PublicationRoute($0)) }
+                    onOpen: open, onShow: { path.wrappedValue.append(PublicationRoute($0)) }
                 )
                 .navigationTitle(current.title)
                 .navigationDestination(for: PublicationRoute.self) { route in
@@ -47,6 +49,8 @@ struct LibraryWindow: View {
                     }
                 }
             }
+            // A stack per row, so a row's pushed pages are its own.
+            .id(selection ?? .destination(.home))
             .toolbar { LibraryToolbarMenus(model: library.model) }
         }
         .searchable(
@@ -57,7 +61,6 @@ struct LibraryWindow: View {
         .onChange(of: selection) { _, row in
             if case let .destination(destination) = row { search = search.moved(to: destination) }
             if case let .filter(filter) = row { libraryFilter = filter; search = search.moved(to: .library) }
-            path = NavigationPath()
         }
         .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
         .onChange(of: library.navigationRequest) { _, request in
@@ -88,6 +91,17 @@ struct LibraryWindow: View {
             for session in library.restorableReaders() { openWindow.reader(session.target) }
             await library.openHandedOver { openWindow.reader($0) }
         }
+    }
+
+    /// The navigation path of the row on show.
+    private var path: Binding<NavigationPath> {
+        let row = selection ?? .destination(.home)
+        return Binding(
+            get: { paths[row] ?? NavigationPath() },
+            // A stack being left pops itself and writes the empty path back after the row has
+            // already changed; the library walk measured it. Only the row on show may write.
+            set: { new in if row == (selection ?? .destination(.home)) { paths[row] = new } }
+        )
     }
 
     private var current: LibraryDestination {
@@ -135,7 +149,7 @@ struct LibraryWindow: View {
             },
             showDetails: {
                 if let id = gridSelection.ids.first {
-                    path.append(PublicationRoute(publicationID: id))
+                    path.wrappedValue.append(PublicationRoute(publicationID: id))
                 }
             }
         )
@@ -153,7 +167,8 @@ struct LibraryWindow: View {
         switch request {
         case let .go(place): go(place)
         case let .search(text): search = text.isEmpty ? search.cleared() : search.typed(text)
-        case let .details(id): path.append(PublicationRoute(publicationID: id))
+        case let .details(id): path.wrappedValue.append(PublicationRoute(publicationID: id))
+        case .root: path.wrappedValue = NavigationPath()
         }
     }
 
