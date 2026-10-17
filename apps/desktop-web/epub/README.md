@@ -20,12 +20,20 @@ of this one). Nothing at the root depends on it; it depends on nothing at the ro
 | `pnpm-workspace.yaml` | Marks this directory as a pnpm root and holds the `@readium/shared` override (see below). |
 | `pnpm-lock.yaml` | This directory's own lockfile. |
 | `vite.config.js` | Library build, one IIFE file, no chunks, no CSS, no source map, the BSD notice as a banner. |
-| `src/index.js` | The entry. Wave 1 exposes both packages whole as `StoryArcEpub.navigator` and `StoryArcEpub.shared`; the host glue is tasks 4.1 and 4.2. |
+| `src/index.js` | The entry: `StoryArcEpub.open` (the reader), `hostPost`, and both packages whole as `navigator` and `shared`. |
+| `src/reader.js` | `open()`: the navigator around a host-supplied manifest, the command table, themes, preferences. |
+| `src/links.js` | Footnote and link clicks, decided in the content frame before the navigator sees them. |
+| `src/search.js` | Search in the publication: a pure matcher (`findMatches`) and the chapter scan around it. |
+| `src/highlights.js` | Highlights as toolkit decorations, and the text-selection event. |
+| `src/transport.js` | The door to the host (`webkit.messageHandlers.storyarc` or `chrome.webview`) and the sequence stamp. |
 | `dist/storyarc-epub.js` | The built file, **committed**, because the three desktop builds embed it and none of them runs node. |
 | `pin.json` | The versions, the licence, and the sha256 of the built file. |
 | `check-pin.mjs` | The alarm: `--check`, `--write`, `--self-test`. Task 1.32 wires `--check` into `pnpm lint`. |
 | `test/egress.html` | The eight-vector egress page of [ADR-0015](../../../docs/decisions/0015-epub-webview-network-egress.md), ported from the iOS suite. |
 | `test/collector.mjs` | The loopback listener the page aims at; serves the page, counts arrivals per vector, `--self-test`. |
+| `test/api.test.mjs`, `test/glue.test.mjs` | Browser tests of the host API (tasks 4.1, 4.2), headless WebKit. |
+| `test/search.test.mjs` | The matcher, without a browser. |
+| `test/fixture.mjs`, `test/zip.mjs`, `test/harness.mjs` | A manifest and positions for `packages/test-fixtures/ebooks/fixture.epub`, a static server, and the page the tests drive. |
 
 ## Commands
 
@@ -38,8 +46,30 @@ Run from this directory. `pnpm` self-selects 11.20.0 from `packageManager`.
 | Check the pin (offline, no install needed) | `node check-pin.mjs` or `pnpm check` |
 | Prove the check can fail | `node check-pin.mjs --self-test` |
 | Record a new digest after a bump | `node check-pin.mjs --write` |
+| Run the browser tests (build first: they load `dist/`) | `pnpm test` |
+| Run them in Chromium, the engine under WebView2 | `STORYARC_EPUB_BROWSER=chromium pnpm test` |
 | Run the egress collector and open the page | `pnpm egress`, then open the URL it prints |
 | Prove the collector counts | `pnpm egress:selftest` |
+
+## The host API
+
+`StoryArcEpub.open({container, manifest, positions, locator?, preferences?, post?})` returns a reader
+with `receive(message)` and `destroy()`. `container` is the host's own sized element; the reader fills
+it. `post` defaults to the web view's own door (`window.webkit.messageHandlers.storyarc` on WKWebView
+and WebKitGTK, `window.chrome.webview` on WebView2). Every message is JSON with a `type` and a `seq`.
+
+| Host to renderer | Renderer to host |
+| --- | --- |
+| `go {locator}`, `next`, `previous` | `ready {title, positions}`, `locator {locator}`, `navigation-failed {reason}` |
+| `preferences {preferences}` (merges) | `preferences {properties}`: the CSS custom properties now in force |
+| `theme {theme: {name, axes}}` (replaces) | `theme {name, background, text, properties}` |
+| `search {id, query}` (a newer one silences an older one) | `search-results {id, results, done, total}`, one per chapter with matches, then `done` |
+| `highlights {items: [{id, locator, color}]}` (replaces) | `highlights {ids}`, `highlight-activated {id, rect}` |
+| | `selection {text, locator, rect}` |
+| | `footnote {href, text}`, `link {href}` (http and https only; other schemes are dropped) |
+
+Progression in a locator is a share of what can be scrolled, so 1 is the last page of a chapter, not
+the end of it. The toolkit has no search and no footnote handling; both are done here.
 
 ## The pin
 
@@ -68,6 +98,11 @@ the installed `LICENSE` and prepends it as a `/*!` banner that the minifier keep
 repository inventory at `packages/licences/notices.json` (which generates
 `THIRD_PARTY_NOTICES.md`) needs one entry for this bundle; it is not written from this
 directory.
+
+The browser tests run on `playwright-core` 1.60.0 (Apache-2.0, Copyright Microsoft Corporation), a
+devDependency pinned exactly. It is test tooling and is not in the bundle. Version 1.60.0 is the one whose
+WebKit build (revision 2287) matches the browser cache on the maintainer's machine; the browser itself
+is downloaded by Playwright (`node_modules/playwright-core/cli.js install webkit`), not committed.
 
 ## The egress proof
 
