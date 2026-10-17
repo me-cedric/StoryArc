@@ -2,6 +2,7 @@
 
 pub mod diagnostics;
 pub mod domain;
+pub mod downloads;
 pub mod formats;
 pub mod image;
 pub mod io;

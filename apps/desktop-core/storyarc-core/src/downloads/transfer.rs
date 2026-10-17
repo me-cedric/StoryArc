@@ -48,7 +48,10 @@ pub enum TransferError {
     /// A status that is not the publication: a 404, a 401, a 500.
     Http(u16),
     /// The body stopped short of the total the server named.
-    Short { received: u64, expected: u64 },
+    Short {
+        received: u64,
+        expected: u64,
+    },
     /// The disk refused a write; carries the OS message (a full disk says so).
     Disk(String),
     Cancelled,
@@ -117,6 +120,10 @@ pub fn kept(part: &Path) -> u64 {
     std::fs::metadata(part).map(|m| m.len()).unwrap_or(0)
 }
 
+/// The file opened for the chosen mode, how the transfer started, what arrived, and the total
+/// the head named.
+type Open = (File, Resumption, u64, Option<u64>);
+
 /// How the head of a response fits the bytes kept.
 enum Fit {
     Append,
@@ -164,9 +171,8 @@ pub fn transfer(
         attempt.if_range = remembered.etag.clone();
     }
 
-    // Shared by the head and the body callbacks: the file opened for the chosen mode, how the
-    // transfer started, what arrived, and the total the head named.
-    let state: RefCell<Option<(File, Resumption, u64, Option<u64>)>> = RefCell::new(None);
+    // Shared by the head and the body callbacks.
+    let state: RefCell<Option<Open>> = RefCell::new(None);
     let status: RefCell<Option<u16>> = RefCell::new(None);
     let outcome = http.stream(
         attempt,
@@ -181,7 +187,12 @@ pub fn transfer(
                         .append(true)
                         .open(part)
                         .map_err(|e| e.to_string())?;
-                    (file, Resumption::Resumed { from: had }, had, head.range_total())
+                    (
+                        file,
+                        Resumption::Resumed { from: had },
+                        had,
+                        head.range_total(),
+                    )
                 }
                 Fit::StartOver => {
                     let file = File::create(part).map_err(|e| e.to_string())?;
@@ -237,7 +248,8 @@ pub fn transfer(
             length: had,
         });
     };
-    file.sync_all().map_err(|e| TransferError::Disk(e.to_string()))?;
+    file.sync_all()
+        .map_err(|e| TransferError::Disk(e.to_string()))?;
     if let Some(expected) = total
         && received != expected
     {

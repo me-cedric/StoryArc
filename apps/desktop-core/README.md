@@ -14,6 +14,7 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 
 | Module | What it does |
 | --- | --- |
+| `downloads` | The download policy (metered, offline, storage limit, concurrency), one resumable transfer into a partial file, the queue as a value, and the downloads folder with the integrity check |
 | `domain` | Records and rules mirrored from StoryArcKit: publications, identity, progress and the ADR-0006 merge, adjustments, border crop, spreads, natural order |
 | `formats` | ZIP, TAR and RAR comic archives, EPUB metadata, page ordering, `ComicInfo.xml`, codec sniffing |
 | `image` | Page decoding to RGBA (`decode`) and the reader's adjustments (`adjust`) |
@@ -74,6 +75,18 @@ runtime.
 | `ProgressPull::merging(remote, local)` then `KavitaExchange::of(&pull, &chapters)` | ADR-0006's merge sorted into records to save and positions owed |
 | `KavitaClient::push(&owed, library, series, volume)` | A page, or a mark for a finished record; write `owed.settled` only when it succeeds |
 | `chapter_request(id)` | The download request, signed for the server alone |
+
+### Downloads
+
+| Call | Does |
+| --- | --- |
+| `DownloadQueue::load(path)` / `save(path)` | The queue, saved atomically; a row running at a kill comes back `Queued` |
+| `queueing` / `pausing` / `resuming` / `moving` / `removing` / `pausing_all` / `resuming_all` | The reader's controls, each returning a new queue |
+| `holding(network, &policy, used)` then `startable(network, &policy)` | Pauses what the policy holds back, running rows included, releases what it no longer holds, and names what may start |
+| `failing(id, reason, retryable)` / `should_retry(row)` / `backoff(attempts)` | Three attempts, doubling from two seconds |
+| `failing_verification(id, reason)` | Bytes that are not a publication: re-queued once, then failed |
+| `DownloadFolder::new(root).fetch(&http, id, title, request, hint, &cancel, progress)` | Transfers, resuming a partial file with `Range` and `If-Range`, verifies by indexing, and lands the file; `Landed::resumption` says fresh, resumed or restarted |
+| `located(id)` / `remove(id)` / `bytes_on_disk()` | The finished file, its removal, and the storage view's number |
 
 ### Secrets and the diagnostic
 
