@@ -29,6 +29,9 @@ extension WindowWalks {
         func transitionModes() async throws {
             var (state, window) = try await open("natural-sort")
             defer { state.choose(.slide) }
+            // One page a slot: a window wide enough for spreads (the runner's) would turn
+            // two pages at a time, and the page numbers below count single pages.
+            state.spreadMode = .single
             state.go(to: 3)
             _ = await Walk.until { state.model.currentIndex == 3 ? true : nil }
 

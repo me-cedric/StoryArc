@@ -158,8 +158,9 @@ struct LibraryWindow: View {
                         .tag(SidebarRow.shelf(row.pin))
                         .contextMenu { ShelfRowMenu(library: library, row: row) }
                 }
+                NewShelfMenu()
             } header: {
-                ShelvesHeader()
+                Text("desktop.shelves.title")
             }
         }
         .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
@@ -232,29 +233,23 @@ enum SidebarRow: Hashable {
     case shelf(ShelfPin)
 }
 
-/// The Shelves group's heading, with the one menu that makes a new shelf.
-private struct ShelvesHeader: View {
+/// The one menu that makes a new shelf, as the Shelves group's last row. It sat in the
+/// group's heading until macOS 26 was seen to expose a heading that holds a menu as one
+/// 17-point menu button, under the audit's 20-point floor; a row is as tall as every row.
+private struct NewShelfMenu: View {
     var body: some View {
-        HStack {
-            Text("desktop.shelves.title")
-            Spacer()
-            Menu {
-                Button {
-                    ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.collection, adding: []), name: "")
-                } label: { Text("desktop.shelves.newCollection") }
-                Button {
-                    ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.list, adding: []), name: "")
-                } label: { Text("desktop.shelves.newList") }
-            } label: {
-                Label("desktop.shelves.new", systemImage: "plus").labelStyle(.iconOnly)
-            }
-            .menuStyle(.automatic)
-            .menuIndicator(.hidden)
-            .fixedSize()
+        Menu {
+            Button {
+                ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.collection, adding: []), name: "")
+            } label: { Text("desktop.shelves.newCollection") }
+            Button {
+                ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.list, adding: []), name: "")
+            } label: { Text("desktop.shelves.newList") }
+        } label: {
+            Label("desktop.shelves.new", systemImage: "plus")
         }
-        // macOS 26 exposes the whole header row as the menu button, 17 points high; the
-        // audit's floor is 20.
-        .frame(minHeight: 20)
+        .menuStyle(.automatic)
+        .menuIndicator(.hidden)
     }
 }
 
