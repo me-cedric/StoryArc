@@ -142,8 +142,8 @@ public sealed class ShelfScreensTests
     [Fact]
     public void An_edit_waiting_for_a_server_shows_in_grey_after_the_servers_own_rows_with_its_title()
     {
-        var key = new ShelfKey("server", 7, ShelfKind.ReadingList);
-        var list = new Shelf(ShelfKind.ReadingList, "server-list", "Server list", ["path:/a.cbz"], null, "server");
+        var key = new ShelfKey("server", 7, ShelfType.ReadingList);
+        var list = new Shelf(ShelfType.ReadingList, "server-list", "Server list", ["path:/a.cbz"], null, "server");
         var pending = new PendingShelfEdit(key, "srv:server:9", "Waiting for the server", DateTimeOffset.UnixEpoch);
 
         var page = ShelfPageModel.From(list, [Book("a")], [pending]);

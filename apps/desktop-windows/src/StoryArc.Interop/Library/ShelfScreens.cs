@@ -11,7 +11,7 @@ public sealed record PinnedShelves(IReadOnlyList<string> Tokens)
     public static PinnedShelves None { get; } = new([]);
 
     /// <summary>The token of a shelf, which names its kind and its id.</summary>
-    public static string TokenOf(Shelf shelf) => (shelf.Kind == ShelfKind.Collection ? "collection:" : "list:") + shelf.Id;
+    public static string TokenOf(Shelf shelf) => (shelf.Kind == ShelfType.Collection ? "collection:" : "list:") + shelf.Id;
 
     public bool IsPinned(Shelf shelf) => Tokens.Contains(TokenOf(shelf));
 
@@ -84,11 +84,11 @@ public static class ShelfMembership
 
     /// <summary>The operations that add every id of <paramref name="ids"/> to <paramref name="shelf"/>, in one change: Add to Shelf from a selection.</summary>
     public static ShelfOp Adding(Shelf shelf, IEnumerable<string> ids) =>
-        shelf.Kind == ShelfKind.Collection ? ShelfOp.AddMembers(shelf.Id, ids) : ShelfOp.Append(shelf.Id, ids);
+        shelf.Kind == ShelfType.Collection ? ShelfOp.AddMembers(shelf.Id, ids) : ShelfOp.Append(shelf.Id, ids);
 
     /// <summary>The operation that takes every id of <paramref name="ids"/> out of <paramref name="shelf"/>.</summary>
     public static IReadOnlyList<ShelfOp> Removing(Shelf shelf, IEnumerable<string> ids) =>
-        shelf.Kind == ShelfKind.Collection
+        shelf.Kind == ShelfType.Collection
             ? [ShelfOp.RemoveMembers(shelf.Id, ids)]
             : [.. ids.Select(id => ShelfOp.RemoveEntry(shelf.Id, id))];
 }
@@ -129,7 +129,7 @@ public sealed record ShelfPageModel(Shelf Shelf, IReadOnlyList<ShelfPageRow> Row
                 ? new ShelfPageRow(id, record.Title, record, IsPending: false)
                 : new ShelfPageRow(id, id, null, IsPending: false))
             .ToList();
-        if (shelf.Kind == ShelfKind.Collection)
+        if (shelf.Kind == ShelfType.Collection)
         {
             rows = [.. rows.OrderBy(row => row.Title, StringComparer.CurrentCultureIgnoreCase)];
         }
@@ -137,7 +137,7 @@ public sealed record ShelfPageModel(Shelf Shelf, IReadOnlyList<ShelfPageRow> Row
         var projected = ShelfRules.Project([.. rows.Select(row => new ShelfRow(row.Id, row.Title, false))], pending ?? []);
         var all = rows.Concat(projected.Where(row => row.IsPending).Select(row => new ShelfPageRow(row.Id, row.Title, null, IsPending: true))).ToList();
 
-        var progress = shelf.Kind == ShelfKind.ReadingList ? ProgressOf(rows) : null;
+        var progress = shelf.Kind == ShelfType.ReadingList ? ProgressOf(rows) : null;
         return new ShelfPageModel(shelf, all, progress, CoverIdsOf(shelf, rows));
     }
 

@@ -169,7 +169,7 @@ public sealed class DataSeamTests
     [Fact]
     public void An_edit_for_the_same_entry_replaces_the_earlier_one_and_the_core_pushes_what_nobody_else_touched()
     {
-        var key = new ShelfKey("server", 7, ShelfKind.ReadingList);
+        var key = new ShelfKey("server", 7, ShelfType.ReadingList);
         var earlier = new PendingShelfEdit(key, "b", "B", new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
         var later = earlier with { Title = "B again", MadeAt = earlier.MadeAt.AddMinutes(5) };
         var queue = ShelfEditQueue.Empty
@@ -195,7 +195,7 @@ public sealed class DataSeamTests
     [Fact]
     public void A_pending_edit_shows_after_the_servers_own_rows_oldest_first_and_a_server_that_did_not_answer_is_no_conflict()
     {
-        var key = new ShelfKey("server", 7, ShelfKind.ReadingList);
+        var key = new ShelfKey("server", 7, ShelfType.ReadingList);
         var first = new PendingShelfEdit(key, "p1", "Pending one", DateTimeOffset.UnixEpoch.AddMinutes(1));
         var second = new PendingShelfEdit(key, "p2", "Pending two", DateTimeOffset.UnixEpoch.AddMinutes(2));
         var landed = new PendingShelfEdit(key, "a", "A", DateTimeOffset.UnixEpoch);

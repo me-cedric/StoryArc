@@ -4,7 +4,7 @@ using System.Text.Json.Nodes;
 
 namespace StoryArc.Interop.Data;
 
-public enum ShelfKind
+public enum ShelfType
 {
     /// <summary>A set: members have no order of their own.</summary>
     Collection,
@@ -18,7 +18,7 @@ public enum ShelfKind
 /// a path for a folder source). A shelf a server defines carries its source's id; the reader's own has none.
 /// </summary>
 public sealed record Shelf(
-    ShelfKind Kind,
+    ShelfType Kind,
     string Id,
     string Name,
     IReadOnlyList<string> Members,
@@ -27,9 +27,9 @@ public sealed record Shelf(
 {
     public bool IsLocal => ServerSourceId is null;
 
-    internal static Shelf From(ShelfKind kind, JsonNode node)
+    internal static Shelf From(ShelfType kind, JsonNode node)
     {
-        var members = (node[kind == ShelfKind.Collection ? "members" : "entries"]?.AsArray() ?? new JsonArray())
+        var members = (node[kind == ShelfType.Collection ? "members" : "entries"]?.AsArray() ?? new JsonArray())
             .Select(member => member!.GetValue<string>())
             .ToList();
         var origin = node["origin"];
@@ -50,8 +50,8 @@ public sealed class ShelvesState
     {
         Json = json;
         var root = JsonNode.Parse(json);
-        Collections = [.. (root?["collections"]?.AsArray() ?? new JsonArray()).Select(node => Shelf.From(ShelfKind.Collection, node!))];
-        Lists = [.. (root?["lists"]?.AsArray() ?? new JsonArray()).Select(node => Shelf.From(ShelfKind.ReadingList, node!))];
+        Collections = [.. (root?["collections"]?.AsArray() ?? new JsonArray()).Select(node => Shelf.From(ShelfType.Collection, node!))];
+        Lists = [.. (root?["lists"]?.AsArray() ?? new JsonArray()).Select(node => Shelf.From(ShelfType.ReadingList, node!))];
     }
 
     public static ShelvesState Empty { get; } = new("""{"collections":[],"lists":[]}""");
@@ -139,19 +139,19 @@ public sealed record ShelfOp(JsonObject Node)
 }
 
 /// <summary>A server, one of its shelves, and which kind: none of the three names a shelf alone.</summary>
-public sealed record ShelfKey(string SourceId, long ShelfId, ShelfKind Kind)
+public sealed record ShelfKey(string SourceId, long ShelfId, ShelfType Kind)
 {
     internal JsonObject ToNode() => new()
     {
         ["sourceID"] = SourceId,
         ["shelfID"] = ShelfId,
-        ["kind"] = Kind == ShelfKind.Collection ? "collection" : "list",
+        ["kind"] = Kind == ShelfType.Collection ? "collection" : "list",
     };
 
     internal static ShelfKey From(JsonNode node) => new(
         node["sourceID"]?.GetValue<string>() ?? node["sourceId"]?.GetValue<string>() ?? string.Empty,
         node["shelfID"]?.GetValue<long>() ?? node["shelfId"]?.GetValue<long>() ?? 0,
-        node["kind"]?.GetValue<string>() == "collection" ? ShelfKind.Collection : ShelfKind.ReadingList);
+        node["kind"]?.GetValue<string>() == "collection" ? ShelfType.Collection : ShelfType.ReadingList);
 }
 
 /// <summary>One addition to a server's shelf that the server has not seen yet. <see cref="Title"/> is what the pending row says, since the server cannot be asked.</summary>
