@@ -2,6 +2,8 @@
 //! returning app reconciles against, and the watcher over the native change notifiers.
 //! Wave 3 adds the network sources: SMB, OPDS and Kavita (design.md, Decision 5, item 4).
 
+pub mod cache;
+pub mod health;
 pub mod index;
 pub mod kavita;
 pub mod local;

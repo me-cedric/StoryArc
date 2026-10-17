@@ -13,6 +13,7 @@ pub mod paths;
 pub mod runtime;
 pub mod secrets;
 pub mod secure_store;
+pub mod shelves;
 pub mod sources;
 pub mod store;
 

@@ -89,6 +89,9 @@ rustls = { version = "0.23.46", default-features = false, features = ["ring", "s
 # rustls-platform-verifier 0.7.1, MIT OR Apache-2.0: "a certificate the system does not
 # trust" is the system's own answer — Keychain, CryptoAPI, or the distro's trust store.
 rustls-platform-verifier = "0.7.1"
+# uuid 1.28.0, MIT OR Apache-2.0: shelf ids, read in either case from iOS and Android and
+# minted as version 4 for a new collection or reading list. Already in the tree through smb.
+uuid = { version = "1.28.0", default-features = false, features = ["std", "v4"] }
 # quick-xml 0.42.0, MIT: OPDS 1.2 Atom feeds and OpenSearch descriptions. A real XML reader
 # here, unlike ComicInfo's flat scrape, because a feed nests links inside entries.
 quick-xml = "0.42.0"

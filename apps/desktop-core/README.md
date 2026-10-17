@@ -27,7 +27,8 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
 | `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
 | `secure_store` | `SecretStore`, `Vault`, Credential Manager on Windows, Secret Service through `oo7` on Linux, the session-only fallback |
-| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`); OPDS catalogues (`sources::opds`); Kavita servers and the progress exchange (`sources::kavita`) |
+| `shelves` | Collections and reading lists as values, the offline edit queue for server shelves with its five-row merge, pins, and the server shelves remembered for the home surface |
+| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`); OPDS catalogues (`sources::opds`); Kavita servers and the progress exchange (`sources::kavita`); source health and refresh (`sources::health`); the metadata cache (`sources::cache`) |
 | `store` | The SQLite store: progress, sources, publications |
 
 ## Public Rust API (`storyarc_core::library`)
@@ -87,6 +88,20 @@ runtime.
 | `failing_verification(id, reason)` | Bytes that are not a publication: re-queued once, then failed |
 | `DownloadFolder::new(root).fetch(&http, id, title, request, hint, &cancel, progress)` | Transfers, resuming a partial file with `Range` and `If-Range`, verifies by indexing, and lands the file; `Landed::resumption` says fresh, resumed or restarted |
 | `located(id)` / `remove(id)` / `bytes_on_disk()` | The finished file, its removal, and the storage view's number |
+
+### Shelves, health and the metadata cache
+
+| Call | Does |
+| --- | --- |
+| `Shelves::adding_collection` / `adding_members` / `removing_members` / `setting_collection_cover` / `renaming_collection` / `deleting_collection` | Collections; a removed cover member clears the choice |
+| `Shelves::adding_list` / `appending` / `moving_entry` / `removing_entry` / `setting_list_cover` | Reading lists in the reader's order |
+| `ReadingList::next` / `next_available` / `progress(reading)` | The next entry in list order; the count of finished entries over those the source reports |
+| `cover_members(chosen, ordered, has_cover)` | The chosen cover, else the first four available, else the placeholder |
+| `ShelfEditQueue::queueing` / `recording` / `noting` / `acknowledging` then `ShelfPull::merging(&remote, &queue)` | Offline edits, baselines and the one-time conflict notice; push, settle or discard |
+| `edits::projecting(&remote, &pending)` | The list with pending entries shown after the server's own |
+| `PinnedShelves::of_tokens` / `tokens` / `ordering` and `RememberedShelf::stored` / `of_stored` | The pins the library document carries, and the server shelves home draws without asking |
+| `SourceHealth::refreshing` / `refreshed(now)` / `failed(&failure, now)` / `actions(..)` | Grey since a moment, never red; reconnect first only when a credential was refused |
+| `MetadataCache::write(id, &value, now)` / `read(id)` / `clear(id)` / `bytes()` | What a source listed when it last answered |
 
 ### Secrets and the diagnostic
 
