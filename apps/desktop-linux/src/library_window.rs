@@ -37,6 +37,7 @@ use crate::library_menus;
 use crate::library_search::SearchUi;
 use crate::library_views::{self, CellHooks, Item};
 use crate::opening::LaunchAction;
+use crate::player_ui;
 use crate::strings::{tr, tr_args};
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
 use crate::{
@@ -208,6 +209,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     // The minimum size is a size request: libadwaita sets one of its own only from 1.6.
     window.set_size_request(MIN_WIDTH, MIN_HEIGHT);
     session::apply(&window, state);
+    toolbar.add_bottom_bar(&player_ui::bar(shared, &window));
     window.add_breakpoint(narrow_breakpoint(&split));
     search.set_key_capture_widget(Some(&window));
 
@@ -309,14 +311,21 @@ fn sections_list() -> gtk::ListBox {
         .css_classes(["navigation-sidebar"])
         .build();
     for (key, english, _) in SECTIONS {
-        list.append(
-            &gtk::Label::builder()
-                .label(tr(key, english))
-                .xalign(0.0)
-                .build(),
-        );
+        let label = gtk::Label::builder()
+            .label(tr(key, english))
+            .xalign(0.0)
+            .build();
+        list.append(&named_row(&label, &tr(key, english)));
     }
     list
+}
+
+/// A sidebar row that states its name: GTK gives a `GtkListBoxRow` no accessible name of
+/// its own, so Orca would read the row as nothing (task 4.15, the a11y walk's finding).
+pub(crate) fn named_row(child: &impl IsA<gtk::Widget>, name: &str) -> gtk::ListBoxRow {
+    let row = gtk::ListBoxRow::builder().child(child).build();
+    row.update_property(&[gtk::accessible::Property::Label(name)]);
+    row
 }
 
 fn sidebar_page(
@@ -866,7 +875,7 @@ fn refresh_folders(shared: &Shared, ui: &Rc<LibraryUi>) {
             .ellipsize(gtk::pango::EllipsizeMode::Middle)
             .build();
         library_views::set_class(&title, "dimmed", access != Access::Readable);
-        ui.folders.append(&title);
+        ui.folders.append(&named_row(&title, &name));
         if chosen.as_deref() == Some(name.as_str())
             && let Some(row) = ui.folders.last_child().and_downcast::<gtk::ListBoxRow>()
         {
@@ -884,6 +893,6 @@ fn refresh_folders(shared: &Shared, ui: &Rc<LibraryUi>) {
             .build();
         library_views::set_class(&title, "dimmed", entry.grey.is_some());
         line.append(&title);
-        ui.folders.append(&line);
+        ui.folders.append(&named_row(&line, &entry.record.name));
     }
 }
