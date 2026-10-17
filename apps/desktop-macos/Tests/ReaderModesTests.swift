@@ -84,8 +84,10 @@ struct ReaderModesTests {
             )
         }
         let width = fit(.width)
+        // Named first: the runner's compiler gives up on the arithmetic inside the expectation.
+        let midPage: CGFloat = (800 * 2.5 - 800) / 2
         #expect(width.scale == 2.5)
-        #expect(width.offset.height == (800 * 2.5 - 800) / 2, "fit width opened mid-page")
+        #expect(width.offset.height == midPage, "fit width opened mid-page")
         #expect(fit(.screen) == ZoomModel())
         #expect(fit(.height).scale == 1)
         let original = fit(.original, rightToLeft: true)
