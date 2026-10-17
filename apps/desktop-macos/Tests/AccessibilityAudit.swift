@@ -103,12 +103,13 @@ enum AccessibilityAudit {
         budget -= 1
         let role = string(element, kAXRoleAttribute) ?? ""
         if systemRoles.contains(role) { return }
+        let subrole = string(element, kAXSubroleAttribute) ?? ""
         if actionable.contains(role) {
-            found.append(Control(
-                role: role, subrole: string(element, kAXSubroleAttribute) ?? "",
-                name: name(of: element), size: frame(of: element).size
-            ))
+            found.append(Control(role: role, subrole: subrole, name: name(of: element), size: frame(of: element).size))
         }
+        // A search field's magnifier and clear buttons are the system's, drawn 15 by 9 on
+        // macOS 26; the field itself is measured, its children are not.
+        if subrole == "AXSearchField" { return }
         for child in value(element, kAXChildrenAttribute) as? [AXUIElement] ?? [] {
             walk(child, depth: depth + 1, budget: &budget, into: &found)
         }

@@ -19,6 +19,10 @@ struct ReaderScrollCanvas: View {
 
     @State private var position = ScrollPosition(idType: Int.self)
     @State private var visible: Int?
+    /// True while a scroll the reader asked for is still landing: the pages the view reports
+    /// on the way are not where the reader is, and reporting them would move it (CI read the
+    /// page after the one chosen).
+    @State private var settling = false
     @State private var restored = false
 
     private var model: ReaderModel { state.model }
@@ -32,6 +36,8 @@ struct ReaderScrollCanvas: View {
             }
             .scrollPosition($position, anchor: .topLeading)
             .onScrollTargetVisibilityChange(idType: Int.self, threshold: 0.3) { ids in
+                if settling, !ids.contains(state.shownIndex) { return }
+                settling = false
                 visible = ids.min()
             }
             .onScrollGeometryChange(for: Double.self) { geometry in
@@ -47,6 +53,7 @@ struct ReaderScrollCanvas: View {
             .onChange(of: state.shownIndex) { _, index in
                 // A key, the slider or the browser moved the reader: bring that page into view.
                 guard visible != index else { return }
+                settling = true
                 withAnimation(state.reduceMotion ? nil : .easeOut) { position.scrollTo(id: index) }
             }
             .onChange(of: model.pages.count, initial: true) { restore(viewport: geometry.size) }
@@ -98,6 +105,7 @@ struct ReaderScrollCanvas: View {
     private func restore(viewport: CGSize) {
         guard !restored, !model.pages.isEmpty else { return }
         restored = true
+        settling = true
         let index = state.shownIndex
         if let fraction = model.takeScrollRestore(forPage: index) {
             let start = (0..<index).reduce(0.0) { $0 + pageExtent($1, viewport: viewport) }
