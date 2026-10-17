@@ -297,7 +297,7 @@ fn push(shared: &Shared, record: RemoteRecord, path: String, title: String) {
 fn status(said: &Said) -> adw::StatusPage {
     let mut text = said.text.clone();
     if let Some(remedy) = &said.remedy {
-        text = format!("{text} {remedy}.");
+        text = format!("{}. {remedy}.", text.trim_end_matches('.'));
     }
     adw::StatusPage::builder()
         .icon_name("network-offline-symbolic")

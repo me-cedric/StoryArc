@@ -215,7 +215,35 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             remote_browse::open(&on, index);
         })
         .build();
+    // `library-action "'new-shelf'"` runs a window action of the library window, and
+    // `show-shelf "'0'"` opens a shelf by its row in the sidebar.
+    let on = shared.clone();
+    let library_action = gio::ActionEntry::builder("library-action")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let (Some(window), Some(name)) = (
+                on.library.borrow().clone(),
+                parameter.and_then(|value| value.get::<String>()),
+            ) else {
+                return;
+            };
+            let _ = gtk::prelude::WidgetExt::activate_action(&window, &format!("win.{name}"), None);
+        })
+        .build();
+    let on = shared.clone();
+    let show_shelf = gio::ActionEntry::builder("show-shelf")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let index = parameter
+                .and_then(|value| value.get::<String>())
+                .and_then(|text| text.parse().ok())
+                .unwrap_or(0);
+            shelf_ui::activate_row(&on, index);
+        })
+        .build();
     application.add_action_entries([
+        library_action,
+        show_shelf,
         quit,
         preferences,
         shortcuts,

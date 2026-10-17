@@ -144,6 +144,9 @@ pub fn new_shelf_dialog(shared: &Shared, then_add: Vec<Publication>, reading_lis
     });
     let parent = shared.library.borrow().clone();
     alert.present(parent.as_ref());
+    glib::idle_add_local_once(move || {
+        entry.grab_focus();
+    });
 }
 
 /// Adds publications to a shelf, stamping it, and says so in a toast.
@@ -260,6 +263,15 @@ pub fn install(shared: &Shared, ui: &Rc<library_window::LibraryUi>) {
         add_to(&on, &shelf, &selected(&on));
     });
     ui.window.add_action(&action);
+    let pin = gio::SimpleAction::new("pin-shelf", None);
+    let on = shared.clone();
+    pin.connect_activate(move |_, _| {
+        let open = on.open_shelf.borrow().clone();
+        if let Some(shelf) = open {
+            toggle_pin(&on, &shelf);
+        }
+    });
+    ui.window.add_action(&pin);
     let new = gio::SimpleAction::new("new-shelf", None);
     let on = shared.clone();
     new.connect_activate(move |_, _| new_shelf_dialog(&on, selected(&on), false));
@@ -315,6 +327,10 @@ pub fn shelf_page(shared: &Shared, shelf: &ShelfRef) -> adw::NavigationPage {
     let on = shared.clone();
     grid.connect_activate(move |grid, position| {
         library_window::activate_item(&on, grid.model(), position);
+    });
+    let focus = grid.clone();
+    glib::idle_add_local_once(move || {
+        focus.grab_focus();
     });
     let note = gtk::Label::builder()
         .xalign(0.0)

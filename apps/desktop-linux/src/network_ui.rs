@@ -137,11 +137,16 @@ fn sheet(title: &str, rows: &[&adw::PreferencesGroup]) -> Sheet {
     column.append(&status);
     let toolbar = adw::ToolbarView::new();
     toolbar.add_top_bar(&header);
-    toolbar.set_content(Some(&gtk::ScrolledWindow::builder().child(&column).build()));
+    toolbar.set_content(Some(
+        &gtk::ScrolledWindow::builder()
+            .child(&column)
+            .propagate_natural_height(true)
+            .build(),
+    ));
     let dialog = adw::Dialog::builder()
         .title(title)
         .content_width(440)
-        .content_height(520)
+        .follows_content_size(true)
         .child(&toolbar)
         .build();
     dialog.set_default_widget(Some(&connect));
