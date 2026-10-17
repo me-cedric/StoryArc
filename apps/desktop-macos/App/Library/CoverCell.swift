@@ -117,6 +117,8 @@ struct PublicationMenu: View {
     let publication: Publication
     let onOpen: (Publication) -> Void
     let onShow: (Publication) -> Void
+    /// How many publications the menu acts on; *Start from the Beginning* needs exactly one.
+    var selectionCount = 1
 
     var body: some View {
         Button { onOpen(publication) } label: { Text("desktop.menu.read") }
@@ -132,5 +134,12 @@ struct PublicationMenu: View {
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(publication.displayTitle, forType: .string)
         } label: { Text("desktop.menu.copyTitle") }
+        if RestartRequest.isOffered(
+            hasProgress: library.record(of: publication) != nil, selectionCount: selectionCount,
+            hasStore: library.progress != nil
+        ) {
+            Divider()
+            Button { library.requestRestart(publication) } label: { Text("desktop.menu.restart") }
+        }
     }
 }

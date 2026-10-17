@@ -76,7 +76,10 @@ struct CoverGridView: View {
                         onOpen: { onOpen(publication) }
                     ))
                     .contextMenu {
-                        PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: onShow)
+                        PublicationMenu(
+                            library: library, publication: publication, onOpen: onOpen, onShow: onShow,
+                            selectionCount: RestartRequest.menuCount(for: publication.id, in: selection)
+                        )
                     }
             }
         }
@@ -116,7 +119,12 @@ struct CoverListView: View {
                 id: publication.id, order: publications.map(\.id), selection: $selection,
                 onOpen: { onOpen(publication) }
             ))
-            .contextMenu { PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: onShow) }
+            .contextMenu {
+                PublicationMenu(
+                    library: library, publication: publication, onOpen: onOpen, onShow: onShow,
+                    selectionCount: RestartRequest.menuCount(for: publication.id, in: selection)
+                )
+            }
             .accessibilityLabel(Text(
                 CoverCell.label(for: publication, fraction: library.model.readFraction(of: publication))
             ))

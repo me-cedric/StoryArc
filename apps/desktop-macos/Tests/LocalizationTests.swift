@@ -33,6 +33,8 @@ struct LocalizationTests {
         SkipReason.unsupportedFormat("CB7"), .notThere, .formatNotRecognised, .archivePasswordProtected,
         .archiveUnreadable, .pdfUnopenable, .contentProtected, .unknown,
     ].map(SkippedWords.key(for:)) + [
+        // The wave 2 fixes.
+        "desktop.menu.restart", "desktop.restart.title %@", "desktop.restart.body", "desktop.restart.confirm",
     ]
 
     @Test("Each key is translated in each language", arguments: languages)

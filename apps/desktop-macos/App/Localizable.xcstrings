@@ -1849,6 +1849,34 @@
         }
       }
     },
+    "desktop.menu.restart": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorne beginnen …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the Beginning…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommencer depuis le début…"
+          }
+        }
+      }
+    },
     "desktop.menu.showControls": {
       "localizations": {
         "de": {
@@ -3189,6 +3217,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ est un fichier %2$@, que StoryArc ne lit pas. Il lit les formats %3$@."
+          }
+        }
+      }
+    },
+    "desktop.restart.body": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Stelle in dieser Publikation wird gelöscht. Sonst ändert sich nichts."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your place in this publication is cleared. Nothing else changes."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se borra tu posición en esta publicación. Nada más cambia."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre position dans cette publication est effacée. Rien d’autre ne change."
+          }
+        }
+      }
+    },
+    "desktop.restart.confirm": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Von vorne beginnen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start from the Beginning"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Empezar desde el principio"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommencer depuis le début"
+          }
+        }
+      }
+    },
+    "desktop.restart.title %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“ von vorne beginnen?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start “%@” from the beginning?"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Empezar «%@» desde el principio?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recommencer « %@ » depuis le début ?"
           }
         }
       }

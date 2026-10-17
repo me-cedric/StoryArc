@@ -70,6 +70,7 @@ struct LibraryWindow: View {
         }
         .onChange(of: library.offeredFolder) { showingFolderOffer = library.offeredFolder != nil }
         .acceptsDroppedFiles()
+        .restartConfirmation(library)
         .confirmationDialog(
             Text("desktop.drop.folder.title \(library.offeredFolder?.lastPathComponent ?? "")"),
             isPresented: $showingFolderOffer, titleVisibility: .visible
