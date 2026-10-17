@@ -13,8 +13,12 @@ use crate::settings::{Appearance, Rgb};
 /// sync. Do not edit the file by hand.
 pub const TOKENS_CSS: &str = include_str!("../data/style/storyarc-tokens.css");
 
-/// The four classes the design names, over the ramp colours of `ramp_stylesheet`.
+/// The four classes the design names, over the ramp colours of `ramp_stylesheet`, and
+/// `.dimmed`, which libadwaita only defines from 1.7: on the 1.5 floor every grey line
+/// and dimmed cell would otherwise draw at full strength. The opacity is the stock
+/// `.dim-label` one, so a newer libadwaita draws the same.
 const APP_CSS: &str = "\
+.dimmed { opacity: 0.55; }
 .storyarc-canvas { background-color: @storyarc_surface_canvas; }
 .storyarc-letterbox { background-color: @storyarc_surface_sunken; }
 .storyarc-cover { border-radius: 4px; overflow: hidden; }
@@ -221,6 +225,10 @@ mod tests {
         );
         assert!(!light.contains("window_bg_color"));
         assert!(light.contains(".storyarc-reader"));
+        assert!(
+            light.contains(".dimmed { opacity: 0.55; }"),
+            "the floor has no .dimmed of its own"
+        );
 
         let oled = ramp_stylesheet(Ramp::OledDark);
         assert!(oled.contains("@define-color window_bg_color @storyarc_oled_dark_surface_canvas;"));

@@ -1,34 +1,54 @@
-//! The library's widgets (tasks 2.35a to 2.35d): the cover grid and the list over one
-//! `GListModel`, Home's shelves, and the publication detail page. What each shows is
-//! decided in `library/`; these functions only lay it out.
+//! The library's cells (tasks 2.35a and 2.35b): the cover grid and the list over one
+//! `GListModel`. What each cell shows is decided in `library/`; these functions only lay
+//! it out. Home is `home_view.rs` and the publication page is `detail_view.rs`.
 
+use std::cell::Cell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
 use adw::prelude::*;
-use gtk::{gio, glib};
+use gtk::{gdk, gio, glib};
 use storyarc_core::domain::Publication;
 
 use crate::covers::Covers;
-use crate::library::detail::Detail;
-use crate::library::entry::LibraryEntry;
+use crate::library::entry::{LibraryEntry, UNAVAILABLE};
 use crate::library::grid::CoverTier;
-use crate::library::home::{Home, Shelf};
-use crate::strings::tr;
+use crate::strings::{tr, tr_args, tr_plural};
+
+/// The names the cell's labels carry, so one bind fills the grid and the list.
+const TITLE: &str = "title";
+const SUBTITLE: &str = "subtitle";
+const NOTE: &str = "note";
 
 /// One cell's data: the entry it shows and, unless the file could not be opened, the
-/// core's record behind it.
+/// core's record behind it. A cell that stands for a series holds its issues instead.
 pub struct Item {
     pub entry: LibraryEntry,
     pub publication: Option<Publication>,
+    /// The series' issues, in their order, when the cell stands for a series.
+    pub issues: Vec<Publication>,
 }
 
 impl Item {
+    pub fn publication(entry: LibraryEntry, publication: Publication) -> Self {
+        Self {
+            entry,
+            publication: Some(publication),
+            issues: Vec::new(),
+        }
+    }
+
+    /// The file the cover comes from: the publication's, or a series' first issue's.
     pub fn path(&self) -> Option<PathBuf> {
         self.publication
             .as_ref()
+            .or(self.issues.first())
             .and_then(|publication| publication.identity.normalized_path.clone())
             .map(PathBuf::from)
+    }
+
+    pub fn is_series(&self) -> bool {
+        !self.issues.is_empty()
     }
 }
 
@@ -44,11 +64,11 @@ pub fn item_at(model: &impl IsA<gio::ListModel>, position: u32) -> Option<glib::
 /// A cover at `width`, in a 2:3 box. The grid, the list and the detail page show the
 /// cover whole (`library-browsing`, Cover art is shown whole); a Home card fills its box
 /// (`home-screen`, Artwork is not letterboxed): pass `ContentFit::Cover` there.
-fn cover_picture(width: i32) -> gtk::Picture {
+pub fn cover_picture(width: i32) -> gtk::Picture {
     cover_picture_fitted(width, gtk::ContentFit::Contain)
 }
 
-fn cover_picture_fitted(width: i32, fit: gtk::ContentFit) -> gtk::Picture {
+pub fn cover_picture_fitted(width: i32, fit: gtk::ContentFit) -> gtk::Picture {
     let picture = gtk::Picture::builder()
         .content_fit(fit)
         .can_shrink(true)
@@ -58,14 +78,26 @@ fn cover_picture_fitted(width: i32, fit: gtk::ContentFit) -> gtk::Picture {
     picture
 }
 
-/// The cover grid: covers at the tier's width, the title under each, and the progress
-/// rail. A file that could not be opened shows its reason in place of the title, dimmed.
-pub fn grid_view(
-    model: &gtk::MultiSelection,
-    covers: &Rc<Covers>,
-    tier: CoverTier,
-) -> gtk::GridView {
+/// What a right click on a cover does: the window builds the menu for the item the cell
+/// holds, at the point clicked.
+pub type CellMenu = Rc<dyn Fn(&gtk::Widget, &glib::BoxedAnyObject, f64, f64)>;
+
+/// What every cell of a shelf shares: its model, the cover ladder, the menu, and whether
+/// the window is in selection mode, where a click picks a cover rather than focusing it.
+#[derive(Clone)]
+pub struct CellHooks {
+    pub model: gtk::MultiSelection,
+    pub covers: Rc<Covers>,
+    pub menu: CellMenu,
+    pub selecting: Rc<Cell<bool>>,
+}
+
+/// The cover grid: covers at the tier's width, the title under each, the progress rail,
+/// and a grey line for a cell whose library cannot be reached or that stands for a
+/// series. A file that could not be opened shows its reason in place of the title.
+pub fn grid_view(hooks: &CellHooks, tier: CoverTier) -> gtk::GridView {
     let factory = gtk::SignalListItemFactory::new();
+    let setup = hooks.clone();
     factory.connect_setup(move |_, cell| {
         let Some(cell) = cell.downcast_ref::<gtk::ListItem>() else {
             return;
@@ -80,6 +112,7 @@ pub fn grid_view(
         );
         column.append(
             &gtk::Label::builder()
+                .name(TITLE)
                 .wrap(true)
                 .lines(2)
                 .ellipsize(gtk::pango::EllipsizeMode::End)
@@ -87,12 +120,23 @@ pub fn grid_view(
                 .justify(gtk::Justification::Center)
                 .build(),
         );
+        column.append(
+            &gtk::Label::builder()
+                .name(NOTE)
+                .wrap(true)
+                .max_width_chars(14)
+                .justify(gtk::Justification::Center)
+                .css_classes(["dimmed", "caption"])
+                .visible(false)
+                .build(),
+        );
+        attach(cell, &column, &setup);
         cell.set_child(Some(&column));
     });
-    let covers = covers.clone();
+    let covers = hooks.covers.clone();
     factory.connect_bind(move |_, cell| bind(cell, &covers));
     gtk::GridView::builder()
-        .model(model)
+        .model(&hooks.model)
         .factory(&factory)
         .max_columns(24)
         .single_click_activate(false)
@@ -106,9 +150,10 @@ pub fn grid_view(
 }
 
 /// The list: a small cover, the title, and a line of series, format and progress.
-pub fn list_view(model: &gtk::MultiSelection, covers: &Rc<Covers>) -> gtk::ListView {
+pub fn list_view(hooks: &CellHooks) -> gtk::ListView {
     let factory = gtk::SignalListItemFactory::new();
-    factory.connect_setup(|_, cell| {
+    let setup = hooks.clone();
+    factory.connect_setup(move |_, cell| {
         let Some(cell) = cell.downcast_ref::<gtk::ListItem>() else {
             return;
         };
@@ -122,27 +167,35 @@ pub fn list_view(model: &gtk::MultiSelection, covers: &Rc<Covers>) -> gtk::ListV
         text.set_valign(gtk::Align::Center);
         text.append(
             &gtk::Label::builder()
+                .name(TITLE)
                 .xalign(0.0)
                 .ellipsize(gtk::pango::EllipsizeMode::End)
                 .build(),
         );
         text.append(
             &gtk::Label::builder()
+                .name(SUBTITLE)
                 .xalign(0.0)
                 .css_classes(["dimmed", "caption"])
                 .ellipsize(gtk::pango::EllipsizeMode::End)
                 .build(),
         );
         row.append(&text);
+        attach(cell, &row, &setup);
         cell.set_child(Some(&row));
     });
-    let covers = covers.clone();
+    let covers = hooks.covers.clone();
     factory.connect_bind(move |_, cell| bind(cell, &covers));
     gtk::ListView::builder()
-        .model(model)
+        .model(&hooks.model)
         .factory(&factory)
         .css_classes(["navigation-sidebar"])
         .build()
+}
+
+/// How many publications a series cell holds, said in the catalogue's plural.
+fn holds(count: usize) -> String {
+    tr_plural("shelves.count %d", "%d title", "%d titles", count as u64)
 }
 
 /// Fills a grid or list cell from its item. Both layouts share the walk: a picture,
@@ -182,20 +235,83 @@ fn bind(cell: &glib::Object, covers: &Rc<Covers>) {
         widget = current.next_sibling();
     }
     let title = entry.cell_label_key().unwrap_or(&entry.title);
-    if let Some(label) = labels.first() {
-        label.set_label(title);
-        if entry.cannot_open.is_some() {
-            label.add_css_class("dimmed");
-        } else {
-            label.remove_css_class("dimmed");
+    let unavailable = tr(UNAVAILABLE.0, UNAVAILABLE.1);
+    let note = if entry.unavailable {
+        Some(unavailable.clone())
+    } else {
+        item.is_series().then(|| holds(item.issues.len()))
+    };
+    for label in labels {
+        match label.widget_name().as_str() {
+            TITLE => {
+                label.set_label(title);
+                set_class(&label, "dimmed", entry.cannot_open.is_some());
+            }
+            SUBTITLE => label.set_label(&note.clone().unwrap_or_else(|| subtitle(entry))),
+            NOTE => {
+                label.set_label(note.as_deref().unwrap_or_default());
+                label.set_visible(note.is_some());
+            }
+            _ => {}
         }
     }
-    if let Some(label) = labels.get(1) {
-        label.set_label(&subtitle(entry));
+    // Dimming is the only difference: the cell keeps its place and stays selectable.
+    set_class(&child, "dimmed", entry.unavailable);
+    child.set_tooltip_text(entry.unavailable.then_some(unavailable.as_str()));
+    let mut description = entry.accessible_description();
+    if item.is_series() {
+        description = format!("{description}, {}", holds(item.issues.len()));
     }
-    child.update_property(&[gtk::accessible::Property::Label(
-        &entry.accessible_description(),
-    )]);
+    child.update_property(&[gtk::accessible::Property::Label(&description)]);
+}
+
+pub fn set_class(widget: &impl IsA<gtk::Widget>, class: &str, on: bool) {
+    if on {
+        widget.add_css_class(class);
+    } else {
+        widget.remove_css_class(class);
+    }
+}
+
+/// A right click opens the cover's menu (`library/context.rs`). In selection mode a
+/// primary click picks the cover or puts it back, and nothing opens.
+fn attach(cell: &gtk::ListItem, child: &gtk::Box, hooks: &CellHooks) {
+    let context = gtk::GestureClick::builder()
+        .button(gdk::BUTTON_SECONDARY)
+        .build();
+    let weak = cell.downgrade();
+    let open = hooks.menu.clone();
+    context.connect_pressed(move |gesture, _, x, y| {
+        let (Some(cell), Some(widget)) = (weak.upgrade(), gesture.widget()) else {
+            return;
+        };
+        if let Some(item) = cell.item().and_downcast::<glib::BoxedAnyObject>() {
+            gesture.set_state(gtk::EventSequenceState::Claimed);
+            open(&widget, &item, x, y);
+        }
+    });
+    child.add_controller(context);
+
+    let pick = gtk::GestureClick::builder()
+        .button(gdk::BUTTON_PRIMARY)
+        .propagation_phase(gtk::PropagationPhase::Capture)
+        .build();
+    let weak = cell.downgrade();
+    let model = hooks.model.clone();
+    let selecting = hooks.selecting.clone();
+    pick.connect_pressed(move |gesture, _, _, _| {
+        let Some(cell) = weak.upgrade().filter(|_| selecting.get()) else {
+            return;
+        };
+        gesture.set_state(gtk::EventSequenceState::Claimed);
+        let position = cell.position();
+        if model.is_selected(position) {
+            model.unselect_item(position);
+        } else {
+            model.select_item(position, false);
+        }
+    });
+    child.add_controller(pick);
 }
 
 /// The list's second line: the file's name when it could not be opened, else series,
@@ -214,289 +330,11 @@ fn subtitle(entry: &LibraryEntry) -> String {
     parts.push(entry.format.display_name().to_owned());
     let percent = entry.progress.percent();
     if percent > 0 {
-        parts.push(format!("{percent}%"));
+        parts.push(tr_args(
+            "library.cell.progress %d",
+            "%d%% read",
+            &[&percent],
+        ));
     }
     parts.join(" · ")
-}
-
-/// Home: Keep Reading, then Up Next, each present only with something on it. An empty
-/// library is a status page that offers to add a folder; a library with no history yet
-/// says where to start.
-pub fn home_page(home: &Home, covers: &Rc<Covers>, open: Rc<dyn Fn(&Publication)>) -> gtk::Widget {
-    let shelves = match home {
-        Home::EmptyLibrary => {
-            let add = gtk::Button::builder()
-                .label(tr("library.addSource", "Add Folder…"))
-                .action_name("win.add-source")
-                .halign(gtk::Align::Center)
-                .css_classes(["pill", "suggested-action"])
-                .build();
-            return adw::StatusPage::builder()
-                .icon_name(crate::APP_ID)
-                .title(tr("library.empty.title", "Nothing here yet"))
-                .description("Add a folder of comics, or drop one on this window.")
-                .child(&add)
-                .build()
-                .upcast();
-        }
-        Home::Shelves(shelves) if shelves.is_empty() => {
-            let browse = gtk::Button::builder()
-                .label(tr("sidebar.library", "Library"))
-                .action_name("win.show-library")
-                .halign(gtk::Align::Center)
-                .css_classes(["pill"])
-                .build();
-            return adw::StatusPage::builder()
-                .icon_name("document-open-recent-symbolic")
-                .title("Nothing in Progress")
-                .description(tr(
-                    "home.nothingOpen",
-                    "Nothing open yet. Pick something from your library.",
-                ))
-                .child(&browse)
-                .build()
-                .upcast();
-        }
-        Home::Shelves(shelves) => shelves,
-    };
-    let column = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(24)
-        .margin_top(24)
-        .margin_bottom(24)
-        .margin_start(24)
-        .margin_end(24)
-        .build();
-    for (shelf, publications) in shelves {
-        column.append(&shelf_row(*shelf, publications, covers, &open));
-    }
-    gtk::ScrolledWindow::builder()
-        .hscrollbar_policy(gtk::PolicyType::Never)
-        .child(
-            &adw::Clamp::builder()
-                .maximum_size(1200)
-                .child(&column)
-                .build(),
-        )
-        .build()
-        .upcast()
-}
-
-fn shelf_row(
-    shelf: Shelf,
-    publications: &[Publication],
-    covers: &Rc<Covers>,
-    open: &Rc<dyn Fn(&Publication)>,
-) -> gtk::Box {
-    let (key, english) = shelf.title();
-    let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
-    section.append(
-        &gtk::Label::builder()
-            .label(tr(key, english))
-            .xalign(0.0)
-            .css_classes(["title-3"])
-            .accessible_role(gtk::AccessibleRole::Heading)
-            .build(),
-    );
-    let row = gtk::FlowBox::builder()
-        .selection_mode(gtk::SelectionMode::None)
-        .max_children_per_line(12)
-        .column_spacing(12)
-        .row_spacing(12)
-        .homogeneous(true)
-        .build();
-    for publication in publications {
-        let tile = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let picture = cover_picture_fitted(CoverTier::SMALL, gtk::ContentFit::Cover);
-        let path = publication
-            .identity
-            .normalized_path
-            .clone()
-            .map(PathBuf::from);
-        covers.show(&picture, &publication.id(), path);
-        tile.append(&picture);
-        tile.append(
-            &gtk::Label::builder()
-                .label(&publication.display_title)
-                .ellipsize(gtk::pango::EllipsizeMode::End)
-                .max_width_chars(12)
-                .build(),
-        );
-        let button = gtk::Button::builder()
-            .child(&tile)
-            .css_classes(["flat"])
-            .tooltip_text(&publication.display_title)
-            .build();
-        let open = open.clone();
-        let publication = publication.clone();
-        button.connect_clicked(move |_| open(&publication));
-        row.append(&button);
-    }
-    section.append(&row);
-    section
-}
-
-/// The detail page pushed over the library in a narrow window.
-pub fn detail_page(
-    detail: &Detail,
-    publication: &Publication,
-    covers: &Rc<Covers>,
-    read: Rc<dyn Fn(&Publication)>,
-) -> adw::NavigationPage {
-    adw::NavigationPage::builder()
-        .title(&detail.title)
-        .tag("detail")
-        .child(&detail_view(detail, publication, covers, read))
-        .build()
-}
-
-/// The second pane of a wide window before a cover is chosen: one sentence.
-pub fn pane_placeholder() -> gtk::Widget {
-    let toolbar = adw::ToolbarView::new();
-    toolbar.add_top_bar(&adw::HeaderBar::builder().show_title(false).build());
-    toolbar.set_content(Some(
-        &adw::StatusPage::builder()
-            .title("No Publication Chosen")
-            .description("Choose a cover to see its page here.")
-            .build(),
-    ));
-    toolbar.upcast()
-}
-
-/// The detail page's content, with its own header bar: the cover on a wash, the title,
-/// one primary action, a menu, and the line that names where the file lives. The same
-/// view is pushed in a narrow window and stands beside the library in a wide one.
-pub fn detail_view(
-    detail: &Detail,
-    publication: &Publication,
-    covers: &Rc<Covers>,
-    read: Rc<dyn Fn(&Publication)>,
-) -> adw::ToolbarView {
-    let path = publication.identity.normalized_path.clone();
-    let column = detail_column(detail, publication, covers, read);
-    let toolbar = adw::ToolbarView::new();
-    let header = adw::HeaderBar::new();
-    header.set_title_widget(Some(&adw::WindowTitle::new(&detail.title, "")));
-    toolbar.add_top_bar(&header);
-    toolbar.set_content(Some(
-        &gtk::ScrolledWindow::builder()
-            .hscrollbar_policy(gtk::PolicyType::Never)
-            .child(
-                &adw::Clamp::builder()
-                    .maximum_size(640)
-                    .child(&column)
-                    .build(),
-            )
-            .build(),
-    ));
-    toolbar.insert_action_group("detail", Some(&show_in_files(path)));
-    toolbar
-}
-
-fn show_in_files(path: Option<String>) -> gio::SimpleActionGroup {
-    let group = gio::SimpleActionGroup::new();
-    let show = gio::SimpleAction::new("show-in-files", None);
-    show.connect_activate(move |_, _| {
-        if let Some(path) = &path {
-            gtk::FileLauncher::new(Some(&gio::File::for_path(path))).open_containing_folder(
-                gtk::Window::NONE,
-                None::<&gio::Cancellable>,
-                |_| {},
-            );
-        }
-    });
-    group.add_action(&show);
-    group
-}
-
-fn detail_column(
-    detail: &Detail,
-    publication: &Publication,
-    covers: &Rc<Covers>,
-    read: Rc<dyn Fn(&Publication)>,
-) -> gtk::Box {
-    let picture = cover_picture(220);
-    picture.set_halign(gtk::Align::Center);
-    let path = publication.identity.normalized_path.clone();
-    covers.show(&picture, &publication.id(), path.clone().map(PathBuf::from));
-    let wash = gtk::Box::builder()
-        .css_classes(["storyarc-cover-wash"])
-        .halign(gtk::Align::Fill)
-        .build();
-    wash.append(&picture);
-    picture.set_hexpand(true);
-
-    let column = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(12)
-        .margin_top(24)
-        .margin_bottom(24)
-        .margin_start(24)
-        .margin_end(24)
-        .build();
-    column.append(&wash);
-    column.append(
-        &gtk::Label::builder()
-            .label(&detail.title)
-            .wrap(true)
-            .css_classes(["title-1"])
-            .build(),
-    );
-    if let Some(subtitle) = &detail.subtitle {
-        column.append(
-            &gtk::Label::builder()
-                .label(subtitle)
-                .wrap(true)
-                .css_classes(["dimmed"])
-                .build(),
-        );
-    }
-    let primary = gtk::Button::builder()
-        .label(detail.primary.label())
-        .sensitive(detail.primary.is_enabled())
-        .css_classes(["pill", "suggested-action"])
-        .build();
-    let target = publication.clone();
-    primary.connect_clicked(move |_| read(&target));
-    let menu = gio::Menu::new();
-    menu.append(Some("Show in Files"), Some("detail.show-in-files"));
-    let more = gtk::MenuButton::builder()
-        .icon_name("view-more-symbolic")
-        .tooltip_text("More")
-        .menu_model(&menu)
-        .css_classes(["circular"])
-        .build();
-    let actions = gtk::Box::builder()
-        .spacing(12)
-        .halign(gtk::Align::Center)
-        .build();
-    actions.append(&primary);
-    actions.append(&more);
-    column.append(&actions);
-    if let Some(note) = detail.note {
-        column.append(
-            &gtk::Label::builder()
-                .label(note)
-                .css_classes(["dimmed"])
-                .build(),
-        );
-    }
-    if let Some(count) = detail.page_count {
-        column.append(
-            &gtk::Label::builder()
-                .label(format!("{count} pages"))
-                .css_classes(["dimmed", "caption"])
-                .build(),
-        );
-    }
-    column.append(
-        &gtk::Label::builder()
-            .label(&detail.location)
-            .wrap(true)
-            .wrap_mode(gtk::pango::WrapMode::WordChar)
-            .selectable(true)
-            .css_classes(["dimmed", "caption"])
-            .build(),
-    );
-    column
 }

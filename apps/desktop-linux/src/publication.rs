@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use storyarc_core::domain::{self, ReadingDirection};
+use storyarc_core::domain;
 use storyarc_core::image::{self, DecodedPage, PageSize};
 use storyarc_core::library::{LibraryError, OpenPublication};
 
@@ -20,7 +20,6 @@ pub struct Publication {
     pub id: String,
     pub title: String,
     pub page_count: u32,
-    pub direction: ReadingDirection,
     /// The core's record, for the progress store and the detail page.
     pub record: domain::Publication,
     /// The pages the container declares as double spreads.
@@ -63,7 +62,6 @@ impl Publication {
             id: path.to_string_lossy().into_owned(),
             title: record.display_title.clone(),
             page_count: u32::try_from(open.page_count()).unwrap_or(u32::MAX),
-            direction: record.reading_direction,
             declared_spreads: open.declared_spreads().into_iter().collect(),
             record,
             open: Arc::new(Mutex::new(open)),

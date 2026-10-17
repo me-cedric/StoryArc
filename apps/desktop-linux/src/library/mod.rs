@@ -8,11 +8,15 @@
 //! `query.rs` also keeps a local `apply` over cells, which its own tests pin.
 
 pub mod adapter;
+pub mod context;
 pub mod detail;
 pub mod entry;
 pub mod grid;
 pub mod home;
+pub mod notice;
 pub mod query;
+pub mod search;
+pub mod shelf;
 
 #[allow(unused_imports)]
 pub use entry::{Cover, Format, LibraryEntry, Progress};
@@ -45,6 +49,7 @@ pub(crate) mod fixtures {
             last_read_at: None,
             cover: Cover::Placeholder,
             cannot_open: None,
+            unavailable: false,
         }
     }
 

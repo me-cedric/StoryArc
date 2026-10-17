@@ -78,6 +78,19 @@ pub fn reader_menu(menu: &gio::Menu, full_screen_note: Option<&str>) {
         section.append(Some(&text), Some(command.action));
     }
     menu.append_section(None, &section);
+    let direction = gio::Menu::new();
+    direction.append(
+        Some(&tr("reader.leftToRight", "Left to right")),
+        Some("win.reading-direction::ltr"),
+    );
+    direction.append(
+        Some(&tr("reader.rightToLeft", "Right to left")),
+        Some("win.reading-direction::rtl"),
+    );
+    menu.append_section(
+        Some(&tr("reader.direction", "Reading direction")),
+        &direction,
+    );
     let rest = gio::Menu::new();
     rest.append(
         Some(&tr("settings.title", "Settings…")),

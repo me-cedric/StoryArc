@@ -230,6 +230,16 @@ pub fn tr(key: &str, english: &str) -> String {
         .to_owned()
 }
 
+/// The plural form of `key` for `count`, with the count filled in: the catalogue's rule
+/// for its language (French counts 0 as singular), or the English `one` and `other`.
+pub fn tr_plural(key: &str, one: &str, other: &str, count: u64) -> String {
+    let template = CATALOGUE
+        .get()
+        .and_then(|catalogue| catalogue.get_plural(key, count))
+        .unwrap_or(if count == 1 { one } else { other });
+    fill(template, &[&count])
+}
+
 /// `tr` with the catalogue's `%s`, `%d` and positional `%1$s` placeholders filled in order.
 pub fn tr_args(key: &str, english: &str, args: &[&dyn std::fmt::Display]) -> String {
     fill(&tr(key, english), args)
@@ -377,5 +387,7 @@ msgstr ""
     fn tr_falls_back_to_english_before_init_and_for_a_desktop_only_key() {
         assert_eq!(tr("desktop.command.openFile", "Open File…"), "Open File…");
         assert_eq!(tr_args("missing %s", "Hello %s", &[&"you"]), "Hello you");
+        assert_eq!(tr_plural("missing %d", "%d page", "%d pages", 1), "1 page");
+        assert_eq!(tr_plural("missing %d", "%d page", "%d pages", 6), "6 pages");
     }
 }

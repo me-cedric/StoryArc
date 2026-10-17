@@ -9,14 +9,14 @@
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 use std::time::{Duration, Instant};
 
 use adw::prelude::*;
 use gtk::{gio, glib};
 use storyarc_core::domain::{ReadingDirection, SpreadLayout};
 
-use crate::app::{ReaderHandle, Shared};
+use crate::app::{App, ReaderHandle, Shared};
 use crate::commands::Scope;
 use crate::fullscreen::FullScreen;
 use crate::idle::IdleHold;
@@ -26,10 +26,11 @@ use crate::page_view::{PLACEHOLDER_SIZE, PageImage, PageView};
 use crate::progress::ProgressWriter;
 use crate::publication::{self, Availability, Publication};
 use crate::reader_input;
+use crate::reading::end::{self, Turned};
 use crate::reading::{Size, SpreadDecision, ZoomModel};
 use crate::session::{self, CoreProgress, LOG_DOMAIN};
 use crate::settings::{Fit, Preferences};
-use crate::strings::tr_args;
+use crate::strings::{tr, tr_args};
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
 
 /// How often the window looks at its timers: the chrome, the write clock, full screen,
@@ -77,6 +78,22 @@ pub struct Reader {
     wide: RefCell<HashSet<usize>>,
     layout: RefCell<SpreadLayout>,
     pairs: Cell<bool>,
+    /// The direction the reader reads in now: the publication's own, or the one chosen.
+    direction: Cell<ReadingDirection>,
+    /// Whether the end screen stands in place of the page.
+    at_end: Cell<bool>,
+    /// The page surface and the end screen.
+    content: gtk::Stack,
+    end: EndScreen,
+    shared: Weak<App>,
+}
+
+/// The end screen's widgets: what it says and the next issue it offers.
+struct EndScreen {
+    page: adw::StatusPage,
+    next: gtk::Button,
+    /// The next issue the button opens, while there is one.
+    target: RefCell<Option<storyarc_core::domain::Publication>>,
 }
 
 impl Reader {
@@ -85,8 +102,25 @@ impl Reader {
         self.pages.get().page
     }
 
+    pub(crate) fn direction(&self) -> ReadingDirection {
+        self.direction.get()
+    }
+
     pub(crate) fn right_to_left(&self) -> bool {
-        self.publication.direction == ReadingDirection::RightToLeft
+        self.direction() == ReadingDirection::RightToLeft
+    }
+
+    /// The reader chose a direction: it applies now, on the same page, and is
+    /// remembered for the series (`comic-reader`, Overriding direction).
+    pub(crate) fn set_direction(self: &Rc<Self>, direction: ReadingDirection) {
+        if direction == self.direction.get() {
+            return;
+        }
+        self.direction.set(direction);
+        if let Some(shared) = self.shared.upgrade() {
+            shared.choose_direction(&self.publication.record, direction);
+        }
+        self.show_screen();
     }
 
     /// Writes the pending position now, before the window closes or the app quits. A
@@ -110,10 +144,21 @@ impl Reader {
     /// Turns one screen: a pair turns two pages, a lone page one. The zoom carries over.
     pub(crate) fn turn(self: &Rc<Self>, action: PageAction) {
         let current = self.pages.get();
-        let landing = SpreadDecision::turned(&self.layout.borrow(), current.page as usize, action);
-        let Some(landing) = landing else {
-            return;
+        let outcome = end::turned(
+            &self.layout.borrow(),
+            current.page as usize,
+            self.at_end.get(),
+            action,
+        );
+        let landing = match outcome {
+            Turned::Stays => return,
+            Turned::End => {
+                self.show_end();
+                return;
+            }
+            Turned::Page(landing) => landing,
         };
+        self.leave_end();
         let next = PageModel::new(u32::try_from(landing).unwrap_or(0), current.count);
         self.pages.set(next);
         self.progress.borrow_mut().turned(next.page, Instant::now());
@@ -124,6 +169,53 @@ impl Reader {
         );
         self.show_screen();
         self.page_view.set_zoom(self.opening_zoom(zoom));
+    }
+
+    /// Turned past the last page: the publication is finished, its last page written at
+    /// once, and the end screen offers the next issue of the series when the library
+    /// holds one (`comic-reader`, Reaching the end).
+    fn show_end(&self) {
+        let count = self.pages.get().count;
+        {
+            let mut progress = self.progress.borrow_mut();
+            progress.turned(count.saturating_sub(1), Instant::now());
+            if let Err(failure) = progress.flush() {
+                glib::g_warning!(LOG_DOMAIN, "{failure}");
+            }
+        }
+        let library = self
+            .shared
+            .upgrade()
+            .map(|shared| shared.sources.publications())
+            .unwrap_or_default();
+        let next = end::next_in_series(&self.publication.record, &library).cloned();
+        match &next {
+            Some(next) => {
+                self.end.next.set_label(&tr_args(
+                    "reader.end.next %s",
+                    "Next: %s",
+                    &[&next.display_title],
+                ));
+                self.end.next.set_visible(true);
+            }
+            None => self.end.next.set_visible(false),
+        }
+        *self.end.target.borrow_mut() = next;
+        self.at_end.set(true);
+        self.content.set_visible_child_name("end");
+        self.counter
+            .set_label(&tr("reader.end.finished", "Finished"));
+        self.chrome.borrow_mut().pointer_moved(Instant::now());
+        self.apply_chrome();
+        if let Some(shared) = self.shared.upgrade() {
+            shared.progress_changed();
+        }
+    }
+
+    fn leave_end(&self) {
+        if self.at_end.replace(false) {
+            self.content.set_visible_child_name("page");
+        }
     }
 
     /// A fitted page that overflows the window (fit to width, original size) opens at its
@@ -189,7 +281,9 @@ impl Reader {
             &[&page.label_number(), &page.count],
         );
         self.page_view.set_pages(images, &description);
-        self.counter.set_label(&description);
+        if !self.at_end.get() {
+            self.counter.set_label(&description);
+        }
         let failure = self.page_view.failure();
         self.note.set_label(failure.as_deref().unwrap_or_default());
         self.note.set_visible(failure.is_some());
@@ -353,11 +447,17 @@ pub fn open(
         .wrap(true)
         .visible(false)
         .build();
-    let content = gtk::Overlay::builder()
+    let surface = gtk::Overlay::builder()
         .css_classes(["storyarc-reader"])
         .child(&page_view)
         .build();
-    content.add_overlay(&note);
+    surface.add_overlay(&note);
+    let end = end_screen();
+    let content = gtk::Stack::builder()
+        .transition_type(gtk::StackTransitionType::Crossfade)
+        .build();
+    content.add_named(&surface, Some("page"));
+    content.add_named(&end.page, Some("end"));
 
     let counter = gtk::Label::builder()
         .css_classes(["caption", "dimmed"])
@@ -421,8 +521,14 @@ pub fn open(
         wide: RefCell::new(publication.declared_spreads.clone()),
         layout: RefCell::new(SpreadLayout::single(publication.page_count as usize)),
         pairs: Cell::new(false),
+        direction: Cell::new(shared.direction_for(&publication.record)),
+        at_end: Cell::new(false),
+        content,
+        end,
+        shared: Rc::downgrade(shared),
         publication: publication.clone(),
     });
+    install_end_screen(&reader);
     reader.page_view.set_fit(preferences.fit);
     reader.relayout();
 
@@ -465,8 +571,91 @@ pub fn open(
     window
 }
 
+/// The end screen: it says the publication is finished and offers the next issue, the
+/// last page again, and the library. Built once per window, filled when it is reached.
+fn end_screen() -> EndScreen {
+    let next = gtk::Button::builder()
+        .css_classes(["pill", "suggested-action"])
+        .halign(gtk::Align::Center)
+        .visible(false)
+        .build();
+    let back = gtk::Button::builder()
+        .label(tr("reader.end.back", "Back to the last page"))
+        .css_classes(["pill"])
+        .halign(gtk::Align::Center)
+        .action_name("win.last-page")
+        .build();
+    let library = gtk::Button::builder()
+        .label(tr("reader.end.library", "Library"))
+        .css_classes(["pill"])
+        .halign(gtk::Align::Center)
+        .action_name("app.library")
+        .build();
+    let actions = gtk::Box::builder()
+        .orientation(gtk::Orientation::Vertical)
+        .spacing(12)
+        .halign(gtk::Align::Center)
+        .build();
+    actions.append(&next);
+    actions.append(&back);
+    actions.append(&library);
+    let page = adw::StatusPage::builder()
+        .icon_name("object-select-symbolic")
+        .title(tr("reader.end.finished", "Finished"))
+        .child(&actions)
+        .css_classes(["storyarc-reader"])
+        .build();
+    EndScreen {
+        page,
+        next,
+        target: RefCell::default(),
+    }
+}
+
+/// The next issue opens in its own reader, as a cover in the library would open it.
+fn install_end_screen(reader: &Rc<Reader>) {
+    let weak = Rc::downgrade(reader);
+    reader.end.next.connect_clicked(move |_| {
+        let Some(reader) = weak.upgrade() else {
+            return;
+        };
+        let target = reader.end.target.borrow().clone();
+        let (Some(target), Some(shared)) = (target, reader.shared.upgrade()) else {
+            return;
+        };
+        if let Some(path) = target.identity.normalized_path.as_deref()
+            && let Err(reason) =
+                crate::launch::open_publication(&shared, std::path::Path::new(path))
+        {
+            shared.toast(&reason);
+        }
+    });
+}
+
 fn install_actions(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
     menus::add_disabled_actions(window, Scope::Reader, &IMPLEMENTED);
+    let direction = gio::SimpleAction::new_stateful(
+        "reading-direction",
+        Some(glib::VariantTy::STRING),
+        &direction_name(reader.direction()).to_variant(),
+    );
+    let weak = Rc::downgrade(reader);
+    direction.connect_activate(move |action, target| {
+        let (Some(reader), Some(name)) = (
+            weak.upgrade(),
+            target.and_then(|target| target.get::<String>()),
+        ) else {
+            return;
+        };
+        let chosen = if name == "rtl" {
+            ReadingDirection::RightToLeft
+        } else {
+            ReadingDirection::LeftToRight
+        };
+        action.set_state(&name.to_variant());
+        reader.set_direction(chosen);
+    });
+    window.add_action(&direction);
     let pages = [
         ("next-page", PageAction::Next),
         ("previous-page", PageAction::Previous),
@@ -497,6 +686,13 @@ fn install_actions(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
     add(window, reader, "original-size", |reader| {
         reader.set_fit(Fit::Original);
     });
+}
+
+fn direction_name(direction: ReadingDirection) -> &'static str {
+    match direction {
+        ReadingDirection::RightToLeft => "rtl",
+        ReadingDirection::LeftToRight => "ltr",
+    }
 }
 
 fn add(

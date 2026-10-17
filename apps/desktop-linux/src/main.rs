@@ -1,17 +1,28 @@
 //! StoryArc for Linux. The shell: windows, commands, preferences, theme and session, the
 //! library over the core's folder sources, and readers over the core's decoder.
 
+mod about;
 mod app;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod commands;
+mod cover_colour;
 mod covers;
 mod detail_panes;
+mod detail_view;
 mod folders;
 mod fullscreen;
+mod home_view;
 mod idle;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod keys;
 mod launch;
+mod library_cells;
+mod library_data;
+mod library_find;
+mod library_menus;
+mod library_notices;
+mod library_search;
+mod library_selection;
 mod library_views;
 mod library_window;
 mod menus;
@@ -19,12 +30,15 @@ mod opening;
 mod page_view;
 mod portal;
 mod preferences_dialog;
+mod preferences_pages;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod progress;
 mod publication;
 mod reader_input;
 mod reader_window;
 mod reading;
+#[cfg(test)]
+mod scratch;
 mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
@@ -178,14 +192,7 @@ fn close_all_and_quit(application: &adw::Application, shared: &Shared) {
 }
 
 fn show_about(application: &adw::Application) {
-    let dialog = adw::AboutDialog::builder()
-        .application_name("StoryArc")
-        .application_icon(APP_ID)
-        .developer_name("Cédric Meyer")
-        .version(storyarc_core::version())
-        .license_type(gtk::License::MitX11)
-        .build();
-    dialog.present(application.active_window().as_ref());
+    about::dialog(storyarc_core::version()).present(application.active_window().as_ref());
 }
 
 /// Launch, or a second launch: present the library, restoring every window the last
@@ -218,8 +225,10 @@ fn activate(shared: &Shared) {
         .iter()
         .map(|path| opening::name(std::path::Path::new(path)))
         .collect();
-    library_window::open(shared, &plan.library, &names);
+    let library = library_window::open(shared, &plan.library, &names);
     for (publication, reader) in readers {
         reader_window::open(shared, publication, reader.page, Some(reader.window));
     }
+    let seen = about::after_launch(Some(&library), session::seen_version().as_deref());
+    session::save_seen_version(&seen);
 }

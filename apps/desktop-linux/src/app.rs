@@ -6,11 +6,13 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 
+use storyarc_core::domain::{self as library_record, ReadingDirection};
 use storyarc_core::library;
 
 use crate::library_window::LibraryUi;
 use crate::opening::LaunchAction;
 use crate::reader_window::Reader;
+use crate::reading::direction::DirectionChoices;
 use crate::session;
 use crate::settings::{Preferences, Rgb};
 use crate::sources::Sources;
@@ -60,14 +62,36 @@ pub struct App {
     pub launch_action: Cell<Option<LaunchAction>>,
     /// Whether the missing file chooser was named this session; it is named once.
     pub chooser_named: Cell<bool>,
+    /// The reading directions the reader chose, by series or publication.
+    directions: RefCell<DirectionChoices>,
 }
 
 impl App {
     pub fn new() -> Shared {
         Rc::new(Self {
             preferences: RefCell::new(session::load_preferences()),
+            directions: RefCell::new(session::load_directions()),
             ..Self::default()
         })
+    }
+
+    /// The direction a publication opens in: the reader's choice, else its own.
+    pub fn direction_for(&self, publication: &library_record::Publication) -> ReadingDirection {
+        self.directions.borrow().for_publication(publication)
+    }
+
+    /// Remembers the reader's direction for the publication's series, and writes it.
+    pub fn choose_direction(
+        &self,
+        publication: &library_record::Publication,
+        direction: ReadingDirection,
+    ) {
+        let text = {
+            let mut directions = self.directions.borrow_mut();
+            directions.choose(publication, direction);
+            directions.save()
+        };
+        session::save_directions(&text);
     }
 
     /// The core's progress store, opened on first use.

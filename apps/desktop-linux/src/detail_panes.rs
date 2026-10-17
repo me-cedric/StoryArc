@@ -13,9 +13,10 @@ use gtk::glib;
 use storyarc_core::domain::Publication;
 
 use crate::app::Shared;
+use crate::detail_view;
 use crate::library::detail::Placement;
-use crate::library_views;
-use crate::library_window::{self, LibraryUi};
+use crate::library_data;
+use crate::library_window::LibraryUi;
 
 /// How often the window's width is looked at: a resize settles inside this.
 const LOOK: Duration = Duration::from_millis(250);
@@ -57,16 +58,16 @@ pub fn place(shared: &Shared, ui: &LibraryUi) {
         Placement::Beside => {
             let child = match &chosen {
                 Some(publication) => {
-                    let detail = library_window::detail_of(shared, publication);
-                    library_views::detail_view(
+                    let detail = library_data::detail_of(shared, publication);
+                    detail_view::detail_view(
                         &detail,
                         publication,
                         &ui.covers,
-                        library_window::read(shared),
+                        &library_data::detail_hooks(shared, publication),
                     )
                     .upcast()
                 }
-                None => library_views::pane_placeholder(),
+                None => detail_view::pane_placeholder(),
             };
             panes.pane.set_child(Some(&child));
             panes.split.set_show_sidebar(true);
@@ -84,12 +85,12 @@ pub fn place(shared: &Shared, ui: &LibraryUi) {
                     ui.navigation.pop_to_tag("content");
                     panes.moving.set(false);
                 }
-                let detail = library_window::detail_of(shared, &publication);
-                ui.navigation.push(&library_views::detail_page(
+                let detail = library_data::detail_of(shared, &publication);
+                ui.navigation.push(&detail_view::detail_page(
                     &detail,
                     &publication,
                     &ui.covers,
-                    library_window::read(shared),
+                    &library_data::detail_hooks(shared, &publication),
                 ));
             }
         }

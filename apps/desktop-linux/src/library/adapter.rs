@@ -12,6 +12,8 @@ use storyarc_core::locale::Collation;
 
 use super::entry::{Cover, Format, LibraryEntry, Progress};
 use super::query::{Destination, QueryState, ReadState, Sort};
+use super::search::Scope;
+use crate::folders::Access;
 
 impl Format {
     pub fn of(format: PublicationFormat) -> Self {
@@ -81,6 +83,15 @@ impl LibraryEntry {
             last_read_at: seconds(summary.last_read_at),
             cover: Cover::Placeholder,
             cannot_open: None,
+            unavailable: false,
+        }
+    }
+
+    /// The same cell, dimmed when its folder cannot be read now. It keeps its place.
+    pub fn with_access(self, access: Access) -> Self {
+        Self {
+            unavailable: access != Access::Readable,
+            ..self
         }
     }
 
@@ -101,6 +112,7 @@ impl LibraryEntry {
             last_read_at: None,
             cover: Cover::Placeholder,
             cannot_open: Some(reason.to_owned()),
+            unavailable: false,
         }
     }
 }
@@ -144,14 +156,20 @@ impl QueryState {
 
     /// The publications the content column shows, in order: the core's search, filters
     /// and sort, then the destination and the folder the reader narrowed to.
-    /// `source_of` names a publication's folder. Nothing local is a download.
+    /// `source_of` names a publication's folder and its access now. Nothing local is a
+    /// download.
+    ///
+    /// The folder filter narrows the shelf and nothing else: search still covers the
+    /// whole library (`library-browsing`, Scoping to one source). Search's own scope, on
+    /// this device, drops what cannot be read now.
     pub fn arrange(
         &self,
         publications: &[Publication],
         progress: &ProgressIndex,
         collation: &Collation,
-        source_of: impl Fn(&Publication) -> Option<String>,
+        source_of: impl Fn(&Publication) -> Option<(String, Access)>,
     ) -> Vec<Publication> {
+        let searching = self.results_take_over();
         LibraryIndex::arrange(publications, &self.to_core(), collation, progress, |_| {
             false
         })
@@ -162,10 +180,17 @@ impl QueryState {
             _ => true,
         })
         .filter(|publication| {
-            self.filters
-                .source
-                .as_deref()
-                .is_none_or(|source| source_of(publication).as_deref() == Some(source))
+            let source = source_of(publication);
+            let in_folder = searching
+                || self.filters.source.as_deref().is_none_or(|folder| {
+                    source.as_ref().map(|(name, _)| name.as_str()) == Some(folder)
+                });
+            let readable_now = !searching
+                || self.scope == Scope::Everywhere
+                || source
+                    .as_ref()
+                    .is_none_or(|(_, access)| *access == Access::Readable);
+            in_folder && readable_now
         })
         .collect()
     }
@@ -282,10 +307,16 @@ pub(crate) mod tests {
             source: Some("Elsewhere".into()),
             ..Filters::default()
         };
-        let elsewhere = state.arrange(publications, &progress, &collation, |_| {
-            Some("comics".into())
-        });
+        let in_comics = |_: &Publication| Some(("comics".to_owned(), Access::Readable));
+        let elsewhere = state.arrange(publications, &progress, &collation, in_comics);
         assert!(elsewhere.is_empty());
+        state.typed("natural");
+        assert!(
+            titles(&state.arrange(publications, &progress, &collation, in_comics))
+                .contains(&started.display_title),
+            "the folder filter narrows the shelf, never search"
+        );
+        state.cleared();
         state.filters = Filters {
             downloaded: Some(true),
             ..Filters::default()
@@ -323,6 +354,55 @@ pub(crate) mod tests {
                 .windows(2)
                 .all(|pair| collation.compare_titles(&pair[0], &pair[1]).is_le())
         );
+    }
+
+    #[test]
+    fn search_on_this_device_drops_what_cannot_be_read_now() {
+        let library = fixture_library();
+        let publications = library.publications();
+        let collation = Collation::new("en");
+        let progress = ProgressIndex::default();
+        let offline = |_: &Publication| Some(("NAS".to_owned(), Access::Offline));
+        let mut state = QueryState::at(Destination::Library);
+        state.typed("natural");
+        assert!(
+            !state
+                .arrange(publications, &progress, &collation, offline)
+                .is_empty()
+        );
+        state.scope = Scope::OnDevice;
+        assert!(
+            state
+                .arrange(publications, &progress, &collation, offline)
+                .is_empty()
+        );
+        state.cleared();
+        assert_eq!(
+            state
+                .arrange(publications, &progress, &collation, offline)
+                .len(),
+            publications.len(),
+            "the shelf keeps an offline folder's publications, dimmed"
+        );
+    }
+
+    #[test]
+    fn a_cell_on_a_folder_that_cannot_be_read_stays_dimmed_and_says_why() {
+        let library = fixture_library();
+        let publication = &library.publications()[0];
+        let entry = LibraryEntry::from_core(publication, ProgressSummary::UNREAD, "comics");
+        assert!(!entry.clone().with_access(Access::Readable).unavailable);
+        for access in [Access::Offline, Access::Withdrawn] {
+            let dimmed = entry.clone().with_access(access);
+            assert!(dimmed.unavailable);
+            assert!(
+                dimmed
+                    .accessible_description()
+                    .ends_with("Needs its library to be reachable"),
+                "{}",
+                dimmed.accessible_description()
+            );
+        }
     }
 
     #[test]

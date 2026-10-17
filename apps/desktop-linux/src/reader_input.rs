@@ -76,7 +76,7 @@ fn install_clicks(reader: &Rc<Reader>) {
                     return;
                 };
                 let zones_on = reader.preferences.borrow().click_zones;
-                let direction = reader.publication.direction;
+                let direction = reader.direction();
                 match keys::click_action(keys::zone(x, width), direction, zones_on) {
                     ClickAction::Turn(action) => reader.turn(action),
                     ClickAction::ToggleChrome => reader.toggle_chrome(),
@@ -251,12 +251,7 @@ pub fn install_keys(reader: &Rc<Reader>) {
             control: state.contains(gdk::ModifierType::CONTROL_MASK),
             alt: state.contains(gdk::ModifierType::ALT_MASK),
         };
-        match keys::page_action(
-            mapped,
-            modifiers,
-            reader.publication.direction,
-            focused_text,
-        ) {
+        match keys::page_action(mapped, modifiers, reader.direction(), focused_text) {
             Some(action) => {
                 reader.turn(action);
                 glib::Propagation::Stop

@@ -3,7 +3,9 @@
 //! `DragTurn` (tasks 2.13 to 2.15), with the same tests, so the desktops agree. The
 //! pairing arithmetic itself is the core's `SpreadLayout`, which iOS and Android share.
 
+pub mod direction;
 pub mod drag;
+pub mod end;
 pub mod spread;
 pub mod zoom;
 

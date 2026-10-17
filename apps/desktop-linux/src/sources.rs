@@ -21,6 +21,7 @@ use storyarc_core::sources::watch::{Coverage, FolderWatcher, WatchOptions, Watch
 
 use crate::app::Shared;
 use crate::folders::{self, Access, FolderRecord};
+use crate::strings::{tr, tr_args};
 use crate::{portal, session};
 
 /// How often the window looks for changes the watcher reported, and at each folder's
@@ -116,14 +117,27 @@ fn access_now(record: &FolderRecord) -> Access {
 
 /// The words for a file a scan skipped.
 fn skip_reason(reason: &SkipReason) -> String {
+    let key = |key: &str, english: &str| tr(&format!("library.skipped.reason.{key}"), english);
     match reason {
-        SkipReason::UnsupportedFormat(format) => format!("{format} is not supported"),
-        SkipReason::NotThere => "the file is not there".into(),
-        SkipReason::FormatNotRecognised => "the format was not recognised".into(),
-        SkipReason::ArchivePasswordProtected => "the archive is password protected".into(),
-        SkipReason::ArchiveUnreadable => "the archive cannot be read".into(),
-        SkipReason::ContentProtected => "the audio is copy protected".into(),
-        SkipReason::Unknown => "it could not be opened".into(),
+        SkipReason::UnsupportedFormat(format) => tr_args(
+            "library.skipped.reason.unsupported %s",
+            "%s is not a format StoryArc reads",
+            &[format],
+        ),
+        SkipReason::NotThere => key("notThere", "the file is not there"),
+        SkipReason::FormatNotRecognised => {
+            key("formatNotRecognised", "the format was not recognised")
+        }
+        SkipReason::ArchivePasswordProtected => key(
+            "archivePasswordProtected",
+            "the archive is password protected",
+        ),
+        SkipReason::ArchiveUnreadable => key("archiveUnreadable", "the archive could not be read"),
+        SkipReason::ContentProtected => key(
+            "contentProtected",
+            "this audiobook is protected by its store’s content protection",
+        ),
+        SkipReason::Unknown => key("unknown", "it could not be read"),
     }
 }
 
@@ -343,6 +357,43 @@ fn replace(shared: &Shared, index: usize, path: PathBuf) {
 
 fn save(shared: &Shared) {
     session::save_sources(&folders::save(&shared.sources.records()));
+}
+
+/// Removes the folder library at `path`: its publications leave the library, the files
+/// and the reading positions stay where they are.
+pub fn remove(shared: &Shared, path: &Path) {
+    let mut records = shared.sources.records();
+    if !folders::remove(&mut records, path) {
+        return;
+    }
+    shared
+        .sources
+        .entries
+        .borrow_mut()
+        .retain(|entry| entry.record.path != path);
+    save(shared);
+    rewatch(shared);
+    shared.library_changed();
+}
+
+impl Sources {
+    /// Each folder's path, in the sidebar's order, for the settings page.
+    pub fn paths(&self) -> Vec<PathBuf> {
+        self.entries
+            .borrow()
+            .iter()
+            .map(|entry| entry.record.path.clone())
+            .collect()
+    }
+
+    /// How many publications a folder holds now.
+    pub fn count_at(&self, path: &Path) -> usize {
+        self.entries
+            .borrow()
+            .iter()
+            .find(|entry| entry.record.path == path)
+            .map_or(0, |entry| entry.publications.len())
+    }
 }
 
 /// Add Folder: the system's folder chooser, through the portal.

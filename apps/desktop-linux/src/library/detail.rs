@@ -4,9 +4,29 @@
 //! says so in grey and its primary action waits for the folder.
 
 use storyarc_core::domain::Publication;
-use storyarc_core::library::{ProgressSummary, ReadState};
+use storyarc_core::library::{LibraryIndex, ProgressSummary, ReadState};
 
+use super::shelf::in_series_order;
 use crate::folders::Access;
+use crate::strings::{tr, tr_args};
+
+/// The rest of a publication's series the library holds, in volume and issue order
+/// (`publication-detail`, Other issues in this series). Empty for a publication in no
+/// series, or the only one of its series.
+pub fn other_issues(publication: &Publication, library: &[Publication]) -> Vec<Publication> {
+    let Some(series) = LibraryIndex::series_name(publication) else {
+        return Vec::new();
+    };
+    let others = library
+        .iter()
+        .filter(|candidate| {
+            candidate.id() != publication.id()
+                && LibraryIndex::series_name(candidate) == Some(series)
+        })
+        .cloned()
+        .collect();
+    in_series_order(others)
+}
 
 /// From this window width the page stands beside the library (`publication-detail`, The
 /// page on a large screen); below it the page is pushed over the library.
@@ -44,9 +64,13 @@ pub enum Primary {
 impl Primary {
     pub fn label(self) -> String {
         match self {
-            Self::Read | Self::Unavailable => "Read".into(),
-            Self::Continue { percent } => format!("Continue Reading · {percent}%"),
-            Self::ReadAgain => "Read Again".into(),
+            Self::Read | Self::Unavailable => tr("catalogue.detail.read", "Read"),
+            Self::Continue { percent } => format!(
+                "{} · {}",
+                tr("library.continueReading", "Continue reading"),
+                tr_args("library.cell.progress %d", "%d%% read", &[&percent])
+            ),
+            Self::ReadAgain => tr("detail.readAgain", "Read again"),
         }
     }
 
@@ -109,7 +133,10 @@ impl Detail {
             .clone()
             .unwrap_or_default();
         let location = match &source {
-            Some((name, _)) => format!("In {name} · {path}"),
+            Some((name, _)) => format!(
+                "{} · {path}",
+                tr_args("library.cell.source %s", "From %s", &[name])
+            ),
             None => path,
         };
         Self {
@@ -154,9 +181,31 @@ mod tests {
         assert_eq!(detail.subtitle.as_deref(), Some("Saga #1"));
         assert_eq!(
             detail.location,
-            "In Comics · /home/reader/Comics/Saga 1.cbz"
+            "From Comics · /home/reader/Comics/Saga 1.cbz"
         );
         assert_eq!(detail.note, None);
+    }
+
+    #[test]
+    fn the_rest_of_the_series_is_offered_in_issue_order_without_the_page_s_own() {
+        let issue = |number: &str| {
+            let mut p = publication();
+            p.identity =
+                PublicationIdentity::path(format!("/home/reader/Comics/Saga {number}.cbz"));
+            p.number = Some(number.into());
+            p.display_title = format!("Saga {number}");
+            p
+        };
+        let mut lone = issue("x");
+        lone.series = None;
+        let library = [issue("10"), publication(), issue("2"), lone.clone()];
+        let titles: Vec<String> = other_issues(&publication(), &library)
+            .into_iter()
+            .map(|p| p.display_title)
+            .collect();
+        assert_eq!(titles, ["Saga 2", "Saga 10"]);
+        assert!(other_issues(&lone, &library).is_empty());
+        assert!(other_issues(&publication(), &[publication()]).is_empty());
     }
 
     #[test]
@@ -165,7 +214,7 @@ mod tests {
         let summary = ProgressSummary::of(Some(&reading(&p, 4, 11, 10)));
         let detail = Detail::of(&p, summary, None);
         assert_eq!(detail.primary, Primary::Continue { percent: 40 });
-        assert_eq!(detail.primary.label(), "Continue Reading · 40%");
+        assert_eq!(detail.primary.label(), "Continue reading · 40% read");
         let finished =
             reading(&p, 10, 11, 10).finished(true, storyarc_core::domain::Timestamp(100));
         let again = Detail::of(&p, ProgressSummary::of(Some(&finished)), None);
