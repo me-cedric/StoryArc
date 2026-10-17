@@ -18,6 +18,8 @@ struct SettingsSearchTests {
         #expect(SettingsIndex.matches("Colour").map(\.id) == ["accent"])
         #expect(SettingsIndex.matches("WIFI").map(\.id) == ["metered"])
         #expect(SettingsIndex.matches("turn").map(\.id).contains("clickZones"))
+        // The words of the control itself, as the catalogue gives them, find it too.
+        #expect(SettingsIndex.matches("clicking the edges").map(\.id) == ["clickZones"])
     }
 
     @Test("An empty query lists everything in toolbar order; a word nothing matches lists nothing")

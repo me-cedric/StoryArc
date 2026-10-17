@@ -24,16 +24,31 @@ enum SettingsTab: String, CaseIterable, Sendable, Identifiable {
 struct SettingsEntry: Identifiable, Equatable, Sendable {
     let id: String
     let tab: SettingsTab
+    /// The English title, which a search always matches whatever the language.
     let title: String
     let keywords: [String]
+
+    /// The catalogue key of the title the row shows, the same words as the control itself.
+    var titleKey: String { Self.titleKeys[id] ?? "desktop.settings.\(tab.rawValue)" }
+
+    /// The title in the language the app is in.
+    var localizedTitle: String { String(localized: String.LocalizationValue(titleKey)) }
+
+    private static let titleKeys: [String: String] = [
+        "folders": "desktop.settings.sources.folders", "appearance": "desktop.settings.appearance",
+        "accent": "desktop.accent", "textSize": "desktop.textSize", "clickZones": "desktop.reading.clickZones",
+        "transition": "desktop.reading.transition", "coverAlone": "desktop.reader.coverAlone",
+        "metered": "desktop.downloads.metered", "language": "desktop.settings.language",
+        "history": "desktop.privacy.clearHistory", "diagnostic": "desktop.settings.entry.diagnostic",
+    ]
 }
 
 /// The searchable index of the preferences.
 ///
 /// `desktop-experience`, *Searching the preferences*: only the settings that match show,
-/// grouped under their sections, and an empty result says so in grey. The words are the
-/// English titles and a few synonyms; the catalogue's localised titles join at draw time.
-/// Task 2.21.
+/// grouped under their sections, and an empty result says so in grey. A setting answers to
+/// its English title, a few synonyms and its title in the app's language, and the row shows
+/// that last one. The reading theme joins with the EPUB reader of wave 4. Task 2.21.
 enum SettingsIndex {
     static let entries: [SettingsEntry] = [
         SettingsEntry(id: "folders", tab: .sources, title: "Folders", keywords: ["folder", "source", "library", "add"]),
@@ -47,8 +62,6 @@ enum SettingsIndex {
         SettingsEntry(id: "transition", tab: .reading, title: "Page transition",
                       keywords: ["curl", "slide", "fade", "motion"]),
         SettingsEntry(id: "coverAlone", tab: .reading, title: "Cover alone", keywords: ["spread", "two pages", "pair"]),
-        SettingsEntry(id: "readingTheme", tab: .reading, title: "Reading theme",
-                      keywords: ["paper", "sepia", "theme", "night"]),
         SettingsEntry(id: "metered", tab: .downloads, title: "Metered connections",
                       keywords: ["wi-fi", "wifi", "cellular", "download"]),
         SettingsEntry(id: "language", tab: .language, title: "Language",
@@ -63,6 +76,7 @@ enum SettingsIndex {
         guard !needle.isEmpty else { return entries }
         return entries.filter { entry in
             entry.title.lowercased().contains(needle)
+                || entry.localizedTitle.lowercased().contains(needle)
                 || entry.keywords.contains { $0.contains(needle) }
                 || entry.tab.rawValue.contains(needle)
         }

@@ -15,7 +15,7 @@ struct LocalizationTests {
     static let languages = ["en", "fr", "de", "es"]
 
     /// Keys the catalogue must hold, as the compiler writes them (`%@`, `%lld`).
-    static let keys: [String] = CommandTable.all.map(\.titleKey) + [
+    static let keys: [String] = CommandTable.all.map(\.titleKey) + SettingsIndex.entries.map(\.titleKey) + [
         "desktop.menu.go", "desktop.menu.reader",
         "desktop.refused.protected %@", "desktop.refused.passwordProtected %@",
         "desktop.refused.solidArchive %@", "desktop.refused.damaged %@",

@@ -59,7 +59,7 @@ struct SettingsSearchResults: View {
                         ForEach(group.entries) { entry in
                             Button { onChoose(entry) } label: {
                                 HStack {
-                                    Text(entry.title)
+                                    Text(entry.localizedTitle)
                                     Spacer()
                                     Text(LocalizedStringKey(group.tab.titleKey)).foregroundStyle(.secondary)
                                 }
