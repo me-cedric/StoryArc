@@ -45,7 +45,10 @@ struct LibraryWindow: View {
                 .navigationDestination(for: PublicationRoute.self) { route in
                     // Re-read from the model on every redraw, as `PublicationRoute` asks.
                     if let publication = library.model.publications.first(where: { $0.id == route.publicationID }) {
-                        DetailView(library: library, publication: publication, onOpen: open)
+                        DetailView(
+                            library: library, publication: publication, onOpen: open,
+                            onShow: { path.wrappedValue.append(PublicationRoute($0)) }
+                        )
                     }
                 }
             }

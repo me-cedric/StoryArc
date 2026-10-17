@@ -35,6 +35,7 @@ struct LocalizationTests {
     ].map(SkippedWords.key(for:)) + [
         // The wave 2 fixes.
         "desktop.menu.restart", "desktop.restart.title %@", "desktop.restart.body", "desktop.restart.confirm",
+        "desktop.detail.series.title %@", "desktop.detail.series.read", "desktop.detail.series.notHere",
     ]
 
     @Test("Each key is translated in each language", arguments: languages)

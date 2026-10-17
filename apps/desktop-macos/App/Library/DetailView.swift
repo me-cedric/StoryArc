@@ -15,8 +15,8 @@ struct DetailView: View {
     let library: MacLibrary
     let publication: Publication
     let onOpen: (Publication) -> Void
-
-    @State private var cover: CGImage?
+    /// Pushes another publication's page: an entry on the series shelf leads to its own page.
+    let onShow: (Publication) -> Void
 
     var body: some View {
         let detail = presentation
@@ -49,6 +49,7 @@ struct DetailView: View {
                 if let summary = publication.summary, !summary.isEmpty {
                     Text(summary).foregroundStyle(theme.palette.textPrimary).frame(maxWidth: 640, alignment: .leading)
                 }
+                OtherIssuesShelf(library: library, publication: publication, onShow: onShow)
             }
             .padding(28)
             .opacity(detail.isGrey ? 0.7 : 1)
