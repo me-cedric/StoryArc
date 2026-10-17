@@ -21,7 +21,9 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `library` | **The public API the apps call** (`facade`) and the shelf queries (`query`) |
 | `locale` | ICU4X collation, the search fold, number and date formatting |
 | `paths` | Per-user storage folders per system, the Flatpak and MSIX redirects |
-| `sources` | Folder scanning, reconciliation and watching |
+| `runtime` | The one tokio runtime the network sources run on, behind a blocking `Runtime` handle |
+| `secrets` | `Secret`, the in-memory type every credential travels in: no `Display`, a masked `Debug` |
+| `sources` | Folder scanning, reconciliation and watching; SMB shares (`sources::smb`) |
 | `store` | The SQLite store: progress, sources, publications |
 
 ## Public Rust API (`storyarc_core::library`)
@@ -41,7 +43,23 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `LibraryIndex::continue_reading(...)` / `up_next(...)` / `next(...)` / `previous(...)` | Home shelves and series navigation |
 
 Every failure is a `LibraryError` case. Every call is synchronous; call it off the interface
-thread. `paths::StorageLocations::current()` gives the store file and cache folders, and
+thread.
+
+### Network sources
+
+The host creates one `runtime::Runtime` at start and hands it to every network source. The
+calls below block on it, so they are made from a worker thread and never from inside the
+runtime.
+
+| Call | Does |
+| --- | --- |
+| `SmbAddress::parse(text)` / `SmbAddress::new(host, share).with_port(p).with_folder(f)` | Where a share is |
+| `SmbShare::check(&runtime, address, login)` | Validates before saving; the four named failures and the SMB 1 refusal are `SmbError` cases |
+| `SmbShare::connect(...)` then `identity()` | The negotiated dialect and whether the session is encrypted |
+| `SmbShare::list(path)` | One folder, folders first, natural order |
+| `SmbShare::open(path)` | An `SmbFile`, a `RandomAccessSource` that reconnects once on a failed read |
+| `SmbFile::status()` / `health()` | The two-second indicator and the sixty-second download offer |
+| `SmbFile::drop_session()` | Called on a wake or a network change; the next read opens a new session | `paths::StorageLocations::current()` gives the store file and cache folders, and
 `image::adjusted` applies an `ImageAdjustments` to a decoded page.
 
 ## The C seam (`storyarc-ffi`)
@@ -72,3 +90,8 @@ apps/desktop-linux/scripts/container-build.sh ubuntu-24.04
 
 The corpus is `packages/test-fixtures`; `storyarc-core/tests/images` holds one small page in
 each decoded format.
+
+`tests/smb.rs` runs against the Samba fixture (`pnpm smb`) and skips each case whose port does
+not answer. `STORYARC_SMB_PORT`, `STORYARC_SMB_ENCRYPTED_PORT`, `STORYARC_SMB1_PORT` and
+`STORYARC_SMB_USER` point it at another server; `docs/delivery/desktop-spike-smb.md` runs the
+same `smb.conf` in Docker.

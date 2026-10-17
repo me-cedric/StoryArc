@@ -7,6 +7,8 @@ pub mod io;
 pub mod library;
 pub mod locale;
 pub mod paths;
+pub mod runtime;
+pub mod secrets;
 pub mod sources;
 pub mod store;
 

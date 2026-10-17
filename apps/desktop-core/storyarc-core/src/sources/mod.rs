@@ -1,9 +1,10 @@
 //! Where publications come from. Wave 2 holds the local folder: the walk, the listing a
 //! returning app reconciles against, and the watcher over the native change notifiers.
-//! SMB, OPDS and Kavita are wave 3 (design.md, Decision 5, item 4).
+//! Wave 3 adds the network sources: SMB, OPDS and Kavita (design.md, Decision 5, item 4).
 
 pub mod index;
 pub mod local;
+pub mod smb;
 pub mod snapshot;
 pub mod watch;
 

@@ -69,6 +69,16 @@ icu = "2.3.1"
 # notify 8.2.0, CC0-1.0: the native folder watchers (inotify, ReadDirectoryChangesW,
 # FSEvents) behind the watcher abstraction of task 2.3.
 notify = "8.2.0"
+# tokio 1.53.3, MIT: the core's one async runtime (design.md, Open Question 5), for the
+# network sources. Multi-threaded with timers and sockets, nothing else.
+tokio = { version = "1.53.3", features = ["rt-multi-thread", "time", "net", "io-util", "sync", "macros"] }
+# futures-util 0.3.34, MIT OR Apache-2.0: `StreamExt` over the SMB directory listing stream.
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+# smb 0.12.1, MIT: the SMB 2 and 3 client behind `RandomAccessSource` (task 3.1's winner,
+# docs/delivery/desktop-spike-smb.md). Signing and encryption on; compression, NetBIOS and the
+# std::fs impls off, so less of the crate parses what a server sends. Its tree carries no GPL
+# or LGPL crate (sspi and picky are MIT OR Apache-2.0). Pinned exactly: pre-1.0, one maintainer.
+smb = { version = "=0.12.1", default-features = false, features = ["async", "sign", "encrypt"] }
 
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the
