@@ -458,6 +458,115 @@ msgstr "Send"
 msgid "desktop.command.openFile"
 msgstr "Open File…"
 
+#, c-format
+msgid "desktop.w3.diagnostic.cannotWrite___"
+msgstr "“%s” cannot be written: %s. Choose another place."
+
+msgid "desktop.w3.diagnostic.close"
+msgstr "Close"
+
+msgid "desktop.w3.diagnostic.save"
+msgstr "Save to a file…"
+
+#, c-format
+msgid "desktop.w3.diagnostic.saved___"
+msgstr "Saved to %s."
+
+msgid "desktop.w3.downloads.diskFull"
+msgstr "The disk is full. Free up space or clear a cache, then retry."
+
+msgid "desktop.w3.downloads.metered"
+msgstr "This connection is metered, so downloads you did not start wait. You can still start one yourself."
+
+msgid "desktop.w3.downloads.queueEmpty"
+msgstr "Nothing is waiting to download."
+
+msgid "desktop.w3.downloads.quitBody"
+msgstr "A download is in progress. It pauses, keeps what it has, and resumes the next time StoryArc opens."
+
+msgid "desktop.w3.downloads.quitConfirm"
+msgstr "Pause and quit"
+
+msgid "desktop.w3.downloads.quitTitle"
+msgstr "Pause the download and quit?"
+
+msgid "desktop.w3.downloads.signInNeeded"
+msgstr "The source refused the sign-in."
+
+msgid "desktop.w3.downloads.waitingForConnection"
+msgstr "Waiting for a connection"
+
+msgid "desktop.w3.downloads.willRetry"
+msgstr "Will try again in a moment."
+
+msgid "desktop.w3.shelves.addToShelf"
+msgstr "Add to shelf"
+
+#, c-format
+msgid "desktop.w3.shelves.conflictBody___"
+msgstr "Someone changed “%s” on the server first, so your waiting additions were dropped: %s."
+
+msgid "desktop.w3.shelves.none"
+msgstr "No shelves yet. Create a collection or a reading list."
+
+msgid "desktop.w3.sources.browse"
+msgstr "Browse"
+
+#, c-format
+msgid "desktop.w3.sources.credentialRefused___"
+msgstr "Windows did not keep the password: %s. Nothing was saved, so this source needs a sign-in."
+
+msgid "desktop.w3.sources.credentialTooLong"
+msgstr "That is longer than the 2560 bytes Windows Credential Manager keeps. Nothing was saved, so this source needs a sign-in."
+
+msgid "desktop.w3.sources.discoveryAbsent"
+msgstr "Windows gives StoryArc no way to find shares on your network. Type the address of the computer instead."
+
+msgid "desktop.w3.sources.kavitaDownloadUnavailable"
+msgstr "Reading a Kavita chapter from here is not available yet. The libraries and your progress are shown."
+
+msgid "desktop.w3.sources.kind"
+msgstr "Kind"
+
+msgid "desktop.w3.sources.name"
+msgstr "Name"
+
+msgid "desktop.w3.sources.shareListOnly"
+msgstr "Files on a share are listed here. Opening one from the share is not available yet."
+
+msgid "desktop.w3.sources.test"
+msgstr "Test the connection"
+
+msgid "desktop.w3.storage.clear"
+msgstr "Clear"
+
+#, c-format
+msgid "desktop.w3.storage.clearFailed___"
+msgstr "Could not clear it: %s."
+
+msgid "desktop.w3.storage.clearRecordsBody"
+msgstr "Every reading position and the lists the app keeps are removed from this device. Your files and your libraries are not affected."
+
+msgid "desktop.w3.storage.covers"
+msgstr "Covers"
+
+msgid "desktop.w3.storage.downloads"
+msgstr "Downloads"
+
+#, c-format
+msgid "desktop.w3.storage.freed___"
+msgstr "Freed %s."
+
+msgid "desktop.w3.storage.records"
+msgstr "Library records"
+
+#, c-format
+msgid "desktop.w3.storage.where___"
+msgstr "Kept in %s, which Windows does not roam to other computers."
+
+msgid "desktop.w3.sync.chooseFolder"
+msgstr "Choose the sync folder"
+
 msgid "detail.chapter.finished"
 msgstr "Finished"
 

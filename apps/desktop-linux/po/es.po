@@ -458,6 +458,115 @@ msgstr "Enviar"
 msgid "desktop.command.openFile"
 msgstr "Abrir archivo…"
 
+#, c-format
+msgid "desktop.w3.diagnostic.cannotWrite___"
+msgstr "No se puede escribir «%s»: %s. Elige otro lugar."
+
+msgid "desktop.w3.diagnostic.close"
+msgstr "Cerrar"
+
+msgid "desktop.w3.diagnostic.save"
+msgstr "Guardar en un archivo…"
+
+#, c-format
+msgid "desktop.w3.diagnostic.saved___"
+msgstr "Guardado en %s."
+
+msgid "desktop.w3.downloads.diskFull"
+msgstr "El disco está lleno. Libera espacio o vacía una caché y vuelve a intentarlo."
+
+msgid "desktop.w3.downloads.metered"
+msgstr "Esta conexión tiene tarifa limitada, así que las descargas que no iniciaste esperan. Aún puedes iniciar una tú."
+
+msgid "desktop.w3.downloads.queueEmpty"
+msgstr "No hay nada esperando para descargarse."
+
+msgid "desktop.w3.downloads.quitBody"
+msgstr "Hay una descarga en curso. Se pausa, conserva lo descargado y continúa la próxima vez que abras StoryArc."
+
+msgid "desktop.w3.downloads.quitConfirm"
+msgstr "Pausar y salir"
+
+msgid "desktop.w3.downloads.quitTitle"
+msgstr "¿Pausar la descarga y salir?"
+
+msgid "desktop.w3.downloads.signInNeeded"
+msgstr "La fuente rechazó el inicio de sesión."
+
+msgid "desktop.w3.downloads.waitingForConnection"
+msgstr "Esperando una conexión"
+
+msgid "desktop.w3.downloads.willRetry"
+msgstr "Se volverá a intentar en un momento."
+
+msgid "desktop.w3.shelves.addToShelf"
+msgstr "Añadir a estante"
+
+#, c-format
+msgid "desktop.w3.shelves.conflictBody___"
+msgstr "Alguien cambió «%s» antes en el servidor, así que se descartaron tus adiciones pendientes: %s."
+
+msgid "desktop.w3.shelves.none"
+msgstr "Aún no hay estantes. Crea una colección o una lista de lectura."
+
+msgid "desktop.w3.sources.browse"
+msgstr "Explorar"
+
+#, c-format
+msgid "desktop.w3.sources.credentialRefused___"
+msgstr "Windows no guardó la contraseña: %s. No se guardó nada, así que esta fuente necesita iniciar sesión."
+
+msgid "desktop.w3.sources.credentialTooLong"
+msgstr "Es más largo que los 2560 bytes que guarda el Administrador de credenciales de Windows. No se guardó nada, así que esta fuente necesita iniciar sesión."
+
+msgid "desktop.w3.sources.discoveryAbsent"
+msgstr "Windows no ofrece a StoryArc ninguna forma de encontrar recursos compartidos en tu red. Escribe la dirección del equipo."
+
+msgid "desktop.w3.sources.kavitaDownloadUnavailable"
+msgstr "Leer un capítulo de Kavita desde aquí aún no está disponible. Se muestran las bibliotecas y tu progreso."
+
+msgid "desktop.w3.sources.kind"
+msgstr "Tipo"
+
+msgid "desktop.w3.sources.name"
+msgstr "Nombre"
+
+msgid "desktop.w3.sources.shareListOnly"
+msgstr "Los archivos de un recurso compartido se listan aquí. Abrirlos desde el recurso aún no está disponible."
+
+msgid "desktop.w3.sources.test"
+msgstr "Probar la conexión"
+
+msgid "desktop.w3.storage.clear"
+msgstr "Vaciar"
+
+#, c-format
+msgid "desktop.w3.storage.clearFailed___"
+msgstr "No se pudo vaciar: %s."
+
+msgid "desktop.w3.storage.clearRecordsBody"
+msgstr "Se eliminan de este equipo todas las posiciones de lectura y las listas que guarda la app. Tus archivos y bibliotecas no se ven afectados."
+
+msgid "desktop.w3.storage.covers"
+msgstr "Portadas"
+
+msgid "desktop.w3.storage.downloads"
+msgstr "Descargas"
+
+#, c-format
+msgid "desktop.w3.storage.freed___"
+msgstr "Se liberaron %s."
+
+msgid "desktop.w3.storage.records"
+msgstr "Registros de la biblioteca"
+
+#, c-format
+msgid "desktop.w3.storage.where___"
+msgstr "Guardado en %s, que Windows no sincroniza con otros equipos."
+
+msgid "desktop.w3.sync.chooseFolder"
+msgstr "Elegir la carpeta de sincronización"
+
 msgid "detail.chapter.finished"
 msgstr "Terminado"
 

@@ -582,6 +582,142 @@
     <value>Datei öffnen…</value>
     <comment>desktop.command.openFile</comment>
   </data>
+  <data name="desktop_w3_diagnostic_cannotWrite___" xml:space="preserve">
+    <value>„{0}“ kann nicht geschrieben werden: {1}. Wähle einen anderen Ort.</value>
+    <comment>desktop.w3.diagnostic.cannotWrite___</comment>
+  </data>
+  <data name="desktop_w3_diagnostic_close" xml:space="preserve">
+    <value>Schließen</value>
+    <comment>desktop.w3.diagnostic.close</comment>
+  </data>
+  <data name="desktop_w3_diagnostic_save" xml:space="preserve">
+    <value>In Datei speichern …</value>
+    <comment>desktop.w3.diagnostic.save</comment>
+  </data>
+  <data name="desktop_w3_diagnostic_saved___" xml:space="preserve">
+    <value>Gespeichert unter {0}.</value>
+    <comment>desktop.w3.diagnostic.saved___</comment>
+  </data>
+  <data name="desktop_w3_downloads_diskFull" xml:space="preserve">
+    <value>Der Datenträger ist voll. Schaffe Platz oder leere einen Cache und versuche es erneut.</value>
+    <comment>desktop.w3.downloads.diskFull</comment>
+  </data>
+  <data name="desktop_w3_downloads_metered" xml:space="preserve">
+    <value>Diese Verbindung ist getaktet, daher warten Downloads, die du nicht selbst gestartet hast. Du kannst weiterhin selbst einen starten.</value>
+    <comment>desktop.w3.downloads.metered</comment>
+  </data>
+  <data name="desktop_w3_downloads_queueEmpty" xml:space="preserve">
+    <value>Nichts wartet auf den Download.</value>
+    <comment>desktop.w3.downloads.queueEmpty</comment>
+  </data>
+  <data name="desktop_w3_downloads_quitBody" xml:space="preserve">
+    <value>Ein Download läuft. Er pausiert, behält das Geladene und wird beim nächsten Start von StoryArc fortgesetzt.</value>
+    <comment>desktop.w3.downloads.quitBody</comment>
+  </data>
+  <data name="desktop_w3_downloads_quitConfirm" xml:space="preserve">
+    <value>Pausieren und beenden</value>
+    <comment>desktop.w3.downloads.quitConfirm</comment>
+  </data>
+  <data name="desktop_w3_downloads_quitTitle" xml:space="preserve">
+    <value>Download pausieren und beenden?</value>
+    <comment>desktop.w3.downloads.quitTitle</comment>
+  </data>
+  <data name="desktop_w3_downloads_signInNeeded" xml:space="preserve">
+    <value>Die Quelle hat die Anmeldung abgelehnt.</value>
+    <comment>desktop.w3.downloads.signInNeeded</comment>
+  </data>
+  <data name="desktop_w3_downloads_waitingForConnection" xml:space="preserve">
+    <value>Warten auf eine Verbindung</value>
+    <comment>desktop.w3.downloads.waitingForConnection</comment>
+  </data>
+  <data name="desktop_w3_downloads_willRetry" xml:space="preserve">
+    <value>Wird gleich erneut versucht.</value>
+    <comment>desktop.w3.downloads.willRetry</comment>
+  </data>
+  <data name="desktop_w3_shelves_addToShelf" xml:space="preserve">
+    <value>Zu Regal hinzufügen</value>
+    <comment>desktop.w3.shelves.addToShelf</comment>
+  </data>
+  <data name="desktop_w3_shelves_conflictBody___" xml:space="preserve">
+    <value>Jemand hat „{0}“ zuerst auf dem Server geändert, daher wurden deine wartenden Ergänzungen verworfen: {1}.</value>
+    <comment>desktop.w3.shelves.conflictBody___</comment>
+  </data>
+  <data name="desktop_w3_shelves_none" xml:space="preserve">
+    <value>Noch keine Regale. Lege eine Sammlung oder Leseliste an.</value>
+    <comment>desktop.w3.shelves.none</comment>
+  </data>
+  <data name="desktop_w3_sources_browse" xml:space="preserve">
+    <value>Durchsuchen</value>
+    <comment>desktop.w3.sources.browse</comment>
+  </data>
+  <data name="desktop_w3_sources_credentialRefused___" xml:space="preserve">
+    <value>Windows hat das Passwort nicht gespeichert: {0}. Nichts wurde gespeichert, daher braucht diese Quelle eine Anmeldung.</value>
+    <comment>desktop.w3.sources.credentialRefused___</comment>
+  </data>
+  <data name="desktop_w3_sources_credentialTooLong" xml:space="preserve">
+    <value>Das ist länger als die 2560 Bytes, die die Windows-Anmeldeinformationsverwaltung speichert. Nichts wurde gespeichert, daher braucht diese Quelle eine Anmeldung.</value>
+    <comment>desktop.w3.sources.credentialTooLong</comment>
+  </data>
+  <data name="desktop_w3_sources_discoveryAbsent" xml:space="preserve">
+    <value>Windows bietet StoryArc keine Möglichkeit, Freigaben im Netzwerk zu finden. Gib stattdessen die Adresse des Computers ein.</value>
+    <comment>desktop.w3.sources.discoveryAbsent</comment>
+  </data>
+  <data name="desktop_w3_sources_kavitaDownloadUnavailable" xml:space="preserve">
+    <value>Ein Kavita-Kapitel von hier zu lesen ist noch nicht möglich. Bibliotheken und dein Fortschritt werden angezeigt.</value>
+    <comment>desktop.w3.sources.kavitaDownloadUnavailable</comment>
+  </data>
+  <data name="desktop_w3_sources_kind" xml:space="preserve">
+    <value>Art</value>
+    <comment>desktop.w3.sources.kind</comment>
+  </data>
+  <data name="desktop_w3_sources_name" xml:space="preserve">
+    <value>Name</value>
+    <comment>desktop.w3.sources.name</comment>
+  </data>
+  <data name="desktop_w3_sources_shareListOnly" xml:space="preserve">
+    <value>Dateien auf einer Freigabe werden hier aufgelistet. Sie von der Freigabe zu öffnen ist noch nicht möglich.</value>
+    <comment>desktop.w3.sources.shareListOnly</comment>
+  </data>
+  <data name="desktop_w3_sources_test" xml:space="preserve">
+    <value>Verbindung testen</value>
+    <comment>desktop.w3.sources.test</comment>
+  </data>
+  <data name="desktop_w3_storage_clear" xml:space="preserve">
+    <value>Leeren</value>
+    <comment>desktop.w3.storage.clear</comment>
+  </data>
+  <data name="desktop_w3_storage_clearFailed___" xml:space="preserve">
+    <value>Leeren nicht möglich: {0}.</value>
+    <comment>desktop.w3.storage.clearFailed___</comment>
+  </data>
+  <data name="desktop_w3_storage_clearRecordsBody" xml:space="preserve">
+    <value>Alle Leseposition und die von der App geführten Listen werden von diesem Gerät entfernt. Deine Dateien und Bibliotheken bleiben unberührt.</value>
+    <comment>desktop.w3.storage.clearRecordsBody</comment>
+  </data>
+  <data name="desktop_w3_storage_covers" xml:space="preserve">
+    <value>Cover</value>
+    <comment>desktop.w3.storage.covers</comment>
+  </data>
+  <data name="desktop_w3_storage_downloads" xml:space="preserve">
+    <value>Downloads</value>
+    <comment>desktop.w3.storage.downloads</comment>
+  </data>
+  <data name="desktop_w3_storage_freed___" xml:space="preserve">
+    <value>{0} freigegeben.</value>
+    <comment>desktop.w3.storage.freed___</comment>
+  </data>
+  <data name="desktop_w3_storage_records" xml:space="preserve">
+    <value>Bibliothekseinträge</value>
+    <comment>desktop.w3.storage.records</comment>
+  </data>
+  <data name="desktop_w3_storage_where___" xml:space="preserve">
+    <value>Gespeichert in {0}; Windows überträgt das nicht auf andere Computer.</value>
+    <comment>desktop.w3.storage.where___</comment>
+  </data>
+  <data name="desktop_w3_sync_chooseFolder" xml:space="preserve">
+    <value>Sync-Ordner wählen</value>
+    <comment>desktop.w3.sync.chooseFolder</comment>
+  </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Beendet</value>
     <comment>detail.chapter.finished</comment>
