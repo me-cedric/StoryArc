@@ -54,8 +54,9 @@ public sealed partial class ReaderWindow : Window
         _opened = opened;
         InitializeComponent();
 
-        var declaredWide = Enumerable.Empty<int>();
-        _navigator = new PageNavigator(opened.PageCount, opened.Record.IsRightToLeft, startPage, declaredWide);
+        // The record the seam writes does not carry the container's declared spreads yet, so a spread
+        // stands alone once it decodes landscape (PageNavigator.FoundWide).
+        _navigator = new PageNavigator(opened.PageCount, opened.Record.IsRightToLeft, startPage);
         _pages = new ReaderPageView(opened, _navigator, this);
 
         Title = opened.Record.DisplayTitle;
@@ -110,7 +111,7 @@ public sealed partial class ReaderWindow : Window
             _opened.Dispose();
         };
 
-        PageMoved();
+        PageMoved(isTurn: false);
     }
 
     internal string PublicationId => _opened.Id;
@@ -205,7 +206,7 @@ public sealed partial class ReaderWindow : Window
     }
 
     /// <summary>After any move: draw the slot, name the page for Narrator, and tell the host for the progress cadence and the session.</summary>
-    private void PageMoved()
+    private void PageMoved(bool isTurn = true)
     {
         _pages.Show();
         var current = _navigator.CurrentPage + 1;
@@ -215,7 +216,11 @@ public sealed partial class ReaderWindow : Window
             current,
             _navigator.PageCount);
         FrameworkElementAutomationPeer.FromElement(PageLabel)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
-        _host.PageTurned(PublicationId, _navigator.CurrentPage);
+        if (isTurn)
+        {
+            _host.PageTurned(PublicationId, _navigator.CurrentPage);
+        }
+
         _host.ReaderMoved(State());
     }
 

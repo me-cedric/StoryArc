@@ -1,10 +1,11 @@
 # StoryArc for Windows
 
-**Status: wave 0, base only.** The base has three parts: a WinUI 3 shell that
-opens an empty window, an interop library, and interop tests. They prove that
-the C# side loads the Rust core. No reading feature exists yet. The author of
-wave 0 had no .NET SDK and no Windows machine, so **nothing here has run on
-Windows**. Every Windows claim is **Known** (read in vendor text) or **Inferred**
+**Status: wave 2 written, not yet compiled.** Three parts: a WinUI 3 app (a
+library window, reader windows, preferences), an interop library over the Rust
+core with the pure rules the app follows, and interop tests that run those rules
+and the seam against the shared corpus. The authors of waves 0 to 2 had no .NET
+SDK and no Windows machine, so **nothing here has run on Windows**; see
+[Wave 2: what the code holds](#wave-2-what-the-code-holds). Every Windows claim is **Known** (read in vendor text) or **Inferred**
 until a spike runs it.
 
 [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the timing in
@@ -122,6 +123,62 @@ window per reader, open from Explorer (file association, drag and drop, command
 line), pointer reading (wheel zoom, hover chrome, right-click), live folder
 watching, media keys, Jump List recent items. Later: Explorer thumbnails (a shell
 extension cannot run on managed .NET, so it needs a native shim), `storyarc://`.
+
+## Wave 2: what the code holds
+
+Written without a .NET SDK and without Windows: the `Desktop Windows` workflow is the
+first compiler, and [`desktop-conformance-windows-wave2.md`](../../docs/delivery/desktop-conformance-windows-wave2.md)
+says which scenario is tested, which is wired and unwalked, and which is not started.
+
+### The seam, in `StoryArc.Interop`
+
+Every handle is a `SafeHandle` that frees once and holds a reference while a call runs;
+calls on one handle are serialised. A failed call throws `StoryArcException` with the
+core's `StoryArcStatus` and its own sentence in `CoreMessage`.
+
+| Call | Export | What it does |
+| --- | --- | --- |
+| `NativeCore.Version()` | `storyarc_core_version` | The core's version string. |
+| `NativeCore.RoundTrip(bytes)` | `storyarc_buffer_roundtrip`, `storyarc_buffer_free` | Bytes through the core and back. |
+| `NativeCore.LastError()` | `storyarc_last_error` | This thread's last failure, or `null`. |
+| `new CancelToken()`, `Cancel()`, `IsCancelled` | `storyarc_cancel_token_*`, `storyarc_cancel` | A token a folder scan watches. |
+| `ComicFolder.Open(path, cancel?)` | `storyarc_folder_open` | Scans a folder; `NotFound` when it is not there, `Cancelled` when the token fires. |
+| `ComicFolder.Records()` / `RecordsJson()` | `storyarc_folder_records` | The folder's publications as `CorePublication` records. |
+| `ComicPublication.Open(path)` | `storyarc_publication_open` | Opens a CBZ, CBR, CBT or image folder; CB7 is `Unsupported`, by name. |
+| `PageCount`, `Metadata()` / `MetadataJson()` | `storyarc_publication_page_count`, `storyarc_publication_metadata` | The page count and the record. |
+| `DecodePage(index, maxPixelSize)` | `storyarc_publication_decode_page` | RGBA, not premultiplied, at most `maxPixelSize` on the long edge. |
+| `ProgressStore.Open(path)` | `storyarc_store_open` | Opens or creates the progress store. |
+| `Read(identity)` / `ReadJson`, `Write(progress)` / `WriteJson` | `storyarc_progress_read`, `storyarc_progress_write` | One position per publication, in the phones' JSON shape. |
+
+The JSON shapes are `CoreIdentity`, `CorePublication` and `CoreProgress` in `CoreRecords.cs`,
+read with System.Text.Json source generation.
+
+### Pure rules, tested on any host
+
+| Folder | Holds |
+| --- | --- |
+| `Library/` | `CoreLibrary` (a core record as a `LibraryRecord`, Continue reading, Up next), `HomeShelves`, `PublicationDetail`, the grid and list view model, the query state |
+| `Reader/` | `PageNavigator` (pairs by window shape, the same page across a resize), `PagePixels` (RGBA to premultiplied BGRA, the decode size), zoom, keys, pointer, drag, full screen |
+| `Opening/` | `OpenRequest` (what a drop, the command line or Explorer opens and refuses), `LaunchArguments` (the Windows command line), `RecentItems` (the Jump List's list) |
+| `Sources/` | `FolderSourceList` (the stored folders and their availability), `RescanSchedule` (a burst of changes is one rescan, a share is polled every 10 seconds) |
+| `Progress/` | `ProgressWriter` (the five-second cadence), `CoreProgressStore` (positions into the core's store) |
+
+### The app, in `StoryArc.Windows`
+
+| File | Does |
+| --- | --- |
+| `Program.cs` | `Main`: single instance through `AppInstance.FindOrRegisterForKey`, a second launch redirects its files here |
+| `Shell/AppHost.cs` | The windows, the commands, the session, the progress writer, opening files |
+| `Shell/LibraryService.cs` | The folder sources, their scans through the core, the watchers, the recent list and the refusals |
+| `Shell/Activations.cs`, `Drops.cs`, `JumpLists.cs` | Explorer and command-line activations, drop targets, the Jump List |
+| `MainWindow.xaml` | Title bar search, Home, the library `ItemsView` in grid or list, the filter and sort flyouts, the sources row |
+| `PublicationDetailPage.xaml` | The detail page in the content frame |
+| `ReaderWindow.xaml`, `Reader/ReaderPageView.cs` | The page view over the decoder |
+| `Library/CoverCell.cs` | A cell of the grid, the list or a shelf; its cover decodes when the cell is realised |
+| `Package.appxmanifest` | `windows.fileTypeAssociation` for `.cbz`, `.cbr`, `.cbt` (ProgID `storyarc.comicarchive`), the `storyarc.exe` alias |
+
+State lives in the package's `LocalFolder`: `session.json`, `settings.json`, `sources.json`,
+`recent.json` and the core's `progress.sqlite`.
 
 ## Open questions
 

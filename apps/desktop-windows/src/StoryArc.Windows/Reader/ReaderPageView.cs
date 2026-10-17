@@ -130,7 +130,7 @@ internal sealed class ReaderPageView
 
             bitmap.Invalidate();
             Keep(page, edge, bitmap);
-            if (SpreadLayout.IsWidePage(new Extent(decoded.Width, decoded.Height)) && _navigator.Layout.HasPairs)
+            if (SpreadLayout.IsWidePage(new Extent(decoded.Width, decoded.Height)))
             {
                 _navigator.FoundWide(page);
             }
