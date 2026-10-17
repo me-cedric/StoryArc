@@ -21,6 +21,8 @@ public sealed class NativeCoreSeamTests
         Assert.Equal(NativeMethods.STORYARC_ERROR_UNREADABLE, (int)StoryArcStatus.Unreadable);
         Assert.Equal(NativeMethods.STORYARC_ERROR_STORAGE, (int)StoryArcStatus.Storage);
         Assert.Equal(NativeMethods.STORYARC_ERROR_INTERNAL, (int)StoryArcStatus.Internal);
+        Assert.Equal(NativeMethods.STORYARC_ERROR_UNREACHABLE, (int)StoryArcStatus.Unreachable);
+        Assert.Equal(NativeMethods.STORYARC_ERROR_UNAUTHORIZED, (int)StoryArcStatus.Unauthorized);
     }
 
     [Fact]
