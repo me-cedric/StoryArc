@@ -11,6 +11,12 @@ repository.workspace = true
 name = "storyarc"
 path = "src/main.rs"
 
+# The GNOME thumbnailer for the file manager (task 5.5): source and AUR builds install it
+# with data/com.mecedric.StoryArc.thumbnailer. A Flatpak cannot export one.
+[[bin]]
+name = "storyarc-thumbnailer"
+path = "src/thumbnailer.rs"
+
 [lints]
 workspace = true
 

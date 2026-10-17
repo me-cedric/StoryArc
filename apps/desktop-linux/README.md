@@ -102,6 +102,27 @@ floor. It is path-filtered, so mobile CI is unaffected.
 `headless-proof.sh` runs the display and bus tests under cage with a session bus and an
 accessibility bus; the gate `container-build.sh` runs the rest and skips these by name.
 
+## Wave 5 and 6: the link, the notices, the thumbnailer
+
+| Part | Where | How it is proved |
+| --- | --- | --- |
+| `storyarc://` link | `src/link.rs` (what a link means), `launch.rs` (the open signal), `x-scheme-handler/storyarc` and `%U` in the desktop entry | `link::tests` hold the three scenarios; `headless-proof.sh --walk <dir> wave5-walk.sh` hands four links to the running app from a second instance. |
+| Third-party notices | `src/about.rs` embeds `THIRD_PARTY_NOTICES.md` as the About dialog's legal section | `about::tests::the_generated_notices_list_pdfium_and_libarchive`. |
+| Thumbnailer | `src/thumbnailer.rs`, the `storyarc-thumbnailer` binary, and `data/com.mecedric.StoryArc.thumbnailer` | `cargo test -p storyarc-linux --bin storyarc-thumbnailer`: a comic yields a PNG at the size asked, a damaged file yields none and nothing is written. A file manager showing covers is owed by a host. |
+
+The thumbnailer is for source and AUR builds only. `flatpak build-finish` exports desktop
+files, icons, D-Bus services and metainfo from a Flatpak and never `share/thumbnailers`,
+so the Flatpak build shows no covers in the file manager. Install it beside the app:
+
+```bash
+install -Dm755 target/release/storyarc-thumbnailer /usr/local/bin/storyarc-thumbnailer
+install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.thumbnailer /usr/local/share/thumbnailers/com.mecedric.StoryArc.thumbnailer
+```
+
+GNOME Files and the other GIO file managers read `share/thumbnailers` and run
+`storyarc-thumbnailer -s <size> <file> <png>` for each comic. It opens no store and
+writes no history.
+
 ## Distros and build dependencies
 
 Targets: Arch, Manjaro, Ubuntu 24.04, Pop!_OS 24.04 and Fedora. All versions were
