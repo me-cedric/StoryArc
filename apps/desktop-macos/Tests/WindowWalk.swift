@@ -44,7 +44,10 @@ enum Walk {
             publication(named: "natural-sort", in: library) != nil
                 && publication(named: "stored-entries", in: library) != nil ? true : nil
         }
-        _ = await until(.seconds(20)) { library.model.scanState == .idle ? true : nil }
+        _ = await until(.seconds(20)) { () -> Bool? in
+            if case .scanning = library.model.scanState { return nil }
+            return true
+        }
         await library.refreshProgress()
         return library
     }
@@ -106,6 +109,8 @@ enum Walk {
     static func close(_ windows: [NSWindow]) async {
         for window in windows { window.performClose(nil) }
         _ = await until { windows.allSatisfy { !$0.isVisible } ? true : nil }
+        // And until what they owed is written, so the next walk does not meet a late write.
+        _ = await until { ProgressFlushers.shared.isIdle ? true : nil }
     }
 
     /// Where the container keeps frames: `~/Library/Containers/com.mecedric.storyarc/Data/tmp/captures/`.

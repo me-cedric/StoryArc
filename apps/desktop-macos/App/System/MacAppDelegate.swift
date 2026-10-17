@@ -67,6 +67,19 @@ final class ProgressFlushers {
     func register(_ writer: ProgressWriter, for window: String) { writers[window] = writer }
     func unregister(_ window: String) { writers[window] = nil }
 
+    /// Writes what a closing window owes and only then lets the writer go, so a quit that
+    /// follows the close at once still finds it and waits for it.
+    func finish(_ window: String) {
+        guard let writer = writers[window] else { return }
+        Task {
+            await writer.flush()
+            if writers[window] === writer { writers[window] = nil }
+        }
+    }
+
+    /// Nothing is owed by any window, open or closing.
+    var isIdle: Bool { writers.isEmpty }
+
     func flushAll() async {
         for writer in writers.values { await writer.flush() }
     }

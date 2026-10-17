@@ -117,10 +117,9 @@ struct ReaderWindow: View {
 
     private func close() {
         chromeTimer?.cancel()
-        if let writer {
-            Task { await writer.flush() }
-        }
-        ProgressFlushers.shared.unregister(target.publicationID)
+        // *Closing a reader window*: the position is written before the window's writer is
+        // let go, and a quit in the meantime still flushes it.
+        ProgressFlushers.shared.finish(target.publicationID)
         ReaderWindows.shared.didClose(target)
         ReaderWindowRegistry.detach(target)
         DisplayAwake.shared.release(for: target.publicationID)
@@ -183,15 +182,17 @@ struct ReaderWindow: View {
         guard model.pages.indices.contains(index) else { return }
         zoom = zoom.fitted()
         pendingIndex = index
+        // Owed from the moment of the turn, not from when the model has caught up with it: a
+        // window closed or an app quit straight after a press still writes this page.
+        writer?.note(ReadingProgress(
+            identity: model.publication.identity,
+            position: .page(index: index, of: model.pages.count),
+            isFinished: index == model.pages.count - 1,
+            updatedAt: Date()
+        ))
         Task {
             await model.go(to: index)
             if pendingIndex == index { pendingIndex = nil }
-            writer?.note(ReadingProgress(
-                identity: model.publication.identity,
-                position: .page(index: index, of: model.pages.count),
-                isFinished: index == model.pages.count - 1,
-                updatedAt: Date()
-            ))
         }
     }
 

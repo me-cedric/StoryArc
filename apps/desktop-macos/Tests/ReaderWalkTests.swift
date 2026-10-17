@@ -38,8 +38,8 @@ extension WindowWalks {
             #expect(ReaderWindows.shared.savedSessions().isEmpty)
         }
 
-        @Test("A key turns the page, and the position is in the store when the window closes")
-        func keyTurnsAndCloseWrites() async throws {
+        @Test("A key turns one page in a narrow window and a spread in a wide one, and closing writes it")
+        func keyTurnsBySpread() async throws {
             let library = try await Walk.fixtureLibrary()
             let publication = try #require(Walk.publication(named: "natural-sort", in: library))
             let target = try #require(library.target(for: publication))
@@ -48,21 +48,32 @@ extension WindowWalks {
 
             try Walk.open(target)
             let window = try #require(await Walk.until { Walk.readerWindows(for: target).first })
-            // The page view takes focus once the publication has opened.
+            // Key, in an active app, as a reader's window is when they type. The size is held
+            // fixed, because a tiling window manager otherwise decides the shape.
+            await Walk.activate(window)
+            window.styleMask.remove(.resizable)
+            defer { window.styleMask.insert(.resizable) }
+            window.setFrame(NSRect(x: 100, y: 100, width: 700, height: 900), display: true)
             try await Task.sleep(for: .milliseconds(800))
+
+            // Narrow: one page a screen, so two presses are two pages.
             Walk.press("\u{F703}", keyCode: KeyCode.rightArrow, in: window)
+            Walk.press("\u{F703}", keyCode: KeyCode.rightArrow, in: window)
+            try await Task.sleep(for: .milliseconds(500))
+            let afterTwo = try await Self.position(of: publication, in: store)
+            #expect(afterTwo == 2, "two presses in a narrow window left page index \(String(describing: afterTwo))")
+
+            // Wide: pages pair with the cover alone, so page 3 sits with page 2 and one press
+            // from there lands on the next pair, 4 and 5 (indices 3 and 4).
+            window.setFrame(NSRect(x: 100, y: 100, width: 1400, height: 800), display: true)
+            try await Task.sleep(for: .milliseconds(500))
+            // Closed straight after the press: the turn is owed from the moment it happens.
             Walk.press("\u{F703}", keyCode: KeyCode.rightArrow, in: window)
             await Walk.close([window])
 
-            // *Closing a reader window*: the position is written before the window is gone, and
-            // in any case within the five-second cadence.
-            var saved: Int?
-            let deadline = ContinuousClock.now + .seconds(6)
-            while saved != 2, ContinuousClock.now < deadline {
-                saved = try await Self.position(of: publication, in: store)
-                try await Task.sleep(for: .milliseconds(100))
-            }
-            #expect(saved == 2, "the store holds page index \(String(describing: saved)) after two right-arrow presses")
+            // *Closing a reader window*: `Walk.close` waits until what the window owed is written.
+            let saved = try await Self.position(of: publication, in: store)
+            #expect(saved == 3, "one press in a wide window from index 2 left index \(String(describing: saved))")
         }
 
         @Test("Full screen is entered and left, and the window gets its size back")
