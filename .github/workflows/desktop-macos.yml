@@ -36,6 +36,7 @@ jobs:
         run: xcodebuild -version && swift --version
 
       - run: brew install xcodegen
+      - run: mkdir -p .build
 
       - name: Generate project
         working-directory: apps/desktop-macos
@@ -54,9 +55,24 @@ jobs:
       # Signed ad hoc on purpose, unlike the build above: StoryArcMacTests is hosted in the
       # sandboxed app, so the entitlement, bookmark and keychain tests measure what a local
       # run measures. The ad-hoc identity needs no certificate on the runner.
+      # No `pnpm install`: the collector and the mocks are plain Node scripts. They run in
+      # the background so the egress tests (wave 4) and the source walks (wave 3) run rather
+      # than skip; a test whose server is down skips by name, so a crash here is visible.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Start the egress collector and the mock servers
+        run: |
+          node apps/desktop-web/epub/test/collector.mjs > .build/egress.log 2>&1 &
+          node scripts/opds-server.mjs > .build/opds.log 2>&1 &
+          node scripts/kavita-server.mjs --port 5001 > .build/kavita.log 2>&1 &
+          sleep 2
+          for p in 4815 4444 5001; do nc -z 127.0.0.1 $p && echo "port $p up" || echo "port $p down"; done
       - name: Test
         id: test
         working-directory: apps/desktop-macos
+        env:
+          TEST_RUNNER_STORYARC_KAVITA_PORT: "5001"
         run: >-
           xcodebuild test
           -project StoryArcMac.xcodeproj
