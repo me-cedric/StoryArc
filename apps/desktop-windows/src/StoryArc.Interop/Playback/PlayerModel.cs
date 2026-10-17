@@ -191,11 +191,10 @@ public sealed class PlayerModel
     {
         if (Item is { } item && CurrentChapter is { } current)
         {
-            Seek(item.Chapters[current].Start);
-            if (current > 0 && Position == item.Chapters[current].Start)
-            {
-                Seek(item.Chapters[current - 1].Start);
-            }
+            // Decided before the seek: inside a chapter, back to its start; at its start, back
+            // to the chapter before (a seek to the start must not then count as "at the start").
+            var atStart = current > 0 && Position == item.Chapters[current].Start;
+            Seek(item.Chapters[atStart ? current - 1 : current].Start);
         }
     }
 

@@ -124,6 +124,13 @@ public static class ContentSecurityPolicy
 {
     public static bool Allows(string policy, string selfOrigin, Uri request, EpubRequestContext context)
     {
+        // An about:blank or about:srcdoc frame is the page's own: CSP Level 3 matches it to no
+        // source list and every engine allows it, because it inherits the page's policy.
+        if (request.Scheme == "about")
+        {
+            return true;
+        }
+
         var directives = policy.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(part => part.Split(' ', StringSplitOptions.RemoveEmptyEntries))
             .ToDictionary(words => words[0], words => words.Skip(1).ToArray(), StringComparer.OrdinalIgnoreCase);
