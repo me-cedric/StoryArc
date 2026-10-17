@@ -98,6 +98,7 @@ impl Publication {
     }
 
     /// Decodes one page to RGBA, at most [`MAX_DECODE_EDGE`] on its longest edge.
+    #[cfg(test)]
     pub fn decode(&self, index: usize) -> Result<DecodedPage, String> {
         self.decode_adjusted(index, MAX_DECODE_EDGE, &ImageAdjustments::default())
     }
@@ -240,8 +241,15 @@ pub(crate) mod tests {
         );
         let sizes = publication.page_sizes();
         assert_eq!(sizes.len(), publication.page_count as usize);
-        assert!(sizes.iter().all(|(width, height)| *width > 0 && *height > 0));
-        assert!(publication.markers.is_empty(), "the fixture declares no chapters");
+        assert!(
+            sizes
+                .iter()
+                .all(|(width, height)| *width > 0 && *height > 0)
+        );
+        assert!(
+            publication.markers.is_empty(),
+            "the fixture declares no chapters"
+        );
     }
 
     #[test]

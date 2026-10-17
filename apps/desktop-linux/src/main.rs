@@ -34,7 +34,12 @@ mod preferences_pages;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod progress;
 mod publication;
+mod reader_adjust;
+mod reader_browser;
+mod reader_end;
 mod reader_input;
+mod reader_modes;
+mod reader_scroll;
 mod reader_window;
 mod reading;
 #[cfg(test)]

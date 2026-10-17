@@ -19,6 +19,9 @@ pub struct ScrollView {
     pub scrolled: gtk::ScrolledWindow,
     strip: gtk::Box,
     pictures: RefCell<Vec<gtk::Picture>>,
+    sizes: RefCell<Vec<(i32, i32)>>,
+    /// The pages that hold pixels now.
+    loaded: RefCell<std::collections::HashSet<usize>>,
     axis: Cell<Axis>,
 }
 
@@ -35,6 +38,8 @@ impl ScrollView {
             scrolled,
             strip,
             pictures: RefCell::default(),
+            sizes: RefCell::default(),
+            loaded: RefCell::default(),
             axis: Cell::new(Axis::Vertical),
         }
     }
@@ -77,13 +82,35 @@ impl ScrollView {
             })
             .collect();
         *self.pictures.borrow_mut() = pictures;
+        *self.sizes.borrow_mut() = sizes.to_vec();
+        self.loaded.borrow_mut().clear();
     }
 
     /// Draws a decoded page in its place.
     pub fn show_page(&self, index: usize, texture: &gdk::Texture) {
         if let Some(picture) = self.pictures.borrow().get(index) {
             picture.set_paintable(Some(texture));
+            self.loaded.borrow_mut().insert(index);
         }
+    }
+
+    /// Lets go of the pixels of every page not in `keep`; each falls back to its shape.
+    pub fn release_except(&self, keep: &[usize]) {
+        let sizes = self.sizes.borrow();
+        let pictures = self.pictures.borrow();
+        self.loaded.borrow_mut().retain(|index| {
+            if keep.contains(index) {
+                return true;
+            }
+            if let Some(picture) = pictures.get(*index) {
+                let (width, height) = sizes.get(*index).copied().unwrap_or(PORTRAIT);
+                picture.set_paintable(Some(&gdk::Paintable::new_empty(
+                    width.max(1),
+                    height.max(1),
+                )));
+            }
+            false
+        });
     }
 
     fn adjustment(&self) -> gtk::Adjustment {

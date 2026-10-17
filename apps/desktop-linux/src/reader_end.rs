@@ -127,8 +127,7 @@ impl Reader {
     /// Back from the end screen to the pages, in whichever form the reader reads them.
     pub(crate) fn leave_end(&self) {
         if self.at_end.replace(false) {
-            self.content
-                .set_visible_child_name(self.surface_name());
+            self.content.set_visible_child_name(self.surface_name());
         }
     }
 }

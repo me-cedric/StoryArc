@@ -321,12 +321,16 @@ impl Reader {
         {
             return;
         }
-        let adjustments = self.shared.upgrade().map_or_else(Default::default, |shared| {
-            shared
-                .adjustments
-                .borrow()
-                .for_page(&self.publication.record, &self.publication.id, index)
-        });
+        let adjustments = self
+            .shared
+            .upgrade()
+            .map_or_else(Default::default, |shared| {
+                shared.adjustments.borrow().for_page(
+                    &self.publication.record,
+                    &self.publication.id,
+                    index,
+                )
+            });
         let generation = self.generation.get();
         let publication = self.publication.clone();
         let weak = Rc::downgrade(self);

@@ -162,7 +162,9 @@ impl Reader {
             }
         }
         let keep = self.scroll.near(SCROLL_KEEP);
-        self.decoded.borrow_mut().retain(|index, _| keep.contains(index));
+        self.decoded
+            .borrow_mut()
+            .retain(|index, _| keep.contains(index));
         self.scroll.release_except(&keep);
     }
 
@@ -249,14 +251,20 @@ impl Reader {
 /// adjustments, then the window's own mode.
 pub fn install(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
     let choice = reader.mode.get();
-    stateful(window, reader, "page-turn", choice.mode.key(), |reader, key| {
-        if let Some(mode) = Mode::from_key(key) {
-            reader.set_mode(ModeChoice {
-                mode,
-                ..reader.mode.get()
-            });
-        }
-    });
+    stateful(
+        window,
+        reader,
+        "page-turn",
+        choice.mode.key(),
+        |reader, key| {
+            if let Some(mode) = Mode::from_key(key) {
+                reader.set_mode(ModeChoice {
+                    mode,
+                    ..reader.mode.get()
+                });
+            }
+        },
+    );
     let curl = gio::SimpleAction::new("page-turn-curl", None);
     curl.set_enabled(false);
     window.add_action(&curl);
@@ -281,7 +289,10 @@ pub fn install(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
         let Some(reader) = weak.upgrade() else {
             return;
         };
-        let on = !action.state().and_then(|s| s.get::<bool>()).unwrap_or(false);
+        let on = !action
+            .state()
+            .and_then(|s| s.get::<bool>())
+            .unwrap_or(false);
         reader.set_mode(ModeChoice {
             gap: on,
             ..reader.mode.get()
@@ -294,7 +305,9 @@ pub fn install(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
             ..reader.mode.get()
         });
     });
-    add(window, reader, "next-chapter", |reader| reader.next_chapter());
+    add(window, reader, "next-chapter", |reader| {
+        reader.next_chapter()
+    });
     add(window, reader, "previous-chapter", |reader| {
         reader.previous_chapter();
     });
@@ -327,8 +340,7 @@ fn stateful(
         gio::SimpleAction::new_stateful(name, Some(glib::VariantTy::STRING), &initial.to_variant());
     let weak = Rc::downgrade(reader);
     action.connect_activate(move |_, target| {
-        if let (Some(reader), Some(key)) =
-            (weak.upgrade(), target.and_then(|t| t.get::<String>()))
+        if let (Some(reader), Some(key)) = (weak.upgrade(), target.and_then(|t| t.get::<String>()))
         {
             chosen(&reader, &key);
         }
