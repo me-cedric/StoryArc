@@ -38,8 +38,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-4-dev libadwaita-1-dev
-      - run: pkg-config --modversion gtk4 libadwaita-1
+      # Wave 4 adds the webkit6 EPUB host and the GStreamer player; the same list as container-build.sh.
+      - run: >-
+          sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-4-dev libadwaita-1-dev
+          libwebkitgtk-6.0-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+          libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav
+      - run: pkg-config --modversion gtk4 libadwaita-1 webkitgtk-6.0 gstreamer-play-1.0
       # The pinned PDFium library, checked against pin.json, so the PDF tests run rather than skip.
       - run: node scripts/pdfium-fetch.mjs --platform linux-x64
       - run: cargo test --locked -p storyarc-core -p storyarc-ffi
