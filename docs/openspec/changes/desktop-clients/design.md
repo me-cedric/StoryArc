@@ -167,6 +167,15 @@ member, so the Mac writes both through `ShelvesStore` and reloads. 206 tests in 
 `docs/delivery/desktop-conformance-macos-wave3.md`, with 18 failures that are all screens the Mac does not have yet
 (source renaming and reordering, OPDS and Kavita browsing, server shelves).
 
+**As built, 2026-10-17 (wave 4, lane M).** `StoryArcEpubMac` hosts the pinned bundle in `WKWebView` on the app's
+own scheme with the rule list and the header (`App/Epub/`), building the manifest and positions in Swift as Open
+Question 6 answers; the egress collector runs out of process because the sandboxed app may not listen on a socket, the
+first `locator` message counts as ready (the renderer's `load()` settles late or never in WKWebView), and the
+navigation delegate allows `blob:` and `about:` or chapter frames never load. PDF text comes from PDFKit with the
+overlay and text model ported to `NSColor` and `NSPasteboard`. Now Playing and the media keys are a Mac copy until
+parent task 1.30; read aloud is `AVSpeechSynthesizer`. Reader models register from `.task`, not `init`, because SwiftUI
+builds the view twice per window. 238 tests; the audit covers 23 screens; `docs/delivery/desktop-a11y-macos.md`.
+
 **Distribution.** Local run is ad hoc signed (`CODE_SIGN_IDENTITY=-`). A downloaded build is quarantined and
 Gatekeeper blocks it unless notarised (Reported). Notarisation and the Mac App Store need the 99 USD Apple Developer
 Program and are the owner's step (Open Questions).
@@ -327,6 +336,14 @@ StoryArc brand colour stays (Open Question 1, answered).
 - Source builds are documented per distro (apt, pacman, dnf) in the README, with the dependency table in the research
   file. Distro proof runs in containers through `container-build.sh`. Docker 29.5.3 runs on the lead's Mac.
 - AUR package: shape in the research file. AppImage is not shipped (WebKitGTK helper processes do not fit).
+
+**As built, 2026-10-17 (wave 4, lane L).** The EPUB host is `webkit6` on the app's own URI scheme with the user
+content filter and the header; the egress test counted 9 arrivals unguarded and 0 guarded on WebKitGTK 2.52.6 in the
+container, a media `Range: bytes=0-1445` answered 206; the 2.44 floor and the Flatpak runtime are a host's. PDF reads
+through the core with the outline, a text pane and search; the core renders one pixel a point and never upscales, a
+follow-up for lane C. Audio is GStreamer (`gstreamer-play`) with MPRIS over gdbus, proved with `playerctl` on a private
+bus; speech is speech-dispatcher, absent without an engine; a null sink and libao's null driver stood in for a sound
+device (`docs/delivery/desktop-spike-audio-linux.md`). 291 crate tests; `docs/delivery/desktop-a11y-linux.md`.
 
 ### Decision 5. The shared Rust core and its seam
 

@@ -551,12 +551,14 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 **Lane E**
 
-- [ ] 4.1 **Bundle API test first.** A browser test loads the bundle with a fixture manifest and asserts a locator round trip,
+- [x] 4.1 **Bundle API test first.** A browser test loads the bundle with a fixture manifest and asserts a locator round trip,
   the preferences axes as CSS properties, a footnote event and a link event that leaves the page. Then the glue in
   `apps/desktop-web/epub/src/`. Verify: the test passes in headless WebKit.
   **Built 2026-10-17:** `test/api.test.mjs` runs ten tests in headless WebKit (playwright-core 1.60.0, revision 2287)
   over a fixture manifest built from `packages/test-fixtures/ebooks`; the box stays open until task 4.3's core builds
   the manifest and positions the test stand-in now builds by hand.
+  **Closed 2026-10-17:** the core builds the manifest and positions (task 4.3) and the Mac builds them in Swift; the
+  Windows and Linux hosts feed the bundle from the core and the Mac from StoryArcKit, each proved by its egress test.
 - [x] 4.2 **Themes, search and highlights** carried to the host as messages. Verify: tests for each message.
   **Built 2026-10-17:** `test/glue.test.mjs` runs fifteen tests, one group per message, in WebKit and Chromium; the
   host message table is in `apps/desktop-web/epub/README.md`.
@@ -580,16 +582,29 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 **Lane M**
 
-- [ ] 4.5 **EPUB host test first.** The eight-vector page shows zero arrivals in `WKWebView` with the scheme handler, the rule
+- [x] 4.5 **EPUB host test first.** The eight-vector page shows zero arrivals in `WKWebView` with the scheme handler, the rule
   list and the header. Then `StoryArcEpubMac`. Verify: the egress test passes, and a walk reads, themes and searches a book.
-- [ ] 4.6 **PDF window** over PDFKit with the overlay and text model ported to `NSColor` and `NSPasteboard`. Verify: tests for
+  **Done 2026-10-17:** `EpubEgressTests` counts 0 of 8 arrivals guarded and 8 of 8 in the unguarded control, with the
+  collector out of process (`pnpm egress` in `apps/desktop-web/epub`, since the sandboxed app may not listen on a
+  socket); the Swift manifest and positions match the corpus pins; the walk opens, turns with a key, themes, searches,
+  jumps with a way back and writes a reflowable position (`StoryArcEpubMac`, `App/Epub/`).
+- [x] 4.6 **PDF window** over PDFKit with the overlay and text model ported to `NSColor` and `NSPasteboard`. Verify: tests for
   selection and search, and a walk.
-- [ ] 4.7 **Media keys and Now Playing** in the Mac target (parent task 1.30 moves it later), remote commands, an entry that
+  **Done 2026-10-17:** the PDF text layer over PDFKit with selection, marks, search with context, the outline and
+  `NSPasteboard` copy; a scan gets no text controls; tests and a walk.
+- [x] 4.7 **Media keys and Now Playing** in the Mac target (parent task 1.30 moves it later), remote commands, an entry that
   leaves when playback ends, hidden windows keep playing. Verify: tests with a fake remote command centre and a walk with a
   keyboard.
-- [ ] 4.8 **Read aloud** over AVSpeech, absent where no voice exists. Verify: a test with no voices.
-- [ ] 4.9 **Screen reader walk** with VoiceOver on the library, a reader and the player. Verify: the walk's findings sit in
+  **Done 2026-10-17:** Now Playing and the media keys with a fake command centre in tests and a keyboard walk; closing
+  the window keeps the session. A Mac copy of `NowPlaying` stands until parent task 1.30.
+- [x] 4.8 **Read aloud** over AVSpeech, absent where no voice exists. Verify: a test with no voices.
+  **Done 2026-10-17:** read aloud over `AVSpeechSynthesizer`, absent where no voice exists, tested with no voices. No
+  sentence highlight yet.
+- [x] 4.9 **Screen reader walk** with VoiceOver on the library, a reader and the player. Verify: the walk's findings sit in
   `docs/delivery/desktop-a11y-macos.md`.
+  **Done 2026-10-17:** the machine audit is green on 23 screens at both text sizes; `docs/delivery/desktop-a11y-macos.md`
+  lists each scenario and the VoiceOver session by hand still owed; wave 4 frames under
+  `docs/designs/screenshots/desktop/macos/wave4/`.
 
 **Lane L**
 
@@ -653,6 +668,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 - [ ] 4.22 **Conformance walk** across the three desktops for the Wave 4 capabilities. Verify: three files named
   `docs/delivery/desktop-conformance-<os>-wave4.md`.
+  **Partly done 2026-10-17:** the Mac's wave 4 scenarios are walked inside `StoryArcMacTests` and recorded with the
+  accessibility walk; Linux walked headless (EPUB, PDF, MPRIS, audio, speech); Windows is owed to a host. The three
+  `desktop-conformance-<os>-wave4.md` files are the wave 5 Mac and Linux lanes' first piece and the Windows host pass.
 
 ## 5. Wave 5: the curl, polish and the LATER list
 
