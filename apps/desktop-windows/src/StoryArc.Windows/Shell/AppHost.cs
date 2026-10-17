@@ -373,6 +373,9 @@ internal sealed class AppHost
             case "settings":
                 OpenLibrary().ShowPreferences();
                 break;
+            case "acknowledgements" when window.Content is { XamlRoot: { } root }:
+                _ = AcknowledgementsDialog.ShowAsync(root);
+                break;
             case "fullScreen" when window is ReaderWindow reader:
                 reader.ToggleFullScreen();
                 break;

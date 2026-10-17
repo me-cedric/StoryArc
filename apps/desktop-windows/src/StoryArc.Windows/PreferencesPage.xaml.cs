@@ -117,6 +117,10 @@ public sealed partial class PreferencesPage : UserControl
             case "sync":
                 editor = SyncEditor(note);
                 break;
+            case "licences":
+            case "acknowledgements":
+                editor = ActionButton(Strings.Get("about_acknowledgements"), () => _ = AcknowledgementsDialog.ShowAsync(XamlRoot));
+                break;
             case "privacy":
                 editor = ActionButton(Strings.Get("privacy_diagnostic_show"), () => _ = ShowDiagnosticAsync());
                 break;
