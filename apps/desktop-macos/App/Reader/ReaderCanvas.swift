@@ -103,11 +103,30 @@ struct ReaderCanvas: View {
         let slotWidth = viewport.width * share
         if let image = model.displayImage(at: index) {
             AdjustedPage(image: image, index: index, adjustments: state.adjustments(at: index))
+                .overlay { pdfOverlay(index, imageSize: CGSize(width: image.width, height: image.height)) }
                 .frame(maxWidth: slotWidth, maxHeight: viewport.height)
         } else {
             PagePlaceholder(model: model, index: index)
                 .frame(maxWidth: slotWidth, maxHeight: viewport.height)
         }
+    }
+
+    /// The marks and the selection on a page of a PDF that has text, drawn in the page's fit.
+    @ViewBuilder
+    private func pdfOverlay(_ index: Int, imageSize: CGSize) -> some View {
+        if let text = state.pdfText {
+            let selection = text.selection?.locator.page == index ? (text.selection?.rects ?? []) : []
+            MacPdfOverlay(imageSize: imageSize, marks: text.marks(onPage: index), selection: selection)
+                .task(id: index) { await text.resolveMarks(onPage: index) }
+        }
+    }
+
+    /// Where a point of the viewport falls on the shown page, in page space, for a text PDF.
+    private func pagePoint(_ location: CGPoint, spread: Spread) -> (index: Int, point: CGPoint)? {
+        guard !spread.isPair, let image = model.displayImage(at: spread.leading) else { return nil }
+        let imageSize = CGSize(width: image.width, height: image.height)
+        let point = PdfPageGeometry.normalisedPoint(location, imageSize: imageSize, in: viewport)
+        return (spread.leading, point)
     }
 
     // MARK: - Fit
@@ -167,6 +186,17 @@ struct ReaderCanvas: View {
     private var drag: some Gesture {
         DragGesture(minimumDistance: 6)
             .onChanged { value in
+                if let text = state.pdfText, !zoom.isZoomed {
+                    // A drag over a text PDF selects words, as in Preview; the wheel and the
+                    // keys turn. *Text-based PDF*: the selection then offers its four things.
+                    let spread = state.layout[state.layout.slot(containing: model.currentIndex)]
+                        ?? Spread(leading: model.currentIndex)
+                    if let from = pagePoint(value.startLocation, spread: spread),
+                       let to = pagePoint(value.location, spread: spread) {
+                        Task { await text.select(onPage: from.index, from: from.point, to: to.point) }
+                    }
+                    return
+                }
                 if zoom.isZoomed {
                     state.zoom = zoom.panned(
                         by: CGSize(width: value.velocity.width / 60, height: value.velocity.height / 60),
@@ -179,6 +209,9 @@ struct ReaderCanvas: View {
             .onEnded { value in
                 defer { withAnimation(state.reduceMotion ? nil : .easeOut(duration: 0.2)) { dragTranslation = 0 } }
                 guard !zoom.isZoomed else { return }
+                if state.pdfText != nil { return }
+                // *Scanned PDF*: a reader who drags expecting to select is told, once, in a sentence.
+                if model.publication.format == .pdf { state.saysThereIsNoText = true; return }
                 let step = DragTurn.step(
                     translation: value.translation.width, width: viewport.width, isRightToLeft: isRightToLeft
                 )

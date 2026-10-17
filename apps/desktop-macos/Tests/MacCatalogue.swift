@@ -1,6 +1,7 @@
 import AppKit
 import LibraryFeature
 import Persistence
+import Playback
 import StoryArcCore
 import Testing
 
@@ -64,7 +65,90 @@ enum MacCatalogue {
         _ = await AppActivation.activate()
         try await libraryScreens(library: library, reading: reading, visit)
         try await readerScreens(library: library, reading: reading, visit)
+        try await pdfScreens(library: library, visit)
+        try await epubScreens(visit)
+        try await playerScreen(visit)
         try await settingsScreens(library: library, visit)
+    }
+
+    /// The text PDF with its first page selected, so the selection and its menu are drawn. Task 4.6.
+    private static func pdfScreens(library: MacLibrary, _ visit: Visit) async throws {
+        let publication = try #require(Walk.publication(named: "text-pages", in: library))
+        let target = try #require(library.target(for: publication))
+        try Walk.open(target)
+        let window = try #require(await Walk.until { Walk.readerWindows(for: target).first })
+        hold(window, at: readerSize)
+        defer { release(window) }
+        let state = try #require(await Walk.until { ReaderStates.shared.state(for: target) })
+        let text = try #require(await Walk.until(.seconds(15)) { state.pdfText }, "the text layer was not opened")
+        _ = await Walk.until { state.model.displayImage(at: 0) != nil ? true : nil }
+        await text.select(onPage: 0, from: CGPoint(x: 0.02, y: 0.02), to: CGPoint(x: 0.98, y: 0.98))
+        try await Task.sleep(for: .milliseconds(1200))
+        try await visit("pdf-selection", window)
+        text.clearSelection()
+        await Walk.close([window])
+    }
+
+    /// The player over the corpus `chaptered.m4b`, paused at its start so the clock reads the
+    /// same each run. Task 4.7.
+    private static func playerScreen(_ visit: Visit) async throws {
+        let folder = URL.temporaryDirectory.appending(path: "walk-audiobooks", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appending(path: "catalogue.m4b")
+        if !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
+            try FileManager.default.copyItem(at: TestFixtures.audiobooks.appending(path: "chaptered.m4b"), to: file)
+        }
+        let target = ReaderTarget(
+            publicationID: "catalogue-audiobook", path: file.path(percentEncoded: false), title: "Chaptered"
+        )
+        await Walk.close(NSApplication.shared.windows.filter { $0.isVisible && $0.title == target.title })
+        let centre = PlayerCentre.shared
+        if centre.isRunning { centre.end() }
+        try Walk.open(target)
+        let window = try #require(await Walk.until { Walk.readerWindows(for: target).first })
+        hold(window, at: NSRect(x: 160, y: 100, width: 420, height: 620))
+        defer { release(window) }
+        // Known by its file: the window carries a placeholder publication, not the target's id.
+        // Paused the moment it starts, because the fixture is six seconds long.
+        let started = await Walk.until(.seconds(15)) {
+            centre.book?.url.standardizedFileURL == target.url.standardizedFileURL ? true : nil
+        }
+        #expect(started == true, "the book did not start")
+        centre.pause()
+        centre.play(part: 0, offset: 0)
+        centre.pause()
+        try await Task.sleep(for: .milliseconds(900))
+        try await visit("player", window)
+        await Walk.close([window])
+        centre.end()
+    }
+
+    /// The EPUB reader over the corpus `fixture.epub`, copied to a fixed place in the
+    /// container so its identity and title draw the same each run. Wave 4, task 4.5.
+    private static func epubScreens(_ visit: Visit) async throws {
+        let folder = URL.temporaryDirectory.appending(path: "walk-ebooks", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let file = folder.appending(path: "fixture.epub")
+        if !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
+            try FileManager.default.copyItem(at: TestFixtures.ebooks.appending(path: "fixture.epub"), to: file)
+        }
+        let target = ReaderTarget(
+            publicationID: "catalogue-epub", path: file.path(percentEncoded: false), title: "Fixture Publication"
+        )
+        // Nothing of an earlier run that stopped before closing: its session restores at launch.
+        await Walk.close(NSApplication.shared.windows.filter { $0.isVisible && $0.title == target.title })
+        try Walk.open(target)
+        let window = try #require(await Walk.until { Walk.readerWindows(for: target).first })
+        hold(window, at: readerSize)
+        defer { release(window) }
+        let model = try #require(await Walk.until { EpubReaders.shared.model(for: target) })
+        // The first web view of a run starts WebKit's processes first; the iOS egress suite
+        // measured that start at up to ten seconds on a busy machine.
+        _ = await Walk.until(.seconds(45)) { model.isReady ? true : nil }
+        #expect(model.isReady, "the EPUB renderer did not say ready")
+        try await Task.sleep(for: .milliseconds(1200))
+        try await visit("epub-reader", window)
+        await Walk.close([window])
     }
 
     private static func libraryScreens(library: MacLibrary, reading: Publication, _ visit: Visit) async throws {

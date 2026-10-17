@@ -35,6 +35,30 @@ enum TestFixtures {
         bundle.bundleURL.appending(path: "Contents/Resources/comics", directoryHint: .isDirectory)
     }
 
+    /// `packages/test-fixtures/ebooks`, as copied into the bundle. Wave 4.
+    static var ebooks: URL {
+        bundle.bundleURL.appending(path: "Contents/Resources/ebooks", directoryHint: .isDirectory)
+    }
+
+    /// `packages/test-fixtures/audiobooks`, as copied into the bundle. Wave 4.
+    static var audiobooks: URL {
+        bundle.bundleURL.appending(path: "Contents/Resources/audiobooks", directoryHint: .isDirectory)
+    }
+
+    /// `apps/desktop-web/epub/test/egress.html`, the eight-vector page of ADR-0015.
+    static var egressPage: URL {
+        bundle.bundleURL.appending(path: "Contents/Resources/egress.html")
+    }
+
+    /// One ebook fixture, copied to a fresh temporary folder the test owns.
+    static func copyEbook(_ name: String) throws -> URL {
+        let folder = URL.temporaryDirectory.appending(path: "ebook-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let target = folder.appending(path: name)
+        try FileManager.default.copyItem(at: ebooks.appending(path: name), to: target)
+        return target
+    }
+
     /// `App/StoryArcMac.entitlements`, as copied into the bundle.
     static var entitlements: URL {
         bundle.bundleURL.appending(path: "Contents/Resources/StoryArcMac.entitlements")

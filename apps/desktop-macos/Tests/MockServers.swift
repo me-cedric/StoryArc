@@ -14,6 +14,10 @@ enum MockServers {
     static var kavitaPort: Int { port("STORYARC_KAVITA_PORT", default: 5000) }
     static var smbPort: Int { port("STORYARC_SMB_PORT", default: 4445) }
     static var encryptedSmbPort: Int { port("STORYARC_SMB_ENCRYPTED_PORT", default: 4446) }
+    /// The egress collector of `apps/desktop-web/epub/test/collector.mjs` (`pnpm egress` from
+    /// that directory). Out of process because the sandboxed app may not listen on a socket:
+    /// it has `network.client` and no server entitlement, and `EntitlementsTests` keeps it so.
+    static var egressPort: Int { port("STORYARC_EGRESS_PORT", default: 4815) }
 
     /// The share's user. `scripts/smb-server.sh` signs in as the Mac's own user; the container
     /// image of the same configuration signs in as `reader`.
@@ -33,6 +37,8 @@ enum MockServers {
     static var isKavitaUp: Bool { isListening(kavitaPort) }
     static var isSmbUp: Bool { isListening(smbPort) }
     static var isEncryptedSmbUp: Bool { isListening(encryptedSmbPort) }
+    static var egressOrigin: String { "http://127.0.0.1:\(egressPort)" }
+    static var isEgressUp: Bool { isListening(egressPort) }
 
     private static func port(_ name: String, default value: Int) -> Int {
         ProcessInfo.processInfo.environment[name].flatMap(Int.init) ?? value

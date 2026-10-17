@@ -66,6 +66,14 @@ struct ReaderWindow: View {
                     ReaderChromeBar(state: state, isAdjusting: $isAdjusting, onChapter: { chapter($0) })
                         .transition(.opacity)
                 }
+                if let text = state.pdfText, text.selection != nil {
+                    VStack {
+                        Spacer()
+                        MacPdfSelectionMenu(text: text) { state.pdfSearchRequest = $0; revealChrome() }
+                            .padding(.bottom, isChromeVisible ? 84 : 20)
+                    }
+                    .transition(.opacity)
+                }
                 if state.isAtEnd {
                     EndOfPublicationView(state: state, next: library.model.next(after: model.publication)) {
                         open($0)
@@ -87,6 +95,13 @@ struct ReaderWindow: View {
         .navigationTitle(target.title)
         .background(WindowAccessor { attach($0) })
         .sheet(isPresented: $isAskingForPage) { goToPageSheet }
+        .alert(Text("desktop.pdf.noText.title"), isPresented: Binding(
+            get: { state.saysThereIsNoText }, set: { state.saysThereIsNoText = $0 }
+        )) {
+            Button { state.saysThereIsNoText = false } label: { Text("desktop.pdf.noText.done") }
+        } message: {
+            Text("desktop.pdf.noText.message")
+        }
         .acceptsDroppedFiles()
         .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
         .onChange(of: reduceMotion, initial: true) { _, now in state.reduceMotion = now }
@@ -97,7 +112,7 @@ struct ReaderWindow: View {
 
     // MARK: - Opening and closing
 
-    private static func placeholder(for target: ReaderTarget) -> Publication {
+    static func placeholder(for target: ReaderTarget) -> Publication {
         Publication(
             identity: PublicationIdentity(normalizedPath: target.path),
             format: PublicationFormat.detected(from: target.url) ?? .cbz,
@@ -305,6 +320,10 @@ extension PublicationFormat {
         case "cbt": .cbt
         case "pdf": .pdf
         case "epub": .epub
+        case "m4b", "m4a": .m4b
+        case "mp3": .mp3
+        case "flac": .flac
+        case "ogg", "oga", "opus": .ogg
         default: nil
         }
     }
