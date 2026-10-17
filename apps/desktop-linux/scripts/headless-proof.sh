@@ -2,13 +2,15 @@
 # Run the Linux tests that need a display, a session bus or a sound device inside the Ubuntu 24.04
 # container, under cage (a headless wlroots compositor), on the same volumes as container-build.sh.
 # Usage: headless-proof.sh [test-name-filter]      (default: every such test; they skip without a display)
-#        headless-proof.sh --walk <output-dir>      the wave 4 walk of wave4-walk.sh, captures into <output-dir>
+#        headless-proof.sh --walk <output-dir> [walk]  a walk script of this folder (default wave4-walk.sh),
+#                                                   captures into <output-dir>
 # WebKitGTK's web process sandbox needs user namespaces the container does not have, so the
 # sandbox is switched off here, and only here; the app never does that.
 set -euo pipefail
 filter="${1:-}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 walk=""
+script="${3:-wave4-walk.sh}"
 if [ "$filter" = "--walk" ]; then
   out="${2:?an output directory}"; mkdir -p "$out"; out="$(cd "$out" && pwd)"
   walk="-v $out:/out"; filter=""
@@ -48,7 +50,7 @@ printf 'AudioOutputMethod \"libao\"\nLogLevel 3\n' > \$HOME/.config/speech-dispa
 printf 'default_driver=null\n' > \$HOME/.libao
 if [ -n '$walk' ]; then
   cargo build --locked -p storyarc-linux
-  exec bash /src/apps/desktop-linux/scripts/wave4-walk.sh
+  exec bash /src/apps/desktop-linux/scripts/$script
 fi
 cargo test --locked -p storyarc-linux --no-run
 eval \$(dbus-launch --sh-syntax); export DBUS_SESSION_BUS_ADDRESS

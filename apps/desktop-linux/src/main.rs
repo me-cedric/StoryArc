@@ -32,6 +32,7 @@ mod library_search;
 mod library_selection;
 mod library_views;
 mod library_window;
+mod link;
 mod menus;
 mod mpris;
 mod network_ui;
