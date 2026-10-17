@@ -54,9 +54,9 @@ wave 1's.
   was left alone. The same applies to the accent: the frames show the StoryArc accent; the
   System choice follows the system accent live, and changing the system accent is a system
   setting this session does not touch.
-- **The sidebar selection and its icons are the system accent (blue)**, not StoryArc's:
-  a macOS sidebar draws its selection in the system accent whatever the app's tint. The
-  conformance walk records it against *The default accent*.
+- **The sidebar is the StoryArc accent because this Mac's system accent is Multicolor**, the
+  default. A sidebar draws in the app's global accent only then; a reader who picked a
+  system accent colour sees that colour there, as in every Mac app.
 - **The picker values in Preferences keep the system's size** at Largest: a menu-style
   picker draws its value with the control's own font. The labels, the footers and every
   window's content scale.
