@@ -76,6 +76,10 @@
   </Applications>
 
   <Capabilities>
+    <!-- Outbound connections to the sources the reader configured: internetClient for a catalogue or a server on the internet,
+         privateNetworkClientServer for a share or a server on the home network. No inbound listening is used. -->
+    <Capability Name="internetClient" />
+    <Capability Name="privateNetworkClientServer" />
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
 </Package>

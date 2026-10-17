@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The shelves page (desktop-clients task 3.23a): every collection and reading list, and a shelf's own page with its members in order.
+     A member the library does not have now stays in grey, and an addition waiting for a server shows after the server's own rows, in grey.
+     The rows are drawn in code from the shelf model. -->
+<UserControl
+    x:Class="StoryArc.Windows.ShelvesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="720" Margin="24,16" Spacing="12" HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="BackButton" Click="OnBack" Visibility="Collapsed" AutomationProperties.AutomationId="ShelfBack">
+                    <FontIcon Glyph="&#xE72B;" />
+                </Button>
+                <TextBlock x:Name="PageTitle" VerticalAlignment="Center" Style="{ThemeResource TitleTextBlockStyle}" />
+            </StackPanel>
+            <TextBlock x:Name="Subtitle" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <StackPanel x:Name="Toolbar" Orientation="Horizontal" Spacing="8">
+                <Button x:Name="NewCollectionButton" Click="OnNewCollection" AutomationProperties.AutomationId="NewCollection" />
+                <Button x:Name="NewListButton" Click="OnNewList" AutomationProperties.AutomationId="NewReadingList" />
+            </StackPanel>
+            <StackPanel x:Name="Rows" Spacing="6" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -137,6 +137,9 @@
                 <NavigationViewItem x:Name="HomeItem" Icon="Home" AutomationProperties.AutomationId="NavHome" />
                 <NavigationViewItem x:Name="LibraryItem" Icon="Library" AutomationProperties.AutomationId="NavLibrary" />
                 <NavigationViewItem x:Name="OnDeviceItem" Icon="Download" AutomationProperties.AutomationId="NavOnDevice" />
+                <NavigationViewItem x:Name="SourcesItem" Icon="Globe" AutomationProperties.AutomationId="NavSources" />
+                <!-- The shelves: the item opens the list of every shelf, and each shelf is a child item (task 3.23a). -->
+                <NavigationViewItem x:Name="ShelvesItem" Icon="Bookmarks" AutomationProperties.AutomationId="NavShelves" />
             </NavigationView.MenuItems>
 
             <Grid>
@@ -198,6 +201,8 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock x:Name="ViewTitle" VerticalAlignment="Center" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <DropDownButton x:Name="FilterButton" Grid.Column="1" AutomationProperties.AutomationId="LibraryFilter">
@@ -208,6 +213,14 @@
                         <DropDownButton x:Name="SortButton" Grid.Column="2" AutomationProperties.AutomationId="LibrarySort">
                             <DropDownButton.Flyout>
                                 <MenuFlyout x:Name="SortFlyout" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <!-- The download queue, beside the Downloads title (task 3.23): its flyout is made in code. -->
+                        <Button x:Name="QueueButton" Grid.Column="4" Visibility="Collapsed" AutomationProperties.AutomationId="DownloadQueue" />
+                        <!-- Add the selected publications to a shelf (task 3.23a): the menu lists the shelves when it opens. -->
+                        <DropDownButton x:Name="ShelfButton" Grid.Column="5" AutomationProperties.AutomationId="AddToShelf">
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="ShelfFlyout" Placement="BottomEdgeAlignedRight" Opening="OnShelfFlyoutOpening" />
                             </DropDownButton.Flyout>
                         </DropDownButton>
                         <SelectorBar x:Name="LayoutBar" Grid.Column="3" SelectionChanged="OnLayoutChanged">
@@ -251,6 +264,10 @@
 
                 <!-- A publication's detail (task 2.47d): a page in the navigation frame. -->
                 <Frame x:Name="DetailFrame" Grid.Row="1" Visibility="Collapsed" />
+
+                <!-- The sources (task 3.21) and the shelves (task 3.23a). -->
+                <local:SourcesPage x:Name="SourcesView" Grid.Row="1" Visibility="Collapsed" />
+                <local:ShelvesPage x:Name="ShelvesView" Grid.Row="1" Visibility="Collapsed" />
 
                 <!-- The settings page, shown when the Settings item of the pane is selected (task 2.47). -->
                 <local:PreferencesPage x:Name="Preferences" Grid.Row="1" Visibility="Collapsed" />

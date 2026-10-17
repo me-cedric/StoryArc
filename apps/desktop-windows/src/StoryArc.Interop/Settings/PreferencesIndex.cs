@@ -44,6 +44,7 @@ public static class PreferencesIndex
         new("matte", PreferencesGroup.Reading, "reading_matte", "Page matte", ["background", "black", "white", "sepia"]),
         new("downloads", PreferencesGroup.DownloadsAndStorage, "settings_downloads", "Downloads", ["queue", "wi-fi", "metered", "storage"]),
         new("storage", PreferencesGroup.DownloadsAndStorage, "settings_storage", "Storage", ["cache", "covers", "clear", "space", "disk"]),
+        new("sync", PreferencesGroup.DownloadsAndStorage, "sync_title", "Sync", ["folder", "document", "phone", "devices", "position"]),
         new("language", PreferencesGroup.Language, "settings_language", "Language", ["english", "français", "deutsch", "español", "system"]),
         new("privacy", PreferencesGroup.Privacy, "settings_privacy", "Privacy", ["cover lookup", "network", "diagnostic", "export"]),
         new("version", PreferencesGroup.About, "about_version", "Version", ["build", "update"]),

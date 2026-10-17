@@ -33,6 +33,7 @@ internal sealed class AppHost
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly DispatcherQueueTimer _timer;
     private MainWindow? _library;
+    private bool _isQuitting;
 
     public AppHost(DispatcherQueue dispatcher)
     {
@@ -46,6 +47,7 @@ internal sealed class AppHost
 
         // The core's progress store. A store that cannot open leaves positions in memory, named as
         // failed writes, and the session file still carries each reader's page.
+        StateFiles.ApplyPendingRecordsClear();
         try
         {
             _coreProgress = ProgressStore.Open(StateFiles.ProgressPath);
@@ -58,6 +60,7 @@ internal sealed class AppHost
 
         _progress = new ProgressWriter((IProgressStore?)_savedPages ?? new UnavailableProgressStore());
         Library = _coreProgress is null ? null : new LibraryService(dispatcher, _coreProgress);
+        Network = CreateNetwork(dispatcher);
 
         _readers.LastWindowClosed += Exit;
         Settings.Changed += _ => Repaint();
@@ -69,6 +72,7 @@ internal sealed class AppHost
         {
             _ = _progress.Tick(_clock.Elapsed);
             Library?.Tick();
+            Network?.Tick();
         };
     }
 
@@ -79,6 +83,9 @@ internal sealed class AppHost
     /// <summary>The folder sources and their records; <c>null</c> only when the core's store could not open.</summary>
     public LibraryService? Library { get; }
 
+    /// <summary>The network sources, the vault, the downloads, the sync and the shelves (wave 3); <c>null</c> when the core's store or runtime could not start.</summary>
+    internal NetworkServices? Network { get; }
+
     /// <summary>
     /// Opens what the last run left open, then what this launch asked for. A launch for files opens
     /// their readers without the library in front of them; otherwise a session with no library window
@@ -87,8 +94,8 @@ internal sealed class AppHost
     /// </summary>
     public void Start(LaunchRequest launch)
     {
-        Library?.Start();
         _timer.Start();
+        _ = StartLibraryAsync();
 
         var saved = _session.State;
         var plan = RestorationPlan.From(saved, File.Exists);
@@ -109,6 +116,20 @@ internal sealed class AppHost
         }
 
         OpenPaths(launch.Paths, launch.Origin);
+    }
+
+    /// <summary>
+    /// The library scans its folders once the sync has merged, or after the short budget when the sync location is slow, so Continue reading shows the
+    /// merged positions and the window never waits on the network.
+    /// </summary>
+    private async Task StartLibraryAsync()
+    {
+        if (Network is { } network)
+        {
+            await network.StartAsync();
+        }
+
+        Library?.Start();
     }
 
     /// <summary>A later launch redirected here: open what it carries, or bring the app forward.</summary>
@@ -237,7 +258,18 @@ internal sealed class AppHost
     public void ReaderMoved(ReaderWindowState state) => _session.ReaderChanged(state);
 
     /// <summary>A page turn: written within the cadence, never once per frame.</summary>
-    public void PageTurned(string publicationId, int page) => _progress.Turned(publicationId, page, _clock.Elapsed);
+    public void PageTurned(string publicationId, int page)
+    {
+        _progress.Turned(publicationId, page, _clock.Elapsed);
+        Network?.PositionChanged();
+    }
+
+    /// <summary>
+    /// Whether closing <paramref name="window"/> would end the app with a download still running: it is the last window, and the reader has not agreed
+    /// yet. The window then asks first, as the Quit command does.
+    /// </summary>
+    internal bool ShouldAskBeforeClosing(Window window) =>
+        !_isQuitting && _windows.Count == 1 && _windows[0] == window && Network?.Downloads.NeedsQuitPrompt == true;
 
     /// <summary>The command of the menu or the shortcut, asked from <paramref name="window"/>.</summary>
     public void Invoke(string commandId, Window window)
@@ -280,13 +312,32 @@ internal sealed class AppHost
     }
 
     /// <summary>
-    /// Writes every reading position and the session, then closes every window. The windows that
-    /// close here stay in the session, so the next launch opens them again.
+    /// Quits. A download in progress asks first: it pauses, keeps its partial file and resumes at the next launch. Then every reading position and the
+    /// session are written, the downloads stop, the sync document is written once more when the position changed (within five seconds, and the app quits
+    /// whatever the result), and every window closes. The windows that close here stay in the session, so the next launch opens them again.
     /// </summary>
-    public void Quit()
+    public void Quit() => _ = QuitAsync();
+
+    private async Task QuitAsync()
     {
+        if (_isQuitting)
+        {
+            return;
+        }
+
+        if (Network?.Downloads.NeedsQuitPrompt == true && !await OpenLibrary().ConfirmQuitAsync())
+        {
+            return;
+        }
+
+        _isQuitting = true;
         _ = _progress.FlushAll();
         _session.Quitting();
+        if (Network is { } network)
+        {
+            await network.QuitAsync();
+        }
+
         foreach (var window in _windows.ToList())
         {
             window.Close();
@@ -383,9 +434,35 @@ internal sealed class AppHost
     {
         _ = _progress.FlushAll();
         _timer.Stop();
+        if (!_isQuitting && Network is { } network)
+        {
+            // The last window closed without the Quit command: stop the transfers and write the sync document, off the interface thread, for at most six seconds.
+            _ = Task.Run(network.QuitAsync).Wait(TimeSpan.FromSeconds(6));
+        }
+
+        Network?.Dispose();
         Library?.Dispose();
         _coreProgress?.Dispose();
         Application.Current.Exit();
+    }
+
+    private NetworkServices? CreateNetwork(DispatcherQueue dispatcher)
+    {
+        var library = Library;
+        if (_coreProgress is null || library is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return new NetworkServices(dispatcher, _coreProgress, Settings, () => library.Records, path => library.AddFolder(path));
+        }
+        catch (StoryArcException)
+        {
+            // The core's runtime did not start: the library still works, and the network sources are absent.
+            return null;
+        }
     }
 
     /// <summary>Where positions go when the core's store could not open: every write fails, by name, and stays in memory.</summary>

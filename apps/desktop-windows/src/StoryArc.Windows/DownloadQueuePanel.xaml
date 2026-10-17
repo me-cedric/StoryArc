@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The download queue (desktop-clients task 3.23): each row with how it stands, in grey when it waits and never red, and the reader's controls.
+     It sits in a flyout beside the Downloads title. The rows are drawn in code from the coordinator's queue. -->
+<UserControl
+    x:Class="StoryArc.Windows.DownloadQueuePanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel Spacing="8" MinWidth="420" MaxWidth="560">
+        <TextBlock x:Name="MeteredNote" TextWrapping="Wrap" Style="{ThemeResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="PauseAllButton" Click="OnPauseAll" />
+            <Button x:Name="ResumeAllButton" Click="OnResumeAll" />
+        </StackPanel>
+        <TextBlock x:Name="EmptyNote" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        <ScrollViewer MaxHeight="420">
+            <StackPanel x:Name="Rows" Spacing="6" />
+        </ScrollViewer>
+    </StackPanel>
+</UserControl>

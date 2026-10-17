@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
+using StoryArc.Interop.Data;
 using StoryArc.Interop.Library;
 using StoryArc.Interop.Opening;
 using StoryArc.Interop.Shell;
@@ -33,6 +34,7 @@ public sealed partial class MainWindow : Window
     private readonly SemaphoreSlim _dialog = new(1);
     private bool _isShowingDetail;
     private bool _isShowingPreferences;
+    private string _shelfSignature = string.Empty;
 
     internal MainWindow(AppHost host, LibraryWindowState? restored)
     {
@@ -65,11 +67,18 @@ public sealed partial class MainWindow : Window
         Menu.Initialize(WindowKind.Library, isAvailable, invoke);
         MenuBuilder.AttachAccelerators(Root, WindowKind.Library, isAvailable, invoke);
         Preferences.Initialize(_host);
+        SourcesView.Initialize(_host);
+        ShelvesView.Initialize(_host);
 
         // The three destinations, named as the iOS tab bar names them; search lives in the title bar.
         HomeItem.Content = Strings.Get("tab_home", "Home");
         LibraryItem.Content = Strings.Get("tab_library", "Library");
         OnDeviceItem.Content = Strings.Get("tab_downloads", "Downloads");
+        SourcesItem.Content = Strings.Get("settings_sources");
+        ShelvesItem.Content = Strings.Get("shelves_title");
+        ShelfButton.Content = Strings.Get("desktop_w3_shelves_addToShelf");
+        ShelfButton.IsEnabled = false;
+        LibraryItems.SelectionChanged += (sender, args) => ShelfButton.IsEnabled = LibraryItems.SelectedItems.Count > 0;
         SearchBox.PlaceholderText = Strings.Get("library_search_prompt", "Search");
         AddFolderButton.Content = Strings.Get("sources_add", "Add a library");
         ToolTipService.SetToolTip(RefreshButton, Strings.Get("sources_action_refresh", "Refresh"));
@@ -82,6 +91,19 @@ public sealed partial class MainWindow : Window
         if (_host.Library is { } library)
         {
             library.Changed += Refresh;
+        }
+
+        if (_host.Network is { } network)
+        {
+            var queue = new DownloadQueuePanel();
+            queue.Initialize(network);
+            QueueButton.Flyout = new Flyout
+            {
+                Content = queue,
+                Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.BottomEdgeAlignedRight,
+            };
+            network.Changed += RefreshNetwork;
+            RefreshNetwork();
         }
 
         Activated += (sender, args) =>
@@ -97,11 +119,17 @@ public sealed partial class MainWindow : Window
             {
                 service.Changed -= Refresh;
             }
+
+            if (_host.Network is { } closing)
+            {
+                closing.Changed -= RefreshNetwork;
+            }
         };
 
         // The window opens on Home (capability home-screen).
         Navigation.SelectedItem = HomeItem;
         AppWindow.Changed += OnAppWindowChanged;
+        AppWindow.Closing += OnAppWindowClosing;
         _host.LibraryMoved(Snapshot());
     }
 
@@ -111,6 +139,16 @@ public sealed partial class MainWindow : Window
         Navigation.SelectedItem = Navigation.SettingsItem;
         Activate();
     }
+
+    /// <summary>Selects the Sources item of the pane, which shows the sources page.</summary>
+    internal void ShowSources()
+    {
+        Navigation.SelectedItem = SourcesItem;
+        Activate();
+    }
+
+    /// <summary>The window the file pickers and dialogs of the preferences belong to.</summary>
+    internal Microsoft.UI.WindowId PickerWindowId => AppWindow.Id;
 
     /// <summary>The library's own commands from the menu or a shortcut.</summary>
     internal void Run(string commandId)
@@ -236,7 +274,7 @@ public sealed partial class MainWindow : Window
 
     private void ShowContent(UIElement visible)
     {
-        foreach (var element in new UIElement[] { HomeView, LibraryView, DetailFrame, Preferences })
+        foreach (var element in new UIElement[] { HomeView, LibraryView, DetailFrame, Preferences, SourcesView, ShelvesView })
         {
             element.Visibility = element == visible ? Visibility.Visible : Visibility.Collapsed;
         }
@@ -244,16 +282,17 @@ public sealed partial class MainWindow : Window
         Navigation.IsBackButtonVisible = visible == DetailFrame ? NavigationViewBackButtonVisible.Visible : NavigationViewBackButtonVisible.Collapsed;
         Navigation.IsBackEnabled = visible == DetailFrame;
         _isShowingDetail = visible == DetailFrame;
-        _isShowingPreferences = visible == Preferences;
+        _isShowingPreferences = visible == Preferences || visible == SourcesView || visible == ShelvesView;
     }
 
-    /// <summary>Home: Continue reading and Up next, each absent when empty; one sentence when both are.</summary>
+    /// <summary>Home: Continue reading and Up next, then the shelves the reader pinned, each absent when empty; one sentence when all are.</summary>
     private void ShowHome()
     {
         ShowContent(HomeView);
         HomeShelvesPanel.Children.Clear();
         var shelves = HomeShelves.From(Records());
-        if (shelves.IsEmpty)
+        IReadOnlyList<ShelfPageModel> pinned = _host.Network is { } network ? HomeShelfRows.From(network.Shelves, network.Pinned, Records()) : [];
+        if (shelves.IsEmpty && pinned.Count == 0)
         {
             HomeShelvesPanel.Children.Add(new TextBlock
             {
@@ -266,25 +305,37 @@ public sealed partial class MainWindow : Window
 
         foreach (var shelf in shelves.Shelves)
         {
-            var heading = new TextBlock
-            {
-                Text = shelf.Kind == ShelfKind.ContinueReading ? Strings.Get("home_keepReading", "Continue reading") : Strings.Get("home_upNext", "Up next"),
-                Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"],
-            };
-            var row = new ItemsView
-            {
-                ItemsSource = shelf.Items.Select(Cell).ToList(),
-                ItemTemplate = (DataTemplate)Root.Resources["GridCellTemplate"],
-                Layout = new StackLayout { Orientation = Orientation.Horizontal, Spacing = 16 },
-                SelectionMode = ItemsViewSelectionMode.None,
-                IsItemInvokedEnabled = true,
-                Height = 340,
-            };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(row, heading.Text);
-            row.ItemInvoked += OnItemInvoked;
-            HomeShelvesPanel.Children.Add(heading);
-            HomeShelvesPanel.Children.Add(row);
+            AddHomeRow(
+                shelf.Kind == ShelfKind.ContinueReading ? Strings.Get("home_keepReading", "Continue reading") : Strings.Get("home_upNext", "Up next"),
+                shelf.Items);
         }
+
+        foreach (var page in pinned)
+        {
+            AddHomeRow(page.Shelf.Name, page.Rows.Where(row => row.IsAvailable).Select(row => row.Record!));
+        }
+    }
+
+    private void AddHomeRow(string headingText, IEnumerable<LibraryRecord> records)
+    {
+        var heading = new TextBlock
+        {
+            Text = headingText,
+            Style = (Style)Application.Current.Resources["SubtitleTextBlockStyle"],
+        };
+        var row = new ItemsView
+        {
+            ItemsSource = records.Select(Cell).ToList(),
+            ItemTemplate = (DataTemplate)Root.Resources["GridCellTemplate"],
+            Layout = new StackLayout { Orientation = Orientation.Horizontal, Spacing = 16 },
+            SelectionMode = ItemsViewSelectionMode.None,
+            IsItemInvokedEnabled = true,
+            Height = 340,
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(row, heading.Text);
+        row.ItemInvoked += OnItemInvoked;
+        HomeShelvesPanel.Children.Add(heading);
+        HomeShelvesPanel.Children.Add(row);
     }
 
     /// <summary>The library, Downloads or the search results: the query state's records in the chosen layout.</summary>
@@ -299,6 +350,8 @@ public sealed partial class MainWindow : Window
             _ => Strings.Get("tab_library", "Library"),
         };
 
+        QueueButton.Visibility = destination == LibraryDestination.Downloads && _host.Network is not null ? Visibility.Visible : Visibility.Collapsed;
+        UpdateQueueButton();
         var records = destination == LibraryDestination.Downloads ? Records().Where(record => record.IsDownloaded) : Records();
         _view.Load(_query.Apply(records));
         LibraryItems.ItemsSource = _view.Records.Select(Cell).ToList();
@@ -481,6 +534,113 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>The network side changed (a source, the queue, a shelf, the sync): the shelf items of the pane and the queue button follow.</summary>
+    private void RefreshNetwork()
+    {
+        SyncShelfItems();
+        UpdateQueueButton();
+        if (!_isShowingDetail && !_isShowingPreferences && _query.ContentDestination == LibraryDestination.Home)
+        {
+            ShowHome();
+        }
+    }
+
+    /// <summary>One child item of Shelves per shelf, the pinned ones first, rebuilt only when the set or a name changed so the selection is not lost.</summary>
+    private void SyncShelfItems()
+    {
+        if (_host.Network is not { } network)
+        {
+            return;
+        }
+
+        var shelves = network.Pinned.Ordering(network.Shelves.All);
+        var signature = string.Join('|', shelves.Select(shelf => shelf.Id + ":" + shelf.Name));
+        if (signature == _shelfSignature)
+        {
+            return;
+        }
+
+        _shelfSignature = signature;
+        ShelvesItem.MenuItems.Clear();
+        foreach (var shelf in shelves)
+        {
+            ShelvesItem.MenuItems.Add(new NavigationViewItem { Content = shelf.Name, Tag = shelf.Id, Icon = new SymbolIcon(Symbol.Bookmarks) });
+        }
+    }
+
+    private void UpdateQueueButton()
+    {
+        if (_host.Network is not { } network)
+        {
+            return;
+        }
+
+        var waiting = network.Downloads.Queue.Rows.Count(row => row.Status != DownloadStatus.Finished);
+        QueueButton.Content = string.Format(CultureInfo.CurrentCulture, Strings.Get("desktop_w3_downloads_inProgress___"), waiting);
+    }
+
+    /// <summary>The menu of Add to shelf lists the shelves the reader keeps; picking one adds every selected publication in one change.</summary>
+    private void OnShelfFlyoutOpening(object sender, object args)
+    {
+        ShelfFlyout.Items.Clear();
+        if (_host.Network is not { } network)
+        {
+            return;
+        }
+
+        var selected = LibraryItems.SelectedItems.OfType<CoverCell>().Select(cell => ShelfMemberId.Of(cell.Record)).ToList();
+        var local = network.Shelves.All.Where(shelf => shelf.IsLocal).ToList();
+        if (local.Count == 0)
+        {
+            ShelfFlyout.Items.Add(new MenuFlyoutItem { Text = Strings.Get("desktop_w3_shelves_none"), IsEnabled = false });
+            return;
+        }
+
+        foreach (var shelf in local)
+        {
+            var item = new MenuFlyoutItem { Text = shelf.Name, IsEnabled = selected.Count > 0 };
+            var captured = shelf;
+            item.Click += (clicked, e) => network.ApplyShelves(ShelfMembership.Adding(captured, selected));
+            ShelfFlyout.Items.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// The quit prompt: a download is in progress, so the app says before quitting that it pauses and resumes at the next launch, and quits when the
+    /// reader agrees (desktop-experience, "No presence when the app is closed").
+    /// </summary>
+    internal async Task<bool> ConfirmQuitAsync()
+    {
+        await _dialog.WaitAsync();
+        try
+        {
+            var dialog = new ContentDialog
+            {
+                XamlRoot = Root.XamlRoot,
+                Title = Strings.Get("desktop_w3_downloads_quitTitle"),
+                Content = new TextBlock { Text = Strings.Get("desktop_w3_downloads_quitBody"), TextWrapping = TextWrapping.Wrap },
+                PrimaryButtonText = Strings.Get("desktop_w3_downloads_quitConfirm"),
+                CloseButtonText = Strings.Get("shelves_cancel"),
+                DefaultButton = ContentDialogButton.Primary,
+            };
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+        finally
+        {
+            _dialog.Release();
+        }
+    }
+
+    /// <summary>Closing the last window with a download running asks first, as the Quit command does.</summary>
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        if (_host.ShouldAskBeforeClosing(this))
+        {
+            args.Cancel = true;
+            _host.Quit();
+        }
+    }
+
     private void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.IsSettingsSelected)
@@ -492,6 +652,19 @@ public sealed partial class MainWindow : Window
         // SelectedItem is an object; the menu items are NavigationViewItem, which declares its own ==.
         // Cast first, as CS0252 asks, so the comparison is the item's own and not an object reference.
         var selected = args.SelectedItem as NavigationViewItem;
+        if (selected == SourcesItem)
+        {
+            ShowContent(SourcesView);
+            return;
+        }
+
+        if (selected == ShelvesItem || selected?.Tag is string)
+        {
+            ShelvesView.Show(selected?.Tag as string);
+            ShowContent(ShelvesView);
+            return;
+        }
+
         var destination = selected == LibraryItem ? LibraryDestination.Library
             : selected == OnDeviceItem ? LibraryDestination.Downloads
             : LibraryDestination.Home;
