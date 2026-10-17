@@ -16,6 +16,12 @@ internal static class Corpus
     /// <summary>A fresh empty folder under the system's temporary folder, removed by the caller's <c>using</c>.</summary>
     public static TemporaryFolder TemporaryFolder() => new();
 
+    /// <summary>The absolute path of a file of the repository, for example <c>apps/desktop-web/epub/dist/storyarc-epub.js</c>.</summary>
+    public static string RepositoryPath(string relative) =>
+        System.IO.Path.Combine(
+            System.IO.Path.GetFullPath(System.IO.Path.Combine(Root.Value, "..", "..")),
+            relative.Replace('/', System.IO.Path.DirectorySeparatorChar));
+
     private static string FindRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
