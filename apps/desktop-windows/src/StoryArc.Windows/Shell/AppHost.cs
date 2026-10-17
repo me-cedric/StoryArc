@@ -262,7 +262,9 @@ internal sealed class AppHost
             return (new EpubReaderWindow(this, epub, restored, startPosition), epub.Title);
         }
 
-        var opened = await OpenedPublication.OpenAsync(path);
+        var opened = string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase)
+            ? await OpenedPublication.OpenPdfAsync(path)
+            : await OpenedPublication.OpenAsync(path);
         var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
         _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
         return (new ReaderWindow(this, opened, restored, start), opened.Record.DisplayTitle);

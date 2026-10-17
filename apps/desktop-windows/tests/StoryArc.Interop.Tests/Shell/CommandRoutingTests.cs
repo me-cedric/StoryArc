@@ -75,4 +75,12 @@ public sealed class CommandRoutingTests
             }
         }
     }
+
+    [Fact]
+    public void Show_contents_is_answered_in_a_reader_only_since_the_pdf_pane()
+    {
+        Assert.True(CommandRouting.IsHandled("showContents", WindowKind.Reader));
+        Assert.False(CommandRouting.IsHandled("showContents", WindowKind.Library));
+        Assert.False(CommandRouting.IsHandled("showContents", WindowKind.Player));
+    }
 }

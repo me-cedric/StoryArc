@@ -13,7 +13,7 @@ namespace StoryArc.Windows;
 /// <summary>
 /// The page view of a reader window over the interop decoder (desktop-clients task 2.40). It sizes
 /// the one or two slots of <see cref="PageNavigator.ScreenOrder"/> to fit the window, decodes each
-/// page through <see cref="ComicPublication.DecodePage"/> on a worker thread at the size
+/// page through the publication's decode call on a worker thread at the size
 /// <see cref="PagePixels.DecodeEdge"/> asks for, converts it with
 /// <see cref="PagePixels.ToPremultipliedBgra"/> into a <c>WriteableBitmap</c>, and decodes the
 /// neighbouring pages ahead. A page still decoding is a quiet frame in the page's shape; a page that
@@ -118,7 +118,7 @@ internal sealed class ReaderPageView
         {
             var decoded = await Task.Run(() =>
             {
-                var pixels = _opened.Handle.DecodePage(page, edge);
+                var pixels = _opened.Decode(page, edge);
                 return (pixels.Width, pixels.Height, Bgra: PagePixels.ToPremultipliedBgra(pixels.Rgba));
             });
 

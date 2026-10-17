@@ -37,9 +37,14 @@
 
         <!-- Microsoft.UI.Xaml.Controls.ScrollViewer: ZoomMode gives pinch, Control and the wheel, and
              the zoom keys go through ChangeView. The limits are PageZoom.Floor and PageZoom.Ceiling. -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
         <ScrollViewer
             x:Name="PageScroller"
-            Grid.Row="2"
             ZoomMode="Enabled"
             MinZoomFactor="1"
             MaxZoomFactor="6"
@@ -85,6 +90,45 @@
                 </StackPanel>
             </Grid>
         </ScrollViewer>
+
+            <!-- The contents pane of a PDF (task 4.17): the outline and a search over the text layer, shown by Show Contents.
+                 Absent for a comic, and for a scanned PDF with no outline; the search alone is absent without a text layer. -->
+            <Grid
+                x:Name="ContentsPane"
+                Grid.Column="1"
+                Width="300"
+                Padding="12"
+                RowSpacing="8"
+                Visibility="Collapsed"
+                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                AutomationProperties.AutomationId="PdfContents">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="ContentsTitle" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                <AutoSuggestBox
+                    x:Name="PdfSearchBox"
+                    Grid.Row="1"
+                    QueryIcon="Find"
+                    QuerySubmitted="OnPdfSearch"
+                    AutomationProperties.AutomationId="PdfSearch" />
+                <ListView
+                    x:Name="ContentsList"
+                    Grid.Row="2"
+                    SelectionMode="None"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnContentsRowClick"
+                    AutomationProperties.AutomationId="PdfContentsList" />
+                <TextBlock
+                    x:Name="ContentsNote"
+                    Grid.Row="2"
+                    TextWrapping="Wrap"
+                    Visibility="Collapsed"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </Grid>
+        </Grid>
 
         <!-- The one line of chrome under the page: where the reader is, and in grey what is unavailable. -->
         <StackPanel

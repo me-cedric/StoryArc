@@ -6,7 +6,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using StoryArc.Interop;
 using StoryArc.Interop.Opening;
+using StoryArc.Interop.Pdf;
 using StoryArc.Interop.Reader;
 using StoryArc.Interop.Shell;
 using StoryArc.Windows.Shell;
@@ -179,13 +181,110 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
             case "fitPage":
                 _pages.ZoomTo(PageZoom.Floor, anchor: null);
                 break;
+            case "showContents":
+                ToggleContents();
+                break;
+        }
+    }
+
+    /// <summary>Show Contents is grey for a comic and for a PDF with neither an outline nor a text layer.</summary>
+    private bool HasContents => _opened.Pdf is { IsAvailable: true };
+
+    private void ToggleContents()
+    {
+        if (!HasContents || _opened.Pdf is not { } pdf)
+        {
+            return;
+        }
+
+        var isShown = ContentsPane.Visibility == Visibility.Visible;
+        ContentsPane.Visibility = isShown ? Visibility.Collapsed : Visibility.Visible;
+        if (isShown)
+        {
+            PageScroller.Focus(FocusState.Programmatic);
+            return;
+        }
+
+        ContentsTitle.Text = Strings.Get("desktop_w4_pdf_contents", "Contents");
+        PdfSearchBox.PlaceholderText = Strings.Get("desktop_w4_pdf_searchPlaceholder", "Search in this PDF");
+        PdfSearchBox.Visibility = pdf.HasTextLayer ? Visibility.Visible : Visibility.Collapsed;
+        ShowContentsRows(pdf.OutlineRows(Strings.Get("desktop_w4_pdf_page__lld", "Page {0}")), pdf.HasOutline ? null : Strings.Get("desktop_w4_pdf_noOutline", "This PDF declares no contents"));
+        if (pdf.HasTextLayer)
+        {
+            PdfSearchBox.Focus(FocusState.Programmatic);
+        }
+    }
+
+    private void ShowContentsRows(IReadOnlyList<PdfPaneRow> rows, string? note)
+    {
+        ContentsList.Items.Clear();
+        foreach (var row in rows)
+        {
+            var text = new TextBlock { Text = row.Title, TextTrimming = TextTrimming.CharacterEllipsis };
+            var detail = new TextBlock { Text = row.Detail, Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"] };
+            var item = new ListViewItem
+            {
+                Content = new StackPanel { Children = { text, detail } },
+                Padding = new Thickness(12 + (row.Depth * 16), 6, 12, 6),
+                Tag = row,
+                IsEnabled = row.PageIndex is not null,
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, row.Detail.Length == 0 ? row.Title : row.Title + ", " + row.Detail);
+            ContentsList.Items.Add(item);
+        }
+
+        ContentsNote.Text = note ?? string.Empty;
+        ContentsNote.Visibility = note is null ? Visibility.Collapsed : Visibility.Visible;
+        ContentsList.Visibility = note is null ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void OnPdfSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        if (_opened.Pdf is not { HasTextLayer: true } pdf)
+        {
+            return;
+        }
+
+        var query = args.QueryText;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            ShowContentsRows(pdf.OutlineRows(Strings.Get("desktop_w4_pdf_page__lld", "Page {0}")), pdf.HasOutline ? null : Strings.Get("desktop_w4_pdf_noOutline", "This PDF declares no contents"));
+            return;
+        }
+
+        var pageFormat = Strings.Get("desktop_w4_pdf_page__lld", "Page {0}");
+        var hitsFormat = Strings.Get("desktop_w4_pdf_matches__lld", "{0} matches");
+        IReadOnlyList<PdfPaneRow> rows;
+        try
+        {
+            rows = await Task.Run(() => pdf.SearchRows(query, pageFormat, hitsFormat));
+        }
+        catch (StoryArcException)
+        {
+            rows = [];
+        }
+        catch (ObjectDisposedException)
+        {
+            return;
+        }
+
+        ShowContentsRows(rows, rows.Count == 0 ? Strings.Get("desktop_w4_pdf_noMatches", "No matches") : null);
+    }
+
+    private void OnContentsRowClick(object sender, ItemClickEventArgs args)
+    {
+        if (args.ClickedItem is ListViewItem { Tag: PdfPaneRow { PageIndex: { } page } } && _navigator.GoTo(page))
+        {
+            _pages.ZoomTo(PageZoom.Floor, anchor: null);
+            PageMoved();
         }
     }
 
     /// <summary>Full screen shows grey once the system has refused it and was never in it.</summary>
     private bool IsAvailable(string commandId) =>
         CommandRouting.IsHandled(commandId, WindowKind.Reader)
-        && (commandId != "fullScreen" || _fullScreen.IsAvailable || _fullScreen.IsFullScreen);
+        && (commandId != "fullScreen" || _fullScreen.IsAvailable || _fullScreen.IsFullScreen)
+        && (commandId != "showContents" || HasContents);
 
     private void Invoke(string commandId) => _host.Invoke(commandId, this);
 
