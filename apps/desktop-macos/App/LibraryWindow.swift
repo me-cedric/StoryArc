@@ -173,6 +173,12 @@ struct LibraryWindow: View {
         case let .search(text): search = text.isEmpty ? search.cleared() : search.typed(text)
         case let .details(id): path.wrappedValue.append(PublicationRoute(publicationID: id))
         case .root: path.wrappedValue = NavigationPath()
+        case let .filter(filter): selection = .filter(filter)
+        case .finished:
+            var query = library.model.query
+            query.readStates = [.finished]
+            library.model.query = query
+            selection = .destination(.library)
         }
     }
 

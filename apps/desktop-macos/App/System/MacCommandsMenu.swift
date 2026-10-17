@@ -23,6 +23,10 @@ enum LibraryNavigation: Equatable {
     case details(publicationID: String)
     /// Back to the root of the row on show.
     case root
+    /// One of the library's sidebar filters, where a Home shelf leads.
+    case filter(LibraryShelfFilter)
+    /// The library narrowed to what has been finished, where Home's *Finished* leads.
+    case finished
 }
 
 /// What the key reader window can do.
