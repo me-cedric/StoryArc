@@ -34,10 +34,10 @@ impl Covers {
     pub fn show(self: &Rc<Self>, picture: &gtk::Picture, id: &str, path: Option<PathBuf>) {
         picture.set_widget_name(id);
         if let Some(texture) = self.get(id) {
-            picture.set_paintable(Some(&texture));
+            set_cover(picture, Some(&texture));
             return;
         }
-        picture.set_paintable(gdk::Paintable::NONE);
+        set_cover(picture, None);
         let Some(path) = path else {
             return;
         };
@@ -77,10 +77,21 @@ impl Covers {
                 .insert(id.clone(), texture.clone());
             for picture in pictures.iter().filter_map(glib::WeakRef::upgrade) {
                 if picture.widget_name() == id.as_str() {
-                    picture.set_paintable(Some(&texture));
+                    set_cover(&picture, Some(&texture));
                 }
             }
         });
+    }
+}
+
+/// The placeholder is a card; a cover shown whole stands on its own, so no card edge
+/// shows beside a cover narrower than its box.
+fn set_cover(picture: &gtk::Picture, texture: Option<&gdk::Texture>) {
+    picture.set_paintable(texture);
+    if texture.is_none() || picture.content_fit() == gtk::ContentFit::Cover {
+        picture.add_css_class("card");
+    } else {
+        picture.remove_css_class("card");
     }
 }
 

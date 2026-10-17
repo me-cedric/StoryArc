@@ -41,9 +41,16 @@ pub fn item_at(model: &impl IsA<gio::ListModel>, position: u32) -> Option<glib::
     model.item(position).and_downcast::<glib::BoxedAnyObject>()
 }
 
+/// A cover at `width`, in a 2:3 box. The grid, the list and the detail page show the
+/// cover whole (`library-browsing`, Cover art is shown whole); a Home card fills its box
+/// (`home-screen`, Artwork is not letterboxed): pass `ContentFit::Cover` there.
 fn cover_picture(width: i32) -> gtk::Picture {
+    cover_picture_fitted(width, gtk::ContentFit::Contain)
+}
+
+fn cover_picture_fitted(width: i32, fit: gtk::ContentFit) -> gtk::Picture {
     let picture = gtk::Picture::builder()
-        .content_fit(gtk::ContentFit::Cover)
+        .content_fit(fit)
         .can_shrink(true)
         .css_classes(["card", "storyarc-cover"])
         .build();
@@ -300,7 +307,7 @@ fn shelf_row(
         .build();
     for publication in publications {
         let tile = gtk::Box::new(gtk::Orientation::Vertical, 6);
-        let picture = cover_picture(CoverTier::SMALL);
+        let picture = cover_picture_fitted(CoverTier::SMALL, gtk::ContentFit::Cover);
         let path = publication
             .identity
             .normalized_path
