@@ -40,6 +40,8 @@ jobs:
       - uses: actions/checkout@v4
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgtk-4-dev libadwaita-1-dev
       - run: pkg-config --modversion gtk4 libadwaita-1
+      # The pinned PDFium library, checked against pin.json, so the PDF tests run rather than skip.
+      - run: node scripts/pdfium-fetch.mjs --platform linux-x64
       - run: cargo test --locked -p storyarc-core -p storyarc-ffi
       - run: cargo test --locked -p storyarc-linux
       - name: The committed C# declarations match the Rust exports

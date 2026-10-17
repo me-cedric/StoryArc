@@ -8,12 +8,14 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | --- | --- |
 | `storyarc-core` | Formats, page decoding, sources, the local store, library queries, locale |
 | `storyarc-ffi` | The C ABI over `storyarc_core::library`, its header and the generated C# |
-| `pdfium/` | The PDFium pin (lane P) |
+| `pdfium/` | The PDFium pin (lane P); `pnpm pdfium:fetch` downloads the pinned library into `.build/pdfium/` |
 
 ## storyarc-core modules
 
 | Module | What it does |
 | --- | --- |
+| `epub` | `WebPublication`: the Readium Web Publication Manifest and the positions list the desktop EPUB bundle takes, and each resource by container path (task 4.3) |
+| `pdf` | `PdfEngine` and `PdfDocument`: PDFium on one thread over a `RandomAccessSource`, pages to RGBA, text, search, the outline (task 4.4) |
 | `downloads` | The download policy (metered, offline, storage limit, concurrency), one resumable transfer into a partial file, the queue as a value, and the downloads folder with the integrity check |
 | `domain` | Records and rules mirrored from StoryArcKit: publications, identity, progress and the ADR-0006 merge, adjustments, border crop, spreads, natural order |
 | `formats` | ZIP, TAR and RAR comic archives, EPUB metadata, page ordering, `ComicInfo.xml`, codec sniffing |
@@ -146,12 +148,12 @@ compile the Windows one. `paths::StorageLocations::current()` gives the store fi
 
 ## The C seam (`storyarc-ffi`)
 
-Forty-eight exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
+Sixty-three exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
 `storyarc-ffi/generated/NativeMethods.g.cs` by `build.rs` with csbindgen, which reads
-`src/lib.rs`, `src/network.rs` and `src/data.rs`. Opaque tagged handles, Rust-owned buffers
-freed by `storyarc_buffer_free`, records and requests as UTF-8 JSON, integer codes 0 to 9 with
-`storyarc_last_error`, cancel tokens. A test reads the exports from the three files and fails
-when the header or the generated file misses one.
+`src/lib.rs`, `src/network.rs`, `src/data.rs` and `src/reading.rs`. Opaque tagged handles,
+Rust-owned buffers freed by `storyarc_buffer_free`, records and requests as UTF-8 JSON, integer
+codes 0 to 9 with `storyarc_last_error`, cancel tokens. A test reads the exports from the four
+files and fails when the header or the generated file misses one.
 
 Wave 3 adds twenty-eight. The network, in `src/network.rs`: the runtime, the HTTP client and
 its certificate pins, SMB (`connect`, `identity`, `list`, `free`), an OPDS page or search, one
@@ -160,6 +162,12 @@ Kavita call, the network state, and a download with a progress callback. The rea
 and the shelves as value-plus-operations, the shelf edit pull, library import, export and
 sync, sealed secrets, the diagnostic's text and a folder's size. Codes 8 (`UNREACHABLE`, grey)
 and 9 (`UNAUTHORIZED`) are new; the C# `StoryArcStatus` enum gains them in lane W.
+
+Wave 4 adds fifteen, in `src/reading.rs`. The EPUB (`storyarc_epub_open`, `manifest`,
+`positions`, `resource`, `free`): the manifest and positions the bundle takes, and each
+resource with its media type for the scheme handler. PDF (`storyarc_pdf_engine_start`, `open`,
+`page_count`, `page_size`, `render_page`, `page_text`, `has_text_layer`, `search`, `outline`,
+`free`): the engine binds once per process to the library in the folder the app names.
 
 ## Features
 
@@ -181,6 +189,11 @@ apps/desktop-linux/scripts/container-build.sh ubuntu-24.04
 
 The corpus is `packages/test-fixtures`; `storyarc-core/tests/images` holds one small page in
 each decoded format.
+
+`tests/pdf.rs` and the PDF cases of `storyarc-ffi/tests/wave4.rs` bind to the pinned PDFium
+library at run time: `pnpm pdfium:fetch` puts it under `.build/pdfium/<platform>/` after
+checking its digest against `pdfium/pin.json`, or `STORYARC_PDFIUM_DIR` names a folder. Without
+it each case skips with a line on stderr.
 
 `tests/opds.rs` runs StoryArcKit's OPDS parsing expectations, then the `pnpm opds` fixture
 (`STORYARC_OPDS_URL`, default port 4444) when it answers, and brings its own servers for the
