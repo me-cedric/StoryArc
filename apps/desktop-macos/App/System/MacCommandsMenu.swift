@@ -1,4 +1,5 @@
 import AppKit
+import StoryArcCore
 import SwiftUI
 
 /// What the key library window can do, handed to the menu bar through the focus system.
@@ -39,8 +40,12 @@ struct ReaderActions {
     let twoPages: () -> Void
     let zoomIn: () -> Void
     let zoomOut: () -> Void
-    let fitPage: () -> Void
+    let fit: (PageFit) -> Void
     let showControls: () -> Void
+    /// -1 for the previous chapter, 1 for the next.
+    let chapter: (Int) -> Void
+    let showPages: () -> Void
+    let adjust: () -> Void
 }
 
 extension FocusedValues {
@@ -95,14 +100,21 @@ struct StoryArcMacCommands: Commands {
             item("firstPage") { reader?.page(.first) }
             item("lastPage") { reader?.page(.last) }
             item("goToPage") { reader?.goToPage() }
+            item("previousChapter") { reader?.chapter(-1) }
+            item("nextChapter") { reader?.chapter(1) }
+            item("showPages") { reader?.showPages() }
             Divider()
             item("singlePage") { reader?.singlePage() }
             item("twoPages") { reader?.twoPages() }
             Divider()
             item("zoomIn") { reader?.zoomIn() }
             item("zoomOut") { reader?.zoomOut() }
-            item("fitPage") { reader?.fitPage() }
+            item("fitPage") { reader?.fit(.screen) }
+            item("fitWidth") { reader?.fit(.width) }
+            item("fitHeight") { reader?.fit(.height) }
+            item("originalSize") { reader?.fit(.original) }
             Divider()
+            item("adjustImage") { reader?.adjust() }
             item("showControls") { reader?.showControls() }
         }
     }

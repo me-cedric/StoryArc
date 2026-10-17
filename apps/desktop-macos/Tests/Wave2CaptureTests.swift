@@ -99,9 +99,28 @@ extension WindowWalks {
             let window = try #require(await Walk.until { Walk.readerWindows(for: target).first })
             // Opened, decoded, and the chrome still up: it hides three seconds after opening.
             try await Task.sleep(for: .milliseconds(1200))
-            let method = try capture(window, at: readerSize, to: folder.appending(path: "reader-\(suffix).png"))
+            func shot(_ name: String) throws -> String {
+                try capture(window, at: readerSize, to: folder.appending(path: "\(name)-\(suffix).png"))
+            }
+            var methods = [try shot("reader")]
+            let state = try #require(ReaderStates.shared.state(for: target))
+            // The page browser, which holds the chrome up while it is open.
+            state.isBrowsingPages = true
+            try await Task.sleep(for: .milliseconds(900))
+            methods.append(try shot("reader-pages"))
+            state.isBrowsingPages = false
+            // The end of the publication.
+            state.isAtEnd = true
+            try await Task.sleep(for: .milliseconds(500))
+            methods.append(try shot("reader-end"))
+            state.isAtEnd = false
+            // The continuous scroll, put back to the slide for the next pass.
+            state.choose(.verticalScroll)
+            try await Task.sleep(for: .milliseconds(900))
+            methods.append(try shot("reader-scroll"))
+            state.choose(.slide)
             await Walk.close([window])
-            return [method]
+            return methods
         }
 
         private static func settings(folder: URL, suffix: String) async throws -> [String] {

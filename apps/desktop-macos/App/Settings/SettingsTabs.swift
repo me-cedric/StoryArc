@@ -1,3 +1,4 @@
+import Persistence
 import StoryArcCore
 import SwiftUI
 
@@ -94,6 +95,18 @@ private struct AppearanceSettingsTab: View {
 /// Reading: the edge click zones, the spread's cover, the transition that runs.
 private struct ReadingSettingsTab: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Redraws the picker after a write, since the reading preferences are not observable.
+    @State private var refresh = 0
+    private let preferences = ReaderPreferences()
+
+    private var defaultTransition: PageTransition {
+        _ = refresh
+        return MacReadingDefaults.transition(in: preferences)
+    }
+
+    private var choices: TransitionChoices {
+        TransitionChoices(chosen: defaultTransition, axis: .vertical, reduceMotion: false, canCurl: false)
+    }
 
     var body: some View {
         let settings = MacSettings.shared
@@ -111,13 +124,20 @@ private struct ReadingSettingsTab: View {
             Text("desktop.reading.clickZones.footer").foregroundStyle(.secondary)
         }
         Section {
-            LabeledContent {
-                Text(reduceMotion ? "desktop.reading.transition.fade" : "desktop.reading.transition.slide")
+            // `comic-reader`, *Mode persistence*: the default for a series never opened. A
+            // series the reader chose a mode for keeps it; the reader's page mode menu sets that.
+            Picker(selection: Binding(
+                get: { defaultTransition }, set: { MacReadingDefaults.setTransition($0, in: preferences); refresh += 1 }
+            )) {
+                ForEach(TransitionMenu.rows(choices)) { row in
+                    Text(LocalizedStringKey(row.titleKey)).tag(row.mode)
+                }
             } label: {
                 Text("desktop.reading.transition")
             }
         } footer: {
-            // *The curl where it is not available*: the settings say why in grey.
+            // *The curl where it is not available* and *Reduce Motion is on*: said in grey.
+            Text("desktop.reading.transition.default").foregroundStyle(.secondary)
             Text(reduceMotion ? "desktop.reading.transition.reduceMotion" : "desktop.reading.transition.curlLater")
                 .foregroundStyle(.secondary)
         }
