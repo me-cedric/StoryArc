@@ -15,6 +15,7 @@ use gtk::{gdk, glib};
 use storyarc_core::domain::{PublicationIdentity, ReadingPosition, ReadingProgress, Timestamp};
 use storyarc_core::library;
 use storyarc_core::paths::StorageLocations;
+use storyarc_core::portability::{self, LibrarySnapshot};
 
 use crate::library::search::SearchMemory;
 use crate::library::shelf::ViewChoice;
@@ -30,6 +31,12 @@ use crate::windows::{RestorePlan, SessionState};
 const SESSION_FILE: &str = "window-state";
 const PREFERENCES_FILE: &str = "preferences";
 const SOURCES_FILE: &str = "sources";
+const REMOTE_FILE: &str = "remote-sources";
+const LIBRARY_FILE: &str = "library-document.json";
+/// What this device calls itself in a library document.
+pub const DEVICE: &str = "linux";
+const SYNC_FILE: &str = "sync-folder";
+const QUEUE_FILE: &str = "downloads-queue.json";
 const DIRECTIONS_FILE: &str = "reading-directions";
 const SEARCH_FILE: &str = "search";
 const VIEW_FILE: &str = "library-view";
@@ -202,6 +209,60 @@ pub fn load_sources() -> String {
 
 pub fn save_sources(text: &str) {
     write_file(&data_path(SOURCES_FILE), text);
+}
+
+/// The network libraries as their file keeps them (`remote_sources.rs`): no secret in it.
+pub fn load_remote_sources() -> String {
+    std::fs::read_to_string(data_path(REMOTE_FILE)).unwrap_or_default()
+}
+
+pub fn save_remote_sources(text: &str) {
+    write_file(&data_path(REMOTE_FILE), text);
+}
+
+/// What this device keeps of the library document: the shelves, the pins and the
+/// deletions, in the document's own format, so a sync merges what this file holds.
+pub fn load_library_snapshot() -> LibrarySnapshot {
+    let Ok(bytes) = std::fs::read(data_path(LIBRARY_FILE)) else {
+        return LibrarySnapshot::default();
+    };
+    portability::decode(&bytes)
+        .map(|document| {
+            portability::merging(&document, &LibrarySnapshot::default(), DEVICE).snapshot
+        })
+        .unwrap_or_default()
+}
+
+pub fn save_library_snapshot(snapshot: &LibrarySnapshot) {
+    let document = snapshot.document(storyarc_core::version(), Timestamp::now(), DEVICE, false);
+    let bytes = portability::encode(&document);
+    let path = data_path(LIBRARY_FILE);
+    let written = path
+        .parent()
+        .map_or(Ok(()), std::fs::create_dir_all)
+        .and_then(|()| std::fs::write(&path, bytes));
+    if let Err(error) = written {
+        glib::g_warning!(LOG_DOMAIN, "Could not write {}: {error}", path.display());
+    }
+}
+
+/// The folder the sync document lives in, when the reader chose one.
+pub fn load_sync_folder() -> Option<PathBuf> {
+    let text = std::fs::read_to_string(data_path(SYNC_FILE)).ok()?;
+    let line = text.lines().next()?.trim();
+    (!line.is_empty()).then(|| PathBuf::from(line))
+}
+
+pub fn save_sync_folder(folder: Option<&std::path::Path>) {
+    write_file(
+        &data_path(SYNC_FILE),
+        &folder.map_or_else(String::new, |f| format!("{}\n", f.display())),
+    );
+}
+
+/// Where the download queue is kept between runs.
+pub fn queue_path() -> PathBuf {
+    data_path(QUEUE_FILE)
 }
 
 /// Opens the core's progress store (ADR-0006) where the core says it lives, or one in

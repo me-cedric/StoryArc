@@ -76,6 +76,7 @@ pub fn libraries_page(shared: &Shared, dialog: &adw::PreferencesDialog) -> adw::
         }
     });
     group.add(&add);
+    crate::storage_ui::remote_rows(shared, dialog, &group);
     let page = adw::PreferencesPage::builder()
         .title(tr("settings.sources", "Your libraries"))
         .icon_name("folder-symbolic")
@@ -196,6 +197,7 @@ pub fn privacy_page(shared: &Shared) -> adw::PreferencesPage {
     clear.connect_clicked(move |button| confirm_clear_history(&on, button, row.clone()));
     history.add_suffix(&clear);
     posture.add(&history);
+    posture.add(&crate::storage_ui::diagnostics_row(shared));
     let page = adw::PreferencesPage::builder()
         .title(tr("settings.privacy", "Privacy"))
         .icon_name("security-high-symbolic")

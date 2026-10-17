@@ -16,6 +16,7 @@ use gtk::{gio, glib};
 use storyarc_core::domain::Publication;
 use storyarc_core::io::CancelToken;
 use storyarc_core::library::FolderSource;
+use storyarc_core::paths::StorageLocations;
 use storyarc_core::sources::SkipReason;
 use storyarc_core::sources::watch::{Coverage, FolderWatcher, WatchOptions, WatchedFolder};
 
@@ -39,11 +40,15 @@ pub struct SourceEntry {
     pub publications: Vec<Publication>,
     /// Files the scan recognised and could not open, each with its reason.
     pub skipped: Vec<(String, String)>,
+    /// The downloads folder: its publications are in the library, and it is not one of
+    /// the reader's folders, so no list shows it, no file saves it and none removes it.
+    pub internal: bool,
 }
 
 impl SourceEntry {
     fn new(record: FolderRecord) -> Self {
         Self {
+            internal: false,
             access: access_now(&record),
             record,
             not_live: None,
@@ -87,6 +92,7 @@ impl Sources {
         self.entries
             .borrow()
             .iter()
+            .filter(|entry| !entry.internal)
             .map(|entry| (entry.record.name(), entry.access, entry.not_live.clone()))
             .collect()
     }
@@ -105,6 +111,7 @@ impl Sources {
         self.entries
             .borrow()
             .iter()
+            .filter(|entry| !entry.internal)
             .map(|entry| entry.record.clone())
             .collect()
     }
@@ -145,7 +152,15 @@ fn skip_reason(reason: &SkipReason) -> String {
 /// look that follows access.
 pub fn start(shared: &Shared) {
     let records = folders::restore(&session::load_sources());
-    *shared.sources.entries.borrow_mut() = records.into_iter().map(SourceEntry::new).collect();
+    let mut entries: Vec<SourceEntry> = records.into_iter().map(SourceEntry::new).collect();
+    // The downloads folder comes last, so the reader's folders keep their places.
+    let downloads = StorageLocations::current().downloads;
+    let _ = std::fs::create_dir_all(&downloads);
+    entries.push(SourceEntry {
+        internal: true,
+        ..SourceEntry::new(FolderRecord::new(downloads))
+    });
+    *shared.sources.entries.borrow_mut() = entries;
     for index in 0..shared.sources.entries.borrow().len() {
         scan(shared, index);
     }
@@ -331,13 +346,14 @@ pub fn add(shared: &Shared, path: PathBuf) {
         return;
     }
     let record = records.pop().expect("the folder was just added");
+    // Before the downloads folder, which stays last.
+    let index = shared.sources.entries.borrow().len().saturating_sub(1);
     shared
         .sources
         .entries
         .borrow_mut()
-        .push(SourceEntry::new(record));
+        .insert(index, SourceEntry::new(record));
     save(shared);
-    let index = shared.sources.entries.borrow().len() - 1;
     scan(shared, index);
     rewatch(shared);
     shared.library_changed();
@@ -382,6 +398,7 @@ impl Sources {
         self.entries
             .borrow()
             .iter()
+            .filter(|entry| !entry.internal)
             .map(|entry| entry.record.path.clone())
             .collect()
     }

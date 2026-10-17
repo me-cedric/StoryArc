@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use storyarc_core::domain::{self as library_record, ReadingDirection};
 use storyarc_core::library;
+use storyarc_core::portability::LibrarySnapshot;
 
 use crate::library_window::LibraryUi;
 use crate::opening::LaunchAction;
@@ -70,6 +71,22 @@ pub struct App {
     pub modes: RefCell<ModeChoices>,
     /// The image adjustments, by series.
     pub adjustments: RefCell<Adjustments>,
+    /// The core's network services, built on a worker at start.
+    pub services: crate::services::Handle,
+    /// The network libraries the reader added.
+    pub remote: crate::network_ui::RemoteState,
+    /// The download queue and its transfers.
+    pub downloads: crate::downloads_ui::Downloads,
+    /// What this device keeps of the library document: shelves, pins, deletions.
+    pub document: RefCell<LibrarySnapshot>,
+    /// A reading position changed since the sync document was last written.
+    pub position_changed: Cell<bool>,
+    /// Redraws the open shelf page from the document, when one is open.
+    pub shelf_fill: RefCell<Option<Box<dyn Fn()>>>,
+    /// The Sync row's grey line.
+    pub sync_line: RefCell<String>,
+    /// The shelf the library window shows, when one is open.
+    pub open_shelf: RefCell<Option<crate::shelf_rules::ShelfRef>>,
 }
 
 impl App {
@@ -79,6 +96,7 @@ impl App {
             directions: RefCell::new(session::load_directions()),
             modes: RefCell::new(session::load_modes()),
             adjustments: RefCell::new(session::load_adjustments()),
+            document: RefCell::new(session::load_library_snapshot()),
             ..Self::default()
         })
     }
@@ -141,6 +159,7 @@ impl App {
 
     /// A reading position was written: Home follows it, and the grid keeps its scroll.
     pub fn progress_changed(&self) {
+        self.position_changed.set(true);
         if let Some(refresh) = self.on_library_changed.borrow().as_ref() {
             refresh(false);
         }

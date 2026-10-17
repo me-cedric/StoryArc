@@ -9,6 +9,9 @@ mod cover_colour;
 mod covers;
 mod detail_panes;
 mod detail_view;
+mod diagnostic_export;
+mod download_rules;
+mod downloads_ui;
 mod folders;
 mod fullscreen;
 mod home_view;
@@ -26,6 +29,7 @@ mod library_selection;
 mod library_views;
 mod library_window;
 mod menus;
+mod network_ui;
 mod opening;
 mod page_view;
 mod portal;
@@ -42,15 +46,25 @@ mod reader_modes;
 mod reader_scroll;
 mod reader_window;
 mod reading;
+mod remote_browse;
+mod remote_sources;
 #[cfg(test)]
 mod scratch;
+mod secret_state;
+mod services;
 mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
+mod shelf_rules;
+mod shelf_ui;
 mod sources;
+mod storage_rules;
+mod storage_ui;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod strings;
 mod style;
+mod sync_rules;
+mod sync_ui;
 mod theme;
 mod window_state;
 #[allow(dead_code)] // pure model; recording and forgetting a reader is the session file's own tests
@@ -103,6 +117,13 @@ fn startup(application: &adw::Application, shared: &Shared) {
     launch::add_actions(application, shared);
     menus::install_accelerators(application);
     sources::start(shared);
+    network_ui::start(shared);
+    let on = shared.clone();
+    shared.services.start(move || {
+        network_ui::check_sign_ins(&on);
+        downloads_ui::start(&on);
+        sync_ui::at_start(&on);
+    });
 }
 
 // ponytail: a debug build run from the tree has no installed icon, so it reads the source copy.
@@ -163,7 +184,74 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             }
         })
         .build();
-    application.add_action_entries([quit, preferences, shortcuts, about, open_reader]);
+    // Kept for scripted walks beside `open-reader`: `gapplication action com.mecedric.StoryArc
+    // add-network-source "'catalogue'"` presents the same sheet the sidebar's add menu does.
+    let on = shared.clone();
+    let add_network = gio::ActionEntry::builder("add-network-source")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let Some(window) = on.library.borrow().clone() else {
+                return;
+            };
+            let name = parameter.and_then(|value| value.get::<String>());
+            let action = match name.as_deref() {
+                Some("share") => "win.add-share",
+                Some("kavita") => "win.add-kavita",
+                _ => "win.add-catalogue",
+            };
+            let _ = gtk::prelude::WidgetExt::activate_action(&window, action, None);
+        })
+        .build();
+    // And `show-network-source "'0'"` opens the first network library's page, as its sidebar
+    // row does.
+    let on = shared.clone();
+    let show_network = gio::ActionEntry::builder("show-network-source")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let index = parameter
+                .and_then(|value| value.get::<String>())
+                .and_then(|text| text.parse().ok())
+                .unwrap_or(0);
+            remote_browse::open(&on, index);
+        })
+        .build();
+    // `library-action "'new-shelf'"` runs a window action of the library window, and
+    // `show-shelf "'0'"` opens a shelf by its row in the sidebar.
+    let on = shared.clone();
+    let library_action = gio::ActionEntry::builder("library-action")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let (Some(window), Some(name)) = (
+                on.library.borrow().clone(),
+                parameter.and_then(|value| value.get::<String>()),
+            ) else {
+                return;
+            };
+            let _ = gtk::prelude::WidgetExt::activate_action(&window, &format!("win.{name}"), None);
+        })
+        .build();
+    let on = shared.clone();
+    let show_shelf = gio::ActionEntry::builder("show-shelf")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let index = parameter
+                .and_then(|value| value.get::<String>())
+                .and_then(|text| text.parse().ok())
+                .unwrap_or(0);
+            shelf_ui::activate_row(&on, index);
+        })
+        .build();
+    application.add_action_entries([
+        library_action,
+        show_shelf,
+        quit,
+        preferences,
+        shortcuts,
+        about,
+        open_reader,
+        add_network,
+        show_network,
+    ]);
     // Commands the table has and no wave 2 task implements yet stay in the menus, grey.
     for command in commands::COMMANDS {
         if let Some(name) = command.action.strip_prefix("app.")
@@ -179,7 +267,33 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
 /// Writes the session, then every reader's position, then closes every window and ends
 /// the process even if one declined to close. A write that fails never stops any of it.
 fn close_all_and_quit(application: &adw::Application, shared: &Shared) {
+    // A download in progress is the one thing a quit asks about: it pauses, and resumes at
+    // the next launch (`desktop-experience`, No presence when the app is closed).
+    if let (Some(prompt), Some(window)) =
+        (shared.downloads.quit_prompt(), application.active_window())
+    {
+        let alert = adw::AlertDialog::new(Some(&prompt.title), Some(&prompt.body));
+        alert.add_responses(&[
+            ("cancel", &strings::tr("sources.rename.cancel", "Cancel")),
+            ("quit", &strings::tr("menu.quit", "Quit")),
+        ]);
+        alert.set_response_appearance("quit", adw::ResponseAppearance::Suggested);
+        alert.set_close_response("cancel");
+        let (app, on) = (application.clone(), shared.clone());
+        alert.connect_response(None, move |_, response| {
+            if response == "quit" {
+                finish_quit(&app, &on);
+            }
+        });
+        alert.present(Some(&window));
+        return;
+    }
+    finish_quit(application, shared);
+}
+
+fn finish_quit(application: &adw::Application, shared: &Shared) {
     shared.quitting.set(true);
+    downloads_ui::pause_for_quit(shared);
     shared.save_session();
     let readers: Vec<_> = shared
         .readers
@@ -193,6 +307,9 @@ fn close_all_and_quit(application: &adw::Application, shared: &Shared) {
     for window in application.windows() {
         window.close();
     }
+    // The sync document is written once more when a position changed, for five seconds at
+    // most, and the app quits whatever came of it.
+    let _ = sync_ui::at_quit(shared);
     application.quit();
 }
 

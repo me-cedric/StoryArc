@@ -187,6 +187,9 @@ pub struct Preferences {
     pub fit: Fit,
     /// Edge click zones in a reader: on by default (owner, 2026-10-07).
     pub click_zones: bool,
+    /// Downloads the reader did not ask for by hand wait while the connection is metered
+    /// (`desktop-experience`, Metered connections). On by default, as "Wi-Fi only" is.
+    pub unmetered_only: bool,
 }
 
 impl Default for Preferences {
@@ -198,6 +201,7 @@ impl Default for Preferences {
             layout: Layout::default(),
             fit: Fit::default(),
             click_zones: true,
+            unmetered_only: true,
         }
     }
 }
@@ -206,7 +210,7 @@ impl Preferences {
     /// The text form, ready to write to a file.
     pub fn save(&self) -> String {
         format!(
-            "appearance={}\naccent={}\ncover-size={}\nlayout={}\nfit={}\nclick-zones={}\n",
+            "appearance={}\naccent={}\ncover-size={}\nlayout={}\nfit={}\nclick-zones={}\nunmetered-only={}\n",
             self.appearance.key(),
             match self.accent {
                 Accent::StoryArc => "storyarc",
@@ -215,7 +219,8 @@ impl Preferences {
             self.cover_size.key(),
             self.layout.key(),
             self.fit.key(),
-            self.click_zones
+            self.click_zones,
+            self.unmetered_only
         )
     }
 
@@ -262,6 +267,10 @@ impl Preferences {
             },
             "click-zones" => Self {
                 click_zones: value.parse().unwrap_or(prefs.click_zones),
+                ..prefs
+            },
+            "unmetered-only" => Self {
+                unmetered_only: value.parse().unwrap_or(prefs.unmetered_only),
                 ..prefs
             },
             _ => prefs,
@@ -490,6 +499,7 @@ mod tests {
             layout: Layout::TwoPages,
             fit: Fit::Width,
             click_zones: false,
+            unmetered_only: false,
         };
         assert_eq!(Preferences::restore(&prefs.save()), prefs);
     }
@@ -512,6 +522,13 @@ mod tests {
         let prefs = Preferences::restore(text);
         assert_eq!(prefs.appearance, Appearance::Dark);
         assert!(!prefs.click_zones);
+    }
+
+    #[test]
+    fn downloads_wait_on_a_metered_connection_unless_the_reader_says_otherwise() {
+        assert!(Preferences::default().unmetered_only);
+        assert!(!Preferences::restore("unmetered-only=false\n").unmetered_only);
+        assert!(Preferences::restore("unmetered-only=maybe\n").unmetered_only);
     }
 
     #[test]
