@@ -100,7 +100,7 @@ struct CoverListView: View {
                 CoverImage(library: library, publication: publication, maxPixelSize: 120)
                     .frame(width: 36, height: 54)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(publication.displayTitle).lineLimit(1)
+                    Text(publication.displayTitle).scaledFont(.body).lineLimit(1)
                     Text(subtitle(of: publication)).scaledFont(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer()
@@ -124,8 +124,9 @@ struct CoverListView: View {
         .scrollContentBackground(.hidden)
     }
 
+    /// The series line the grid shows, then the format; never the title again.
     private func subtitle(of publication: Publication) -> String {
-        [publication.series, publication.number.map { "#\($0)" }, publication.format.displayName]
+        [CoverCell.secondLine(of: publication), publication.format.displayName]
             .compactMap { $0 }.joined(separator: " · ")
     }
 }
