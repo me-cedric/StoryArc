@@ -171,6 +171,13 @@ msgstr "Marcadores"
 msgid "bookmarks.unnamed"
 msgstr "Capítulo sin título"
 
+msgid "browse.more"
+msgstr "Más"
+
+#, c-format
+msgid "browse.pagesRead %d %d"
+msgstr "%d de %d páginas leídas"
+
 msgid "car.audiobooks"
 msgstr "Audiolibros"
 
@@ -363,6 +370,10 @@ msgstr "Cualquiera en la red entre usted y este servidor podría leer lo que env
 msgid "catalogue.untrusted.fingerprint"
 msgstr "Huella SHA-256"
 
+#, c-format
+msgid "catalogue.untrusted.fingerprint %s"
+msgstr "Huella del certificado: %s"
+
 msgid "catalogue.untrusted.title"
 msgstr "El certificado de este servidor no es de confianza"
 
@@ -548,6 +559,29 @@ msgid "detail.unavailable.sized %s"
 msgstr "Esto no se puede abrir hasta que esté en este dispositivo (%s)."
 
 #, c-format
+msgid "diagnostics.cannotWrite %s"
+msgstr "StoryArc no puede escribir en %s. Elige otro lugar."
+
+msgid "diagnostics.cannotWrite.title"
+msgstr "No se pudo guardar"
+
+msgid "diagnostics.chooseAnother"
+msgstr "Elegir otro lugar"
+
+msgid "diagnostics.note"
+msgstr "Primero se muestra todo. Las contraseñas, los tokens y los nombres de servidor se quitan."
+
+msgid "diagnostics.save"
+msgstr "Guardar…"
+
+#, c-format
+msgid "diagnostics.saved %s"
+msgstr "Guardado en %s"
+
+msgid "diagnostics.title"
+msgstr "Exportar diagnóstico"
+
+#, c-format
 msgid "downloads.actions %s"
 msgstr "Acciones para «%s»"
 
@@ -574,6 +608,12 @@ msgstr "Esto detiene cada transferencia en curso. No se conserva nada de ellas e
 
 msgid "downloads.cancelAll.title"
 msgstr "¿Detener todas las descargas?"
+
+msgid "downloads.clear.body"
+msgstr "Esto borra las copias descargadas en este dispositivo y detiene lo que se está descargando. Tus posiciones de lectura se conservan, y cada título se puede descargar de nuevo."
+
+msgid "downloads.clear.title"
+msgstr "¿Eliminar todas las descargas?"
 
 msgid "downloads.empty"
 msgstr "Aún no hay nada en este dispositivo. Un libro que abras desde una biblioteca en línea se guarda aquí."
@@ -659,6 +699,12 @@ msgstr "En pausa"
 msgid "downloads.paused.outOfSpace"
 msgstr "No hay espacio suficiente en el dispositivo"
 
+msgid "downloads.paused.waitingForMetered"
+msgstr "Esperando una conexión no medida"
+
+msgid "downloads.paused.waitingForNetwork"
+msgstr "Esperando una conexión"
+
 msgid "downloads.paused.waitingForWiFi"
 msgstr "Esperando Wi-Fi"
 
@@ -682,6 +728,18 @@ msgid "downloads.queued %d"
 msgid_plural "downloads.queued %d"
 msgstr[0] "%d más en espera"
 msgstr[1] "%d más en espera"
+
+msgid "downloads.queuedLabel"
+msgstr "En Descargas"
+
+msgid "downloads.quit.body"
+msgstr "La descarga se pausa al cerrar StoryArc y continúa desde donde se detuvo la próxima vez que abras StoryArc. La parte ya descargada se conserva."
+
+#, c-format
+msgid "downloads.quit.title %d"
+msgid_plural "downloads.quit.title %d"
+msgstr[0] "Hay una descarga en curso"
+msgstr[1] "Hay descargas en curso"
 
 msgid "downloads.remove"
 msgstr "Eliminar la descarga"
@@ -742,6 +800,12 @@ msgstr "Espacio utilizado por las descargas"
 
 msgid "downloads.undo"
 msgstr "Deshacer"
+
+msgid "downloads.unmetered"
+msgstr "Esperar con una conexión medida"
+
+msgid "downloads.unmetered.note"
+msgstr "En una conexión que tu sistema marca como medida, las descargas que no iniciaste a mano esperan."
 
 msgid "downloads.wifiOnly"
 msgstr "Descargar solo por Wi-Fi"
@@ -837,6 +901,9 @@ msgstr "A continuación"
 msgid "kavita.add"
 msgstr "Añadir"
 
+msgid "kavita.add.title"
+msgstr "Añadir una biblioteca Kavita"
+
 #, c-format
 msgid "kavita.addToList %s"
 msgstr "Añadir a «%s»"
@@ -864,6 +931,10 @@ msgstr "El servidor no indicó su tamaño."
 #, c-format
 msgid "kavita.bulk.unreachable %s"
 msgstr "%s no respondió, así que no se inició nada."
+
+#, c-format
+msgid "kavita.chapter.number %s"
+msgstr "Capítulo %s"
 
 msgid "kavita.chapter.unnumbered"
 msgstr "Sin número"
@@ -1418,6 +1489,12 @@ msgstr "Menú principal"
 msgid "menu.openRecent"
 msgstr "Abrir reciente"
 
+msgid "menu.quit"
+msgstr "Salir"
+
+msgid "network.starting"
+msgstr "StoryArc todavía se está iniciando. Inténtalo de nuevo en un momento."
+
 #, c-format
 msgid "open.in.damaged %s"
 msgstr "%s no se pudo leer. Puede estar dañado."
@@ -1681,6 +1758,12 @@ msgstr "Escala de grises"
 msgid "reader.adjust.invert"
 msgstr "Invertir colores"
 
+msgid "reader.adjust.look"
+msgstr "Aspecto"
+
+msgid "reader.adjust.menu"
+msgstr "Ajustes de imagen…"
+
 msgid "reader.adjust.reset"
 msgstr "Restablecer ajustes"
 
@@ -1690,6 +1773,18 @@ msgstr "Se aplica solo a «%1$s», no a todo lo que lee."
 
 msgid "reader.adjust.sharpness"
 msgstr "Nitidez"
+
+msgid "reader.adjust.title"
+msgstr "Ajustes de imagen"
+
+msgid "reader.adjust.tone"
+msgstr "Tono"
+
+msgid "reader.adjust.trim"
+msgstr "Recortar los bordes de las páginas"
+
+msgid "reader.adjust.trimHere"
+msgstr "Recortar esta página"
 
 msgid "reader.bookmark.add"
 msgstr "Añadir esta página a marcadores"
@@ -1734,6 +1829,9 @@ msgstr "Capítulo anterior"
 
 msgid "reader.close"
 msgstr "Cerrar"
+
+msgid "reader.current"
+msgstr "página actual"
 
 msgid "reader.damaged"
 msgstr "Este archivo no se pudo leer. Puede estar dañado."
@@ -1780,6 +1878,13 @@ msgstr "Pantalla"
 
 msgid "reader.fit.width"
 msgstr "Ancho"
+
+msgid "reader.goToPage"
+msgstr "Ir a la página"
+
+#, c-format
+msgid "reader.goToPage %d"
+msgstr "Ir a la página %d"
 
 msgid "reader.leftToRight"
 msgstr "De izquierda a derecha"
@@ -1882,6 +1987,16 @@ msgstr "Control de páginas"
 #, c-format
 msgid "reader.pageLabel %d %d"
 msgstr "Página %1$d de %2$d"
+
+#, c-format
+msgid "reader.pageOfCount"
+msgstr "%d de %d"
+
+msgid "reader.pageTurn"
+msgstr "Cambio de página"
+
+msgid "reader.pageTurn.curl.later"
+msgstr "El doblez llegará a Linux en una versión posterior"
 
 msgid "reader.pageUnavailable"
 msgstr "No se pudo leer esta página"
@@ -1988,6 +2103,15 @@ msgstr "Volver a la página %d"
 msgid "reader.rightToLeft"
 msgstr "De derecha a izquierda"
 
+msgid "reader.scroll.gap"
+msgstr "Espacio entre páginas"
+
+msgid "reader.scroll.horizontal"
+msgstr "Desplazamiento horizontal"
+
+msgid "reader.scroll.vertical"
+msgstr "Desplazamiento vertical"
+
 msgid "reader.separator"
 msgstr "Mostrar separador de páginas"
 
@@ -1996,6 +2120,9 @@ msgid "reader.skipped %d"
 msgid_plural "reader.skipped %d"
 msgstr[0] "%d página omitida"
 msgstr[1] "%d páginas omitidas"
+
+msgid "reader.slider"
+msgstr "Página"
 
 msgid "reader.solidArchive"
 msgstr "Este cómic usa compresión sólida, que StoryArc no puede abrir."
@@ -2114,6 +2241,10 @@ msgstr "Desactivado por defecto: al leer, los botones de volumen dejarían de aj
 msgid "reading.volumeButtons.unavailable"
 msgstr "Los botones de volumen no pueden cambiar de página en iOS: el sistema los reserva, y el único atajo se rompe cuando algo más reproduce audio."
 
+#, c-format
+msgid "restore.missing"
+msgstr "No se pudo volver a abrir: %s"
+
 msgid "return.title"
 msgstr "Volver a donde estaba"
 
@@ -2154,6 +2285,15 @@ msgstr "Buscar"
 
 msgid "search.waiting"
 msgstr "Sigue buscando…"
+
+msgid "secrets.denied"
+msgstr "El llavero no se desbloqueó, así que no se guardó nada. Vuelve a iniciar sesión cuando lo esté."
+
+msgid "secrets.flatpak"
+msgstr "Las contraseñas se guardan en el llavero cifrado de esta aplicación, a través del portal Secret del escritorio."
+
+msgid "secrets.service"
+msgstr "Las contraseñas se guardan en el llavero de tu escritorio."
 
 msgid "settings.about"
 msgstr "Acerca de"
@@ -2201,6 +2341,9 @@ msgstr "Sistema"
 msgid "settings.layout"
 msgstr "Diseño de página"
 
+msgid "settings.passwords"
+msgstr "Contraseñas"
+
 msgid "settings.privacy"
 msgstr "Privacidad"
 
@@ -2242,6 +2385,9 @@ msgid_plural "settings.sources.summary %d"
 msgstr[0] "%d biblioteca"
 msgstr[1] "%d bibliotecas"
 
+msgid "settings.storage"
+msgstr "Almacenamiento"
+
 msgid "settings.title"
 msgstr "Ajustes"
 
@@ -2254,6 +2400,10 @@ msgstr "Añadir a…"
 #, c-format
 msgid "shelves.addTo %s %s"
 msgstr "Añadir a «%1$s» · %2$s"
+
+#, c-format
+msgid "shelves.added %s"
+msgstr "Añadido a %s"
 
 msgid "shelves.bulk"
 msgstr "Todo el estante"
@@ -2307,6 +2457,9 @@ msgstr "Crear"
 
 msgid "shelves.delete"
 msgstr "Eliminar"
+
+msgid "shelves.delete.body"
+msgstr "La estantería desaparece. Los títulos que contiene siguen en tu biblioteca, y tus posiciones de lectura también."
 
 msgid "shelves.delete.collection.body"
 msgstr "Los libros y cómics que contiene siguen en tu biblioteca. Solo desaparece la colección."
@@ -2367,6 +2520,12 @@ msgstr "Se guarda en este dispositivo. No se envía nada a ninguna parte."
 #, c-format
 msgid "shelves.onDevice %d %d"
 msgstr "%1$d de %2$d en este dispositivo"
+
+msgid "shelves.open"
+msgstr "Estantería"
+
+msgid "shelves.options"
+msgstr "Opciones de la estantería"
 
 #, c-format
 msgid "shelves.pending %d"
@@ -2432,6 +2591,9 @@ msgstr "Ninguna biblioteca en línea accesible puede alojar una lista de lectura
 msgid "shelves.promote.why %s"
 msgstr "%s no las tiene, y StoryArc nunca sube ningún archivo. Se quedan en la lista de este dispositivo."
 
+msgid "shelves.remove"
+msgstr "Quitar de la estantería"
+
 msgid "shelves.rename"
 msgstr "Cambiar nombre"
 
@@ -2447,6 +2609,12 @@ msgstr "Solo de esta biblioteca"
 
 msgid "shelves.title"
 msgstr "Estanterías"
+
+#, c-format
+msgid "shelves.unavailable %d"
+msgid_plural "shelves.unavailable %d"
+msgstr[0] "%d título no está en este dispositivo ahora mismo"
+msgstr[1] "%d títulos no están en este dispositivo ahora mismo"
 
 msgid "shelves.unpin"
 msgstr "No fijar en Inicio"
@@ -2481,6 +2649,9 @@ msgstr "Todas las estanterías"
 msgid "sidebar.downloads"
 msgstr "Descargas"
 
+msgid "sidebar.libraries"
+msgstr "Bibliotecas"
+
 msgid "sidebar.library"
 msgstr "Biblioteca"
 
@@ -2496,8 +2667,14 @@ msgstr "Este cómic usa compresión sólida, que StoryArc no puede abrir."
 msgid "smb.connect"
 msgstr "Conectar"
 
+msgid "smb.discovery.absent"
+msgstr "Este sistema no anuncia recursos compartidos (Avahi no está en ejecución), así que escribe la dirección a mano."
+
 msgid "smb.discovery.denied"
 msgstr "El acceso a la red local está desactivado, así que StoryArc no encuentra recursos compartidos. Actívalo de nuevo en Ajustes, en Privacidad y seguridad, luego Red local. Todavía puedes añadir un recurso compartido a mano."
+
+msgid "smb.discovery.none"
+msgstr "No se anunció ningún recurso compartido en esta red."
 
 #, c-format
 msgid "smb.downloadFirst.body %s %s"
@@ -2543,6 +2720,9 @@ msgstr "Este servidor necesita una versión de SMB más reciente de la que Story
 
 msgid "smb.error.unexpected"
 msgstr "No se pudo acceder al recurso."
+
+msgid "smb.folder.label"
+msgstr "Carpeta (opcional)"
 
 msgid "smb.found"
 msgstr "En esta red"
@@ -2699,6 +2879,10 @@ msgid "sources.add.share"
 msgstr "Un ordenador en tu red"
 
 #, c-format
+msgid "sources.added %s"
+msgstr "Añadido: %s"
+
+#, c-format
 msgid "sources.detail %d"
 msgid_plural "sources.detail %d"
 msgstr[0] "%d título"
@@ -2753,6 +2937,9 @@ msgstr "StoryArc lee este recurso compartido por SMB. No se ha establecido ningu
 msgid "sources.kavita.systemTrust"
 msgstr "Necesita un certificado en el que su dispositivo ya confíe."
 
+msgid "sources.needsSignIn"
+msgstr "Requiere acceso"
+
 msgid "sources.none"
 msgstr "Aún no hay bibliotecas."
 
@@ -2777,6 +2964,9 @@ msgstr[1] "%d descargas"
 
 msgid "sources.remove.footer"
 msgstr "Quitar una biblioteca borra lo que descargaste de ella y conserva tus posiciones de lectura durante 30 días."
+
+msgid "sources.remove.kept"
+msgstr "Los archivos se quedan donde están, y tus posiciones de lectura también."
 
 #, c-format
 msgid "sources.remove.title %s"
@@ -2805,6 +2995,9 @@ msgstr "Guardar"
 msgid "sources.rename.title"
 msgstr "Cambiar el nombre"
 
+msgid "sources.signIn.remedy"
+msgstr "Quita esta biblioteca y vuelve a añadirla para iniciar sesión"
+
 msgid "sources.state.connected"
 msgstr "Disponible"
 
@@ -2816,6 +3009,24 @@ msgstr "Requiere acceso"
 
 msgid "sources.state.unreachable"
 msgstr "Sin respuesta"
+
+msgid "sources.unreachable"
+msgstr "No disponible ahora mismo"
+
+msgid "storage.diskFull"
+msgstr "El disco está lleno. StoryArc conservó lo que tenía. Vaciar la caché de portadas o borrar una descarga libera espacio."
+
+msgid "storage.downloads"
+msgstr "Descargas"
+
+msgid "storage.records"
+msgstr "Registros de la biblioteca"
+
+msgid "storage.where"
+msgstr "StoryArc guarda sus datos en tus propias carpetas. Nada de esto se sincroniza entre equipos."
+
+msgid "storage.writeFailed"
+msgstr "StoryArc no pudo guardar eso."
 
 msgid "sync.about"
 msgstr "Mantén tus posiciones de lectura, estanterías y ajustes iguales en todos tus dispositivos, a través de un lugar que elijas."
@@ -2887,6 +3098,9 @@ msgstr "El archivo de sincronización es de una versión más reciente de StoryA
 msgid "sync.status.notLibrary"
 msgstr "El archivo de sincronización no es una biblioteca de StoryArc. No se cambió nada."
 
+msgid "sync.status.synced"
+msgstr "Sincronizado"
+
 #, c-format
 msgid "sync.status.synced.on %s"
 msgstr "Sincronizado el %s"
@@ -2898,9 +3112,15 @@ msgstr "Sincronizado %s"
 msgid "sync.status.syncing"
 msgstr "Sincronizando…"
 
+msgid "sync.status.timedOut"
+msgstr "La carpeta de sincronización no respondió a tiempo. StoryArc volverá a sincronizar la próxima vez."
+
 #, c-format
 msgid "sync.status.unreachable %s"
 msgstr "No se puede llegar a %s. StoryArc volverá a sincronizar cuando pueda llegar."
+
+msgid "sync.status.unreachable.place"
+msgstr "No se puede acceder a la carpeta de sincronización. StoryArc volverá a sincronizar en cuanto pueda."
 
 msgid "sync.title"
 msgstr "Sincronización"
@@ -3074,6 +3294,9 @@ msgstr "No disponible para libros cuyo texto cambia de tamaño."
 
 msgid "theme.pageTurn.scroll"
 msgstr "Desplazamiento continuo"
+
+msgid "theme.pageTurn.slide"
+msgstr "Deslizar"
 
 msgid "theme.preset.bold"
 msgstr "Marcado"
