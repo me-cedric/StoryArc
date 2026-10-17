@@ -8,6 +8,7 @@ pub mod image;
 pub mod io;
 pub mod library;
 pub mod locale;
+pub mod metered;
 pub mod net;
 pub mod paths;
 pub mod portability;

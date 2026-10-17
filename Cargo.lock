@@ -4227,7 +4227,9 @@ dependencies = [
  "tempfile",
  "tokio",
  "uuid",
+ "windows",
  "windows-native-keyring-store",
+ "zbus",
  "zune-heic",
 ]
 

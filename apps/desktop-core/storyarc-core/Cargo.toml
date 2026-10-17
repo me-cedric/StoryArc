@@ -116,11 +116,17 @@ keyring-core = "=1.0.1"
 # windows-native-keyring-store 1.1.0, MIT OR Apache-2.0: Credential Manager. Without its
 # `search` feature, which only adds the regex crate.
 windows-native-keyring-store = { version = "=1.1.0", default-features = false }
+# windows 0.62.2, MIT OR Apache-2.0: the metered flag of task 3.9, the Internet connection
+# profile's NetworkCostType and the data saver, through WinRT. Already in the tree.
+windows = { version = "0.62.2", default-features = false, features = ["std", "Foundation", "Networking_Connectivity"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # oo7 0.6.0, MIT: Secret Service on the host and the Secret portal's file keyring in a
 # Flatpak, on tokio (Open Question 5) with its pure-Rust crypto. Pinned exactly: pre-1.0.
 oo7 = { version = "=0.6.0", default-features = false, features = ["tokio", "native_crypto"] }
+# zbus 5.19.0, MIT, on tokio: the metered flag of task 3.9, from the network-monitor portal and
+# NetworkManager. Already in the tree through oo7.
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
 
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the

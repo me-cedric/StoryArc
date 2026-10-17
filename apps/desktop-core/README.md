@@ -21,6 +21,7 @@ The Rust core Windows and Linux share ([ADR-0018](../../docs/decisions/0018-desk
 | `io` | `RandomAccessSource`, file and memory sources, `CancelToken` |
 | `library` | **The public API the apps call** (`facade`) and the shelf queries (`query`) |
 | `locale` | ICU4X collation, the search fold, number and date formatting |
+| `metered` | The metered flag: a provider trait, `NetworkCostType` on Windows, the network-monitor portal then NetworkManager on Linux, a fake for tests, and the watch that turns readings into changes |
 | `net` | HTTP over reqwest and rustls: credentials only to the configured origin, no `https` to `http` step, redirects by hand, the system's trust then the reader's pins (`net::trust`) |
 | `paths` | Per-user storage folders per system, the Flatpak and MSIX redirects |
 | `diagnostics` | The diagnostic export's text and the phones' five redaction rules, plus every held secret removed |
@@ -103,6 +104,18 @@ runtime.
 | `PinnedShelves::of_tokens` / `tokens` / `ordering` and `RememberedShelf::stored` / `of_stored` | The pins the library document carries, and the server shelves home draws without asking |
 | `SourceHealth::refreshing` / `refreshed(now)` / `failed(&failure, now)` / `actions(..)` | Grey since a moment, never red; reconnect first only when a credential was refused |
 | `MetadataCache::write(id, &value, now)` / `read(id)` / `clear(id)` / `bytes()` | What a source listed when it last answered |
+
+### The metered flag
+
+| Call | Does |
+| --- | --- |
+| `metered::system_provider(&runtime)` | The system's provider; elsewhere `Undescribed`, which says unmetered |
+| `MeteredProvider::network()` | `Unmetered`, `Metered` or `Offline`; a connection the system does not describe is unmetered, and the data saver is metered |
+| `NetworkWatch::new(&provider)` then `poll(&provider)` | The new state when it changed, for `DownloadQueue::holding` |
+| `FakeMetered::new(state)` / `set(state)` | A provider a test sets by hand |
+
+The Windows provider compiles only on Windows and the Linux one only on Linux; neither runs on
+the Mac host, so their manual check is a phone tether on each system.
 
 ### Library portability and sync
 
