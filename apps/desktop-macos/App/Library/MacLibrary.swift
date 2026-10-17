@@ -19,6 +19,14 @@ final class MacLibrary {
     let bookmarks: MacFolderBookmarks
     let recents = RecentPublications()
     let watcher = MacFolderWatcher()
+    /// The configured servers and the sheets that add them. Wave 3.
+    let servers: MacSources
+    /// The download queue and the metered rule over it. Wave 3.
+    let downloads: MacDownloads
+    /// Library sync at start and at quit. Wave 3.
+    let sync: MacSync
+    /// What the app keeps on this Mac, store by store. Wave 3.
+    let storage: MacStorage
 
     /// Every folder the reader chose, with its state. Grey ones keep their place.
     private(set) var sources: [FolderSource] = []
@@ -62,6 +70,12 @@ final class MacLibrary {
             downloadStore: DownloadStore(),
             journal: ScanJournal()
         )
+        servers = MacSources(model: model)
+        downloads = MacDownloads()
+        sync = MacSync(runner: MacSyncWiring.runner(progress: store)) {
+            await MacSyncWiring.latestChange(in: store)
+        }
+        storage = MacStorageWiring.storage(progress: store, queue: downloads.queue)
         Self.live = self
     }
 
@@ -85,6 +99,11 @@ final class MacLibrary {
         startWatching()
         // Each `addFolder` starts a walk that the next one cancels; one rescan walks them all.
         if restored.folders.count > 1 { await model.rescan() }
+        // The servers join the shelf beside the folders, as on a phone, and what was downloaded
+        // joins it too; what the last quit paused carries on (`desktop-experience`).
+        await model.readServers()
+        await model.adoptDownloads()
+        downloads.resumeAfterLaunch()
         await refreshProgress()
     }
 
@@ -267,6 +286,46 @@ final class MacLibrary {
     func target(for publication: Publication) -> ReaderTarget? {
         guard let url = model.location(of: publication) else { return nil }
         return ReaderTarget(publication: publication, url: url)
+    }
+
+    /// Queues a catalogue row the reader asked to download, by hand.
+    ///
+    /// - Returns: false when the row's entry could not be found in its catalogue.
+    /// `byHand` is false for a bulk download, which the metered rule may hold back.
+    @discardableResult
+    func download(_ publication: Publication, byHand: Bool = true) async -> Bool {
+        guard let found = await RemoteEntry.resolve(
+            publication, in: model.registry, credentials: servers.credentials
+        ) else { return false }
+        downloads.enqueue(found.entry, using: found.acquisition, sourceID: found.sourceID, byHand: byHand)
+        return true
+    }
+
+    /// The diagnostic as the preferences export it, redacted (task 3.14).
+    func diagnosticText() async -> String {
+        let history = await progress?.sizeOnDisk() ?? 0
+        return MacDiagnostic.text(
+            settings: MacSettings.shared.settings, sources: model.registry,
+            cacheBytes: StorageUsage().cacheBytes(), historyBytes: history,
+            extra: [
+                "connection = \(downloads.monitor.condition)",
+                "downloadsPending = \(downloads.pending.count)",
+                "downloadsHeldOnMeteredLink = \(downloads.held.count)",
+                "sync = \(sync.runner.map { String(describing: $0.status) } ?? "unavailable")",
+            ]
+        )
+    }
+
+    /// Everything StoryArc keeps on this Mac, removed: the way to leave nothing behind before
+    /// the system's own uninstall (`desktop-experience`, *Removing the app*). Confirmed first.
+    func removeAllData() async {
+        for store in MacStorage.Store.allCases { await storage.clear(store) }
+        for source in servers.servers { servers.remove(source.id) }
+        for folder in sources { removeFolder(folder) }
+        recents.clear()
+        NSDocumentController.shared.clearRecentDocuments(nil)
+        MacSettings.shared.reset()
+        await refreshProgress()
     }
 
     func dismissRefused() { refused = [] }

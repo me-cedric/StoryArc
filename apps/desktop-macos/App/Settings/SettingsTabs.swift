@@ -13,54 +13,13 @@ struct SettingsTabContent: View {
             case .sources: SourcesSettingsTab(library: library)
             case .appearance: AppearanceSettingsTab()
             case .reading: ReadingSettingsTab()
-            case .downloads: DownloadsSettingsTab()
+            case .downloads: DownloadsSettingsTab(library: library)
             case .language: LanguageSettingsTab()
             case .privacy: PrivacySettingsTab(library: library)
             case .about: AboutSettingsTab()
             }
         }
         .formStyle(.grouped)
-    }
-}
-
-/// Sources: the folders, each with its state, and the one way to add one.
-private struct SourcesSettingsTab: View {
-    let library: MacLibrary
-
-    var body: some View {
-        Section {
-            if library.sources.isEmpty {
-                Text("desktop.settings.sources.none").foregroundStyle(.secondary)
-            }
-            ForEach(library.sources) { source in
-                HStack {
-                    Image(systemName: "folder").foregroundStyle(source.isGrey ? .secondary : .primary)
-                    VStack(alignment: .leading) {
-                        Text(source.name).foregroundStyle(source.isGrey ? .secondary : .primary)
-                        if source.state == .offline {
-                            Text("desktop.settings.sources.offline").scaledFont(.caption).foregroundStyle(.secondary)
-                        } else if source.state == .needsAccess {
-                            Text("desktop.settings.sources.needsAccess")
-                                .scaledFont(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    if source.state == .needsAccess {
-                        Button { library.repick(source) } label: { Text("desktop.source.chooseAgain") }
-                    }
-                    Button(role: .destructive) { library.removeFolder(source) } label: {
-                        Text("desktop.settings.sources.remove")
-                    }
-                }
-            }
-        } header: {
-            Text("desktop.settings.sources.folders")
-        } footer: {
-            Text("desktop.settings.sources.footer").foregroundStyle(.secondary)
-        }
-        Section {
-            Button { library.chooseFolder() } label: { Text("desktop.menu.addFolder") }
-        }
     }
 }
 
@@ -144,19 +103,39 @@ private struct ReadingSettingsTab: View {
     }
 }
 
-/// Downloads: the Wi-Fi rule as "not on a metered link". The queue is wave 3.
+/// Downloads: the Wi-Fi rule as "not on a metered link", what the connection is now, and
+/// the storage of task 3.15.
 private struct DownloadsSettingsTab: View {
+    let library: MacLibrary
+
     var body: some View {
         let settings = MacSettings.shared
         Section {
             Toggle(isOn: Binding(
                 get: { settings.settings.downloadOverWifiOnly },
-                set: { settings.settings.downloadOverWifiOnly = $0 }
+                set: {
+                    settings.settings.downloadOverWifiOnly = $0
+                    library.downloads.reconsider()
+                }
             )) {
                 Text("desktop.downloads.metered")
             }
         } footer: {
-            Text("desktop.downloads.footer").foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("desktop.downloads.footer")
+                connection
+            }
+            .foregroundStyle(.secondary)
+        }
+        StorageSection(library: library)
+    }
+
+    private var connection: Text {
+        switch library.downloads.monitor.condition {
+        case .metered: Text("desktop.downloads.connection.metered")
+        case .unmetered: Text("desktop.downloads.connection.unmetered")
+        case .unknown: Text("desktop.downloads.connection.unknown")
+        case .offline: Text("desktop.downloads.connection.offline")
         }
     }
 }
@@ -202,7 +181,16 @@ private struct PrivacySettingsTab: View {
                 }
         }
         Section {
-            Text("desktop.privacy.diagnosticLater").foregroundStyle(.secondary)
+            Button {
+                Task { MacSettings.shared.diagnostic = DiagnosticText(text: await library.diagnosticText()) }
+            } label: {
+                Text("desktop.diagnostic.export")
+            }
+            .sheet(item: Binding(get: { MacSettings.shared.diagnostic }, set: { MacSettings.shared.diagnostic = $0 })) {
+                DiagnosticSheet(text: $0.text).macChrome()
+            }
+        } footer: {
+            Text("desktop.diagnostic.footer").foregroundStyle(.secondary)
         }
         Section {
             Button(role: .destructive) { isConfirmingReset = true } label: { Text("desktop.settings.reset") }

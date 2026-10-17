@@ -53,7 +53,10 @@ enum MacSnapshot {
 
     /// How many times a screen is drawn again, half a second apart, before a difference counts:
     /// a control still running its own animation (a segment's highlight sliding in) settles.
-    static let attempts = 4
+    /// Each retry marks the whole window for drawing first: the toolbar's segmented control was
+    /// seen to keep a highlight drawn for the other appearance until something asked it again
+    /// (wave 3, one screen in about one run of three).
+    static let attempts = 6
 
     /// Holds `window` against the reference named `name`, recording an issue when it differs.
     static func assert(
@@ -76,6 +79,7 @@ enum MacSnapshot {
         var difference = difference(image, stored)
         for _ in 1..<attempts where difference > pixelTolerance {
             try? await Task.sleep(for: .milliseconds(500))
+            invalidate(window.contentView?.superview ?? window.contentView)
             guard let again = draw(window) else { break }
             image = again
             difference = self.difference(image, stored)
@@ -86,6 +90,14 @@ enum MacSnapshot {
             Issue.record("\(name): \(share) of pixels differ from the reference; the image is at \(written)",
                          sourceLocation: sourceLocation)
         }
+    }
+
+    /// Marks a view and everything under it for drawing again.
+    private static func invalidate(_ view: NSView?) {
+        guard let view else { return }
+        view.needsDisplay = true
+        view.layer?.setNeedsDisplay()
+        for child in view.subviews { invalidate(child) }
     }
 
     /// The window's view tree, title bar and toolbar included, at one pixel per point.

@@ -71,6 +71,8 @@ final class ProgressWriter {
             // app retries at the next launch and names the failure in the diagnostic.
             lastFailure = "\(progress.identity.stableID): \(error)"
             Self.keepPending(progress, defaults: defaults)
+            // A full disk is named in the preferences and the Downloads view (task 3.15).
+            MacLibrary.live?.storage.noteWriteFailure(error)
             return false
         }
     }

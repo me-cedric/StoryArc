@@ -36,12 +36,22 @@ struct LibraryWindow: View {
             sidebar
         } detail: {
             NavigationStack(path: path) {
-                LibraryContentColumn(
-                    library: library, search: search, destination: current,
-                    filter: libraryFilter, selection: $gridSelection,
-                    onOpen: open, onShow: { path.wrappedValue.append(PublicationRoute($0)) }
-                )
-                .navigationTitle(current.title)
+                Group {
+                    if case let .shelf(pin) = selection, !search.isShowingResults {
+                        ShelfPage(
+                            library: library, pin: pin, selection: $gridSelection, onOpen: open,
+                            onShow: { path.wrappedValue.append(PublicationRoute($0)) }
+                        )
+                        .navigationTitle(MacShelves.name(of: pin, in: library.model.shelves) ?? "")
+                    } else {
+                        LibraryContentColumn(
+                            library: library, search: search, destination: current,
+                            filter: libraryFilter, selection: $gridSelection,
+                            onOpen: open, onShow: { path.wrappedValue.append(PublicationRoute($0)) }
+                        )
+                        .navigationTitle(current.title)
+                    }
+                }
                 .navigationDestination(for: PublicationRoute.self) { route in
                     // Re-read from the model on every redraw, as `PublicationRoute` asks.
                     if let publication = library.model.publications.first(where: { $0.id == route.publicationID }) {
@@ -72,7 +82,11 @@ struct LibraryWindow: View {
             navigate(request)
         }
         .onChange(of: library.offeredFolder) { showingFolderOffer = library.offeredFolder != nil }
+        // A finished download joins the shelf as soon as it lands; no notification says so.
+        .onChange(of: library.downloads.finished.count) { Task { await library.model.adoptDownloads() } }
         .acceptsDroppedFiles()
+        .shelfPrompts(library) { selection = .shelf($0) }
+        .shelfBulkPrompts(library)
         .restartConfirmation(library)
         .confirmationDialog(
             Text("desktop.drop.folder.title \(library.offeredFolder?.lastPathComponent ?? "")"),
@@ -92,6 +106,11 @@ struct LibraryWindow: View {
             WindowOpener.shared.openReader = { openWindow.reader($0) }
             WindowOpener.shared.openLibrary = { openWindow(id: Self.id) }
             await library.restore()
+            // `desktop-experience`, *At start*: beside the window, never in front of it.
+            library.sync.start {
+                await library.model.reloadAfterImport()
+                await library.refreshProgress()
+            }
             for session in library.restorableReaders() { openWindow.reader(session.target) }
             await library.openHandedOver { openWindow.reader($0) }
         }
@@ -111,7 +130,7 @@ struct LibraryWindow: View {
     private var current: LibraryDestination {
         switch selection {
         case let .destination(destination): destination
-        case .filter: .library
+        case .filter, .shelf: .library
         case nil: .home
         }
     }
@@ -132,6 +151,16 @@ struct LibraryWindow: View {
                         .tag(SidebarRow.filter(filter))
                 }
             }
+            // The design's Shelves group: collections and reading lists, pinned first.
+            Section {
+                ForEach(library.shelfRows) { row in
+                    Label(row.name, systemImage: row.symbolName)
+                        .tag(SidebarRow.shelf(row.pin))
+                        .contextMenu { ShelfRowMenu(library: library, row: row) }
+                }
+            } header: {
+                ShelvesHeader()
+            }
         }
         .navigationSplitViewColumnWidth(min: 220, ideal: 240, max: 280)
         // The sidebar draws its own row font; the reader's text size reaches it through the
@@ -143,7 +172,12 @@ struct LibraryWindow: View {
         LibraryActions(
             openFile: { Task { for target in await library.chooseFile() { openWindow.reader(target) } } },
             addFolder: { library.chooseFolder() },
-            refresh: { Task { await library.model.rescan() } },
+            refresh: {
+                Task {
+                    await library.model.rescan()
+                    await library.servers.refresh()
+                }
+            },
             find: { isSearchFocused = true },
             viewAsGrid: { library.model.layout = .grid },
             viewAsList: { library.model.layout = .list },
@@ -174,6 +208,7 @@ struct LibraryWindow: View {
         case let .details(id): path.wrappedValue.append(PublicationRoute(publicationID: id))
         case .root: path.wrappedValue = NavigationPath()
         case let .filter(filter): selection = .filter(filter)
+        case let .shelf(pin): selection = .shelf(pin)
         case .finished:
             var query = library.model.query
             query.readStates = [.finished]
@@ -190,10 +225,34 @@ struct LibraryWindow: View {
 
 }
 
-/// A row of the sidebar: one of the four destinations, or a filter of the library.
+/// A row of the sidebar: one of the four destinations, a filter of the library, or a shelf.
 enum SidebarRow: Hashable {
     case destination(LibraryDestination)
     case filter(LibraryShelfFilter)
+    case shelf(ShelfPin)
+}
+
+/// The Shelves group's heading, with the one menu that makes a new shelf.
+private struct ShelvesHeader: View {
+    var body: some View {
+        HStack {
+            Text("desktop.shelves.title")
+            Spacer()
+            Menu {
+                Button {
+                    ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.collection, adding: []), name: "")
+                } label: { Text("desktop.shelves.newCollection") }
+                Button {
+                    ShelfPrompts.shared.naming = ShelfNaming(purpose: .create(.list, adding: []), name: "")
+                } label: { Text("desktop.shelves.newList") }
+            } label: {
+                Label("desktop.shelves.new", systemImage: "plus").labelStyle(.iconOnly)
+            }
+            .menuStyle(.automatic)
+            .menuIndicator(.hidden)
+            .fixedSize()
+        }
+    }
 }
 
 /// The Library group of the design's section 2: filters of the one shelf.

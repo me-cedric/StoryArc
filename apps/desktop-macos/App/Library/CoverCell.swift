@@ -119,12 +119,35 @@ struct PublicationMenu: View {
     let onShow: (Publication) -> Void
     /// How many publications the menu acts on; *Start from the Beginning* needs exactly one.
     var selectionCount = 1
+    /// The covers selected with this one, which the shelf and bulk actions act on together.
+    var selected: Set<String> = []
+
+    /// What the shelf and bulk actions act on: the selection when this cover is in it.
+    private var targets: [String] {
+        selected.count > 1 && selected.contains(publication.id)
+            ? library.model.publications.map(\.id).filter(selected.contains) : [publication.id]
+    }
 
     var body: some View {
         Button { onOpen(publication) } label: { Text("desktop.menu.read") }
             .disabled(library.model.location(of: publication) == nil)
         Button { onShow(publication) } label: { Text("desktop.menu.showDetails") }
         Divider()
+        AddToShelfMenu(library: library, ids: targets)
+        if targets.count > 1 {
+            // Bulk actions, `collections-and-reading-lists`: the single path, for the selection.
+            Button { Task { await library.markOffering(Set(targets), read: true) } } label: {
+                Text("desktop.bulk.markRead")
+            }
+            Button { Task { await library.markOffering(Set(targets), read: false) } } label: {
+                Text("desktop.bulk.markUnread")
+            }
+            if !library.downloadable(among: Set(targets)).isEmpty {
+                Button { library.offerDownload(Set(targets)) } label: { Text("desktop.menu.download") }
+            }
+        } else if RemoteEntry.isDownloadable(publication, in: library.model.registry) {
+            Button { Task { await library.download(publication) } } label: { Text("desktop.menu.download") }
+        }
         if let url = library.model.location(of: publication), url.isFileURL {
             Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
                 Text("desktop.menu.showInFinder")

@@ -18,12 +18,15 @@ struct HomeView: View {
         let plan = plan
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
-                if !plan.keepReading.isEmpty {
+                // Held back until the start's sync has merged, so the shelf is not drawn twice.
+                if !plan.keepReading.isEmpty, library.sync.hasSettledStart {
                     shelf("desktop.home.keepReading", plan.keepReading, unreadable: plan.unreadable)
                 }
                 if !plan.upNext.isEmpty {
                     shelf("desktop.home.upNext", plan.upNext)
                 }
+                // `home-screen`'s shelves: collections, then reading lists, pinned first.
+                HomeShelvesSection(library: library) { library.navigationRequest = .shelf($0) }
                 if !plan.recentlyAdded.isEmpty {
                     coverShelf("desktop.home.recentlyAdded", plan.recentlyAdded, showAll: plan.recentlyAddedHasMore ? {
                         library.navigationRequest = .filter(.recentlyAdded)

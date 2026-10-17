@@ -39,7 +39,7 @@ extension WindowWalks {
         }
 
         /// Writes the window as a PNG and says how it was imaged.
-        private static func capture(_ window: NSWindow, to file: URL) throws -> String {
+        static func capture(_ window: NSWindow, to file: URL) throws -> String {
             window.makeKeyAndOrderFront(nil)
             ShellWalk.settle()
             window.displayIfNeeded()

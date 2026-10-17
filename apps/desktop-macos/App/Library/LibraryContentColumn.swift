@@ -45,7 +45,7 @@ struct LibraryContentColumn: View {
             case .library:
                 shelf(library.model.visible)
             case .onDevice:
-                DestinationEmptyState(destination: .onDevice, showLibrary: {})
+                DownloadsView(downloads: library.downloads) { FileInbox.shared.receive([$0]) }
             case .search:
                 SearchAtRestView(library: library)
             }

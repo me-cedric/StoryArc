@@ -49,7 +49,13 @@ apps/desktop-macos/
 │   ├── Reader/                 the reader window and its Mac page view, chrome, key mapper,
 │   │                           click zones, zoom model, spreads, drag turn, progress writer,
 │   │                           reader targets and restoration, the window registry
-│   ├── Settings/               MacSettings (the preferences model), the tabs, the search index
+│   ├── Settings/               MacSettings (the preferences model), the tabs, the search index,
+│   │                           the Sources and sync sections, storage, the diagnostic export
+│   ├── Sources/                MacSources: share, catalogue and Kavita sheets, Bonjour, the rows
+│   ├── Downloads/              MacDownloads, the Downloads page, the metered rule, catalogue rows
+│   ├── Sync/                   MacSync (sync at start and quit) and its runner wiring
+│   ├── Shelves/                collections and reading lists: the model's Mac reading, the menus,
+│   │                           the shelf page, Home's shelves, bulk marks with undo and downloads
 │   ├── System/                 the app delegate (files, Dock menu, quit), the command table and
 │   │                           menus, FSEvents watching, files handed over, the power assertion
 │   ├── StoryArcMac.entitlements
@@ -60,7 +66,9 @@ apps/desktop-macos/
 │   │                           files, search, settings search, Home, detail, accent, localisation
 │   ├── WindowWalk.swift        the serialized parent of every suite that drives windows
 │   ├── ReaderWalkTests.swift, PointerAndFilesWalkTests.swift, ShellTests.swift   the walks
-│   ├── CaptureTests.swift, Wave2CaptureTests.swift   the frames, on request
+│   ├── CaptureTests.swift, Wave2CaptureTests.swift, Wave3CaptureTests.swift   the frames, on request
+│   ├── MockServers.swift       where the walks find the OPDS, Kavita and SMB mocks
+│   ├── ConformanceLog.swift    what the wave 3 walks measured, for the conformance record
 │   ├── MacCatalogue.swift      the screen catalogue: each screen brought up over the fixtures
 │   ├── AccessibilityAudit.swift, AccessibilityAuditTests.swift   every catalogue control
 │   │                           named and at least 20 × 20 points, as VoiceOver reads it
@@ -89,9 +97,16 @@ entitlements file as resources; a test in the sandboxed app that opens a path un
 the container and read them as the app's library, so a run needs no setup. Suites that
 open windows run one after another under `WindowWalks`. `TEST_RUNNER_STORYARC_CAPTURE=1` in front of the test command also
 writes the window frames into the container's `tmp/captures/`; see
-[`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md) and
-[`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md)
+[`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md),
+[`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md) and
+[`wave3/`](../../docs/designs/screenshots/desktop/macos/wave3/README.md)
 for how and for what they do and do not show.
+
+The source, download and sync walks need the repository's mock servers (`pnpm opds`,
+`pnpm kavita`, `pnpm smb`, and `scripts/smb-server.sh --encrypted`); a walk whose server is
+not listening is skipped and says so. Ports and the share's user move with
+`TEST_RUNNER_STORYARC_OPDS_PORT`, `_KAVITA_PORT`, `_SMB_PORT`, `_SMB_ENCRYPTED_PORT` and
+`_SMB_USER` in front of the test command (`Tests/MockServers.swift`).
 
 The snapshot suite holds each screen of `Tests/MacCatalogue.swift` against
 `Tests/__Snapshots__/`, drawn in-process at one pixel per point, so materials are absent.

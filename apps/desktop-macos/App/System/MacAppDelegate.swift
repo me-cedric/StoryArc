@@ -142,11 +142,18 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // `desktop-experience`, *A download in progress*: said before quitting, and paused.
+        guard MacQuit(downloads: MacLibrary.live?.downloads).shouldQuit() else {
+            return .terminateCancel
+        }
         Task { @MainActor in
             // Five seconds is the spec's own cadence; past it the app quits with what it has.
-            let flush = Task { await ProgressFlushers.shared.flushAll() }
-            let cap = Task { _ = try? await Task.sleep(for: .seconds(5)) }
-            await firstOf(flush, cap)
+            // The positions first, then the sync document that carries them (task 3.13).
+            let owed = Task { @MainActor in
+                await ProgressFlushers.shared.flushAll()
+                _ = await MacLibrary.live?.sync.atQuit()
+            }
+            _ = await Deadline.race(owed, limit: .seconds(5))
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
@@ -158,15 +165,5 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows { WindowOpener.shared.openLibrary?() }
         return true
-    }
-}
-
-/// Returns when whichever of the two finishes first; the other is left to finish on its own.
-func firstOf(_ first: Task<Void, Never>, _ second: Task<Void, Never>) async {
-    await withTaskGroup(of: Void.self) { group in
-        group.addTask { await first.value }
-        group.addTask { await second.value }
-        await group.next()
-        group.cancelAll()
     }
 }

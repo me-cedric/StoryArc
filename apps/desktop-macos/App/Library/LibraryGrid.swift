@@ -112,7 +112,8 @@ struct CoverGridView: View {
                     .contextMenu {
                         PublicationMenu(
                             library: library, publication: publication, onOpen: onOpen, onShow: onShow,
-                            selectionCount: RestartRequest.menuCount(for: publication.id, in: selection)
+                            selectionCount: RestartRequest.menuCount(for: publication.id, in: selection),
+                            selected: selection.ids
                         )
                     }
                     .id(publication.id)
