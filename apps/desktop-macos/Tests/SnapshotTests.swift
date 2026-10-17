@@ -31,7 +31,7 @@ extension WindowWalks {
                 NSApplication.shared.appearance = NSAppearance(named: suffix == "dark" ? .darkAqua : .aqua)
                 MacSettings.shared.textSize = suffix == "largest" ? .largest : .default
                 try await MacCatalogue.walk(library: library, reading: reading) { screen, window in
-                    MacSnapshot.assert(window, named: "\(screen).\(suffix)")
+                    await MacSnapshot.assert(window, named: "\(screen).\(suffix)")
                 }
             }
         }

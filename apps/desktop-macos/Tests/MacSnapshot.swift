@@ -51,9 +51,15 @@ enum MacSnapshot {
         TestFixtures.bundle.bundleURL.appending(path: "Contents/Resources/__Snapshots__", directoryHint: .isDirectory)
     }
 
+    /// How many times a screen is drawn again, half a second apart, before a difference counts:
+    /// a control still running its own animation (a segment's highlight sliding in) settles.
+    static let attempts = 4
+
     /// Holds `window` against the reference named `name`, recording an issue when it differs.
-    static func assert(_ window: NSWindow, named name: String, sourceLocation: SourceLocation = #_sourceLocation) {
-        guard let image = draw(window), let png = png(image) else {
+    static func assert(
+        _ window: NSWindow, named name: String, sourceLocation: SourceLocation = #_sourceLocation
+    ) async {
+        guard var image = draw(window) else {
             Issue.record("\(name): the window could not be drawn", sourceLocation: sourceLocation)
             return
         }
@@ -62,14 +68,20 @@ enum MacSnapshot {
               let source = CGImageSourceCreateWithURL(reference as CFURL, nil),
               let stored = CGImageSourceCreateImageAtIndex(source, 0, nil)
         else {
-            let written = write(png, to: "record", name: name)
+            let written = write(png(image), to: "record", name: name)
             let reason = SnapshotRecord.isSet ? "recorded" : "no reference"
             Issue.record("\(name): \(reason); the image is at \(written)", sourceLocation: sourceLocation)
             return
         }
-        let difference = difference(image, stored)
+        var difference = difference(image, stored)
+        for _ in 1..<attempts where difference > pixelTolerance {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard let again = draw(window) else { break }
+            image = again
+            difference = self.difference(image, stored)
+        }
         if difference > pixelTolerance {
-            let written = write(png, to: "failures", name: name)
+            let written = write(png(image), to: "failures", name: name)
             let share = String(format: "%.3f%%", difference * 100)
             Issue.record("\(name): \(share) of pixels differ from the reference; the image is at \(written)",
                          sourceLocation: sourceLocation)
@@ -125,7 +137,8 @@ enum MacSnapshot {
         NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
 
-    private static func write(_ png: Data, to folder: String, name: String) -> String {
+    private static func write(_ png: Data?, to folder: String, name: String) -> String {
+        guard let png else { return "nowhere (the image could not be encoded)" }
         let directory = container.appending(path: folder, directoryHint: .isDirectory)
         let file = directory.appending(path: "\(name).png")
         do {
