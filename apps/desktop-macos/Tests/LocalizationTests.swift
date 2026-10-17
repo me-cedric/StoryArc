@@ -23,7 +23,7 @@ struct LocalizationTests {
         "desktop.refused.unsupported %@ %@ %@", "desktop.refused.unreadable %@ %@",
         "desktop.source.offline %@", "desktop.source.needsAccess %@", "desktop.source.chooseAgain",
         "desktop.restore.missing %@", "desktop.drop.listed %lld %@",
-        "desktop.home.keepReading", "desktop.home.upNext",
+        "desktop.home.keepReading", "desktop.home.upNext", "desktop.home.unavailable",
         "desktop.reader.pageLabel %lld %lld", "desktop.detail.continue %lld %lld",
         "desktop.accent", "desktop.accent.brand", "desktop.accent.system",
         "desktop.reading.clickZones",

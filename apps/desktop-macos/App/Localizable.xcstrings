@@ -1177,6 +1177,34 @@
         }
       }
     },
+    "desktop.home.unavailable": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kann gerade nicht geöffnet werden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can’t be opened right now"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede abrir ahora"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible à ouvrir pour le moment"
+          }
+        }
+      }
+    },
     "desktop.home.unread": {
       "localizations": {
         "de": {

@@ -19,7 +19,7 @@ struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 if !plan.keepReading.isEmpty {
-                    shelf("desktop.home.keepReading", plan.keepReading)
+                    shelf("desktop.home.keepReading", plan.keepReading, unreadable: plan.unreadable)
                 }
                 if !plan.upNext.isEmpty {
                     shelf("desktop.home.upNext", plan.upNext)
@@ -49,17 +49,23 @@ struct HomeView: View {
             continueReading: model.continueReading,
             finished: finished,
             next: { model.next(after: $0) },
-            isUnread: { library.record(of: $0) == nil }
+            isUnread: { library.record(of: $0) == nil },
+            isReadable: { library.model.location(of: $0).map(MacLibrary.isReachable) ?? false }
         )
     }
 
-    private func shelf(_ title: LocalizedStringKey, _ publications: [Publication]) -> some View {
+    private func shelf(
+        _ title: LocalizedStringKey, _ publications: [Publication], unreadable: Set<String> = []
+    ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title).scaledFont(.title2, weight: .semibold)
             ScrollView(.horizontal) {
                 HStack(spacing: 16) {
                     ForEach(publications) { publication in
-                        HomeCard(library: library, publication: publication, onOpen: onOpen, onShow: onShow)
+                        HomeCard(
+                            library: library, publication: publication,
+                            isReadable: !unreadable.contains(publication.id), onOpen: onOpen, onShow: onShow
+                        )
                     }
                 }
             }
@@ -74,6 +80,7 @@ private struct HomeCard: View {
 
     let library: MacLibrary
     let publication: Publication
+    let isReadable: Bool
     let onOpen: (Publication) -> Void
     let onShow: (Publication) -> Void
 
@@ -90,6 +97,10 @@ private struct HomeCard: View {
                         Text(line).scaledFont(.subheadline).foregroundStyle(theme.palette.textSecondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
+                    if !isReadable {
+                        Text("desktop.home.unavailable")
+                            .scaledFont(.caption).foregroundStyle(theme.palette.textSecondary)
+                    }
                     if let fraction {
                         ProgressRail(fraction: fraction).clipShape(Capsule())
                         Text(fraction, format: .percent.precision(.fractionLength(0)))
@@ -104,6 +115,8 @@ private struct HomeCard: View {
             .background(theme.palette.surfaceRaised, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
+        .disabled(!isReadable)
+        .opacity(isReadable ? 1 : 0.55)
         .contextMenu { PublicationMenu(library: library, publication: publication, onOpen: onOpen, onShow: onShow) }
         .accessibilityLabel(Text(CoverCell.label(for: publication, fraction: fraction)))
     }

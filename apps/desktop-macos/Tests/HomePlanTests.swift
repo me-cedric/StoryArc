@@ -38,6 +38,17 @@ struct HomePlanTests {
         #expect(!plan.isEmpty)
     }
 
+    @Test("A book that cannot be opened now keeps its place in Keep reading, marked")
+    func unreadableStays() {
+        let reading = [pub("a"), pub("gone"), pub("b")]
+        let plan = HomePlan.make(
+            continueReading: reading, finished: [], next: { _ in nil }, isUnread: { _ in true },
+            isReadable: { $0.id != reading[1].id }
+        )
+        #expect(plan.keepReading.map(\.id) == reading.map(\.id))
+        #expect(plan.unreadable == [reading[1].id])
+    }
+
     @Test("Only an unread next issue is Up next, and one is listed once")
     func unreadOnly() {
         let next = pub("n1")

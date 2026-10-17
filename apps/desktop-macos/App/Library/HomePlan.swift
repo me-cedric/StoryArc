@@ -11,6 +11,9 @@ import StoryArcCore
 struct HomePlan: Equatable, Sendable {
     let keepReading: [Publication]
     let upNext: [Publication]
+    /// Keep reading's publications that cannot be opened right now. They keep their place,
+    /// dimmed: `home-screen` says a row that shrinks with the network reads as lost reading.
+    var unreadable: Set<String> = []
 
     var isEmpty: Bool { keepReading.isEmpty && upNext.isEmpty }
 
@@ -22,7 +25,8 @@ struct HomePlan: Equatable, Sendable {
         continueReading: [Publication],
         finished: [Publication],
         next: (Publication) -> Publication?,
-        isUnread: (Publication) -> Bool
+        isUnread: (Publication) -> Bool,
+        isReadable: (Publication) -> Bool = { _ in true }
     ) -> HomePlan {
         var upNext: [Publication] = []
         let inProgress = Set(continueReading.map(\.id))
@@ -33,6 +37,7 @@ struct HomePlan: Equatable, Sendable {
             else { continue }
             upNext.append(following)
         }
-        return HomePlan(keepReading: continueReading, upNext: upNext)
+        let unreadable = Set(continueReading.filter { !isReadable($0) }.map(\.id))
+        return HomePlan(keepReading: continueReading, upNext: upNext, unreadable: unreadable)
     }
 }
