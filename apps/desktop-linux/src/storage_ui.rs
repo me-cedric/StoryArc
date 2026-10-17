@@ -118,6 +118,7 @@ pub fn storage_page(shared: &Shared) -> adw::PreferencesPage {
     let at = locations(shared);
     let group = adw::PreferencesGroup::builder()
         .title(tr("settings.storage", "Storage"))
+        .name("storage")
         .description(tr(
             "storage.where",
             "StoryArc keeps its data in your own folders. Nothing here is synchronised between machines.",
@@ -183,6 +184,7 @@ pub fn storage_page(shared: &Shared) -> adw::PreferencesPage {
     );
     let page = adw::PreferencesPage::builder()
         .title(tr("settings.storage", "Storage"))
+        .name("storage")
         .icon_name("drive-harddisk-symbolic")
         .build();
     page.add(&group);

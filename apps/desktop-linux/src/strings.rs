@@ -200,9 +200,27 @@ pub fn pick_language<S: AsRef<str>>(names: &[S]) -> &'static str {
 }
 
 static CATALOGUE: OnceLock<Catalogue> = OnceLock::new();
+/// `STORYARC_PSEUDO_LOCALE=1` at launch pads every string by half again, in brackets, for
+/// the pseudo-locale walk (`localization`, Pseudo-locale testing; task 5.13): the width a
+/// translation is allowed to reach, which German alone does not.
+static PSEUDO: OnceLock<bool> = OnceLock::new();
+
+/// The padded form a pseudo-locale shows: placeholders stay, so `fill` still works.
+pub fn expand(text: &str) -> String {
+    format!("[{text}{}]", " ·".repeat(text.chars().count().div_ceil(4)))
+}
+
+fn pseudo(text: &str) -> String {
+    if PSEUDO.get().copied().unwrap_or(false) {
+        expand(text)
+    } else {
+        text.to_owned()
+    }
+}
 
 /// Loads the catalogue for the system language list, once.
 pub fn init<S: AsRef<str>>(system_languages: &[S]) -> &'static Catalogue {
+    let _ = PSEUDO.set(std::env::var_os("STORYARC_PSEUDO_LOCALE").is_some());
     CATALOGUE.get_or_init(|| {
         let language = pick_language(system_languages);
         let text = CATALOGUES
@@ -223,11 +241,12 @@ pub fn language() -> &'static str {
 /// The string for `key`, or `english` where the catalogue has no entry (and before
 /// `init` has run, which only tests do).
 pub fn tr(key: &str, english: &str) -> String {
-    CATALOGUE
-        .get()
-        .and_then(|catalogue| catalogue.get(key))
-        .unwrap_or(english)
-        .to_owned()
+    pseudo(
+        CATALOGUE
+            .get()
+            .and_then(|catalogue| catalogue.get(key))
+            .unwrap_or(english),
+    )
 }
 
 /// The plural form of `key` for `count`, with the count filled in: the catalogue's rule
@@ -237,7 +256,7 @@ pub fn tr_plural(key: &str, one: &str, other: &str, count: u64) -> String {
         .get()
         .and_then(|catalogue| catalogue.get_plural(key, count))
         .unwrap_or(if count == 1 { one } else { other });
-    fill(template, &[&group_digits(count, language())])
+    fill(&pseudo(template), &[&group_digits(count, language())])
 }
 
 /// A count written the way its language groups digits: a comma in English, a point in
@@ -315,6 +334,12 @@ pub fn fill(template: &str, args: &[&dyn std::fmt::Display]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_pseudo_locale_pads_by_half_again_and_keeps_the_placeholder() {
+        assert_eq!(expand("Library"), "[Library · ·]");
+        assert_eq!(fill(&expand("%d of %d"), &[&1, &4]), "[1 of 4 · ·]");
+    }
 
     const SAMPLE: &str = r#"
 # A comment

@@ -79,6 +79,7 @@ pub fn libraries_page(shared: &Shared, dialog: &adw::PreferencesDialog) -> adw::
     crate::storage_ui::remote_rows(shared, dialog, &group);
     let page = adw::PreferencesPage::builder()
         .title(tr("settings.sources", "Your libraries"))
+        .name("sources")
         .icon_name("folder-symbolic")
         .build();
     page.add(&group);
@@ -200,6 +201,7 @@ pub fn privacy_page(shared: &Shared) -> adw::PreferencesPage {
     posture.add(&crate::storage_ui::diagnostics_row(shared));
     let page = adw::PreferencesPage::builder()
         .title(tr("settings.privacy", "Privacy"))
+        .name("privacy")
         .icon_name("security-high-symbolic")
         .build();
     page.add(&posture);
