@@ -1,0 +1,111 @@
+import AppKit
+import Formats
+import Foundation
+import Persistence
+import Playback
+import StoryArcCore
+
+/// The Mac's half of a playback session: the media keys and the Now Playing panel. There is
+/// no `AVAudioSession` on a Mac, so nothing is claimed or given back; the interruption and
+/// route rules of `audio-playback` are the system's own here.
+///
+/// A Mac copy of `Playback`'s `SystemPlaybackPlatform` (parent task 1.30). The sleep timer's
+/// clock is not carried: the Mac player offers no sleep timer in wave 4.
+@MainActor
+final class MacPlaybackPlatform: PlaybackPlatform {
+    let nowPlaying: MacNowPlaying
+
+    init(for centre: PlayerCentre, commands: any RemoteCommanding, board: any NowPlayingBoard) {
+        nowPlaying = MacNowPlaying(publishing: centre, commands: commands, board: board)
+    }
+
+    func sessionBegan() {}
+
+    func published() { nowPlaying.publish() }
+
+    func sessionEnded() { nowPlaying.clear() }
+
+    func sleepTimerChanged(isRunning: Bool) {}
+}
+
+/// Starts a narrated book on the one player and keeps its position, speed and panel wired.
+///
+/// A Mac copy of the iOS shell's `listen(to:at:)`, `wirePlayerRecording` and
+/// `wirePlayerSpeed`. The session is `PlayerCentre.shared`, which outlives every window:
+/// *The windows are hidden*, playback continues and the keys still control it. Task 4.7.
+@MainActor
+enum MacPlayer {
+    /// The platform, made once: wiring it per session gives five handlers on every key.
+    static func adoptPlatform(
+        centre: PlayerCentre = .shared, commands: (any RemoteCommanding)? = nil, board: (any NowPlayingBoard)? = nil
+    ) {
+        guard centre.platform == nil else { return }
+        centre.platform = MacPlaybackPlatform(
+            for: centre, commands: commands ?? SystemRemoteCommands(), board: board ?? SystemNowPlayingBoard()
+        )
+    }
+
+    /// Sends the player's positions to the store and recalls the speed, once.
+    static func wire(centre: PlayerCentre = .shared, progress: ProgressStore?, library: MacLibrary?) {
+        if centre.onRecord == nil {
+            centre.onRecord = { reached in
+                guard reached.book.publication.format.isAudio, let progress else { return }
+                let record = ReadingProgress(
+                    identity: reached.book.publication.identity, position: reached.position,
+                    isFinished: reached.isFinished, updatedAt: Date()
+                )
+                Task { try? await progress.save(record) }
+            }
+        }
+        if centre.onRecallSpeed == nil {
+            let preferences = PlaybackPreferences()
+            centre.onRecallSpeed = { PlaybackSpeed(preferences.speed(of: $0.id, series: $0.series)) }
+            centre.onRememberSpeed = { preferences.remember($1.rate, of: $0.id, series: $0.series) }
+        }
+        if centre.onArtwork == nil {
+            centre.onArtwork = { book in
+                guard let cover = library?.model.cachedCover(for: book.publication) else { return nil }
+                return MacCoverPNG.data(cover)
+            }
+        }
+    }
+
+    /// Plays a publication, or moves the session already on it. `audio-playback`: opening the
+    /// book that is already playing must not restart it, and a chosen chapter starts there.
+    static func listen(
+        to publication: Publication, at url: URL, startingAt part: Int? = nil,
+        centre: PlayerCentre = .shared, progress: ProgressStore?
+    ) async {
+        guard centre.handover(opening: publication.id) != .adopt else {
+            if let part { centre.play(part: part) }
+            return
+        }
+        let book = publication.format == .audioFolder
+            ? await AudiobookReader.read(folderAt: url)
+            : await AudiobookReader.read(fileAt: url)
+        guard !book.parts.isEmpty else { return }
+        adoptPlatform(centre: centre)
+        centre.begin(SpokenBook(publication: publication, url: url), source: NarratedSource(book))
+        if part == nil, let place = await resumePlace(of: publication, in: progress) {
+            centre.play(part: place.part, offset: place.offset)
+        }
+        if let part { centre.play(part: part) }
+    }
+
+    /// Where a listener stopped, or `nil` for a book never listened to or finished.
+    static func resumePlace(
+        of publication: Publication, in progress: ProgressStore?
+    ) async -> (part: Int, offset: TimeInterval)? {
+        guard let progress, let stored = try? await progress.progress(for: publication.identity),
+              !stored.isFinished, case let .listening(part, _, offset, _) = stored.position
+        else { return nil }
+        return (part, offset)
+    }
+}
+
+/// A cover as PNG bytes for the Now Playing artwork.
+enum MacCoverPNG {
+    static func data(_ image: CGImage) -> Data? {
+        NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+    }
+}

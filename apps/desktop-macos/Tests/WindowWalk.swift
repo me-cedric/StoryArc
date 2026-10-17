@@ -114,6 +114,19 @@ enum Walk {
         }
     }
 
+    /// A key press through the application, as the event loop delivers one: a local event
+    /// monitor sees it, where `press` goes to the window's first responder alone.
+    static func type(_ characters: String, keyCode: UInt16, in window: NSWindow) {
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            guard let event = NSEvent.keyEvent(
+                with: type, location: .zero, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                windowNumber: window.windowNumber, context: nil, characters: characters,
+                charactersIgnoringModifiers: characters, isARepeat: false, keyCode: keyCode
+            ) else { continue }
+            NSApplication.shared.sendEvent(event)
+        }
+    }
+
     /// Closes these windows and waits until they are gone.
     static func close(_ windows: [NSWindow]) async {
         for window in windows { window.performClose(nil) }

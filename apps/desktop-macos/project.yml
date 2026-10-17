@@ -44,6 +44,11 @@ targets:
       - path: App
         excludes:
           - "Info.plist"
+      # The one EPUB renderer of design.md Decision 6, built and pinned in
+      # `apps/desktop-web/epub` (`pnpm epub:pin` checks its digest). The scheme handler serves
+      # it to the web view; the app never loads a script from anywhere else.
+      - path: ../desktop-web/epub/dist/storyarc-epub.js
+        buildPhase: resources
     # Document types and the comic UTIs, carried over from `apps/ios/project.yml` with the
     # `UI` keys dropped (design.md Decision 2). `xcodegen generate` writes `App/Info.plist`
     # from this block on every `pnpm build:macos`; the file is gitignored and never edited.
@@ -118,6 +123,9 @@ targets:
         product: Kavita
       - package: StoryArcKit
         product: Smb
+      # Wave 4: the one player behind a narrated book and a voice, and its Now Playing.
+      - package: StoryArcKit
+        product: Playback
       - package: licences
         product: StoryArcLicences
     settings:
@@ -158,6 +166,16 @@ targets:
       - path: ../../packages/test-fixtures/comics
         type: folder
         buildPhase: resources
+      # Wave 4: the ebooks the EPUB walks open, and the eight-vector egress page the Mac's
+      # web view is measured with (`Tests/EpubEgressTests.swift`).
+      - path: ../../packages/test-fixtures/ebooks
+        type: folder
+        buildPhase: resources
+      - path: ../../packages/test-fixtures/audiobooks
+        type: folder
+        buildPhase: resources
+      - path: ../desktop-web/epub/test/egress.html
+        buildPhase: resources
       - path: App/StoryArcMac.entitlements
         buildPhase: resources
     dependencies:
@@ -174,6 +192,8 @@ targets:
         product: Catalogue
       - package: StoryArcKit
         product: Smb
+      - package: StoryArcKit
+        product: Playback
       - package: licences
         product: StoryArcLicences
     settings:
