@@ -31,7 +31,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq build-essential pkg-config curl ca-certificates libgtk-4-dev libadwaita-1-dev libwebkitgtk-6.0-dev \
   libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav \
-  speech-dispatcher speech-dispatcher-espeak-ng speech-dispatcher-audio-plugins libao4 playerctl at-spi2-core python3-pyatspi dbus-x11 \
+  speech-dispatcher speech-dispatcher-espeak-ng speech-dispatcher-audio-plugins libao4 playerctl at-spi2-core python3-pyatspi python3-gi gsettings-desktop-schemas dbus-x11 \
   cage grim wtype dbus gdb fonts-dejavu-core adwaita-icon-theme >/dev/null
 # The cargo volume keeps the proxies and the registry; the toolchain lives outside it, so rustup runs each time.
 curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal >/dev/null
