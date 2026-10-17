@@ -25,6 +25,8 @@ struct HomeView: View {
                 if !plan.upNext.isEmpty {
                     shelf("desktop.home.upNext", plan.upNext)
                 }
+                // `home-screen`'s shelves: collections, then reading lists, pinned first.
+                HomeShelvesSection(library: library) { library.navigationRequest = .shelf($0) }
                 if !plan.recentlyAdded.isEmpty {
                     coverShelf("desktop.home.recentlyAdded", plan.recentlyAdded, showAll: plan.recentlyAddedHasMore ? {
                         library.navigationRequest = .filter(.recentlyAdded)

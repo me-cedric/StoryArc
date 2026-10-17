@@ -28,6 +28,8 @@ enum LibraryNavigation: Equatable {
     case filter(LibraryShelfFilter)
     /// The library narrowed to what has been finished, where Home's *Finished* leads.
     case finished
+    /// A collection or a reading list, where a shelf on Home leads.
+    case shelf(ShelfPin)
 }
 
 /// What the key reader window can do.

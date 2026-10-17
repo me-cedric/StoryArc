@@ -31,12 +31,22 @@ enum MacCatalogue {
         // The shelf scanned afresh: a walk that added a server or finished a download leaves
         // rows and titles in the model that removing the source or the download does not take
         // back until a relaunch, and the catalogue draws the fixture library alone.
-        if let live = MacLibrary.live { live.model.reset() }
+        // A download a walk finished joins the shelf as a publication of its own, so the
+        // downloads are cleared first, as the Downloads tab clears them.
+        if let live = MacLibrary.live {
+            await live.storage.clear(.downloads)
+            live.model.reset()
+        }
         let library = try await Walk.fixtureLibrary()
         let reading = try #require(Walk.publication(named: "natural-sort", in: library))
         let finished = try #require(Walk.publication(named: "image-pages", in: library))
         let store = try #require(library.progress)
         try await store.clear()
+        // No shelf left by an earlier run that stopped part way: Home draws the catalogue's two.
+        let shelves = library.model.shelves
+        let leftovers = shelves.collections.map { ShelfPin.collection($0.id) }
+            + shelves.lists.map { ShelfPin.list($0.id) }
+        await removeShelves(leftovers, of: library)
         try await store.save(ReadingProgress(
             identity: reading.identity, position: .page(index: 4, of: 12), updatedAt: finishedOn
         ))
@@ -62,6 +72,14 @@ enum MacCatalogue {
         let window = try #require(ShellWalk.waitForLibraryWindow())
         hold(window, at: librarySize)
         defer { release(window) }
+        // A collection and a reading list, so Home draws its shelves and each page is drawn. The
+        // fixtures are named, not taken by id: an id follows the container's path, which
+        // follows the user's name, and the references must draw the same on every Mac.
+        let shelved = try ["image-pages", "natural-sort", "zip64"].map {
+            try #require(Walk.publication(named: $0, in: library)).id
+        }
+        let collection = try #require(library.createShelf(.collection, named: "Weekend", with: shelved))
+        let list = try #require(library.createShelf(.list, named: "Crossover", with: shelved.reversed()))
         let steps: [(String, () async -> Void)] = [
             ("home", { await request(.go(.home), of: library) }),
             ("library-grid", {
@@ -78,9 +96,28 @@ enum MacCatalogue {
                 seedDownload(in: library)
                 await request(.go(.downloads), of: library)
             }),
+            ("shelf-collection", { await request(.shelf(collection), of: library) }),
+            ("shelf-list", { await request(.shelf(list), of: library) }),
             ("detail", { await request(.details(publicationID: reading.id), of: library) }),
         ]
         defer { library.downloads.queue.remove(seededDownload) }
+        do {
+            try await visitLibrary(steps, of: library, in: window, visit)
+        } catch {
+            await removeShelves([collection, list], of: library)
+            throw error
+        }
+        // Removed before the next pass draws Home, so each pass draws the same two shelves.
+        await removeShelves([collection, list], of: library)
+    }
+
+    private static func removeShelves(_ pins: [ShelfPin], of library: MacLibrary) async {
+        for pin in pins { await library.deleteShelf(pin) }
+    }
+
+    private static func visitLibrary(
+        _ steps: [(String, () async -> Void)], of library: MacLibrary, in window: NSWindow, _ visit: Visit
+    ) async throws {
         for (name, step) in steps {
             if name == "detail" {
                 await request(.search(""), of: library)

@@ -291,12 +291,13 @@ final class MacLibrary {
     /// Queues a catalogue row the reader asked to download, by hand.
     ///
     /// - Returns: false when the row's entry could not be found in its catalogue.
+    /// `byHand` is false for a bulk download, which the metered rule may hold back.
     @discardableResult
-    func download(_ publication: Publication) async -> Bool {
+    func download(_ publication: Publication, byHand: Bool = true) async -> Bool {
         guard let found = await RemoteEntry.resolve(
             publication, in: model.registry, credentials: servers.credentials
         ) else { return false }
-        downloads.enqueue(found.entry, using: found.acquisition, sourceID: found.sourceID)
+        downloads.enqueue(found.entry, using: found.acquisition, sourceID: found.sourceID, byHand: byHand)
         return true
     }
 

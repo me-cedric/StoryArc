@@ -71,11 +71,12 @@ final class MacDownloads {
         queue.resume(id)
     }
 
-    /// Queues a catalogue entry the reader asked for, which counts as by hand.
-    func enqueue(_ entry: OpdsEntry, using acquisition: OpdsAcquisition, sourceID: UUID?) {
+    /// Queues a catalogue entry. One the reader asked for on its own row counts as by hand; a
+    /// bulk download does not, and the metered rule may hold it back.
+    func enqueue(_ entry: OpdsEntry, using acquisition: OpdsAcquisition, sourceID: UUID?, byHand: Bool = true) {
         let id = queue.downloadID(for: entry.id, sourceID: sourceID)
-        byHand.insert(id)
-        queue.enqueue(entry, using: acquisition, sourceID: sourceID, overridingMeteredConnection: true)
+        if byHand { self.byHand.insert(id) }
+        queue.enqueue(entry, using: acquisition, sourceID: sourceID, overridingMeteredConnection: byHand)
         reconsider()
     }
 
