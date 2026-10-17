@@ -69,6 +69,7 @@ public sealed partial class MainWindow : Window
         Preferences.Initialize(_host);
         SourcesView.Initialize(_host);
         ShelvesView.Initialize(_host);
+        InitializePlayerBar();
 
         // The three destinations, named as the iOS tab bar names them; search lives in the title bar.
         HomeItem.Content = Strings.Get("tab_home", "Home");

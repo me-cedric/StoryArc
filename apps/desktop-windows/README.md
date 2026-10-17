@@ -1,6 +1,6 @@
 # StoryArc for Windows
 
-**Status: wave 2 written, not yet compiled.** Three parts: a WinUI 3 app (a
+**Status: waves 2 to 4 written; waves 2 and 3 compiled on CI, nothing has run on a Windows desktop.** Three parts: a WinUI 3 app (a
 library window, reader windows, preferences), an interop library over the Rust
 core with the pure rules the app follows, and interop tests that run those rules
 and the seam against the shared corpus. The authors of waves 0 to 2 had no .NET
@@ -213,6 +213,45 @@ the gaps found in the core's seam. Test command: `pnpm test:desktop:interop`.
 New state in `LocalFolder`: `network-sources.json`, `certificate-pins.json`, `download-queue.json`,
 `shelves.json`, `pinned-shelves.json`, `shelf-edits.json`, and the `downloads` folder. None holds a
 credential. The manifest gains `internetClient` and `privateNetworkClientServer`.
+
+## Wave 4: EPUB, PDF, the player and read aloud
+
+Written, like the earlier waves, without a .NET SDK. The lane notes under tasks 4.16 to 4.21 of the
+change say which scenario is tested, which is wired and unwalked, and which is owed to a Windows desktop.
+Test command: `pnpm test:desktop:interop`; the PDF cases need `pnpm pdfium:fetch` first and skip by name without it.
+
+### The seam and the rules, in `StoryArc.Interop`
+
+| Folder | Holds |
+| --- | --- |
+| `Epub/` | `EpubPublication` (the core's manifest, positions and resources), `EpubHost` (the scheme origin, the navigation filter, every answer with its Content-Security-Policy, ranges), `RendererMessage`, `HostCommands`, `EpubProgress` |
+| `Pdf/` | `PdfEngine`, `PdfDocument` (pages, text, search, outline), `PdfPaneModel` (the contents pane: outline rows, search rows, absent without a text layer) |
+| `Playback/` | `PlaybackSession`, `PlaybackSpeed`, `SleepTimer` and `SleepCountdown`, `Skips`, `TransportControls` over `ISystemTransport`, `PlayerModel`, `ReadAloudModel`, `SentenceSplitter`, `XhtmlText`, `PlaybackKeepAwake` |
+
+The egress proof runs here as `EpubHostTests.The_eight_vectors_arrive_nowhere`, over a fake of WebView2's
+pipeline (`Support/FakeWebView2.cs`: the policy, the navigation handlers, the resource filter), and
+`EpubSeamTests` serves the fixture book and the pinned bundle by digest. The page itself,
+`apps/desktop-web/epub/test/egress.html` in the real web view, is the walk a Windows desktop owes.
+
+### The app, in `StoryArc.Windows`
+
+| File | Does |
+| --- | --- |
+| `EpubReaderWindow.xaml` | A `WebView2` on an environment that registers `storyarc-epub` (`CoreWebView2CustomSchemeRegistration`), a `*` filter into `EpubHost.Answer`, `NavigationStarting` and `FrameNavigationStarting` cancelled off the origin, no new windows; the renderer's `locator` feeds the progress cadence; Read Aloud |
+| `Shell/OpenedEpub.cs` | The core handle, the host, the reading order and the sentences of a chapter for the voice |
+| `ReaderWindow.xaml` | Reads a PDF through `OpenedPublication.OpenPdfAsync` with the same page view; the contents pane behind Show Contents |
+| `Shell/PlaybackService.cs` | The one `MediaPlayer`, `SystemMediaTransportControls` by hand, `AudioStateMonitor` and the render-device change, `SpeechSynthesizer` one sentence ahead, the system kept awake while playing |
+| `PlayerWindow.xaml` | Cover, chapter, scrub, back 15 s, play or pause, forward 30 s, speed, sleep timer, chapters |
+| `MainWindow.Player.cs` | The compact bar at the foot of the library, present only while a session runs |
+
+The project copies the pinned renderer (`apps/desktop-web/epub/dist/storyarc-epub.js`) beside the app and, when
+`.build/pdfium/win-<arch>/bin/pdfium.dll` is there (`pnpm pdfium:fetch --platform win-x64`), the PDFium library too.
+New state in `LocalFolder`: the `webview2` folder of the EPUB windows' user data.
+
+Owed by a host, recorded in `docs/delivery/desktop-spike-audio-windows.md` and `desktop-a11y-windows.md`:
+the egress page in the real web view, a book read end to end, a PDF walked, the eleven audio measurements,
+and the Narrator walk. Seam gaps for the core owner: no identity or metadata export for an EPUB or a PDF
+(the records are filed under the path), and no time-kind progress record for an audiobook.
 
 ## Open questions
 

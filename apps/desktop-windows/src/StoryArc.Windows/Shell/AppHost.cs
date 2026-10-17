@@ -22,7 +22,7 @@ internal sealed class AppHost
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(500);
 
-    private readonly WindowRegistry<ReaderWindow> _readers = new();
+    private readonly WindowRegistry<IPublicationWindow> _readers = new();
     private readonly List<Window> _windows = [];
     private readonly HashSet<string> _opening = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ProgressTarget> _targets = new(StringComparer.OrdinalIgnoreCase);
@@ -61,6 +61,7 @@ internal sealed class AppHost
         _progress = new ProgressWriter((IProgressStore?)_savedPages ?? new UnavailableProgressStore());
         Library = _coreProgress is null ? null : new LibraryService(dispatcher, _coreProgress);
         Network = CreateNetwork(dispatcher);
+        Playback = CreatePlayback(dispatcher);
 
         _readers.LastWindowClosed += Exit;
         Settings.Changed += _ => Repaint();
@@ -85,6 +86,9 @@ internal sealed class AppHost
 
     /// <summary>The network sources, the vault, the downloads, the sync and the shelves (wave 3); <c>null</c> when the core's store or runtime could not start.</summary>
     internal NetworkServices? Network { get; }
+
+    /// <summary>The one player (tasks 4.19 and 4.20), or <c>null</c> when the media stack could not be made.</summary>
+    internal PlaybackService? Playback { get; }
 
     /// <summary>
     /// Opens what the last run left open, then what this launch asked for. A launch for files opens
@@ -224,17 +228,14 @@ internal sealed class AppHost
 
         try
         {
-            var opened = await OpenedPublication.OpenAsync(path);
-            var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
-            _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
-            var window = new ReaderWindow(this, opened, restored, start);
-            _windows.Add(window);
+            var (window, title) = await OpenWindowAsync(path, restored);
+            _windows.Add((Window)window);
             _readers.ReaderOpened(path, window);
-            window.Closed += (sender, args) => ReaderClosed(window);
+            ((Window)window).Closed += (sender, args) => ReaderClosed(window);
             Repaint();
             window.Activate();
             _session.ReaderChanged(window.State());
-            Library?.Opened(path, opened.Record.DisplayTitle);
+            Library?.Opened(path, title);
         }
         catch (StoryArcException error)
         {
@@ -251,6 +252,39 @@ internal sealed class AppHost
         {
             _opening.Remove(path);
         }
+    }
+
+    /// <summary>The window of a publication by its format: the comic reader (wave 2), the EPUB reader (4.16) or the PDF reader (4.17).</summary>
+    private async Task<(IPublicationWindow Window, string Title)> OpenWindowAsync(string path, ReaderWindowState? restored)
+    {
+        var extension = Path.GetExtension(path);
+        if (OpenRequest.Audio.Contains(extension))
+        {
+            if (Playback is not { } playback)
+            {
+                throw new StoryArcException("playback", StoryArcStatus.Unsupported, Strings.Get("player_finished_stopped", "Playback stopped"));
+            }
+
+            var title = Path.GetFileNameWithoutExtension(path);
+            var seconds = restored is { Page: > 0 } ? restored.Page - 1 : 0;
+            playback.PlayNarrated(path, title, author: null, coverPath: null, TimeSpan.FromSeconds(seconds));
+            return (new PlayerWindow(this, playback, path, restored), title);
+        }
+
+        if (string.Equals(extension, ".epub", StringComparison.OrdinalIgnoreCase))
+        {
+            var epub = await OpenedEpub.OpenAsync(path);
+            var startPosition = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(epub.Identity) ?? 0;
+            _targets[path] = new ProgressTarget(epub.Identity, epub.PositionCount);
+            return (new EpubReaderWindow(this, epub, restored, startPosition), epub.Title);
+        }
+
+        var opened = string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase)
+            ? await OpenedPublication.OpenPdfAsync(path)
+            : await OpenedPublication.OpenAsync(path);
+        var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
+        _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
+        return (new ReaderWindow(this, opened, restored, start), opened.Record.DisplayTitle);
     }
 
     public void LibraryMoved(LibraryWindowState state) => _session.LibraryChanged(state);
@@ -297,8 +331,17 @@ internal sealed class AppHost
             case "refreshSources":
                 Library?.RefreshAll();
                 break;
+            case "playPause" when window is not PlayerWindow:
+                Playback?.TogglePlayPause();
+                break;
+            case "skipBack" when window is not PlayerWindow:
+                Playback?.SkipBack();
+                break;
+            case "skipForward" when window is not PlayerWindow:
+                Playback?.SkipForward();
+                break;
             default:
-                if (window is ReaderWindow pages)
+                if (window is IPublicationWindow pages)
                 {
                     pages.Run(commandId);
                 }
@@ -421,11 +464,11 @@ internal sealed class AppHost
         _readers.LibraryClosed();
     }
 
-    private void ReaderClosed(ReaderWindow window)
+    private void ReaderClosed(IPublicationWindow window)
     {
         _ = _progress.Flush(window.PublicationId);
         _targets.Remove(window.PublicationId);
-        _windows.Remove(window);
+        _windows.Remove((Window)window);
         _session.ReaderClosed(window.PublicationId);
         _readers.ReaderClosed(window.PublicationId);
     }
@@ -440,10 +483,52 @@ internal sealed class AppHost
             _ = Task.Run(network.QuitAsync).Wait(TimeSpan.FromSeconds(6));
         }
 
+        Playback?.Dispose();
         Network?.Dispose();
         Library?.Dispose();
         _coreProgress?.Dispose();
         Application.Current.Exit();
+    }
+
+    /// <summary>Brings the player window to the front, or opens it for what plays. Nothing happens while nothing plays.</summary>
+    public void OpenPlayer()
+    {
+        if (Playback is not { } playback || playback.Model.Item is not { } item)
+        {
+            return;
+        }
+
+        if (_readers.ReaderFor(item.PublicationId) is PlayerWindow existing)
+        {
+            existing.Activate();
+            return;
+        }
+
+        if (_readers.ReaderFor(item.PublicationId) is { } reader)
+        {
+            // The voice reads a publication whose own window is open: that window is the way back to the book.
+            reader.Activate();
+            return;
+        }
+
+        var window = new PlayerWindow(this, playback, item.PublicationId, restored: null);
+        _windows.Add(window);
+        _readers.ReaderOpened(item.PublicationId, window);
+        window.Closed += (sender, args) => ReaderClosed(window);
+        window.Activate();
+    }
+
+    private PlaybackService? CreatePlayback(DispatcherQueue dispatcher)
+    {
+        try
+        {
+            return new PlaybackService(dispatcher, (publicationId, position) => Network?.PositionChanged());
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.Runtime.InteropServices.COMException or TypeLoadException)
+        {
+            // The media stack is absent (a Windows build with media features removed): the library and the readers still work.
+            return null;
+        }
     }
 
     private NetworkServices? CreateNetwork(DispatcherQueue dispatcher)

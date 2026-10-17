@@ -29,6 +29,8 @@
     <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\AppIcon.ico" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
+    <!-- The pinned EPUB renderer (desktop-clients task 4.16), served to the WebView2 from the app's own scheme. -->
+    <Content Include="$(RepoRoot)apps/desktop-web/epub/dist/storyarc-epub.js" Link="Assets\storyarc-epub.js" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
@@ -65,5 +67,18 @@
     <None Include="$(RepoRoot)target\$(CargoTarget)\$(CargoProfile)\storyarc_ffi.dll"
           Link="storyarc_ffi.dll"
           CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The pinned PDFium (desktop-clients task 4.17, design.md Decision 7), fetched by `pnpm pdfium:fetch --platform win-x64`
+       or `win-arm64` into .build/pdfium; the core binds to it beside the executable. A build without it still compiles,
+       and a PDF then opens as Unsupported, named. -->
+  <PropertyGroup>
+    <PdfiumPlatform Condition="'$(Platform)' == 'ARM64'">win-arm64</PdfiumPlatform>
+    <PdfiumPlatform Condition="'$(Platform)' != 'ARM64'">win-x64</PdfiumPlatform>
+    <PdfiumDll>$(RepoRoot).build\pdfium\$(PdfiumPlatform)\bin\pdfium.dll</PdfiumDll>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(PdfiumDll)')">
+    <None Include="$(PdfiumDll)" Link="pdfium.dll" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

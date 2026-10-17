@@ -72,6 +72,9 @@ public static class OpenRequest
         ".cbz", ".cbr", ".cbt", ".epub", ".pdf", ".m4b", ".m4a", ".mp3", ".flac", ".ogg",
     };
 
+    /// <summary>The audiobook extensions, which open in the player rather than a reader window (desktop-clients task 4.20).</summary>
+    public static readonly IReadOnlySet<string> Audio = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".m4b", ".m4a", ".mp3", ".flac", ".ogg" };
+
     /// <summary>The extensions the package claims in Explorer: the comics the core opens page by page in wave 2.</summary>
     public static readonly IReadOnlyList<string> Associated = [".cbz", ".cbr", ".cbt"];
 

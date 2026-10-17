@@ -22,6 +22,7 @@ public static class CommandRouting
     private static readonly HashSet<string> ReaderOnly = new(StringComparer.Ordinal)
     {
         "fullScreen", "nextPage", "previousPage", "firstPage", "lastPage", "singlePage", "twoPages", "zoomIn", "zoomOut", "fitPage",
+        "showContents",
     };
 
     public static bool IsHandled(string commandId, WindowKind window) =>

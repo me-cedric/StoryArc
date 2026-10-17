@@ -164,4 +164,12 @@ public sealed class OpeningTests
         Assert.Empty(RecentItems.Restore("{broken").Items);
         Assert.Empty(RecentItems.Restore(null).Items);
     }
+
+    [Fact]
+    public void The_audio_extensions_open_in_the_player_and_are_all_readable()
+    {
+        Assert.Equal(new[] { ".flac", ".m4a", ".m4b", ".mp3", ".ogg" }, OpenRequest.Audio.Order(StringComparer.Ordinal));
+        Assert.All(OpenRequest.Audio, extension => Assert.Contains(extension, OpenRequest.Readable));
+        Assert.DoesNotContain(".epub", OpenRequest.Audio);
+    }
 }
