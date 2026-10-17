@@ -610,13 +610,29 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 - [ ] 4.16 **EPUB host test first** for WebView2: custom scheme on a custom environment, CSP header, navigation filter, zero
   arrivals. Then the host. Verify: the egress test passes and a walk reads a book.
+  **Built 2026-10-17, owed by a host:** `StoryArc.Interop/Epub/` wraps the five `storyarc_epub_*` exports and `EpubHost`
+  (one origin a book, the CSP on every answer, the navigation filter, 403 off the origin, 206 ranges); `EpubHostTests`
+  runs the eight vectors through a fake WebView2 pipeline and `EpubSeamTests` serves the fixture book and the pinned
+  bundle by digest through the core; `EpubReaderWindow` registers the scheme on a custom environment. The egress page in
+  the real web view and a book read end to end are the host walk. CI green on run 39066938293.
 - [ ] 4.17 **PDF window** over the interop PDF calls. Verify: as 4.11.
+  **Built 2026-10-17, owed by a host:** `Pdf/PdfDocument` over the ten `storyarc_pdf_*` exports; `PdfSeamTests` mirrors
+  the core's six cases over the corpus PDFs and skips by name without PDFium (the interop CI jobs do not fetch it yet);
+  the reader window renders PDF through its page view with a contents pane (`PdfPaneModelTests`). A PDF walk is owed.
 - [ ] 4.18 **Audio and speech spike** for `MediaPlayer` and `SpeechSynthesizer` (Assumed). Verify:
   `docs/delivery/desktop-spike-audio-windows.md`.
+  **Built 2026-10-17:** `docs/delivery/desktop-spike-audio-windows.md`, the design and the calls, with eleven
+  measurements a Windows host owes.
 - [ ] 4.19 **Media keys and system media controls** through the transport controls. Verify: the overlay shows title, cover and
   position, and the keys work with another player running.
+  **Built 2026-10-17, owed by a host:** `TransportControls` over `ISystemTransport`, six tests; the keys with another
+  player running are the host check.
 - [ ] 4.20 **Player and read-aloud UI** and the sleep rule for playback. Verify: a walk.
+  **Built 2026-10-17, owed by a host:** `PlayerModel`, `ReadAloudModel`, the sleep countdown and `PlaybackKeepAwake`
+  (26 tests); `PlaybackService`, `PlayerWindow`, the compact bar and read aloud from the EPUB window. The walk is owed.
 - [ ] 4.21 **Screen reader walk** with Narrator. Verify: `docs/delivery/desktop-a11y-windows.md`.
+  **Built 2026-10-17:** `docs/delivery/desktop-a11y-windows.md`, the automation properties the XAML gives and five gaps
+  found by reading; Narrator on a Windows desktop is owed.
 
 **Lane X**
 

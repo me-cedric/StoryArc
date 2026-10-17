@@ -225,6 +225,18 @@ store is open. Search sits in the title bar as an `AutoSuggestBox` whose results
 `windows.md` draws. Seam gaps the lane recorded for the core owner: no queue marking or attempt recording, no shelf edit
 projection or stable shelf ids, no Kavita shelf calls.
 
+**As built, 2026-10-17 (wave 4, lane W).** The EPUB host serves the pinned bundle and the core's manifest and
+positions from the app's own scheme on a custom WebView2 environment (`StoryArc.Interop/Epub/`, `EpubReaderWindow`):
+one origin a book, the Content-Security-Policy on every answer (`connect-src 'self'`, because the renderer fetches
+chapters from the manifest's origin), a navigation filter, 403 off the origin and 206 ranges; a fake WebView2 pipeline
+runs ADR-0015's eight vectors in the interop tests, and the real web view is the host walk. PDF reads through the ten
+`storyarc_pdf_*` exports with a contents pane; the interop CI jobs do not fetch PDFium yet, so those cases skip there by
+name. Playback is `MediaPlayer` behind `PlaybackService` with the system transport controls, a sleep countdown and a
+keep-awake, read aloud over `SpeechSynthesizer` from the EPUB window; the audio spike and the Narrator walk are
+`docs/delivery/desktop-spike-audio-windows.md` and `desktop-a11y-windows.md`. Five CI rounds compiled it (run
+39066938293): a double dash in a project comment, a char overload, a nullable header, a local's name, the WinRT
+projection typing `TreatAsSecure` as an integer, and `AudioRenderCategory` for the render monitor.
+
 **Distribution.** Free Microsoft Store registration for individuals and companies. The Store signs the MSIX.
 It is the canonical channel (High confidence). Dev builds use `winapp run` (Developer Mode) or an unpackaged
 `dotnet publish`. A sideloaded MSIX needs a trusted certificate. Azure Artifact Signing is closed to individuals
