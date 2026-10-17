@@ -5,7 +5,8 @@
 //! profile; links the repository; states that the app is free with an optional link to
 //! support it; names the components the app is built on; and offers to report a problem
 //! on the issue tracker with the version, the platform and the device class filled in and
-//! nothing personal.
+//! nothing personal. Its legal section carries the generated third-party notices (task 6.3),
+//! shipped inside the binary so a Flatpak and a source build show the same file.
 //!
 //! What changed is shown once, after an update, and never on a first launch. A version
 //! with nothing a reader would notice shows nothing and is still recorded as seen. The
@@ -18,6 +19,9 @@ use gtk::glib;
 use crate::strings::tr;
 
 pub const REPOSITORY: &str = "https://github.com/me-cedric/StoryArc";
+/// `THIRD_PARTY_NOTICES.md` as `scripts/notices.mjs` generates it; `pnpm notices:check` keeps
+/// it in step with the manifests, so nothing is listed here by hand.
+pub const NOTICES: &str = include_str!("../../../THIRD_PARTY_NOTICES.md");
 const PROFILE: &str = "https://github.com/me-cedric";
 const SUPPORT: &str = "https://ko-fi.com/mecedric";
 
@@ -126,6 +130,12 @@ pub fn dialog(version: &str) -> adw::AboutDialog {
         Some("Unicode License v3"),
     );
     dialog.add_legal_section("SQLite", None, gtk::License::Custom, Some("Public domain"));
+    dialog.add_legal_section(
+        &tr("about.acknowledgements", "Acknowledgements"),
+        None,
+        gtk::License::Custom,
+        Some(NOTICES),
+    );
     if let Some(notes) = NOTES.iter().find(|(_, notes)| !notes.is_empty()) {
         dialog.set_release_notes_version(notes.0);
         dialog.set_release_notes(&release_notes(notes.1));
@@ -171,6 +181,27 @@ mod tests {
         assert!(!decision.show);
         assert_eq!(decision.record, "0.2.0");
         assert_eq!(notes_for("0.1.0"), None);
+    }
+
+    /// The components the notices list: the name between the brackets of each table row.
+    fn components(notices: &str) -> Vec<String> {
+        notices
+            .lines()
+            .filter_map(|line| line.trim().strip_prefix("| [")?.split_once("]("))
+            .map(|(name, _)| name.to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn the_generated_notices_list_pdfium_and_libarchive() {
+        let listed = components(NOTICES);
+        assert!(listed.iter().any(|name| name.starts_with("PDFium")));
+        assert!(listed.iter().any(|name| name.starts_with("libarchive")));
+        assert!(listed.iter().any(|name| name.starts_with("Rust ")));
+        assert_eq!(
+            components("| [Foo 1.0](https://x) | `MIT` |\n  | [Bar](https://y) | `ISC` |\n| --- |"),
+            ["Foo 1.0", "Bar"]
+        );
     }
 
     #[test]
