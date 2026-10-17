@@ -13,6 +13,8 @@ using StoryArc.Windows.Library;
 using StoryArc.Windows.Shell;
 using Windows.ApplicationModel;
 using Windows.System;
+// System.Globalization (CultureInfo, above) also declares a SortKey class: CS0104 without this alias.
+using SortKey = StoryArc.Interop.Library.SortKey;
 
 namespace StoryArc.Windows;
 
