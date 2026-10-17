@@ -399,7 +399,16 @@ digest. The directory carries its own `pnpm-workspace.yaml` so pnpm treats it as
 repository's. foliate-js is rejected: it uses CFI locators and its README says its API may
 break at any time.
 
-**What the host owes the renderer.** The toolkit has no EPUB container parser. The host supplies a Readium Web
+**What the host owes the renderer.** **As built, 2026-10-17 (tasks 4.1 and 4.2):** `StoryArcEpub.open({container, manifest, positions,
+locator, preferences, post})` opens a book and answers `{receive, destroy, navigator, publication}`; the renderer posts
+`ready`, `locator`, `navigation-failed`, `preferences`, `theme`, `search-results`, `highlights`, `highlight-activated`,
+`selection`, `footnote` and `link`, each with a sequence number, and takes `go`, `next`, `previous`, `preferences`,
+`theme`, `search` and `highlights`. The toolkit has no search and no footnote handling, so search runs over the
+publication fetcher in `src/search.js` and footnotes and links are decided in the content frame before the navigator
+sees the click; the toolkit leaves its frames at 300 by 150, so `open` sizes them to the host's container. Thirty-two
+tests run in headless WebKit through playwright-core 1.60.0 (Apache-2.0), pinned because its WebKit revision was
+already on the machine; the same tests pass in Chromium, which stands in for WebView2 until the hosts run.
+The toolkit has no EPUB container parser. The host supplies a Readium Web
 Publication Manifest (reading order, table of contents, metadata, layout, reading progression) and a positions list.
 The core builds both from the OPF (`storyarc-core`; macOS builds them in `StoryArcEpubMac` from Swift, or calls a
 shared builder: see Open Questions). Position numbers must match iOS and Android for the same book. swift-toolkit's
