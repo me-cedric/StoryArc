@@ -54,6 +54,8 @@ struct LocalizationTests {
         "desktop.settings.reset",
         "desktop.settings.reset.confirm",
         "desktop.settings.reset.body",
+        "desktop.library.section.other", "desktop.library.index", "desktop.library.index.jump %@",
+        "desktop.library.index.moved %@",
         "desktop.home.recentlyAdded", "desktop.home.finished", "desktop.home.showAll", "desktop.home.showAll.label %@",
     ]
 
