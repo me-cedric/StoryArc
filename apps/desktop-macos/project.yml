@@ -148,6 +148,12 @@ targets:
       - path: Tests
         excludes:
           - "*.md"
+          - "__Snapshots__/**"
+      # The snapshot references, read from the bundle for the same reason as the fixtures
+      # below. `Tests/MacSnapshot.swift` says how they are recorded.
+      - path: Tests/__Snapshots__
+        type: folder
+        buildPhase: resources
       # Copied into the test bundle, never read from the checkout. The tests run inside the
       # sandboxed app, and a checkout under ~/Documents is a protected folder: an `open()` of
       # a path there waits on a privacy prompt nobody answers and the run hangs (measured
