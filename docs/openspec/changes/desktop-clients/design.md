@@ -368,6 +368,23 @@ invalid argument, every export runs under `catch_unwind` and reports a panic as 
 status constants into the generated C#. The public Rust facade for the GTK app is `storyarc_core::library`
 (`FolderSource`, `OpenPublication`, `ProgressStore`, `LibraryError`), documented in `apps/desktop-core/README.md`.
 
+**As built, 2026-10-17 (wave 3, lane C).** The SMB spike against the project's Samba chose `smb` 0.12.1: it reports
+the negotiated dialect and whether the session is encrypted, connects to the share that requires encryption, and
+refuses an SMB 1-only server with the named remedy; `smb2` stays the swap-in behind the trait. Secrets go through a
+`SecretStore` trait with a `Vault` over the Windows `keyring` and the Linux `oo7` backends behind cfg and a
+session-only fallback that writes nothing; the PBKDF2 sealing of the diagnostic runs 600,000 rounds, so the root
+`Cargo.toml` raises `opt-level` for `sha2`, `hmac` and `pbkdf2` in dev builds. The download queue checks a finished
+file by indexing it, as iOS does, so a CBZ a server truncates but declares whole can pass the check when the ZIP
+recovery path is tolerant; that is recorded rather than hidden. Library sync takes a `SyncPlace` trait whose only
+implementation is a folder, because the core has no SMB write yet. Settings merge per field, last writer wins, with
+the phones' defaults; the reading themes are merged more coarsely, the device's own kept and the document's taken only
+where the device has none. The seam grew from twenty to forty-eight exports (a tokio runtime handle, an HTTP client
+with pinning, SMB connect, identity and list, the OPDS feed and Kavita calls, the network state, a download fetch with
+a progress callback, the vault, the queue and shelves, library import, export and sync, the secrets, the diagnostic
+and storage bytes), with codes 8 unreachable and 9 unauthorized, and `csbindgen` now reads three source files. Two
+backends have never compiled on their own targets: the Windows keyring and the Windows `NetworkCostType` provider wait
+for the next Windows CI run.
+
 Three places where the mirror found the Swift reader and the corpus disagreeing, for the iOS and Android owners
 rather than for this lane: a RAR4 written on Windows carries backslashes in its entry names, which libarchive
 normalises to `/` and the Rust reader normalises too, while Swift's `RarReader` does not, so a compressed nested page

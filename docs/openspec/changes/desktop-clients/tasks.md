@@ -429,27 +429,42 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 
 ## 3. Wave 3: sources, secrets, sync and downloads
 
+**Lane C landed wave 3 on main on 2026-10-17** (`pnpm test:desktop:core` 214 unit tests plus sixteen integration
+binaries, the Ubuntu container green, verified by an independent run): the SMB spike chose `smb` 0.12.1 over `smb2`
+(`docs/delivery/desktop-spike-smb.md`), the SMB source sits behind `RandomAccessSource` against the Samba fixture, the
+secrets trait with its Windows and Linux backends and the session-only fallback, the OPDS and Kavita clients against
+the mock servers, downloads with the metered policy and a byte-for-byte resume, collections and reading lists with the
+offline edit queue, the portability and sync documents reconciled with the phones' fixtures, and the metered provider
+with its fake. Tasks 3.3 and 3.9 stay open only because their Windows backends (`keyring`, `NetworkCostType`) and the
+Linux D-Bus provider have not compiled on their own targets yet; the seam gained twenty-eight exports and codes 8
+(unreachable) and 9 (unauthorized), listed in design.md, which puts it at forty-eight and past the mark at which
+design.md says to revisit uniffi.
+
+**Lane W's wave 2 compiled on 2026-10-17:** the `Desktop Windows` run 39001788022 builds the app for x64 and ARM64
+and passes every interop test on the Linux and macOS runners, which proves the pure parts of 2.37 to 2.47e; the
+screens stay "wired, not proved" until a Windows desktop walks them.
+
 Capabilities walked: `sources`, `network-share`, `kavita-server`, `opds-catalog`, `offline-downloads`,
 `collections-and-reading-lists`, `library-portability`, `library-sync`.
 
 **Lane C**
 
-- [ ] 3.1 **The SMB spike first.** `smb` against Samba in Docker (`pnpm smb`), a Windows share and a NAS with encryption
+- [x] 3.1 **The SMB spike first.** `smb` against Samba in Docker (`pnpm smb`), a Windows share and a NAS with encryption
   required. Exit: dialect and encryption reported, an SMB 1-only server refused with a named remedy. Verify: the result sits in
   `docs/delivery/desktop-spike-smb.md` and names the winner between `smb` and `smb2`.
-- [ ] 3.2 **The SMB source behind `RandomAccessSource`** with the four named failures, the two-second and sixty-second rules,
+- [x] 3.2 **The SMB source behind `RandomAccessSource`** with the four named failures, the two-second and sixty-second rules,
   reconnect after sleep and an SMB 1 probe. File `src/sources/smb.rs`. Verify: the Samba fixture suite passes.
 - [ ] 3.3 **Secrets, test first.** `tests/secrets.rs` runs against an in-memory store and asserts no secret reaches a file, a
   log or a diagnostic in any encoding. Then the `SecretStore` trait and the Windows and Linux backends and the session-only
   fallback. Verify: the test passes and the backends are exercised on their own runners.
-- [ ] 3.4 **OPDS client and parser** with the certificate pin flow. File `src/sources/opds.rs`. Verify: `pnpm opds` fixtures pass.
-- [ ] 3.5 **Kavita client** with progress mapping fixed by the shared rule. File `src/sources/kavita.rs`. Verify: `pnpm kavita`
+- [x] 3.4 **OPDS client and parser** with the certificate pin flow. File `src/sources/opds.rs`. Verify: `pnpm opds` fixtures pass.
+- [x] 3.5 **Kavita client** with progress mapping fixed by the shared rule. File `src/sources/kavita.rs`. Verify: `pnpm kavita`
   mock passes.
-- [ ] 3.6 **Downloads and the queue** with metered-aware policy, resume after quit and integrity checks. File
+- [x] 3.6 **Downloads and the queue** with metered-aware policy, resume after quit and integrity checks. File
   `src/downloads/`. Verify: tests kill the process mid-download and resume byte for byte.
-- [ ] 3.7 **Collections and reading lists** with the offline edit queue, and **metadata cache, source health and refresh**.
+- [x] 3.7 **Collections and reading lists** with the offline edit queue, and **metadata cache, source health and refresh**.
   Verify: the shared collection fixtures pass.
-- [ ] 3.8 **Library portability and sync** documents, mirrored with the mobile format and the five reconciliations. Verify: a
+- [x] 3.8 **Library portability and sync** documents, mirrored with the mobile format and the five reconciliations. Verify: a
   document written on iOS and one on Android decode here and the reverse, as the portability change asserts.
 - [ ] 3.9 **Metered flag provider** trait, with a Windows and a Linux implementation (NetworkCostType, NetworkManager). Verify:
   tests with a fake provider and a manual check on a phone tether.
