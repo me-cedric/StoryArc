@@ -55,10 +55,30 @@ jobs:
       # sandboxed app, so the entitlement, bookmark and keychain tests measure what a local
       # run measures. The ad-hoc identity needs no certificate on the runner.
       - name: Test
+        id: test
         working-directory: apps/desktop-macos
         run: >-
           xcodebuild test
           -project StoryArcMac.xcodeproj
           -scheme StoryArc
           -destination 'platform=macOS'
+          -resultBundlePath ../../.build/xcresult/mac.xcresult
           -quiet
+
+      # `-quiet` keeps the failing test's own message out of the log, and the runner's Xcode is
+      # not this Mac's, so a failure that only CI sees needs its message and its bundle here.
+      - name: Report the failing tests
+        if: failure() && steps.test.conclusion == 'failure'
+        run: >-
+          xcrun xcresulttool get test-results summary --path .build/xcresult/mac.xcresult
+          | python3 -c 'import json,sys; d=json.load(sys.stdin); [print("-", f.get("testName"), "::", (f.get("failureText") or "").replace("\n", " ")) for f in d.get("testFailures", [])]'
+      - name: Zip the result bundle
+        if: failure() && steps.test.conclusion == 'failure'
+        run: cd .build/xcresult && zip -qr mac.xcresult.zip mac.xcresult
+      - name: Keep the result bundle
+        if: failure() && steps.test.conclusion == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-xcresult
+          path: .build/xcresult/mac.xcresult.zip
+          retention-days: 7
