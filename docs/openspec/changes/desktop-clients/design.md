@@ -201,6 +201,16 @@ bundle is a documented conflict between two Microsoft pages: a spike resolves it
 with names, roles and values. Narrator must announce a page change. The system text scale changes the XAML text
 size; `NavigationView` and the dialogs must be checked at the largest scale.
 
+**As built, 2026-10-17 (waves 2 and 3, lane W).** The app compiled for the first time on CI on 2026-10-17 (x64 and
+ARM64, the interop tests on the Linux and macOS runners) after four named errors; nothing has run on a Windows desktop.
+The interop layer wraps all forty-eight seam exports behind `SafeHandle` types and a `CancelToken`; secrets go through
+a `CredentialVault` over Credential Manager with the 2560-byte limit enforced in C# on every host; `Package.appxmanifest`
+declares `internetClient` and `privateNetworkClientServer` for the sources; the queue panel is a flyout beside the
+Downloads title, and clearing the records is deferred to the next start through a marker file because the progress
+store is open. Search sits in the title bar as an `AutoSuggestBox` whose results take over the content column, as §2 of
+`windows.md` draws. Seam gaps the lane recorded for the core owner: no queue marking or attempt recording, no shelf edit
+projection or stable shelf ids, no Kavita shelf calls.
+
 **Distribution.** Free Microsoft Store registration for individuals and companies. The Store signs the MSIX.
 It is the canonical channel (High confidence). Dev builds use `winapp run` (Developer Mode) or an unpackaged
 `dotnet publish`. A sideloaded MSIX needs a trusted certificate. Azure Artifact Signing is closed to individuals
@@ -248,7 +258,11 @@ Kept: `AdwNavigationSplitView`, `AdwOverlaySplitView`, `AdwToolbarView`, `AdwBre
 - GTK saves no session before 4.26, so the app saves window state itself (Known: 4.23.3 deferred it). **As built, 2026-10-17:** the
 tokens arrive as `data/style/storyarc-tokens.css` through a `GtkCssProvider` and the file is one of the sync's targets;
 the headless walk under cage sometimes lost the first key of a `wtype` run and could not tell whether the harness or
-the app lost it, so a first-key check on a real session is owed.
+the app lost it, so a first-key check on a real session is owed. **Wave 3, 2026-10-17:** the Linux app keeps its sync document in
+`library-document.json` through the core's portability encode and merge rather than a JSON crate of its own; sync at
+start merges on a worker after the window is up; a share's files are listed and not yet read in place, because the
+reader opens paths only; scripted-walk hooks (`app.add-network-source`, `show-network-source`, `library-action`,
+`show-shelf`) sit beside `open-reader` for the headless walks.
 - Renderer: leave the choice to GTK. `ngl` is the 4.14 default. `GSK_RENDERER=ngl` is the documented fallback for
   NVIDIA problems (GTK issues 8364 and 6689 are open). The curl runs in a `GtkGLArea`, which works under every
   renderer. It is present on Wayland. It is absent on X11 until spike 1.17 shows it holds the frame budget there (`desktop-experience`, Linux display servers).

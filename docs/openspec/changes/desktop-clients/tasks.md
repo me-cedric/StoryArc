@@ -440,6 +440,21 @@ Linux D-Bus provider have not compiled on their own targets yet; the seam gained
 (unreachable) and 9 (unauthorized), listed in design.md, which puts it at forty-eight and past the mark at which
 design.md says to revisit uniffi.
 
+**Lanes L and W landed wave 3 on main on 2026-10-17.** Linux (263 crate tests in the container, verified independently):
+sheets that add a share with avahi suggestions where present and manual entry always, an OPDS catalogue and a Kavita
+server, walked headless against the mock servers and the Samba fixture with the four named SMB failures seen and the
+encrypted share connected; the secret-store states; one test per rule for metered, downloads with the quit prompt and
+resume, sync within five seconds, the diagnostic export's three outcomes and the storage page; collections and reading
+lists with pins and the offline edit queue; the walk in `docs/delivery/desktop-conformance-linux-wave3.md`. The boxes of
+3.17 to 3.20 stay open for the walks a Linux session owes (Hyprland, GNOME with gnome-keyring, Flatpak, a tether, a real
+LAN), and one assertion the verifier found unable to fail (`remote_sources::the_file_keeps_an_id_a_name_an_address_and_a_user_and_no_secret`)
+is a defect to fix. Windows: the twenty-eight seam wrappers, the sources page with discovery stated absent, the vault
+over Credential Manager with the 2560-byte rule and a search of every file for the secret in nine encodings, the
+download coordinator with its policy and retries, the sync runner, the diagnostic file, storage and the shelves, with a
+test per rule, nothing compiled here; `Package.appxmanifest` gains `internetClient` and `privateNetworkClientServer`;
+the walk in `docs/delivery/desktop-conformance-windows-wave3.md` marks nothing passed. The boxes of 3.21 to 3.24 stay
+open until the `Desktop Windows` workflow compiles the lane and a Windows desktop walks it.
+
 **Lane W's wave 2 compiled on 2026-10-17:** the `Desktop Windows` run 39001788022 builds the app for x64 and ARM64
 and passes every interop test on the Linux and macOS runners, which proves the pure parts of 2.37 to 2.47e; the
 screens stay "wired, not proved" until a Windows desktop walks them.
