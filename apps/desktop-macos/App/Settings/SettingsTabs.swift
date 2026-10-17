@@ -13,7 +13,7 @@ struct SettingsTabContent: View {
             case .sources: SourcesSettingsTab(library: library)
             case .appearance: AppearanceSettingsTab()
             case .reading: ReadingSettingsTab()
-            case .downloads: DownloadsSettingsTab()
+            case .downloads: DownloadsSettingsTab(library: library)
             case .language: LanguageSettingsTab()
             case .privacy: PrivacySettingsTab(library: library)
             case .about: AboutSettingsTab()
@@ -103,19 +103,38 @@ private struct ReadingSettingsTab: View {
     }
 }
 
-/// Downloads: the Wi-Fi rule as "not on a metered link". The queue is wave 3.
+/// Downloads: the Wi-Fi rule as "not on a metered link", what the connection is now, and
+/// the storage of task 3.15.
 private struct DownloadsSettingsTab: View {
+    let library: MacLibrary
+
     var body: some View {
         let settings = MacSettings.shared
         Section {
             Toggle(isOn: Binding(
                 get: { settings.settings.downloadOverWifiOnly },
-                set: { settings.settings.downloadOverWifiOnly = $0 }
+                set: {
+                    settings.settings.downloadOverWifiOnly = $0
+                    library.downloads.reconsider()
+                }
             )) {
                 Text("desktop.downloads.metered")
             }
         } footer: {
-            Text("desktop.downloads.footer").foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("desktop.downloads.footer")
+                connection
+            }
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private var connection: Text {
+        switch library.downloads.monitor.condition {
+        case .metered: Text("desktop.downloads.connection.metered")
+        case .unmetered: Text("desktop.downloads.connection.unmetered")
+        case .unknown: Text("desktop.downloads.connection.unknown")
+        case .offline: Text("desktop.downloads.connection.offline")
         }
     }
 }

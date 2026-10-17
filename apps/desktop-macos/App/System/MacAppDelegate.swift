@@ -142,6 +142,10 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // `desktop-experience`, *A download in progress*: said before quitting, and paused.
+        guard MacQuit(downloads: MacLibrary.live?.downloads).shouldQuit() else {
+            return .terminateCancel
+        }
         Task { @MainActor in
             // Five seconds is the spec's own cadence; past it the app quits with what it has.
             let flush = Task { await ProgressFlushers.shared.flushAll() }

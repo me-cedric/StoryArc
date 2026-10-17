@@ -103,11 +103,10 @@ struct SourcesSettingsTab: View {
                 }
                 Button(role: .destructive) { removingFolder = source } label: { Text("desktop.sources.remove.menu") }
             } label: {
-                Label("desktop.sources.actions \(source.name)", systemImage: "ellipsis.circle")
+                Label("desktop.sources.actions \(source.name)", systemImage: "ellipsis")
                     .labelStyle(.iconOnly)
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
+            .rowMenu()
         }
     }
 
@@ -131,11 +130,10 @@ struct SourcesSettingsTab: View {
                 Divider()
                 Button(role: .destructive) { removing = row } label: { Text("desktop.sources.remove.menu") }
             } label: {
-                Label("desktop.sources.actions \(row.name)", systemImage: "ellipsis.circle")
+                Label("desktop.sources.actions \(row.name)", systemImage: "ellipsis")
                     .labelStyle(.iconOnly)
             }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
+            .rowMenu()
         }
     }
 }

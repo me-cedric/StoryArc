@@ -21,6 +21,8 @@ final class MacLibrary {
     let watcher = MacFolderWatcher()
     /// The configured servers and the sheets that add them. Wave 3.
     let servers: MacSources
+    /// The download queue and the metered rule over it. Wave 3.
+    let downloads: MacDownloads
 
     /// Every folder the reader chose, with its state. Grey ones keep their place.
     private(set) var sources: [FolderSource] = []
@@ -65,6 +67,7 @@ final class MacLibrary {
             journal: ScanJournal()
         )
         servers = MacSources(model: model)
+        downloads = MacDownloads()
         Self.live = self
     }
 
@@ -88,8 +91,11 @@ final class MacLibrary {
         startWatching()
         // Each `addFolder` starts a walk that the next one cancels; one rescan walks them all.
         if restored.folders.count > 1 { await model.rescan() }
-        // The servers join the shelf beside the folders, as on a phone.
+        // The servers join the shelf beside the folders, as on a phone, and what was downloaded
+        // joins it too; what the last quit paused carries on (`desktop-experience`).
         await model.readServers()
+        await model.adoptDownloads()
+        downloads.resumeAfterLaunch()
         await refreshProgress()
     }
 
@@ -272,6 +278,18 @@ final class MacLibrary {
     func target(for publication: Publication) -> ReaderTarget? {
         guard let url = model.location(of: publication) else { return nil }
         return ReaderTarget(publication: publication, url: url)
+    }
+
+    /// Queues a catalogue row the reader asked to download, by hand.
+    ///
+    /// - Returns: false when the row's entry could not be found in its catalogue.
+    @discardableResult
+    func download(_ publication: Publication) async -> Bool {
+        guard let found = await RemoteEntry.resolve(
+            publication, in: model.registry, credentials: servers.credentials
+        ) else { return false }
+        downloads.enqueue(found.entry, using: found.acquisition, sourceID: found.sourceID)
+        return true
     }
 
     func dismissRefused() { refused = [] }

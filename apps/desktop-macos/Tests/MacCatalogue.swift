@@ -69,8 +69,14 @@ enum MacCatalogue {
                 library.model.layout = .grid
                 await request(.search("sort"), of: library)
             }),
+            ("downloads", {
+                await request(.search(""), of: library)
+                seedDownload(in: library)
+                await request(.go(.downloads), of: library)
+            }),
             ("detail", { await request(.details(publicationID: reading.id), of: library) }),
         ]
+        defer { library.downloads.queue.remove(seededDownload) }
         for (name, step) in steps {
             if name == "detail" {
                 await request(.search(""), of: library)
@@ -87,19 +93,36 @@ enum MacCatalogue {
         await request(.go(.home), of: library)
     }
 
+    static let seededDownload = "catalogue-finished-download"
+
+    /// One finished download, so the Downloads screen draws a row and its size. Removed after.
+    private static func seedDownload(in library: MacLibrary) {
+        guard let remote = URL(string: "http://127.0.0.1/catalogue.cbz") else { return }
+        library.downloads.queue.record(Download(
+            id: seededDownload, title: "Fine Print", remote: remote, mediaType: "application/vnd.comicbook+zip",
+            state: .finished, expectedBytes: 1_258_291, downloadedBytes: 1_258_291, completedAt: finishedOn
+        ))
+    }
+
     /// Asks the library window to go somewhere, and waits until it has taken the request.
     ///
     /// The window acts on a *change* of the request. One left unread by an earlier walk, the
     /// same as the one asked for now, would be no change at all, and the window would stay
     /// where that walk left it: Home drawn as the library grid, half the pixels wrong. So a
     /// request still pending is cleared first.
+    ///
+    /// Asked again, up to three times: a request set in the same turn as a redraw that a
+    /// seeded record started was seen to go unread once in a run of three (2026-10-17).
     private static func request(_ navigation: LibraryNavigation, of library: MacLibrary) async {
-        if library.navigationRequest != nil {
-            library.navigationRequest = nil
-            await Walk.settle()
+        var taken: Bool?
+        for _ in 0..<3 where taken == nil {
+            if library.navigationRequest != nil {
+                library.navigationRequest = nil
+                await Walk.settle()
+            }
+            library.navigationRequest = navigation
+            taken = await Walk.until(.seconds(4)) { library.navigationRequest == nil ? true : nil }
         }
-        library.navigationRequest = navigation
-        let taken = await Walk.until { library.navigationRequest == nil ? true : nil }
         #expect(taken == true, "the library window did not take \(navigation)")
     }
 

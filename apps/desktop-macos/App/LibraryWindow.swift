@@ -72,6 +72,8 @@ struct LibraryWindow: View {
             navigate(request)
         }
         .onChange(of: library.offeredFolder) { showingFolderOffer = library.offeredFolder != nil }
+        // A finished download joins the shelf as soon as it lands; no notification says so.
+        .onChange(of: library.downloads.finished.count) { Task { await library.model.adoptDownloads() } }
         .acceptsDroppedFiles()
         .restartConfirmation(library)
         .confirmationDialog(

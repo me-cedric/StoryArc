@@ -125,6 +125,9 @@ struct PublicationMenu: View {
             .disabled(library.model.location(of: publication) == nil)
         Button { onShow(publication) } label: { Text("desktop.menu.showDetails") }
         Divider()
+        if RemoteEntry.isDownloadable(publication, in: library.model.registry) {
+            Button { Task { await library.download(publication) } } label: { Text("desktop.menu.download") }
+        }
         if let url = library.model.location(of: publication), url.isFileURL {
             Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: {
                 Text("desktop.menu.showInFinder")
