@@ -171,6 +171,13 @@ msgstr "Signets"
 msgid "bookmarks.unnamed"
 msgstr "Chapitre sans titre"
 
+msgid "browse.more"
+msgstr "Plus"
+
+#, c-format
+msgid "browse.pagesRead %d %d"
+msgstr "%d sur %d pages lues"
+
 msgid "car.audiobooks"
 msgstr "Livres audio"
 
@@ -362,6 +369,10 @@ msgstr "N’importe qui sur le réseau entre vous et ce serveur pourrait lire ce
 
 msgid "catalogue.untrusted.fingerprint"
 msgstr "Empreinte SHA-256"
+
+#, c-format
+msgid "catalogue.untrusted.fingerprint %s"
+msgstr "Empreinte du certificat : %s"
 
 msgid "catalogue.untrusted.title"
 msgstr "Le certificat de ce serveur n’est pas approuvé"
@@ -692,6 +703,29 @@ msgid "detail.unavailable.sized %s"
 msgstr "Impossible d’ouvrir ceci tant que ce n’est pas sur cet appareil (%s)."
 
 #, c-format
+msgid "diagnostics.cannotWrite %s"
+msgstr "StoryArc ne peut pas écrire dans %s. Choisissez un autre emplacement."
+
+msgid "diagnostics.cannotWrite.title"
+msgstr "Enregistrement impossible"
+
+msgid "diagnostics.chooseAnother"
+msgstr "Choisir un autre emplacement"
+
+msgid "diagnostics.note"
+msgstr "Tout est affiché d’abord. Les mots de passe, les jetons et les noms de serveurs sont retirés."
+
+msgid "diagnostics.save"
+msgstr "Enregistrer…"
+
+#, c-format
+msgid "diagnostics.saved %s"
+msgstr "Enregistré dans %s"
+
+msgid "diagnostics.title"
+msgstr "Exporter le diagnostic"
+
+#, c-format
 msgid "downloads.actions %s"
 msgstr "Actions pour « %s »"
 
@@ -718,6 +752,12 @@ msgstr "Cela arrête chaque transfert en cours. Rien n’en est conservé sur ce
 
 msgid "downloads.cancelAll.title"
 msgstr "Arrêter tous les téléchargements ?"
+
+msgid "downloads.clear.body"
+msgstr "Cela supprime les copies téléchargées sur cet appareil et arrête ce qui est en cours de téléchargement. Vos positions de lecture sont conservées, et chaque titre peut être téléchargé de nouveau."
+
+msgid "downloads.clear.title"
+msgstr "Supprimer tous les téléchargements ?"
 
 msgid "downloads.empty"
 msgstr "Rien n’est encore sur cet appareil. Un livre ouvert depuis une bibliothèque en ligne est conservé ici."
@@ -803,6 +843,12 @@ msgstr "En pause"
 msgid "downloads.paused.outOfSpace"
 msgstr "Espace insuffisant sur l’appareil"
 
+msgid "downloads.paused.waitingForMetered"
+msgstr "En attente d’une connexion non limitée"
+
+msgid "downloads.paused.waitingForNetwork"
+msgstr "En attente d’une connexion"
+
 msgid "downloads.paused.waitingForWiFi"
 msgstr "En attente du Wi-Fi"
 
@@ -826,6 +872,18 @@ msgid "downloads.queued %d"
 msgid_plural "downloads.queued %d"
 msgstr[0] "%d autre en attente"
 msgstr[1] "%d autres en attente"
+
+msgid "downloads.queuedLabel"
+msgstr "Dans Téléchargements"
+
+msgid "downloads.quit.body"
+msgstr "Le téléchargement se met en pause quand StoryArc se ferme et reprend là où il s’était arrêté à la prochaine ouverture de StoryArc. La partie déjà téléchargée est conservée."
+
+#, c-format
+msgid "downloads.quit.title %d"
+msgid_plural "downloads.quit.title %d"
+msgstr[0] "Un téléchargement est en cours"
+msgstr[1] "Des téléchargements sont en cours"
 
 msgid "downloads.remove"
 msgstr "Supprimer le téléchargement"
@@ -886,6 +944,12 @@ msgstr "Espace utilisé par les téléchargements"
 
 msgid "downloads.undo"
 msgstr "Annuler"
+
+msgid "downloads.unmetered"
+msgstr "Attendre sur une connexion limitée"
+
+msgid "downloads.unmetered.note"
+msgstr "Sur une connexion que votre système signale comme limitée, les téléchargements que vous n’avez pas lancés à la main attendent."
 
 msgid "downloads.wifiOnly"
 msgstr "Télécharger seulement en Wi-Fi"
@@ -981,6 +1045,9 @@ msgstr "À suivre"
 msgid "kavita.add"
 msgstr "Ajouter"
 
+msgid "kavita.add.title"
+msgstr "Ajouter une bibliothèque Kavita"
+
 #, c-format
 msgid "kavita.addToList %s"
 msgstr "Ajouter à « %s »"
@@ -1008,6 +1075,10 @@ msgstr "Le serveur n’a pas indiqué leur taille."
 #, c-format
 msgid "kavita.bulk.unreachable %s"
 msgstr "%s n’a pas répondu, donc rien n’a été lancé."
+
+#, c-format
+msgid "kavita.chapter.number %s"
+msgstr "Chapitre %s"
 
 msgid "kavita.chapter.unnumbered"
 msgstr "Sans numéro"
@@ -1562,6 +1633,12 @@ msgstr "Menu principal"
 msgid "menu.openRecent"
 msgstr "Ouvrir un fichier récent"
 
+msgid "menu.quit"
+msgstr "Quitter"
+
+msgid "network.starting"
+msgstr "StoryArc démarre encore. Réessayez dans un instant."
+
 #, c-format
 msgid "open.in.damaged %s"
 msgstr "%s n’a pas pu être lu. Il est peut-être endommagé."
@@ -1825,6 +1902,12 @@ msgstr "Niveaux de gris"
 msgid "reader.adjust.invert"
 msgstr "Inverser les couleurs"
 
+msgid "reader.adjust.look"
+msgstr "Aspect"
+
+msgid "reader.adjust.menu"
+msgstr "Réglages de l’image…"
+
 msgid "reader.adjust.reset"
 msgstr "Réinitialiser les ajustements"
 
@@ -1834,6 +1917,18 @@ msgstr "S’applique uniquement à « %1$s », pas à tout ce que vous lisez."
 
 msgid "reader.adjust.sharpness"
 msgstr "Netteté"
+
+msgid "reader.adjust.title"
+msgstr "Réglages de l’image"
+
+msgid "reader.adjust.tone"
+msgstr "Tonalité"
+
+msgid "reader.adjust.trim"
+msgstr "Rogner les bords des pages"
+
+msgid "reader.adjust.trimHere"
+msgstr "Rogner cette page"
 
 msgid "reader.bookmark.add"
 msgstr "Ajouter cette page aux favoris"
@@ -1878,6 +1973,9 @@ msgstr "Chapitre précédent"
 
 msgid "reader.close"
 msgstr "Fermer"
+
+msgid "reader.current"
+msgstr "page actuelle"
 
 msgid "reader.damaged"
 msgstr "Ce fichier n’a pas pu être lu. Il est peut-être endommagé."
@@ -1924,6 +2022,13 @@ msgstr "Écran"
 
 msgid "reader.fit.width"
 msgstr "Largeur"
+
+msgid "reader.goToPage"
+msgstr "Aller à la page"
+
+#, c-format
+msgid "reader.goToPage %d"
+msgstr "Aller à la page %d"
 
 msgid "reader.leftToRight"
 msgstr "De gauche à droite"
@@ -2026,6 +2131,16 @@ msgstr "Curseur de page"
 #, c-format
 msgid "reader.pageLabel %d %d"
 msgstr "Page %1$d sur %2$d"
+
+#, c-format
+msgid "reader.pageOfCount"
+msgstr "%d sur %d"
+
+msgid "reader.pageTurn"
+msgstr "Changement de page"
+
+msgid "reader.pageTurn.curl.later"
+msgstr "La pliure arrivera sur Linux dans une prochaine version"
 
 msgid "reader.pageUnavailable"
 msgstr "Cette page n'a pas pu être lue"
@@ -2132,6 +2247,15 @@ msgstr "Retour à la page %d"
 msgid "reader.rightToLeft"
 msgstr "De droite à gauche"
 
+msgid "reader.scroll.gap"
+msgstr "Espace entre les pages"
+
+msgid "reader.scroll.horizontal"
+msgstr "Défilement horizontal"
+
+msgid "reader.scroll.vertical"
+msgstr "Défilement vertical"
+
 msgid "reader.separator"
 msgstr "Afficher le séparateur de pages"
 
@@ -2140,6 +2264,9 @@ msgid "reader.skipped %d"
 msgid_plural "reader.skipped %d"
 msgstr[0] "%d page ignorée"
 msgstr[1] "%d pages ignorées"
+
+msgid "reader.slider"
+msgstr "Page"
 
 msgid "reader.solidArchive"
 msgstr "Cette bande dessinée utilise une compression solide, que StoryArc ne peut pas ouvrir."
@@ -2258,6 +2385,10 @@ msgstr "Désactivé par défaut : pendant la lecture, les touches de volume ne r
 msgid "reading.volumeButtons.unavailable"
 msgstr "Les touches de volume ne peuvent pas tourner les pages sur iOS : le système les réserve, et le seul contournement casse dès qu’un autre son est joué."
 
+#, c-format
+msgid "restore.missing"
+msgstr "Impossible de rouvrir : %s"
+
 msgid "return.title"
 msgstr "Revenir où vous étiez"
 
@@ -2298,6 +2429,15 @@ msgstr "Rechercher"
 
 msgid "search.waiting"
 msgstr "Recherche en cours…"
+
+msgid "secrets.denied"
+msgstr "Le trousseau n’a pas été déverrouillé, donc rien n’a été enregistré. Reconnectez-vous une fois qu’il l’est."
+
+msgid "secrets.flatpak"
+msgstr "Les mots de passe sont conservés dans le trousseau chiffré de cette application, via le portail Secret du bureau."
+
+msgid "secrets.service"
+msgstr "Les mots de passe sont conservés dans le trousseau de votre bureau."
 
 msgid "settings.about"
 msgstr "À propos"
@@ -2345,6 +2485,9 @@ msgstr "Système"
 msgid "settings.layout"
 msgstr "Mise en page"
 
+msgid "settings.passwords"
+msgstr "Mots de passe"
+
 msgid "settings.privacy"
 msgstr "Confidentialité"
 
@@ -2386,6 +2529,9 @@ msgid_plural "settings.sources.summary %d"
 msgstr[0] "%d bibliothèque"
 msgstr[1] "%d bibliothèques"
 
+msgid "settings.storage"
+msgstr "Stockage"
+
 msgid "settings.title"
 msgstr "Réglages"
 
@@ -2398,6 +2544,10 @@ msgstr "Ajouter à…"
 #, c-format
 msgid "shelves.addTo %s %s"
 msgstr "Ajouter à « %1$s » · %2$s"
+
+#, c-format
+msgid "shelves.added %s"
+msgstr "Ajouté à %s"
 
 msgid "shelves.bulk"
 msgstr "Toute l’étagère"
@@ -2451,6 +2601,9 @@ msgstr "Créer"
 
 msgid "shelves.delete"
 msgstr "Supprimer"
+
+msgid "shelves.delete.body"
+msgstr "L’étagère disparaît. Les titres qu’elle contient restent dans votre bibliothèque, ainsi que vos positions de lecture."
 
 msgid "shelves.delete.collection.body"
 msgstr "Les livres et les bandes dessinées qu’elle contient restent dans votre bibliothèque. Seule la collection disparaît."
@@ -2511,6 +2664,12 @@ msgstr "Conservé sur cet appareil. Rien n’est envoyé nulle part."
 #, c-format
 msgid "shelves.onDevice %d %d"
 msgstr "%1$d sur %2$d sur cet appareil"
+
+msgid "shelves.open"
+msgstr "Étagère"
+
+msgid "shelves.options"
+msgstr "Options de l’étagère"
 
 #, c-format
 msgid "shelves.pending %d"
@@ -2576,6 +2735,9 @@ msgstr "Aucune bibliothèque en ligne joignable ne peut héberger une liste de l
 msgid "shelves.promote.why %s"
 msgstr "%s ne les possède pas, et StoryArc n’envoie jamais de fichier. Elles restent dans la liste sur cet appareil."
 
+msgid "shelves.remove"
+msgstr "Retirer de l’étagère"
+
 msgid "shelves.rename"
 msgstr "Renommer"
 
@@ -2591,6 +2753,12 @@ msgstr "Seulement depuis cette bibliothèque"
 
 msgid "shelves.title"
 msgstr "Étagères"
+
+#, c-format
+msgid "shelves.unavailable %d"
+msgid_plural "shelves.unavailable %d"
+msgstr[0] "%d titre n’est pas sur cet appareil pour l’instant"
+msgstr[1] "%d titres ne sont pas sur cet appareil pour l’instant"
 
 msgid "shelves.unpin"
 msgstr "Ne plus épingler"
@@ -2625,6 +2793,9 @@ msgstr "Toutes les étagères"
 msgid "sidebar.downloads"
 msgstr "Téléchargements"
 
+msgid "sidebar.libraries"
+msgstr "Bibliothèques"
+
 msgid "sidebar.library"
 msgstr "Bibliothèque"
 
@@ -2640,8 +2811,14 @@ msgstr "Cette bande dessinée utilise une compression solide, que StoryArc ne pe
 msgid "smb.connect"
 msgstr "Se connecter"
 
+msgid "smb.discovery.absent"
+msgstr "Ce système n’annonce aucun partage (Avahi n’est pas lancé) : saisissez l’adresse à la main."
+
 msgid "smb.discovery.denied"
 msgstr "L’accès au réseau local est désactivé, donc StoryArc ne trouve aucun partage. Réactivez-le dans Réglages, sous Confidentialité et sécurité, puis Réseau local. Vous pouvez toujours ajouter un partage à la main."
+
+msgid "smb.discovery.none"
+msgstr "Aucun partage n’a été annoncé sur ce réseau."
 
 #, c-format
 msgid "smb.downloadFirst.body %s %s"
@@ -2687,6 +2864,9 @@ msgstr "Ce serveur a besoin d’une version de SMB plus récente que celle que S
 
 msgid "smb.error.unexpected"
 msgstr "Le partage n’a pas pu être atteint."
+
+msgid "smb.folder.label"
+msgstr "Dossier (facultatif)"
 
 msgid "smb.found"
 msgstr "Sur ce réseau"
@@ -2843,6 +3023,10 @@ msgid "sources.add.share"
 msgstr "Un ordinateur sur votre réseau"
 
 #, c-format
+msgid "sources.added %s"
+msgstr "Ajouté : %s"
+
+#, c-format
 msgid "sources.detail %d"
 msgid_plural "sources.detail %d"
 msgstr[0] "%d titre"
@@ -2897,6 +3081,9 @@ msgstr "StoryArc lit ce partage en SMB. Aucune connexion n’a été établie de
 msgid "sources.kavita.systemTrust"
 msgstr "Nécessite un certificat auquel votre appareil fait déjà confiance."
 
+msgid "sources.needsSignIn"
+msgstr "Connexion requise"
+
 msgid "sources.none"
 msgstr "Aucune bibliothèque."
 
@@ -2921,6 +3108,9 @@ msgstr[1] "%d téléchargements"
 
 msgid "sources.remove.footer"
 msgstr "Retirer une bibliothèque supprime ce que vous en avez téléchargé et conserve vos positions de lecture pendant 30 jours."
+
+msgid "sources.remove.kept"
+msgstr "Les fichiers restent où ils sont, et vos positions de lecture aussi."
 
 #, c-format
 msgid "sources.remove.title %s"
@@ -2949,6 +3139,9 @@ msgstr "Enregistrer"
 msgid "sources.rename.title"
 msgstr "Renommer"
 
+msgid "sources.signIn.remedy"
+msgstr "Retirez cette bibliothèque et ajoutez-la de nouveau pour vous connecter"
+
 msgid "sources.state.connected"
 msgstr "Disponible"
 
@@ -2960,6 +3153,24 @@ msgstr "Connexion requise"
 
 msgid "sources.state.unreachable"
 msgstr "Sans réponse"
+
+msgid "sources.unreachable"
+msgstr "Indisponible pour le moment"
+
+msgid "storage.diskFull"
+msgstr "Le disque est plein. StoryArc a conservé ce qu’il avait. Vider le cache des couvertures ou supprimer un téléchargement libère de l’espace."
+
+msgid "storage.downloads"
+msgstr "Téléchargements"
+
+msgid "storage.records"
+msgstr "Enregistrements de la bibliothèque"
+
+msgid "storage.where"
+msgstr "StoryArc garde ses données dans vos propres dossiers. Rien ici n’est synchronisé entre les machines."
+
+msgid "storage.writeFailed"
+msgstr "StoryArc n’a pas pu enregistrer cela."
 
 msgid "sync.about"
 msgstr "Gardez vos positions de lecture, vos étagères et vos réglages identiques sur tous vos appareils, grâce à un emplacement de votre choix."
@@ -3031,6 +3242,9 @@ msgstr "Le fichier de synchronisation vient d’une version plus récente de Sto
 msgid "sync.status.notLibrary"
 msgstr "Le fichier de synchronisation n’est pas une bibliothèque StoryArc. Rien n’a été modifié."
 
+msgid "sync.status.synced"
+msgstr "Synchronisé"
+
 #, c-format
 msgid "sync.status.synced.on %s"
 msgstr "Synchronisé le %s"
@@ -3042,9 +3256,15 @@ msgstr "Synchronisé %s"
 msgid "sync.status.syncing"
 msgstr "Synchronisation…"
 
+msgid "sync.status.timedOut"
+msgstr "Le dossier de synchronisation n’a pas répondu à temps. StoryArc se synchronisera de nouveau la prochaine fois."
+
 #, c-format
 msgid "sync.status.unreachable %s"
 msgstr "%s est inaccessible. StoryArc synchronisera dès qu’il pourra y accéder."
+
+msgid "sync.status.unreachable.place"
+msgstr "Le dossier de synchronisation est inaccessible. StoryArc se synchronisera de nouveau dès qu’il le pourra."
 
 msgid "sync.title"
 msgstr "Synchronisation"
@@ -3218,6 +3438,9 @@ msgstr "Non disponible pour les livres dont le texte se redimensionne."
 
 msgid "theme.pageTurn.scroll"
 msgstr "Défilement continu"
+
+msgid "theme.pageTurn.slide"
+msgstr "Glissement"
 
 msgid "theme.preset.bold"
 msgstr "Marqué"

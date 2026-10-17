@@ -218,6 +218,14 @@
     <value>Kapitel ohne Titel</value>
     <comment>bookmarks.unnamed</comment>
   </data>
+  <data name="browse_more" xml:space="preserve">
+    <value>Mehr</value>
+    <comment>browse.more</comment>
+  </data>
+  <data name="browse_pagesRead__lld__lld" xml:space="preserve">
+    <value>{0} von {1} Seiten gelesen</value>
+    <comment>browse.pagesRead %lld %lld</comment>
+  </data>
   <data name="car_audiobooks" xml:space="preserve">
     <value>Hörbücher</value>
     <comment>car.audiobooks</comment>
@@ -457,6 +465,10 @@
   <data name="catalogue_untrusted_fingerprint" xml:space="preserve">
     <value>SHA-256-Fingerabdruck</value>
     <comment>catalogue.untrusted.fingerprint</comment>
+  </data>
+  <data name="catalogue_untrusted_fingerprint___" xml:space="preserve">
+    <value>Fingerabdruck des Zertifikats: {0}</value>
+    <comment>catalogue.untrusted.fingerprint %@</comment>
   </data>
   <data name="catalogue_untrusted_title" xml:space="preserve">
     <value>Das Zertifikat dieses Servers ist nicht vertrauenswürdig</value>
@@ -866,6 +878,34 @@
     <value>Das lässt sich erst öffnen, wenn es auf diesem Gerät ist ({0}).</value>
     <comment>detail.unavailable.sized %@</comment>
   </data>
+  <data name="diagnostics_cannotWrite___" xml:space="preserve">
+    <value>StoryArc kann nicht in {0} schreiben. Wählen Sie einen anderen Ort.</value>
+    <comment>diagnostics.cannotWrite %@</comment>
+  </data>
+  <data name="diagnostics_cannotWrite_title" xml:space="preserve">
+    <value>Speichern nicht möglich</value>
+    <comment>diagnostics.cannotWrite.title</comment>
+  </data>
+  <data name="diagnostics_chooseAnother" xml:space="preserve">
+    <value>Anderen Ort wählen</value>
+    <comment>diagnostics.chooseAnother</comment>
+  </data>
+  <data name="diagnostics_note" xml:space="preserve">
+    <value>Zuerst wird alles angezeigt. Passwörter, Token und Servernamen werden entfernt.</value>
+    <comment>diagnostics.note</comment>
+  </data>
+  <data name="diagnostics_save" xml:space="preserve">
+    <value>Speichern…</value>
+    <comment>diagnostics.save</comment>
+  </data>
+  <data name="diagnostics_saved___" xml:space="preserve">
+    <value>Gespeichert unter {0}</value>
+    <comment>diagnostics.saved %@</comment>
+  </data>
+  <data name="diagnostics_title" xml:space="preserve">
+    <value>Diagnose exportieren</value>
+    <comment>diagnostics.title</comment>
+  </data>
   <data name="downloads_actions___" xml:space="preserve">
     <value>Aktionen für „{0}“</value>
     <comment>downloads.actions %@</comment>
@@ -901,6 +941,14 @@
   <data name="downloads_cancelAll_title" xml:space="preserve">
     <value>Alle Downloads stoppen?</value>
     <comment>downloads.cancelAll.title</comment>
+  </data>
+  <data name="downloads_clear_body" xml:space="preserve">
+    <value>Das löscht die heruntergeladenen Kopien auf diesem Gerät und stoppt, was gerade geladen wird. Ihre Lesepositionen bleiben erhalten, und jeder Titel kann erneut geladen werden.</value>
+    <comment>downloads.clear.body</comment>
+  </data>
+  <data name="downloads_clear_title" xml:space="preserve">
+    <value>Alle Downloads entfernen?</value>
+    <comment>downloads.clear.title</comment>
   </data>
   <data name="downloads_empty" xml:space="preserve">
     <value>Noch nichts auf diesem Gerät. Ein Buch, das Sie aus einer Online-Bibliothek öffnen, wird hier behalten.</value>
@@ -1006,6 +1054,14 @@
     <value>Zu wenig Speicher auf dem Gerät</value>
     <comment>downloads.paused.outOfSpace</comment>
   </data>
+  <data name="downloads_paused_waitingForMetered" xml:space="preserve">
+    <value>Wartet auf eine nicht getaktete Verbindung</value>
+    <comment>downloads.paused.waitingForMetered</comment>
+  </data>
+  <data name="downloads_paused_waitingForNetwork" xml:space="preserve">
+    <value>Wartet auf eine Verbindung</value>
+    <comment>downloads.paused.waitingForNetwork</comment>
+  </data>
   <data name="downloads_paused_waitingForWiFi" xml:space="preserve">
     <value>Wartet auf WLAN</value>
     <comment>downloads.paused.waitingForWiFi</comment>
@@ -1033,6 +1089,22 @@
   <data name="downloads_queued__lld_other" xml:space="preserve">
     <value>{0} weitere warten</value>
     <comment>downloads.queued %lld (other)</comment>
+  </data>
+  <data name="downloads_queuedLabel" xml:space="preserve">
+    <value>In Downloads</value>
+    <comment>downloads.queuedLabel</comment>
+  </data>
+  <data name="downloads_quit_body" xml:space="preserve">
+    <value>Der Download wird pausiert, wenn StoryArc beendet wird, und setzt sich beim nächsten Öffnen von StoryArc dort fort, wo er angehalten hat. Der bereits geladene Teil bleibt erhalten.</value>
+    <comment>downloads.quit.body</comment>
+  </data>
+  <data name="downloads_quit_title__lld_one" xml:space="preserve">
+    <value>Ein Download läuft</value>
+    <comment>downloads.quit.title %lld (one)</comment>
+  </data>
+  <data name="downloads_quit_title__lld_other" xml:space="preserve">
+    <value>Downloads laufen</value>
+    <comment>downloads.quit.title %lld (other)</comment>
   </data>
   <data name="downloads_remove" xml:space="preserve">
     <value>Download entfernen</value>
@@ -1105,6 +1177,14 @@
   <data name="downloads_undo" xml:space="preserve">
     <value>Rückgängig</value>
     <comment>downloads.undo</comment>
+  </data>
+  <data name="downloads_unmetered" xml:space="preserve">
+    <value>Auf getakteter Verbindung warten</value>
+    <comment>downloads.unmetered</comment>
+  </data>
+  <data name="downloads_unmetered_note" xml:space="preserve">
+    <value>Bei einer Verbindung, die Ihr System als getaktet kennzeichnet, warten Downloads, die Sie nicht von Hand gestartet haben.</value>
+    <comment>downloads.unmetered.note</comment>
   </data>
   <data name="downloads_wifiOnly" xml:space="preserve">
     <value>Nur über WLAN herunterladen</value>
@@ -1226,6 +1306,10 @@
     <value>Hinzufügen</value>
     <comment>kavita.add</comment>
   </data>
+  <data name="kavita_add_title" xml:space="preserve">
+    <value>Kavita-Bibliothek hinzufügen</value>
+    <comment>kavita.add.title</comment>
+  </data>
   <data name="kavita_addToList___" xml:space="preserve">
     <value>Zu „{0}“ hinzufügen</value>
     <comment>kavita.addToList %@</comment>
@@ -1257,6 +1341,10 @@
   <data name="kavita_bulk_unreachable___" xml:space="preserve">
     <value>{0} hat nicht geantwortet, daher wurde nichts gestartet.</value>
     <comment>kavita.bulk.unreachable %@</comment>
+  </data>
+  <data name="kavita_chapter_number___" xml:space="preserve">
+    <value>Kapitel {0}</value>
+    <comment>kavita.chapter.number %@</comment>
   </data>
   <data name="kavita_chapter_unnumbered" xml:space="preserve">
     <value>Ohne Nummer</value>
@@ -1962,6 +2050,14 @@
     <value>Zuletzt verwendet</value>
     <comment>menu.openRecent</comment>
   </data>
+  <data name="menu_quit" xml:space="preserve">
+    <value>Beenden</value>
+    <comment>menu.quit</comment>
+  </data>
+  <data name="network_starting" xml:space="preserve">
+    <value>StoryArc startet noch. Versuchen Sie es gleich noch einmal.</value>
+    <comment>network.starting</comment>
+  </data>
   <data name="open_in_damaged___" xml:space="preserve">
     <value>{0} konnte nicht gelesen werden. Es ist möglicherweise beschädigt.</value>
     <comment>open.in.damaged %@</comment>
@@ -2286,6 +2382,14 @@
     <value>Farben umkehren</value>
     <comment>reader.adjust.invert</comment>
   </data>
+  <data name="reader_adjust_look" xml:space="preserve">
+    <value>Aussehen</value>
+    <comment>reader.adjust.look</comment>
+  </data>
+  <data name="reader_adjust_menu" xml:space="preserve">
+    <value>Bildanpassungen…</value>
+    <comment>reader.adjust.menu</comment>
+  </data>
   <data name="reader_adjust_reset" xml:space="preserve">
     <value>Anpassungen zurücksetzen</value>
     <comment>reader.adjust.reset</comment>
@@ -2297,6 +2401,22 @@
   <data name="reader_adjust_sharpness" xml:space="preserve">
     <value>Schärfe</value>
     <comment>reader.adjust.sharpness</comment>
+  </data>
+  <data name="reader_adjust_title" xml:space="preserve">
+    <value>Bildanpassungen</value>
+    <comment>reader.adjust.title</comment>
+  </data>
+  <data name="reader_adjust_tone" xml:space="preserve">
+    <value>Tonwerte</value>
+    <comment>reader.adjust.tone</comment>
+  </data>
+  <data name="reader_adjust_trim" xml:space="preserve">
+    <value>Seitenränder beschneiden</value>
+    <comment>reader.adjust.trim</comment>
+  </data>
+  <data name="reader_adjust_trimHere" xml:space="preserve">
+    <value>Diese Seite beschneiden</value>
+    <comment>reader.adjust.trimHere</comment>
   </data>
   <data name="reader_bookmark_add" xml:space="preserve">
     <value>Diese Seite als Lesezeichen speichern</value>
@@ -2353,6 +2473,10 @@
   <data name="reader_close" xml:space="preserve">
     <value>Schließen</value>
     <comment>reader.close</comment>
+  </data>
+  <data name="reader_current" xml:space="preserve">
+    <value>aktuelle Seite</value>
+    <comment>reader.current</comment>
   </data>
   <data name="reader_damaged" xml:space="preserve">
     <value>Diese Datei konnte nicht gelesen werden. Sie ist möglicherweise beschädigt.</value>
@@ -2413,6 +2537,14 @@
   <data name="reader_fit_width" xml:space="preserve">
     <value>Breite</value>
     <comment>reader.fit.width</comment>
+  </data>
+  <data name="reader_goToPage" xml:space="preserve">
+    <value>Gehe zu Seite</value>
+    <comment>reader.goToPage</comment>
+  </data>
+  <data name="reader_goToPage__lld" xml:space="preserve">
+    <value>Gehe zu Seite {0}</value>
+    <comment>reader.goToPage %lld</comment>
   </data>
   <data name="reader_leftToRight" xml:space="preserve">
     <value>Von links nach rechts</value>
@@ -2545,6 +2677,18 @@
   <data name="reader_pageLabel__lld__lld" xml:space="preserve">
     <value>Seite {0} von {1}</value>
     <comment>reader.pageLabel %lld %lld</comment>
+  </data>
+  <data name="reader_pageOfCount" xml:space="preserve">
+    <value>{0} von {1}</value>
+    <comment>reader.pageOfCount</comment>
+  </data>
+  <data name="reader_pageTurn" xml:space="preserve">
+    <value>Seitenwechsel</value>
+    <comment>reader.pageTurn</comment>
+  </data>
+  <data name="reader_pageTurn_curl_later" xml:space="preserve">
+    <value>Das Blättern kommt in einer späteren Version auf Linux</value>
+    <comment>reader.pageTurn.curl.later</comment>
   </data>
   <data name="reader_pageUnavailable" xml:space="preserve">
     <value>Diese Seite konnte nicht gelesen werden</value>
@@ -2682,6 +2826,18 @@
     <value>Von rechts nach links</value>
     <comment>reader.rightToLeft</comment>
   </data>
+  <data name="reader_scroll_gap" xml:space="preserve">
+    <value>Abstand zwischen den Seiten</value>
+    <comment>reader.scroll.gap</comment>
+  </data>
+  <data name="reader_scroll_horizontal" xml:space="preserve">
+    <value>Horizontal scrollen</value>
+    <comment>reader.scroll.horizontal</comment>
+  </data>
+  <data name="reader_scroll_vertical" xml:space="preserve">
+    <value>Vertikal scrollen</value>
+    <comment>reader.scroll.vertical</comment>
+  </data>
   <data name="reader_separator" xml:space="preserve">
     <value>Seitentrenner anzeigen</value>
     <comment>reader.separator</comment>
@@ -2693,6 +2849,10 @@
   <data name="reader_skipped__lld_other" xml:space="preserve">
     <value>{0} Seiten übersprungen</value>
     <comment>reader.skipped %lld (other)</comment>
+  </data>
+  <data name="reader_slider" xml:space="preserve">
+    <value>Seite</value>
+    <comment>reader.slider</comment>
   </data>
   <data name="reader_solidArchive" xml:space="preserve">
     <value>Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht öffnen kann.</value>
@@ -2846,6 +3006,10 @@
     <value>Lautstärketasten können auf iOS nicht blättern: das System reserviert sie, und der einzige Umweg bricht, sobald etwas anderes Audio abspielt.</value>
     <comment>reading.volumeButtons.unavailable</comment>
   </data>
+  <data name="restore_missing" xml:space="preserve">
+    <value>Erneutes Öffnen nicht möglich: {0}</value>
+    <comment>restore.missing</comment>
+  </data>
   <data name="return_title" xml:space="preserve">
     <value>Zurück zu Ihrer Stelle</value>
     <comment>return.title</comment>
@@ -2897,6 +3061,18 @@
   <data name="search_waiting" xml:space="preserve">
     <value>Suche läuft…</value>
     <comment>search.waiting</comment>
+  </data>
+  <data name="secrets_denied" xml:space="preserve">
+    <value>Der Schlüsselbund wurde nicht entsperrt, daher wurde nichts gespeichert. Melden Sie sich erneut an, sobald er entsperrt ist.</value>
+    <comment>secrets.denied</comment>
+  </data>
+  <data name="secrets_flatpak" xml:space="preserve">
+    <value>Passwörter werden im verschlüsselten Schlüsselbund dieser App aufbewahrt, über das Secret-Portal des Desktops.</value>
+    <comment>secrets.flatpak</comment>
+  </data>
+  <data name="secrets_service" xml:space="preserve">
+    <value>Passwörter werden im Schlüsselbund Ihres Desktops aufbewahrt.</value>
+    <comment>secrets.service</comment>
   </data>
   <data name="settings_about" xml:space="preserve">
     <value>Über</value>
@@ -2958,6 +3134,10 @@
     <value>Seitenlayout</value>
     <comment>settings.layout</comment>
   </data>
+  <data name="settings_passwords" xml:space="preserve">
+    <value>Passwörter</value>
+    <comment>settings.passwords</comment>
+  </data>
   <data name="settings_privacy" xml:space="preserve">
     <value>Datenschutz</value>
     <comment>settings.privacy</comment>
@@ -3010,6 +3190,10 @@
     <value>{0} Bibliotheken</value>
     <comment>settings.sources.summary %lld (other)</comment>
   </data>
+  <data name="settings_storage" xml:space="preserve">
+    <value>Speicher</value>
+    <comment>settings.storage</comment>
+  </data>
   <data name="settings_title" xml:space="preserve">
     <value>Einstellungen</value>
     <comment>settings.title</comment>
@@ -3025,6 +3209,10 @@
   <data name="shelves_addTo______" xml:space="preserve">
     <value>Zu „{0}“ hinzufügen · {1}</value>
     <comment>shelves.addTo %@ %@</comment>
+  </data>
+  <data name="shelves_added___" xml:space="preserve">
+    <value>Zu {0} hinzugefügt</value>
+    <comment>shelves.added %@</comment>
   </data>
   <data name="shelves_bulk" xml:space="preserve">
     <value>Ganzes Regal</value>
@@ -3093,6 +3281,10 @@
   <data name="shelves_delete" xml:space="preserve">
     <value>Löschen</value>
     <comment>shelves.delete</comment>
+  </data>
+  <data name="shelves_delete_body" xml:space="preserve">
+    <value>Das Regal verschwindet. Die Titel darin bleiben in Ihrer Bibliothek, und Ihre Lesepositionen ebenfalls.</value>
+    <comment>shelves.delete.body</comment>
   </data>
   <data name="shelves_delete_collection_body" xml:space="preserve">
     <value>Die Bücher und Comics darin bleiben in Ihrer Bibliothek. Nur die Sammlung verschwindet.</value>
@@ -3169,6 +3361,14 @@
   <data name="shelves_onDevice__lld__lld" xml:space="preserve">
     <value>{0} von {1} auf diesem Gerät</value>
     <comment>shelves.onDevice %lld %lld</comment>
+  </data>
+  <data name="shelves_open" xml:space="preserve">
+    <value>Regal</value>
+    <comment>shelves.open</comment>
+  </data>
+  <data name="shelves_options" xml:space="preserve">
+    <value>Regaloptionen</value>
+    <comment>shelves.options</comment>
   </data>
   <data name="shelves_pending__lld_one" xml:space="preserve">
     <value>{0} Änderung noch nicht gespeichert</value>
@@ -3250,6 +3450,10 @@
     <value>{0} hat sie nicht, und StoryArc lädt niemals eine Datei hoch. Sie bleiben in der Liste auf diesem Gerät.</value>
     <comment>shelves.promote.why %@</comment>
   </data>
+  <data name="shelves_remove" xml:space="preserve">
+    <value>Vom Regal entfernen</value>
+    <comment>shelves.remove</comment>
+  </data>
   <data name="shelves_rename" xml:space="preserve">
     <value>Umbenennen</value>
     <comment>shelves.rename</comment>
@@ -3269,6 +3473,14 @@
   <data name="shelves_title" xml:space="preserve">
     <value>Regale</value>
     <comment>shelves.title</comment>
+  </data>
+  <data name="shelves_unavailable__lld_one" xml:space="preserve">
+    <value>{0} Titel ist gerade nicht auf diesem Gerät</value>
+    <comment>shelves.unavailable %lld (one)</comment>
+  </data>
+  <data name="shelves_unavailable__lld_other" xml:space="preserve">
+    <value>{0} Titel sind gerade nicht auf diesem Gerät</value>
+    <comment>shelves.unavailable %lld (other)</comment>
   </data>
   <data name="shelves_unpin" xml:space="preserve">
     <value>Von Start lösen</value>
@@ -3314,6 +3526,10 @@
     <value>Downloads</value>
     <comment>sidebar.downloads</comment>
   </data>
+  <data name="sidebar_libraries" xml:space="preserve">
+    <value>Bibliotheken</value>
+    <comment>sidebar.libraries</comment>
+  </data>
   <data name="sidebar_library" xml:space="preserve">
     <value>Bibliothek</value>
     <comment>sidebar.library</comment>
@@ -3334,9 +3550,17 @@
     <value>Verbinden</value>
     <comment>smb.connect</comment>
   </data>
+  <data name="smb_discovery_absent" xml:space="preserve">
+    <value>Dieses System meldet keine Freigaben an (Avahi läuft nicht). Geben Sie die Adresse daher von Hand ein.</value>
+    <comment>smb.discovery.absent</comment>
+  </data>
   <data name="smb_discovery_denied" xml:space="preserve">
     <value>Der Zugriff auf das lokale Netzwerk ist aus, deshalb findet StoryArc keine Freigaben. Schalten Sie ihn in Einstellungen unter Datenschutz &amp; Sicherheit, dann Lokales Netzwerk, wieder ein. Sie können eine Freigabe weiterhin von Hand hinzufügen.</value>
     <comment>smb.discovery.denied</comment>
+  </data>
+  <data name="smb_discovery_none" xml:space="preserve">
+    <value>In diesem Netzwerk wurden keine Freigaben angekündigt.</value>
+    <comment>smb.discovery.none</comment>
   </data>
   <data name="smb_downloadFirst_body______" xml:space="preserve">
     <value>„{0}“ lässt sich nicht direkt von der Freigabe öffnen: dieses Format braucht eine Datei auf dem Gerät. Sie ist {1} groß.</value>
@@ -3393,6 +3617,10 @@
   <data name="smb_error_unexpected" xml:space="preserve">
     <value>Die Freigabe konnte nicht erreicht werden.</value>
     <comment>smb.error.unexpected</comment>
+  </data>
+  <data name="smb_folder_label" xml:space="preserve">
+    <value>Ordner (optional)</value>
+    <comment>smb.folder.label</comment>
   </data>
   <data name="smb_found" xml:space="preserve">
     <value>In diesem Netzwerk</value>
@@ -3590,6 +3818,10 @@
     <value>Ein Computer in Ihrem Netzwerk</value>
     <comment>sources.add.share</comment>
   </data>
+  <data name="sources_added___" xml:space="preserve">
+    <value>Hinzugefügt: {0}</value>
+    <comment>sources.added %@</comment>
+  </data>
   <data name="sources_detail__lld_one" xml:space="preserve">
     <value>{0} Titel</value>
     <comment>sources.detail %lld (one)</comment>
@@ -3658,6 +3890,10 @@
     <value>Benötigt ein Zertifikat, dem Ihr Gerät bereits vertraut.</value>
     <comment>sources.kavita.systemTrust</comment>
   </data>
+  <data name="sources_needsSignIn" xml:space="preserve">
+    <value>Anmeldung nötig</value>
+    <comment>sources.needsSignIn</comment>
+  </data>
   <data name="sources_none" xml:space="preserve">
     <value>Noch keine Bibliotheken.</value>
     <comment>sources.none</comment>
@@ -3689,6 +3925,10 @@
   <data name="sources_remove_footer" xml:space="preserve">
     <value>Beim Entfernen einer Bibliothek wird gelöscht, was Sie daraus heruntergeladen haben, und Ihre Lesepositionen bleiben 30 Tage erhalten.</value>
     <comment>sources.remove.footer</comment>
+  </data>
+  <data name="sources_remove_kept" xml:space="preserve">
+    <value>Die Dateien bleiben, wo sie sind, und Ihre Lesepositionen ebenfalls.</value>
+    <comment>sources.remove.kept</comment>
   </data>
   <data name="sources_remove_title___" xml:space="preserve">
     <value>{0} entfernen?</value>
@@ -3722,6 +3962,10 @@
     <value>Umbenennen</value>
     <comment>sources.rename.title</comment>
   </data>
+  <data name="sources_signIn_remedy" xml:space="preserve">
+    <value>Entfernen Sie diese Bibliothek und fügen Sie sie erneut hinzu, um sich anzumelden</value>
+    <comment>sources.signIn.remedy</comment>
+  </data>
   <data name="sources_state_connected" xml:space="preserve">
     <value>Verfügbar</value>
     <comment>sources.state.connected</comment>
@@ -3737,6 +3981,30 @@
   <data name="sources_state_unreachable" xml:space="preserve">
     <value>Keine Antwort</value>
     <comment>sources.state.unreachable</comment>
+  </data>
+  <data name="sources_unreachable" xml:space="preserve">
+    <value>Momentan nicht verfügbar</value>
+    <comment>sources.unreachable</comment>
+  </data>
+  <data name="storage_diskFull" xml:space="preserve">
+    <value>Der Datenträger ist voll. StoryArc hat behalten, was es hatte. Das Leeren des Cover-Caches oder das Entfernen eines Downloads schafft Platz.</value>
+    <comment>storage.diskFull</comment>
+  </data>
+  <data name="storage_downloads" xml:space="preserve">
+    <value>Downloads</value>
+    <comment>storage.downloads</comment>
+  </data>
+  <data name="storage_records" xml:space="preserve">
+    <value>Bibliothekseinträge</value>
+    <comment>storage.records</comment>
+  </data>
+  <data name="storage_where" xml:space="preserve">
+    <value>StoryArc legt seine Daten in Ihren eigenen Ordnern ab. Nichts davon wird zwischen Rechnern synchronisiert.</value>
+    <comment>storage.where</comment>
+  </data>
+  <data name="storage_writeFailed" xml:space="preserve">
+    <value>StoryArc konnte das nicht speichern.</value>
+    <comment>storage.writeFailed</comment>
   </data>
   <data name="sync_about" xml:space="preserve">
     <value>Halten Sie Lesepositionen, Regale und Einstellungen auf allen Ihren Geräten gleich, über einen Ort Ihrer Wahl.</value>
@@ -3826,6 +4094,10 @@
     <value>Die Synchronisierungsdatei ist keine StoryArc-Bibliothek. Es wurde nichts geändert.</value>
     <comment>sync.status.notLibrary</comment>
   </data>
+  <data name="sync_status_synced" xml:space="preserve">
+    <value>Synchronisiert</value>
+    <comment>sync.status.synced</comment>
+  </data>
   <data name="sync_status_synced_on___" xml:space="preserve">
     <value>Synchronisiert am {0}</value>
     <comment>sync.status.synced.on %@</comment>
@@ -3838,9 +4110,17 @@
     <value>Wird synchronisiert …</value>
     <comment>sync.status.syncing</comment>
   </data>
+  <data name="sync_status_timedOut" xml:space="preserve">
+    <value>Der Synchronisierungsordner hat nicht rechtzeitig geantwortet. StoryArc synchronisiert beim nächsten Mal erneut.</value>
+    <comment>sync.status.timedOut</comment>
+  </data>
   <data name="sync_status_unreachable___" xml:space="preserve">
     <value>{0} ist nicht erreichbar. StoryArc synchronisiert wieder, sobald der Ort erreichbar ist.</value>
     <comment>sync.status.unreachable %@</comment>
+  </data>
+  <data name="sync_status_unreachable_place" xml:space="preserve">
+    <value>Der Synchronisierungsordner ist nicht erreichbar. StoryArc synchronisiert erneut, sobald es möglich ist.</value>
+    <comment>sync.status.unreachable.place</comment>
   </data>
   <data name="sync_title" xml:space="preserve">
     <value>Synchronisierung</value>
@@ -4061,6 +4341,10 @@
   <data name="theme_pageTurn_scroll" xml:space="preserve">
     <value>Fortlaufendes Scrollen</value>
     <comment>theme.pageTurn.scroll</comment>
+  </data>
+  <data name="theme_pageTurn_slide" xml:space="preserve">
+    <value>Schieben</value>
+    <comment>theme.pageTurn.slide</comment>
   </data>
   <data name="theme_preset_bold" xml:space="preserve">
     <value>Kräftig</value>
