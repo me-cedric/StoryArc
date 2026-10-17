@@ -13,6 +13,8 @@ using StoryArc.Windows.Library;
 using StoryArc.Windows.Shell;
 using Windows.ApplicationModel;
 using Windows.System;
+// System.Globalization (CultureInfo, above) also declares a SortKey class: CS0104 without this alias.
+using SortKey = StoryArc.Interop.Library.SortKey;
 
 namespace StoryArc.Windows;
 
@@ -487,8 +489,11 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var destination = args.SelectedItem == LibraryItem ? LibraryDestination.Library
-            : args.SelectedItem == OnDeviceItem ? LibraryDestination.Downloads
+        // SelectedItem is an object; the menu items are NavigationViewItem, which declares its own ==.
+        // Cast first, as CS0252 asks, so the comparison is the item's own and not an object reference.
+        var selected = args.SelectedItem as NavigationViewItem;
+        var destination = selected == LibraryItem ? LibraryDestination.Library
+            : selected == OnDeviceItem ? LibraryDestination.Downloads
             : LibraryDestination.Home;
         _isShowingDetail = false;
         _isShowingPreferences = false;
