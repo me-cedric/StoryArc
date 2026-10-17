@@ -15,6 +15,7 @@ struct SettingsTabContent: View {
             case .downloads: DownloadsSettingsTab()
             case .language: LanguageSettingsTab()
             case .privacy: PrivacySettingsTab(library: library)
+            case .about: AboutSettingsTab()
             }
         }
         .formStyle(.grouped)
@@ -168,6 +169,7 @@ private struct PrivacySettingsTab: View {
     let library: MacLibrary
 
     @State private var isConfirmingClear = false
+    @State private var isConfirmingReset = false
 
     var body: some View {
         Section {
@@ -181,6 +183,17 @@ private struct PrivacySettingsTab: View {
         }
         Section {
             Text("desktop.privacy.diagnosticLater").foregroundStyle(.secondary)
+        }
+        Section {
+            Button(role: .destructive) { isConfirmingReset = true } label: { Text("desktop.settings.reset") }
+                // `settings-and-about`, *Resetting*: confirmed, and saying what it leaves alone.
+                .confirmationDialog(Text("desktop.settings.reset"), isPresented: $isConfirmingReset) {
+                    Button(role: .destructive) { MacSettings.shared.reset() } label: {
+                        Text("desktop.settings.reset.confirm")
+                    }
+                } message: {
+                    Text("desktop.settings.reset.body")
+                }
         }
     }
 

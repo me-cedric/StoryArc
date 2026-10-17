@@ -109,7 +109,7 @@ extension WindowWalks {
             ShellWalk.openSettings()
             let window = try #require(await Walk.until { ShellWalk.visibleWindows().first { !before.contains($0) } })
             var methods: [String] = []
-            for tab in [SettingsTab.appearance, .reading] {
+            for tab in [SettingsTab.appearance, .reading, .privacy, .about] {
                 MacSettings.shared.settingsTab = tab
                 try await Task.sleep(for: .milliseconds(600))
                 let file = folder.appending(path: "settings-\(tab.rawValue)-\(suffix).png")

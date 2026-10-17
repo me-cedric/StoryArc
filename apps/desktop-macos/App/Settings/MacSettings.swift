@@ -85,6 +85,18 @@ final class MacSettings {
         textSize = ChromeTextSize(rawValue: defaults.string(forKey: ChromeTextSize.defaultsKey) ?? "") ?? .default
         coverAlone = defaults.object(forKey: Self.coverAloneKey) as? Bool ?? true
     }
+
+    /// Every preference back to its default: `settings-and-about`, *Resetting*. The folders,
+    /// the downloads and the reading progress live elsewhere and are not touched, which is
+    /// what the confirmation says. The app's language follows the system again.
+    func reset() {
+        store.reset()
+        settings = store.settings()
+        accent = .brand
+        textSize = .default
+        coverAlone = true
+        InterfaceLanguage.choose(settings.language)
+    }
 }
 
 /// The colour the chrome uses now, following the system accent live when asked to.

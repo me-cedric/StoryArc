@@ -58,6 +58,11 @@ struct StoryArcMacCommands: Commands {
     @FocusedValue(\.readerActions) private var reader
 
     var body: some Commands {
+        // `settings-and-about`, *About*: the app menu's About opens the About tab, which
+        // carries what the system panel cannot (the byline, the support link, the licences).
+        CommandGroup(replacing: .appInfo) {
+            AboutMenuItem()
+        }
         CommandGroup(after: .newItem) {
             item("openFile") { (library?.openFile ?? reader?.openFile)?() }
             item("addFolder") { (library?.addFolder ?? reader?.addFolder)?() }
@@ -130,5 +135,19 @@ struct StoryArcMacCommands: Commands {
         if command.modifiers.contains(.option) { modifiers.insert(.option) }
         if command.modifiers.contains(.control) { modifiers.insert(.control) }
         return KeyboardShortcut(KeyEquivalent(key), modifiers: modifiers)
+    }
+}
+
+/// *About StoryArc*, opening the preferences on their About tab.
+private struct AboutMenuItem: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Button {
+            MacSettings.shared.settingsTab = .about
+            openSettings()
+        } label: {
+            Text("desktop.menu.about")
+        }
     }
 }

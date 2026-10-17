@@ -2,7 +2,7 @@ import Foundation
 
 /// The tabs of the preferences window, in toolbar order.
 enum SettingsTab: String, CaseIterable, Sendable, Identifiable {
-    case sources, appearance, reading, downloads, language, privacy
+    case sources, appearance, reading, downloads, language, privacy, about
 
     var id: String { rawValue }
 
@@ -16,6 +16,7 @@ enum SettingsTab: String, CaseIterable, Sendable, Identifiable {
         case .downloads: "arrow.down.circle"
         case .language: "globe"
         case .privacy: "hand.raised"
+        case .about: "info.circle"
         }
     }
 }
@@ -40,6 +41,7 @@ struct SettingsEntry: Identifiable, Equatable, Sendable {
         "transition": "desktop.reading.transition", "coverAlone": "desktop.reader.coverAlone",
         "metered": "desktop.downloads.metered", "language": "desktop.settings.language",
         "history": "desktop.privacy.clearHistory", "diagnostic": "desktop.settings.entry.diagnostic",
+        "reset": "desktop.settings.reset", "about": "desktop.settings.about",
     ]
 }
 
@@ -68,6 +70,9 @@ enum SettingsIndex {
                       keywords: ["english", "french", "german", "spanish"]),
         SettingsEntry(id: "history", tab: .privacy, title: "Reading history", keywords: ["clear", "privacy", "recent"]),
         SettingsEntry(id: "diagnostic", tab: .privacy, title: "Diagnostic", keywords: ["export", "problem", "report"]),
+        SettingsEntry(id: "reset", tab: .privacy, title: "Reset settings", keywords: ["defaults", "restore", "reset"]),
+        SettingsEntry(id: "about", tab: .about, title: "About StoryArc",
+                      keywords: ["version", "licence", "license", "acknowledgements", "support", "report", "author"]),
     ]
 
     /// The entries that match, in index order. Everything for an empty query.

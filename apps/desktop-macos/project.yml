@@ -32,6 +32,9 @@ packages:
   # products it needs; wave 2 adds the format layer and the comic reader's model.
   StoryArcKit:
     path: ../ios/Packages/StoryArcKit
+  # The licence inventory the phone apps read, for the About tab's acknowledgements.
+  licences:
+    path: ../../packages/licences
 
 targets:
   StoryArc:
@@ -108,6 +111,8 @@ targets:
         product: Formats
       - package: StoryArcKit
         product: ReaderFeature
+      - package: licences
+        product: StoryArcLicences
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
@@ -162,6 +167,8 @@ targets:
         product: StoryArcCore
       - package: StoryArcKit
         product: Formats
+      - package: licences
+        product: StoryArcLicences
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.Tests
