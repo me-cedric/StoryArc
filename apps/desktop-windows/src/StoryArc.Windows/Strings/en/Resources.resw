@@ -602,6 +602,10 @@
     <value>The disk is full. Free up space or clear a cache, then retry.</value>
     <comment>desktop.w3.downloads.diskFull</comment>
   </data>
+  <data name="desktop_w3_downloads_inProgress___" xml:space="preserve">
+    <value>In progress ({0})</value>
+    <comment>desktop.w3.downloads.inProgress___</comment>
+  </data>
   <data name="desktop_w3_downloads_metered" xml:space="preserve">
     <value>This connection is metered, so downloads you did not start wait. You can still start one yourself.</value>
     <comment>desktop.w3.downloads.metered</comment>
@@ -609,6 +613,10 @@
   <data name="desktop_w3_downloads_queueEmpty" xml:space="preserve">
     <value>Nothing is waiting to download.</value>
     <comment>desktop.w3.downloads.queueEmpty</comment>
+  </data>
+  <data name="desktop_w3_downloads_queued" xml:space="preserve">
+    <value>Waiting its turn</value>
+    <comment>desktop.w3.downloads.queued</comment>
   </data>
   <data name="desktop_w3_downloads_quitBody" xml:space="preserve">
     <value>A download is in progress. It pauses, keeps what it has, and resumes the next time StoryArc opens.</value>
@@ -630,6 +638,10 @@
     <value>Waiting for a connection</value>
     <comment>desktop.w3.downloads.waitingForConnection</comment>
   </data>
+  <data name="desktop_w3_downloads_waitingForUnmetered" xml:space="preserve">
+    <value>Waiting for an unmetered connection</value>
+    <comment>desktop.w3.downloads.waitingForUnmetered</comment>
+  </data>
   <data name="desktop_w3_downloads_willRetry" xml:space="preserve">
     <value>Will try again in a moment.</value>
     <comment>desktop.w3.downloads.willRetry</comment>
@@ -642,9 +654,29 @@
     <value>Someone changed “{0}” on the server first, so your waiting additions were dropped: {1}.</value>
     <comment>desktop.w3.shelves.conflictBody___</comment>
   </data>
+  <data name="desktop_w3_shelves_newCollectionName" xml:space="preserve">
+    <value>New collection</value>
+    <comment>desktop.w3.shelves.newCollectionName</comment>
+  </data>
+  <data name="desktop_w3_shelves_newListName" xml:space="preserve">
+    <value>New reading list</value>
+    <comment>desktop.w3.shelves.newListName</comment>
+  </data>
   <data name="desktop_w3_shelves_none" xml:space="preserve">
     <value>No shelves yet. Create a collection or a reading list.</value>
     <comment>desktop.w3.shelves.none</comment>
+  </data>
+  <data name="desktop_w3_shelves_notHere" xml:space="preserve">
+    <value>Not available now</value>
+    <comment>desktop.w3.shelves.notHere</comment>
+  </data>
+  <data name="desktop_w3_shelves_openShelf" xml:space="preserve">
+    <value>Open</value>
+    <comment>desktop.w3.shelves.openShelf</comment>
+  </data>
+  <data name="desktop_w3_shelves_setCover" xml:space="preserve">
+    <value>Use as the cover</value>
+    <comment>desktop.w3.shelves.setCover</comment>
   </data>
   <data name="desktop_w3_sources_browse" xml:space="preserve">
     <value>Browse</value>
@@ -686,6 +718,10 @@
     <value>Clear</value>
     <comment>desktop.w3.storage.clear</comment>
   </data>
+  <data name="desktop_w3_storage_clearAtNextStart" xml:space="preserve">
+    <value>These records are in use now, so they are cleared the next time StoryArc starts.</value>
+    <comment>desktop.w3.storage.clearAtNextStart</comment>
+  </data>
   <data name="desktop_w3_storage_clearFailed___" xml:space="preserve">
     <value>Could not clear it: {0}.</value>
     <comment>desktop.w3.storage.clearFailed___</comment>
@@ -717,6 +753,14 @@
   <data name="desktop_w3_sync_chooseFolder" xml:space="preserve">
     <value>Choose the sync folder</value>
     <comment>desktop.w3.sync.chooseFolder</comment>
+  </data>
+  <data name="desktop_w3_sync_folder___" xml:space="preserve">
+    <value>Sync folder: {0}</value>
+    <comment>desktop.w3.sync.folder___</comment>
+  </data>
+  <data name="desktop_w3_sync_noFolder" xml:space="preserve">
+    <value>No sync folder chosen</value>
+    <comment>desktop.w3.sync.noFolder</comment>
   </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Finished</value>

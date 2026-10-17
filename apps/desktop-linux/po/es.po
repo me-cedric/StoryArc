@@ -475,11 +475,18 @@ msgstr "Guardado en %s."
 msgid "desktop.w3.downloads.diskFull"
 msgstr "El disco está lleno. Libera espacio o vacía una caché y vuelve a intentarlo."
 
+#, c-format
+msgid "desktop.w3.downloads.inProgress___"
+msgstr "En curso (%s)"
+
 msgid "desktop.w3.downloads.metered"
 msgstr "Esta conexión tiene tarifa limitada, así que las descargas que no iniciaste esperan. Aún puedes iniciar una tú."
 
 msgid "desktop.w3.downloads.queueEmpty"
 msgstr "No hay nada esperando para descargarse."
+
+msgid "desktop.w3.downloads.queued"
+msgstr "Esperando su turno"
 
 msgid "desktop.w3.downloads.quitBody"
 msgstr "Hay una descarga en curso. Se pausa, conserva lo descargado y continúa la próxima vez que abras StoryArc."
@@ -496,6 +503,9 @@ msgstr "La fuente rechazó el inicio de sesión."
 msgid "desktop.w3.downloads.waitingForConnection"
 msgstr "Esperando una conexión"
 
+msgid "desktop.w3.downloads.waitingForUnmetered"
+msgstr "Esperando una conexión sin límite de datos"
+
 msgid "desktop.w3.downloads.willRetry"
 msgstr "Se volverá a intentar en un momento."
 
@@ -506,8 +516,23 @@ msgstr "Añadir a estante"
 msgid "desktop.w3.shelves.conflictBody___"
 msgstr "Alguien cambió «%s» antes en el servidor, así que se descartaron tus adiciones pendientes: %s."
 
+msgid "desktop.w3.shelves.newCollectionName"
+msgstr "Nueva colección"
+
+msgid "desktop.w3.shelves.newListName"
+msgstr "Nueva lista de lectura"
+
 msgid "desktop.w3.shelves.none"
 msgstr "Aún no hay estantes. Crea una colección o una lista de lectura."
+
+msgid "desktop.w3.shelves.notHere"
+msgstr "No disponible ahora"
+
+msgid "desktop.w3.shelves.openShelf"
+msgstr "Abrir"
+
+msgid "desktop.w3.shelves.setCover"
+msgstr "Usar como portada"
 
 msgid "desktop.w3.sources.browse"
 msgstr "Explorar"
@@ -540,6 +565,9 @@ msgstr "Probar la conexión"
 msgid "desktop.w3.storage.clear"
 msgstr "Vaciar"
 
+msgid "desktop.w3.storage.clearAtNextStart"
+msgstr "Estos registros están en uso, así que se vacían la próxima vez que se inicie StoryArc."
+
 #, c-format
 msgid "desktop.w3.storage.clearFailed___"
 msgstr "No se pudo vaciar: %s."
@@ -566,6 +594,13 @@ msgstr "Guardado en %s, que Windows no sincroniza con otros equipos."
 
 msgid "desktop.w3.sync.chooseFolder"
 msgstr "Elegir la carpeta de sincronización"
+
+#, c-format
+msgid "desktop.w3.sync.folder___"
+msgstr "Carpeta de sincronización: %s"
+
+msgid "desktop.w3.sync.noFolder"
+msgstr "No se eligió carpeta de sincronización"
 
 msgid "detail.chapter.finished"
 msgstr "Terminado"

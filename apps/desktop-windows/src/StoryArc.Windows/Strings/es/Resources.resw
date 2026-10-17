@@ -602,6 +602,10 @@
     <value>El disco está lleno. Libera espacio o vacía una caché y vuelve a intentarlo.</value>
     <comment>desktop.w3.downloads.diskFull</comment>
   </data>
+  <data name="desktop_w3_downloads_inProgress___" xml:space="preserve">
+    <value>En curso ({0})</value>
+    <comment>desktop.w3.downloads.inProgress___</comment>
+  </data>
   <data name="desktop_w3_downloads_metered" xml:space="preserve">
     <value>Esta conexión tiene tarifa limitada, así que las descargas que no iniciaste esperan. Aún puedes iniciar una tú.</value>
     <comment>desktop.w3.downloads.metered</comment>
@@ -609,6 +613,10 @@
   <data name="desktop_w3_downloads_queueEmpty" xml:space="preserve">
     <value>No hay nada esperando para descargarse.</value>
     <comment>desktop.w3.downloads.queueEmpty</comment>
+  </data>
+  <data name="desktop_w3_downloads_queued" xml:space="preserve">
+    <value>Esperando su turno</value>
+    <comment>desktop.w3.downloads.queued</comment>
   </data>
   <data name="desktop_w3_downloads_quitBody" xml:space="preserve">
     <value>Hay una descarga en curso. Se pausa, conserva lo descargado y continúa la próxima vez que abras StoryArc.</value>
@@ -630,6 +638,10 @@
     <value>Esperando una conexión</value>
     <comment>desktop.w3.downloads.waitingForConnection</comment>
   </data>
+  <data name="desktop_w3_downloads_waitingForUnmetered" xml:space="preserve">
+    <value>Esperando una conexión sin límite de datos</value>
+    <comment>desktop.w3.downloads.waitingForUnmetered</comment>
+  </data>
   <data name="desktop_w3_downloads_willRetry" xml:space="preserve">
     <value>Se volverá a intentar en un momento.</value>
     <comment>desktop.w3.downloads.willRetry</comment>
@@ -642,9 +654,29 @@
     <value>Alguien cambió «{0}» antes en el servidor, así que se descartaron tus adiciones pendientes: {1}.</value>
     <comment>desktop.w3.shelves.conflictBody___</comment>
   </data>
+  <data name="desktop_w3_shelves_newCollectionName" xml:space="preserve">
+    <value>Nueva colección</value>
+    <comment>desktop.w3.shelves.newCollectionName</comment>
+  </data>
+  <data name="desktop_w3_shelves_newListName" xml:space="preserve">
+    <value>Nueva lista de lectura</value>
+    <comment>desktop.w3.shelves.newListName</comment>
+  </data>
   <data name="desktop_w3_shelves_none" xml:space="preserve">
     <value>Aún no hay estantes. Crea una colección o una lista de lectura.</value>
     <comment>desktop.w3.shelves.none</comment>
+  </data>
+  <data name="desktop_w3_shelves_notHere" xml:space="preserve">
+    <value>No disponible ahora</value>
+    <comment>desktop.w3.shelves.notHere</comment>
+  </data>
+  <data name="desktop_w3_shelves_openShelf" xml:space="preserve">
+    <value>Abrir</value>
+    <comment>desktop.w3.shelves.openShelf</comment>
+  </data>
+  <data name="desktop_w3_shelves_setCover" xml:space="preserve">
+    <value>Usar como portada</value>
+    <comment>desktop.w3.shelves.setCover</comment>
   </data>
   <data name="desktop_w3_sources_browse" xml:space="preserve">
     <value>Explorar</value>
@@ -686,6 +718,10 @@
     <value>Vaciar</value>
     <comment>desktop.w3.storage.clear</comment>
   </data>
+  <data name="desktop_w3_storage_clearAtNextStart" xml:space="preserve">
+    <value>Estos registros están en uso, así que se vacían la próxima vez que se inicie StoryArc.</value>
+    <comment>desktop.w3.storage.clearAtNextStart</comment>
+  </data>
   <data name="desktop_w3_storage_clearFailed___" xml:space="preserve">
     <value>No se pudo vaciar: {0}.</value>
     <comment>desktop.w3.storage.clearFailed___</comment>
@@ -717,6 +753,14 @@
   <data name="desktop_w3_sync_chooseFolder" xml:space="preserve">
     <value>Elegir la carpeta de sincronización</value>
     <comment>desktop.w3.sync.chooseFolder</comment>
+  </data>
+  <data name="desktop_w3_sync_folder___" xml:space="preserve">
+    <value>Carpeta de sincronización: {0}</value>
+    <comment>desktop.w3.sync.folder___</comment>
+  </data>
+  <data name="desktop_w3_sync_noFolder" xml:space="preserve">
+    <value>No se eligió carpeta de sincronización</value>
+    <comment>desktop.w3.sync.noFolder</comment>
   </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Terminado</value>

@@ -475,11 +475,18 @@ msgstr "Saved to %s."
 msgid "desktop.w3.downloads.diskFull"
 msgstr "The disk is full. Free up space or clear a cache, then retry."
 
+#, c-format
+msgid "desktop.w3.downloads.inProgress___"
+msgstr "In progress (%s)"
+
 msgid "desktop.w3.downloads.metered"
 msgstr "This connection is metered, so downloads you did not start wait. You can still start one yourself."
 
 msgid "desktop.w3.downloads.queueEmpty"
 msgstr "Nothing is waiting to download."
+
+msgid "desktop.w3.downloads.queued"
+msgstr "Waiting its turn"
 
 msgid "desktop.w3.downloads.quitBody"
 msgstr "A download is in progress. It pauses, keeps what it has, and resumes the next time StoryArc opens."
@@ -496,6 +503,9 @@ msgstr "The source refused the sign-in."
 msgid "desktop.w3.downloads.waitingForConnection"
 msgstr "Waiting for a connection"
 
+msgid "desktop.w3.downloads.waitingForUnmetered"
+msgstr "Waiting for an unmetered connection"
+
 msgid "desktop.w3.downloads.willRetry"
 msgstr "Will try again in a moment."
 
@@ -506,8 +516,23 @@ msgstr "Add to shelf"
 msgid "desktop.w3.shelves.conflictBody___"
 msgstr "Someone changed “%s” on the server first, so your waiting additions were dropped: %s."
 
+msgid "desktop.w3.shelves.newCollectionName"
+msgstr "New collection"
+
+msgid "desktop.w3.shelves.newListName"
+msgstr "New reading list"
+
 msgid "desktop.w3.shelves.none"
 msgstr "No shelves yet. Create a collection or a reading list."
+
+msgid "desktop.w3.shelves.notHere"
+msgstr "Not available now"
+
+msgid "desktop.w3.shelves.openShelf"
+msgstr "Open"
+
+msgid "desktop.w3.shelves.setCover"
+msgstr "Use as the cover"
 
 msgid "desktop.w3.sources.browse"
 msgstr "Browse"
@@ -540,6 +565,9 @@ msgstr "Test the connection"
 msgid "desktop.w3.storage.clear"
 msgstr "Clear"
 
+msgid "desktop.w3.storage.clearAtNextStart"
+msgstr "These records are in use now, so they are cleared the next time StoryArc starts."
+
 #, c-format
 msgid "desktop.w3.storage.clearFailed___"
 msgstr "Could not clear it: %s."
@@ -566,6 +594,13 @@ msgstr "Kept in %s, which Windows does not roam to other computers."
 
 msgid "desktop.w3.sync.chooseFolder"
 msgstr "Choose the sync folder"
+
+#, c-format
+msgid "desktop.w3.sync.folder___"
+msgstr "Sync folder: %s"
+
+msgid "desktop.w3.sync.noFolder"
+msgstr "No sync folder chosen"
 
 msgid "detail.chapter.finished"
 msgstr "Finished"
