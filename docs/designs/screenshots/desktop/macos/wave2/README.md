@@ -13,7 +13,7 @@ in for the system's largest text size that macOS does not have.
 | Frame | What it shows |
 | --- | --- |
 | `home-<variant>.png` | The library window on Home: Keep reading with the one book in progress, its progress rail and percentage. No Up next shelf: no fixture series has a finished issue, so the shelf is absent, as `home-screen` asks of an empty shelf. |
-| `library-grid-<variant>.png` | Library, as a grid, sorted by title. |
+| `library-grid-<variant>.png` | Library, as a grid, in title order, under the notice that two publications could not be opened (`refused.cb7` and `password-protected.cbz`), with *Show* and its close mark. |
 | `library-list-<variant>.png` | Library, as a list: cover, title, series line and format, percent read at the end. |
 | `search-<variant>.png` | The toolbar search with "sort" typed: the field stays in the toolbar and the results take the content column. |
 | `detail-<variant>.png` | The publication page of `natural-sort`: the cover wash, the one primary action (*Continue at Page 5 of 12*), the borderless More menu, and the line naming the folder. |

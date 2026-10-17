@@ -14,7 +14,7 @@ specs by name, so a scenario added to a spec later is missing here until the wal
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another platform's scenario. |
 | not walked | Built in wave 2 and not exercised here, for the reason given. |
 
-Totals: pass 167, seen 70, fail 45, later 110, n/a 46, not walked 71, of 509 scenarios.
+Totals: pass 169, seen 70, fail 41, later 110, n/a 46, not walked 73, of 509 scenarios.
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`):
 the fixture comics of `packages/test-fixtures` are copied into the container and scanned as
@@ -45,7 +45,6 @@ Every **fail** below, by capability and requirement, so the next wave can take t
 - `comic-reader` · Image adjustments: Not built on the Mac.
 - `comic-reader` · Page browser: Not built on the Mac.
 - `page-transitions` · Transition modes: No mode choice on the Mac: the preferences name the slide and say the curl is later (frame `settings-reading-*.png`); keys and clicks change the page without the slide.
-- `library-browsing` · What could not be opened: Files handed over that cannot open are named in the library (`PointerAndFilesWalkTests`), but publications a folder scan skipped are not listed on the Mac: `LibraryModel.skipped` has no Mac view yet.
 - `library-browsing` · Presentation: No sections on the Mac.
 - `library-browsing` · Presentation: No index rail on the Mac.
 - `reading-progress` · Resuming: No *Read from the beginning* action on the Mac page yet.
@@ -159,12 +158,12 @@ Source: `docs/openspec/specs/library-browsing/spec.md`.
 | Sorting | Overriding a curated order | later | Reading lists are wave 3. |
 | Sorting | Alphabetical sorting across languages | pass | `SearchStateTests` *Sort keys apply*; collation is `LibraryIndex` with the app's language (StoryArcKit) |
 | Sorting | Sorting a series | pass | `SearchStateTests` *Sort keys apply*; collation is `LibraryIndex` with the app's language (StoryArcKit) |
-| What could not be opened | One publication could not be opened | pass | `PointerAndFilesWalkTests` (a CB7 handed over is named in the library) |
-| What could not be opened | Several could not be opened | **fail** | Files handed over that cannot open are named in the library (`PointerAndFilesWalkTests`), but publications a folder scan skipped are not listed on the Mac: `LibraryModel.skipped` has no Mac view yet. |
-| What could not be opened | The notice is not on a timer | pass | The notices stay until dismissed (`LibraryNotices`); `PointerAndFilesWalkTests` reads it after the reader opened |
-| What could not be opened | Reaching it later | **fail** | Files handed over that cannot open are named in the library (`PointerAndFilesWalkTests`), but publications a folder scan skipped are not listed on the Mac: `LibraryModel.skipped` has no Mac view yet. |
-| What could not be opened | A publication that later opens | **fail** | Files handed over that cannot open are named in the library (`PointerAndFilesWalkTests`), but publications a folder scan skipped are not listed on the Mac: `LibraryModel.skipped` has no Mac view yet. |
-| What could not be opened | Announced without sight | **fail** | Files handed over that cannot open are named in the library (`PointerAndFilesWalkTests`), but publications a folder scan skipped are not listed on the Mac: `LibraryModel.skipped` has no Mac view yet. |
+| What could not be opened | One publication could not be opened | pass | `PointerAndFilesWalkTests` (a CB7 handed over is named in the library); a scan's single refusal is named by `SkippedNotice` from StoryArcKit's `SkippedPublications.notice` |
+| What could not be opened | Several could not be opened | pass | `SkippedWalkTests` *Several publications a scan could not open are counted, named with reasons, and stay reachable* (built on this branch, `ceca3f64`); frames `library-*.png` show the notice |
+| What could not be opened | The notice is not on a timer | pass | The notices stay until dismissed (`LibraryNotices`, `SkippedNotice`); `PointerAndFilesWalkTests` reads it after the reader opened |
+| What could not be opened | Reaching it later | pass | `SkippedWalkTests` *Several publications a scan could not open are counted, named with reasons, and stay reachable* (built on this branch, `ceca3f64`); frames `library-*.png` show the notice |
+| What could not be opened | A publication that later opens | not walked | A later scan replaces the list (StoryArcKit's `SkippedPublications.settling`); not walked on the Mac. |
+| What could not be opened | Announced without sight | not walked | The list rows combine name and reason for VoiceOver; no VoiceOver walk. |
 | Presentation | Switching layout | pass | View as Grid and View as List (`CommandTests`); frames |
 | Presentation | Adaptive columns | pass | `LibraryViewModelTests` *The grid adds columns with the width* |
 | Presentation | Cover art is shown whole | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
