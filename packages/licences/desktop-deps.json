@@ -2154,7 +2154,7 @@
       "ships": false
     },
     "xunit.runner.visualstudio@3.1.4": {
-      "licence": "MIT",
+      "licence": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.runner.visualstudio",
       "ships": false
     }

@@ -63,7 +63,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [NuGet coverlet.collector 6.0.4](https://www.nuget.org/packages/coverlet.collector) | `MIT` |
 | [NuGet Microsoft.NET.Test.Sdk 17.14.1](https://www.nuget.org/packages/Microsoft.NET.Test.Sdk) | `MIT` |
 | [NuGet xunit 2.9.3](https://www.nuget.org/packages/xunit) | `Apache-2.0` |
-| [NuGet xunit.runner.visualstudio 3.1.4](https://www.nuget.org/packages/xunit.runner.visualstudio) | `MIT` |
+| [NuGet xunit.runner.visualstudio 3.1.4](https://www.nuget.org/packages/xunit.runner.visualstudio) | `Apache-2.0` |
 | [Rust addchain 0.2.1](https://github.com/str4d/addchain) | `MIT OR Apache-2.0` |
 | [Rust adler2 2.0.1](https://github.com/oyvindln/adler2) | `0BSD OR MIT OR Apache-2.0` |
 | [Rust aead 0.6.1](https://github.com/RustCrypto/traits) | `MIT OR Apache-2.0` |
