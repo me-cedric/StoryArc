@@ -253,7 +253,7 @@ public sealed partial class MainWindow : Window
     private void Refresh()
     {
         ShowRefusals();
-        ShowSources();
+        DrawFolderSources();
 
         // A rescan never takes the reader off the detail page or the preferences they are reading.
         if (_isShowingDetail || _isShowingPreferences)
@@ -369,7 +369,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>The folder sources by name; a source offline or needing access is grey, and the second offers to choose the folder again.</summary>
-    private void ShowSources()
+    private void DrawFolderSources()
     {
         if (_host.Library is not { } library)
         {
