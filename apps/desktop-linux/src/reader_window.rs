@@ -1,71 +1,92 @@
 //! One reader window: one publication, its own page, chrome, full-screen and idle state
-//! (tasks 2.25, 2.27, 2.29, 2.32, 2.34). The rules are in `keys.rs`, `progress.rs`,
-//! `fullscreen.rs`, `idle.rs` and `publication.rs`; this file hands GTK's events to them
-//! and their answers back to GTK.
+//! (tasks 2.25, 2.27, 2.28, 2.29, 2.32, 2.34). The rules are in `keys.rs`, `reading/`,
+//! `progress.rs`, `fullscreen.rs`, `idle.rs` and `publication.rs`; this file hands GTK's
+//! events to them and their answers back to GTK. Pointer and key input is
+//! `reader_input.rs`.
 //!
-//! The core decodes no page yet (task 2.5), so the page area shows the page's number
-//! and name. Zoom, pan, spreads and drag to turn (2.28) wait for the decoder.
+//! Pages decode on a worker through the core (`OpenPublication::decode_page`); the window
+//! keeps the few around the reader's place and draws a quiet placeholder until each lands.
 
 use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
+use storyarc_core::domain::{ReadingDirection, SpreadLayout};
 
 use crate::app::{ReaderHandle, Shared};
 use crate::commands::Scope;
 use crate::fullscreen::FullScreen;
 use crate::idle::IdleHold;
-use crate::keys::{
-    self, ChromeIdle, ClickAction, Modifiers, PageAction, PageModel, WheelAccumulator,
-};
+use crate::keys::{ChromeIdle, PageAction, PageModel, WheelAccumulator};
 use crate::menus;
+use crate::page_view::{PLACEHOLDER_SIZE, PageImage, PageView};
 use crate::progress::ProgressWriter;
-use crate::publication::{Availability, Publication};
-use crate::session::{self, FileProgressStore, LOG_DOMAIN};
-use crate::settings::Preferences;
+use crate::publication::{self, Availability, Publication};
+use crate::reader_input;
+use crate::reading::{Size, SpreadDecision, ZoomModel};
+use crate::session::{self, CoreProgress, LOG_DOMAIN};
+use crate::settings::{Fit, Preferences};
 use crate::strings::tr_args;
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
 
-/// How often the window looks at its timers: the chrome, the write clock, full screen.
+/// How often the window looks at its timers: the chrome, the write clock, full screen,
+/// and whether a resize changed the number of pages on screen.
 const TICK: Duration = Duration::from_millis(250);
 /// How many ticks between two looks at whether the file is still there.
 const REACHABLE_EVERY: u32 = 8;
+/// Pages kept decoded on either side of the reader's place.
+const KEEP_AROUND: usize = 4;
 
-const IMPLEMENTED: [&str; 6] = [
+const IMPLEMENTED: [&str; 11] = [
     "win.next-page",
     "win.previous-page",
     "win.first-page",
     "win.last-page",
     "win.fullscreen",
     "win.toggle-controls",
+    "win.zoom-in",
+    "win.zoom-out",
+    "win.fit-page",
+    "win.fit-width",
+    "win.original-size",
 ];
 
 pub struct Reader {
-    window: adw::ApplicationWindow,
-    publication: Publication,
+    pub(crate) window: adw::ApplicationWindow,
+    pub(crate) publication: Publication,
     pages: Cell<PageModel>,
-    progress: RefCell<ProgressWriter<FileProgressStore>>,
-    chrome: RefCell<ChromeIdle>,
-    wheel: RefCell<WheelAccumulator>,
-    full_screen: Cell<FullScreen>,
+    progress: RefCell<ProgressWriter<CoreProgress>>,
+    pub(crate) chrome: RefCell<ChromeIdle>,
+    pub(crate) wheel: RefCell<WheelAccumulator>,
+    pub(crate) full_screen: Cell<FullScreen>,
     idle: RefCell<IdleHold>,
     availability: Cell<Availability>,
-    preferences: RefCell<Preferences>,
+    pub(crate) preferences: RefCell<Preferences>,
     ticks: Cell<u32>,
     toolbar: adw::ToolbarView,
-    title: gtk::Label,
-    detail: gtk::Label,
+    pub(crate) page_view: PageView,
+    note: gtk::Label,
     counter: gtk::Label,
     banner: adw::Banner,
-    menu: gio::Menu,
+    pub(crate) menu: gio::Menu,
+    decoded: RefCell<HashMap<usize, PageImage>>,
+    requested: RefCell<HashSet<usize>>,
+    wide: RefCell<HashSet<usize>>,
+    layout: RefCell<SpreadLayout>,
+    pairs: Cell<bool>,
 }
 
 impl Reader {
     /// The page the reader is on, counted from zero.
     pub fn page(&self) -> u32 {
         self.pages.get().page
+    }
+
+    pub(crate) fn right_to_left(&self) -> bool {
+        self.publication.direction == ReadingDirection::RightToLeft
     }
 
     /// Writes the pending position now, before the window closes or the app quits. A
@@ -77,44 +98,157 @@ impl Reader {
     }
 
     /// A preference changed while this reader is open: it applies at once.
-    pub fn preferences_changed(&self, preferences: &Preferences) {
+    pub fn preferences_changed(self: &Rc<Self>, preferences: &Preferences) {
+        let fit_changed = self.preferences.borrow().fit != preferences.fit;
         *self.preferences.borrow_mut() = preferences.clone();
-        self.refresh();
+        if fit_changed {
+            self.set_fit(preferences.fit);
+        }
+        self.relayout();
     }
 
-    fn turn(&self, action: PageAction) {
-        let Some(next) = self.pages.get().apply(action) else {
+    /// Turns one screen: a pair turns two pages, a lone page one. The zoom carries over.
+    pub(crate) fn turn(self: &Rc<Self>, action: PageAction) {
+        let current = self.pages.get();
+        let landing = SpreadDecision::turned(&self.layout.borrow(), current.page as usize, action);
+        let Some(landing) = landing else {
             return;
         };
-        self.go_to(next);
-    }
-
-    fn go_to(&self, next: PageModel) {
+        let next = PageModel::new(u32::try_from(landing).unwrap_or(0), current.count);
         self.pages.set(next);
         self.progress.borrow_mut().turned(next.page, Instant::now());
-        self.refresh();
+        let zoom = self.page_view.zoom().turned(
+            self.right_to_left(),
+            self.page_view.fitted(),
+            self.page_view.viewport(),
+        );
+        self.show_screen();
+        self.page_view.set_zoom(self.opening_zoom(zoom));
     }
 
-    fn refresh(&self) {
-        let pages = self.pages.get();
-        let preferences = self.preferences.borrow();
-        self.title
-            .set_label(&format!("Page {}", pages.label_number()));
-        let name = self
-            .publication
-            .page_names
-            .get(pages.page as usize)
-            .map_or("", String::as_str);
-        self.detail.set_label(&format!(
-            "{name}\n{} · {}",
-            preferences.layout.label().1,
-            preferences.fit.label().1
-        ));
-        self.counter.set_label(&tr_args(
+    /// A fitted page that overflows the window (fit to width, original size) opens at its
+    /// top rather than its middle.
+    fn opening_zoom(&self, zoom: ZoomModel) -> ZoomModel {
+        if zoom.is_zoomed() {
+            return zoom;
+        }
+        zoom.panned(
+            Size::new(0.0, f64::MAX / 4.0),
+            self.page_view.fitted(),
+            self.page_view.viewport(),
+        )
+    }
+
+    pub(crate) fn set_zoom(&self, zoom: ZoomModel) {
+        let settled = zoom.settled(self.page_view.fitted(), self.page_view.viewport());
+        self.page_view.set_zoom(settled);
+    }
+
+    pub(crate) fn set_fit(&self, fit: Fit) {
+        self.page_view.set_fit(fit);
+        self.page_view
+            .set_zoom(self.opening_zoom(ZoomModel::default()));
+    }
+
+    /// Recomputes the screens for the window's shape, keeping the reader on the same page.
+    fn relayout(self: &Rc<Self>) {
+        let pairs =
+            SpreadDecision::pairs_for(self.preferences.borrow().layout, self.page_view.viewport());
+        self.pairs.set(pairs);
+        *self.layout.borrow_mut() = SpreadDecision::layout(
+            self.publication.page_count as usize,
+            &self.wide.borrow(),
+            pairs,
+            true,
+        );
+        self.show_screen();
+    }
+
+    /// Puts the current screen's pages on the page view, asks for the ones not decoded
+    /// yet and the next screen's, and forgets pages far from the reader.
+    fn show_screen(self: &Rc<Self>) {
+        let page = self.pages.get();
+        let (on_screen, ahead) = {
+            let layout = self.layout.borrow();
+            let slot = layout.slot_containing(page.page as usize);
+            let on_screen = layout
+                .slot(slot)
+                .map(|spread| SpreadDecision::screen_order(spread, self.right_to_left()))
+                .unwrap_or_default();
+            let ahead: Vec<usize> = [slot + 1, slot.wrapping_sub(1)]
+                .into_iter()
+                .filter_map(|index| layout.slot(index))
+                .flat_map(|spread| spread.pages())
+                .collect();
+            (on_screen, ahead)
+        };
+        let images: Vec<PageImage> = on_screen.iter().map(|index| self.image(*index)).collect();
+        let description = tr_args(
             "reader.pageOfCount",
             "%d of %d",
-            &[&pages.label_number(), &pages.count],
-        ));
+            &[&page.label_number(), &page.count],
+        );
+        self.page_view.set_pages(images, &description);
+        self.counter.set_label(&description);
+        let failure = self.page_view.failure();
+        self.note.set_label(failure.as_deref().unwrap_or_default());
+        self.note.set_visible(failure.is_some());
+        for index in on_screen.iter().chain(&ahead) {
+            self.request(*index);
+        }
+        self.forget_far_pages(page.page as usize);
+    }
+
+    /// What the view draws for a page now: its pixels, or a placeholder of the shape its
+    /// neighbours suggest.
+    fn image(&self, index: usize) -> PageImage {
+        if let Some(image) = self.decoded.borrow().get(&index) {
+            return image.clone();
+        }
+        let (width, height) = PLACEHOLDER_SIZE;
+        PageImage::Pending { width, height }
+    }
+
+    fn request(self: &Rc<Self>, index: usize) {
+        if index >= self.publication.page_count as usize
+            || self.decoded.borrow().contains_key(&index)
+            || !self.requested.borrow_mut().insert(index)
+        {
+            return;
+        }
+        let publication = self.publication.clone();
+        let weak = Rc::downgrade(self);
+        glib::spawn_future_local(async move {
+            let decoded = gio::spawn_blocking(move || publication.decode(index)).await;
+            let Some(reader) = weak.upgrade() else {
+                return;
+            };
+            reader.requested.borrow_mut().remove(&index);
+            let image = match decoded {
+                Ok(Ok(page)) => {
+                    if publication::is_wide(page.width, page.height) {
+                        reader.wide.borrow_mut().insert(index);
+                    }
+                    PageImage::Ready(texture(page))
+                }
+                Ok(Err(reason)) => {
+                    let (width, height) = PLACEHOLDER_SIZE;
+                    PageImage::Failed {
+                        width,
+                        height,
+                        reason,
+                    }
+                }
+                Err(_) => return,
+            };
+            reader.decoded.borrow_mut().insert(index, image);
+            reader.relayout();
+        });
+    }
+
+    fn forget_far_pages(&self, page: usize) {
+        let near = |index: &usize| index.abs_diff(page) <= KEEP_AROUND * 2;
+        self.decoded.borrow_mut().retain(|index, _| near(index));
     }
 
     /// Shows or hides the chrome and the pointer as the idle model says.
@@ -126,17 +260,17 @@ impl Reader {
             .set_cursor_from_name(if visible { None } else { Some("none") });
     }
 
-    fn pointer_moved(&self) {
+    pub(crate) fn pointer_moved(&self) {
         self.chrome.borrow_mut().pointer_moved(Instant::now());
         self.apply_chrome();
     }
 
-    fn toggle_chrome(&self) {
+    pub(crate) fn toggle_chrome(&self) {
         self.chrome.borrow_mut().toggle(Instant::now());
         self.apply_chrome();
     }
 
-    fn toggle_full_screen(&self) {
+    pub(crate) fn toggle_full_screen(&self) {
         let next = self.full_screen.get().toggle(Instant::now());
         self.full_screen.set(next);
         self.window
@@ -157,7 +291,7 @@ impl Reader {
     }
 
     /// One look at the timers. Returns whether the session file should be rewritten.
-    fn tick(&self) -> bool {
+    fn tick(self: &Rc<Self>) -> bool {
         let now = Instant::now();
         if self.chrome.borrow_mut().should_hide(now) {
             self.apply_chrome();
@@ -169,6 +303,16 @@ impl Reader {
         if observed != self.full_screen.get() {
             self.full_screen.set(observed);
             self.show_full_screen_state();
+        }
+        let pairs =
+            SpreadDecision::pairs_for(self.preferences.borrow().layout, self.page_view.viewport());
+        if pairs != self.pairs.get() {
+            self.relayout();
+        }
+        let zoom = self.page_view.zoom();
+        let settled = zoom.settled(self.page_view.fitted(), self.page_view.viewport());
+        if settled != zoom {
+            self.page_view.set_zoom(settled);
         }
         let ticks = self.ticks.get() + 1;
         self.ticks.set(ticks);
@@ -185,8 +329,22 @@ impl Reader {
     }
 }
 
+/// A decoded page as a texture GTK can draw: straight RGBA, rows without padding.
+fn texture(page: storyarc_core::image::DecodedPage) -> gdk::Texture {
+    let stride = page.width as usize * 4;
+    let bytes = glib::Bytes::from_owned(page.rgba);
+    gdk::MemoryTexture::new(
+        i32::try_from(page.width).unwrap_or(i32::MAX),
+        i32::try_from(page.height).unwrap_or(i32::MAX),
+        gdk::MemoryFormat::R8g8b8a8,
+        &bytes,
+        stride,
+    )
+    .upcast()
+}
+
 /// Opens a reader window for `publication`. `page` and `state` come from the session
-/// file on a restore, or are the first page and the default size for a new window.
+/// file on a restore, or are the reader's last place and the default size for a new one.
 pub fn open(
     shared: &Shared,
     publication: Publication,
@@ -197,26 +355,21 @@ pub fn open(
     let menu = gio::Menu::new();
     menus::reader_menu(&menu, None);
 
-    let title = gtk::Label::builder().css_classes(["title-1"]).build();
-    let detail = gtk::Label::builder()
-        .css_classes(["dimmed"])
-        .justify(gtk::Justification::Center)
+    let page_view = PageView::default();
+    page_view.set_hexpand(true);
+    page_view.set_vexpand(true);
+    let note = gtk::Label::builder()
+        .css_classes(["dimmed", "caption"])
+        .valign(gtk::Align::End)
+        .margin_bottom(24)
+        .wrap(true)
+        .visible(false)
         .build();
-    let page_box = gtk::Box::builder()
-        .orientation(gtk::Orientation::Vertical)
-        .spacing(12)
-        .valign(gtk::Align::Center)
-        .halign(gtk::Align::Center)
-        .build();
-    page_box.append(&title);
-    page_box.append(&detail);
-    let content = gtk::Box::builder()
+    let content = gtk::Overlay::builder()
         .css_classes(["storyarc-reader"])
-        .hexpand(true)
-        .vexpand(true)
+        .child(&page_view)
         .build();
-    content.append(&page_box);
-    page_box.set_hexpand(true);
+    content.add_overlay(&note);
 
     let counter = gtk::Label::builder()
         .css_classes(["caption", "dimmed"])
@@ -252,33 +405,42 @@ pub fn open(
     window.set_size_request(MIN_WIDTH, MIN_HEIGHT);
     session::apply(&window, &state.unwrap_or_default());
 
+    let preferences = shared.preferences();
+    let progress = CoreProgress::new(
+        shared.progress_store(),
+        publication.record.identity.clone(),
+        publication.page_count,
+    );
     let reader = Rc::new(Reader {
         window: window.clone(),
         pages: Cell::new(PageModel::new(page, publication.page_count)),
-        progress: RefCell::new(ProgressWriter::new(
-            FileProgressStore,
-            publication.id.clone(),
-        )),
+        progress: RefCell::new(ProgressWriter::new(progress, publication.id.clone())),
         chrome: RefCell::default(),
         wheel: RefCell::default(),
         full_screen: Cell::default(),
         idle: RefCell::default(),
         availability: Cell::default(),
-        preferences: RefCell::new(shared.preferences()),
+        preferences: RefCell::new(preferences.clone()),
         ticks: Cell::new(0),
         toolbar,
-        title,
-        detail,
+        page_view,
+        note,
         counter,
         banner,
         menu,
+        decoded: RefCell::default(),
+        requested: RefCell::default(),
+        wide: RefCell::new(publication.declared_spreads.clone()),
+        layout: RefCell::new(SpreadLayout::single(publication.page_count as usize)),
+        pairs: Cell::new(false),
         publication: publication.clone(),
     });
-    reader.refresh();
+    reader.page_view.set_fit(preferences.fit);
+    reader.relayout();
 
     install_actions(&window, &reader);
-    install_pointer(&content, &window, &reader);
-    install_keys(&window, &reader, shared);
+    reader_input::install_pointer(&reader);
+    reader_input::install_keys(&reader);
     install_idle_inhibit(&window, &reader, &app);
     keep_chrome_while_menu_is_open(&menu_button, &reader);
     install_timer(&reader, shared);
@@ -298,6 +460,7 @@ pub fn open(
                 if !shared.quitting.get() {
                     shared.forget_reader(&reader.publication.id);
                     shared.save_session();
+                    shared.library_changed();
                 }
             }
         }
@@ -322,144 +485,45 @@ fn install_actions(window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
         ("last-page", PageAction::Last),
     ];
     for (name, action) in pages {
-        let simple = gio::SimpleAction::new(name, None);
-        let weak = Rc::downgrade(reader);
-        simple.connect_activate(move |_, _| {
-            if let Some(reader) = weak.upgrade() {
-                reader.turn(action);
-            }
-        });
-        window.add_action(&simple);
+        add(window, reader, name, move |reader| reader.turn(action));
     }
-    let weak = Rc::downgrade(reader);
-    let full = gio::SimpleAction::new("fullscreen", None);
-    full.connect_activate(move |_, _| {
-        if let Some(reader) = weak.upgrade() {
-            reader.toggle_full_screen();
-        }
+    add(window, reader, "fullscreen", |reader| {
+        reader.toggle_full_screen();
     });
-    window.add_action(&full);
-    let weak = Rc::downgrade(reader);
-    let controls = gio::SimpleAction::new("toggle-controls", None);
-    controls.connect_activate(move |_, _| {
-        if let Some(reader) = weak.upgrade() {
-            reader.toggle_chrome();
-        }
+    add(window, reader, "toggle-controls", |reader| {
+        reader.toggle_chrome();
     });
-    window.add_action(&controls);
+    add(window, reader, "zoom-in", |reader| {
+        reader.set_zoom(reader.page_view.zoom().zoomed_in());
+    });
+    add(window, reader, "zoom-out", |reader| {
+        reader.set_zoom(reader.page_view.zoom().zoomed_out());
+    });
+    add(window, reader, "fit-page", |reader| {
+        reader.set_fit(Fit::Page)
+    });
+    add(window, reader, "fit-width", |reader| {
+        reader.set_fit(Fit::Width);
+    });
+    add(window, reader, "original-size", |reader| {
+        reader.set_fit(Fit::Original);
+    });
 }
 
-/// Pointer reading (task 2.27): motion reveals the chrome, the edges turn pages, the
-/// middle toggles the chrome, the wheel turns pages a notch at a time and a right click
-/// opens the reader menu.
-fn install_pointer(content: &gtk::Box, window: &adw::ApplicationWindow, reader: &Rc<Reader>) {
-    let motion = gtk::EventControllerMotion::new();
+fn add(
+    window: &adw::ApplicationWindow,
+    reader: &Rc<Reader>,
+    name: &str,
+    activate: impl Fn(&Rc<Reader>) + 'static,
+) {
+    let simple = gio::SimpleAction::new(name, None);
     let weak = Rc::downgrade(reader);
-    motion.connect_motion(move |_, _, _| {
+    simple.connect_activate(move |_, _| {
         if let Some(reader) = weak.upgrade() {
-            reader.pointer_moved();
+            activate(&reader);
         }
     });
-    window.add_controller(motion);
-
-    let click = gtk::GestureClick::builder()
-        .button(gdk::BUTTON_PRIMARY)
-        .build();
-    let weak = Rc::downgrade(reader);
-    click.connect_released(move |gesture, _, x, _| {
-        let (Some(reader), Some(widget)) = (weak.upgrade(), gesture.widget()) else {
-            return;
-        };
-        let zones_on = reader.preferences.borrow().click_zones;
-        let direction = reader.publication.direction;
-        match keys::click_action(
-            keys::zone(x, f64::from(widget.width())),
-            direction,
-            zones_on,
-        ) {
-            ClickAction::Turn(action) => reader.turn(action),
-            ClickAction::ToggleChrome => reader.toggle_chrome(),
-        }
-    });
-    content.add_controller(click);
-
-    let context = gtk::GestureClick::builder()
-        .button(gdk::BUTTON_SECONDARY)
-        .build();
-    let popover = gtk::PopoverMenu::from_model(Some(&reader.menu));
-    popover.set_parent(content);
-    popover.set_has_arrow(false);
-    context.connect_pressed(move |_, _, x, y| {
-        popover.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
-        popover.popup();
-    });
-    content.add_controller(context);
-
-    let scroll = gtk::EventControllerScroll::new(gtk::EventControllerScrollFlags::VERTICAL);
-    let weak = Rc::downgrade(reader);
-    scroll.connect_scroll(move |_, _, dy| {
-        let Some(reader) = weak.upgrade() else {
-            return glib::Propagation::Proceed;
-        };
-        let action = reader.wheel.borrow_mut().scrolled(dy);
-        if let Some(action) = action {
-            reader.turn(action);
-        }
-        glib::Propagation::Stop
-    });
-    content.add_controller(scroll);
-}
-
-/// The keys of the table that have no modifier: they are not application accelerators,
-/// so a text field keeps them, and the reader maps them itself.
-fn install_keys(window: &adw::ApplicationWindow, reader: &Rc<Reader>, _shared: &Shared) {
-    let controller = gtk::EventControllerKey::new();
-    let weak = Rc::downgrade(reader);
-    controller.connect_key_pressed(move |_, key, _, state| {
-        let Some(reader) = weak.upgrade() else {
-            return glib::Propagation::Proceed;
-        };
-        let focused_text = gtk::prelude::GtkWindowExt::focus(&reader.window)
-            .is_some_and(|widget| widget.is::<gtk::Editable>() || widget.is::<gtk::Text>());
-        let mapped = match key {
-            gdk::Key::Left => keys::Key::Left,
-            gdk::Key::Right => keys::Key::Right,
-            gdk::Key::Up => keys::Key::Up,
-            gdk::Key::Down => keys::Key::Down,
-            gdk::Key::space => keys::Key::Space,
-            gdk::Key::Page_Up => keys::Key::PageUp,
-            gdk::Key::Page_Down => keys::Key::PageDown,
-            gdk::Key::Home => keys::Key::Home,
-            gdk::Key::End => keys::Key::End,
-            gdk::Key::Escape => keys::Key::Escape,
-            _ => keys::Key::Other,
-        };
-        if mapped == keys::Key::Escape && !focused_text {
-            if reader.full_screen.get().leaves_on_escape() {
-                reader.toggle_full_screen();
-                return glib::Propagation::Stop;
-            }
-            return glib::Propagation::Proceed;
-        }
-        let modifiers = Modifiers {
-            shift: state.contains(gdk::ModifierType::SHIFT_MASK),
-            control: state.contains(gdk::ModifierType::CONTROL_MASK),
-            alt: state.contains(gdk::ModifierType::ALT_MASK),
-        };
-        match keys::page_action(
-            mapped,
-            modifiers,
-            reader.publication.direction,
-            focused_text,
-        ) {
-            Some(action) => {
-                reader.turn(action);
-                glib::Propagation::Stop
-            }
-            None => glib::Propagation::Proceed,
-        }
-    });
-    window.add_controller(controller);
+    window.add_action(&simple);
 }
 
 /// Holds the display awake while this window is the active one; silent on a refusal.

@@ -9,12 +9,15 @@ mod idle;
 mod keys;
 mod library_window;
 mod menus;
+mod page_view;
 mod portal;
 mod preferences_dialog;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
 mod progress;
 mod publication;
+mod reader_input;
 mod reader_window;
+mod reading;
 mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to 2.28 to 2.36
 mod settings;
@@ -206,7 +209,9 @@ fn open_publication(shared: &Shared, path: &str) {
         }
         Open::New => match Publication::open(std::path::Path::new(path)) {
             Ok(publication) => {
-                let page = session::FileProgressStore::page(&publication.id).unwrap_or(0);
+                let store = shared.progress_store();
+                let page =
+                    session::CoreProgress::page(&store, &publication.record.identity).unwrap_or(0);
                 reader_window::open(shared, publication, page, None);
                 shared.save_session();
             }

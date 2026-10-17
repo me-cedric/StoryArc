@@ -1,17 +1,20 @@
 //! The GTK side of what persists between two runs: which displays are connected, what
 //! size each window has, the file the session lives in, the preferences file and the
-//! progress file. The decisions are in `windows.rs`, `window_state.rs` and
+//! core's progress store. The decisions are in `windows.rs`, `window_state.rs` and
 //! `settings.rs`, which have no GTK in them.
 //!
 //! Everything lives under `$XDG_DATA_HOME/com.mecedric.StoryArc`, or the Flatpak
 //! equivalent under `~/.var/app` (design, Decision 8). A write that fails is logged
 //! and never holds a window or the app.
 
-use std::collections::BTreeMap;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 use adw::prelude::*;
 use gtk::{gdk, glib};
+use storyarc_core::domain::{PublicationIdentity, ReadingPosition, ReadingProgress, Timestamp};
+use storyarc_core::library;
+use storyarc_core::paths::StorageLocations;
 
 use crate::progress::ProgressStore;
 use crate::settings::Preferences;
@@ -21,7 +24,6 @@ use crate::windows::{RestorePlan, SessionState};
 /// The session file keeps wave 1's name: a wave 1 file still reads as the library window.
 const SESSION_FILE: &str = "window-state";
 const PREFERENCES_FILE: &str = "preferences";
-const PROGRESS_FILE: &str = "progress";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -101,41 +103,79 @@ pub fn save_preferences(preferences: &Preferences) {
     write_file(&data_path(PREFERENCES_FILE), &preferences.save());
 }
 
-/// The reading positions, one `publication=page` line each, until the core's progress
-/// store (task 2.1) replaces it. Every write rewrites the file, which is small.
-#[derive(Debug, Default)]
-pub struct FileProgressStore;
+/// Opens the core's progress store (ADR-0006) where the core says it lives, or one in
+/// memory when the disk refuses, so reading never waits on a store. A failure is logged.
+pub fn open_progress_store() -> library::ProgressStore {
+    let path = StorageLocations::current().store_file();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    library::ProgressStore::open(&path).unwrap_or_else(|error| {
+        glib::g_warning!(LOG_DOMAIN, "Could not open {}: {error}", path.display());
+        library::ProgressStore::in_memory().expect("an in-memory store always opens")
+    })
+}
 
-impl FileProgressStore {
-    fn read_all() -> BTreeMap<String, u32> {
-        std::fs::read_to_string(data_path(PROGRESS_FILE))
-            .unwrap_or_default()
-            .lines()
-            .filter_map(|line| line.rsplit_once('='))
-            .filter_map(|(publication, page)| {
-                Some((publication.to_owned(), page.trim().parse().ok()?))
-            })
-            .collect()
+/// One publication's place in the core's store. The last page counts as finished, and
+/// finished stays finished (the store's own rule).
+pub struct CoreProgress {
+    store: Rc<library::ProgressStore>,
+    identity: PublicationIdentity,
+    page_count: u32,
+}
+
+impl CoreProgress {
+    pub fn new(
+        store: Rc<library::ProgressStore>,
+        identity: PublicationIdentity,
+        page_count: u32,
+    ) -> Self {
+        Self {
+            store,
+            identity,
+            page_count,
+        }
     }
 
     /// The page last written for a publication, counted from zero.
-    pub fn page(publication: &str) -> Option<u32> {
-        Self::read_all().get(publication).copied()
+    pub fn page(store: &library::ProgressStore, identity: &PublicationIdentity) -> Option<u32> {
+        match store.read(identity).ok()??.position {
+            ReadingPosition::Page { index, .. } => u32::try_from(index).ok(),
+            _ => None,
+        }
     }
 }
 
-impl ProgressStore for FileProgressStore {
-    fn write(&mut self, publication: &str, page: u32) -> Result<(), String> {
-        let mut all = Self::read_all();
-        all.insert(publication.to_owned(), page);
-        let text: String = all
-            .iter()
-            .map(|(publication, page)| format!("{publication}={page}\n"))
-            .collect();
-        let path = data_path(PROGRESS_FILE);
-        path.parent()
-            .map_or(Ok(()), std::fs::create_dir_all)
-            .and_then(|()| std::fs::write(&path, text))
-            .map_err(|error| format!("{}: {error}", path.display()))
+impl ProgressStore for CoreProgress {
+    fn write(&mut self, _publication: &str, page: u32) -> Result<(), String> {
+        let now = Timestamp::now();
+        let position = ReadingPosition::page(i64::from(page), i64::from(self.page_count));
+        let record = ReadingProgress::new(self.identity.clone(), position, now);
+        let record = if page + 1 >= self.page_count {
+            record.finished(true, now)
+        } else {
+            record
+        };
+        self.store.write(&record).map_err(|error| error.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_position_reads_back_and_the_last_page_is_finished() {
+        let store = Rc::new(library::ProgressStore::in_memory().expect("store"));
+        let identity = PublicationIdentity::path("/comics/a.cbz");
+        let mut progress = CoreProgress::new(store.clone(), identity.clone(), 10);
+        assert_eq!(CoreProgress::page(&store, &identity), None);
+        progress.write("/comics/a.cbz", 4).expect("written");
+        assert_eq!(CoreProgress::page(&store, &identity), Some(4));
+        let record = store.read(&identity).expect("read").expect("a record");
+        assert!(!record.is_finished);
+        progress.write("/comics/a.cbz", 9).expect("written");
+        let record = store.read(&identity).expect("read").expect("a record");
+        assert!(record.is_finished);
     }
 }

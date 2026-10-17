@@ -6,6 +6,8 @@
 use std::cell::{Cell, OnceCell, RefCell};
 use std::rc::Rc;
 
+use storyarc_core::library;
+
 use crate::reader_window::Reader;
 use crate::session;
 use crate::settings::{Preferences, Rgb};
@@ -39,6 +41,10 @@ pub struct App {
     pub preferences_dialog: RefCell<Option<adw::PreferencesDialog>>,
     /// Where the library shows a file that could not be opened.
     pub library_toasts: RefCell<Option<adw::ToastOverlay>>,
+    /// The core's progress store, opened once in startup.
+    progress: OnceCell<Rc<library::ProgressStore>>,
+    /// What the library window does when a reader moved or closed: rebuild Home.
+    pub on_library_changed: RefCell<Option<Box<dyn Fn()>>>,
 }
 
 impl App {
@@ -47,6 +53,20 @@ impl App {
             preferences: RefCell::new(session::load_preferences()),
             ..Self::default()
         })
+    }
+
+    /// The core's progress store, opened on first use.
+    pub fn progress_store(&self) -> Rc<library::ProgressStore> {
+        self.progress
+            .get_or_init(|| Rc::new(session::open_progress_store()))
+            .clone()
+    }
+
+    /// The reading positions changed: the library refreshes what it shows from them.
+    pub fn library_changed(&self) {
+        if let Some(refresh) = self.on_library_changed.borrow().as_ref() {
+            refresh();
+        }
     }
 
     pub fn application(&self) -> adw::Application {
