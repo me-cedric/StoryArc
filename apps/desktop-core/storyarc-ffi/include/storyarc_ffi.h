@@ -268,6 +268,46 @@ int32_t storyarc_epub_resource(const void *epub, const uint8_t *href, size_t hre
 /* Releases an EPUB handle. */
 void storyarc_epub_free(void *epub);
 
+/* Starts the PDF engine on its one thread, binding to the PDFium library in `library_dir`
+ * (a length of zero lets the core look in STORYARC_PDFIUM_DIR, beside the executable, then
+ * the system). The first call decides the library for the process. A library that cannot
+ * be loaded is STORYARC_ERROR_UNSUPPORTED, with every folder tried in the message. */
+int32_t storyarc_pdf_engine_start(const uint8_t *library_dir, size_t library_dir_len);
+
+/* Opens the PDF at `path` through ranged reads and writes a PDF handle to `out_pdf`. A
+ * file PDFium cannot open is STORYARC_ERROR_UNREADABLE. */
+int32_t storyarc_pdf_open(const uint8_t *path, size_t path_len, void **out_pdf);
+
+/* Writes the page count. */
+int32_t storyarc_pdf_page_count(const void *pdf, uint32_t *out_count);
+
+/* Writes a page's size in PDF points. A page past the end is STORYARC_ERROR_INVALID_ARGUMENT. */
+int32_t storyarc_pdf_page_size(const void *pdf, uint32_t index, float *out_width,
+                               float *out_height);
+
+/* Renders a page to 8-bit RGBA, not premultiplied, at most `max_pixel_size` on its longest
+ * edge (zero for one pixel per point). The three outputs are zeroed on failure. */
+int32_t storyarc_pdf_render_page(const void *pdf, uint32_t index, uint32_t max_pixel_size,
+                                 StoryArcBuffer *out_pixels, uint32_t *out_width,
+                                 uint32_t *out_height);
+
+/* Writes a page's text as UTF-8, empty for a page with no text layer. */
+int32_t storyarc_pdf_page_text(const void *pdf, uint32_t index, StoryArcBuffer *out);
+
+/* Writes 1 when any page carries text, else 0. */
+int32_t storyarc_pdf_has_text_layer(const void *pdf, int32_t *out_flag);
+
+/* Searches every page for `query`, case folded. Writes a UTF-8 JSON array of {"page",
+ * "rects": [{"left", "bottom", "right", "top"}]} in PDF points, origin bottom left. */
+int32_t storyarc_pdf_search(const void *pdf, const uint8_t *query, size_t query_len,
+                            StoryArcBuffer *out);
+
+/* Writes the outline as a UTF-8 JSON array of {"title", "page"?, "children"}, nested. */
+int32_t storyarc_pdf_outline(const void *pdf, StoryArcBuffer *out);
+
+/* Releases a PDF handle and closes the document. */
+void storyarc_pdf_free(void *pdf);
+
 #ifdef __cplusplus
 }
 #endif

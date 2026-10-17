@@ -101,6 +101,8 @@
     "epub:pin:selftest": "node apps/desktop-web/epub/check-pin.mjs --self-test",
     "pdfium:pin": "node scripts/pdfium-pin-check.mjs --check",
     "pdfium:pin:selftest": "node scripts/pdfium-pin-check.mjs --self-test",
+    "//pdfium:fetch": "Downloads the pinned PDFium library for this machine into .build/pdfium/, checked against pin.json. The core's PDF tests and the desktop apps bind to it at run time (desktop-clients task 4.4).",
+    "pdfium:fetch": "node scripts/pdfium-fetch.mjs",
     "strings:drawn:selftest": "node scripts/drawn-strings-check.mjs --self-test",
     "//strings:divergence": "A report, not a gate, and deliberately outside pnpm lint: a row it prints can be a difference the platform forces. Run it when a value changes on one platform.",
     "strings:divergence": "node scripts/catalogue-divergence.mjs",

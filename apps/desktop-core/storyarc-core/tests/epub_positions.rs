@@ -17,6 +17,7 @@ use storyarc_core::formats::ZipReader;
 use storyarc_core::io::FileSource;
 
 mod corpus {
+    #[allow(dead_code)]
     pub mod manifest;
 }
 

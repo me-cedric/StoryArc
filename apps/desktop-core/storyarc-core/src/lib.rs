@@ -12,6 +12,7 @@ pub mod locale;
 pub mod metered;
 pub mod net;
 pub mod paths;
+pub mod pdf;
 pub mod portability;
 pub mod runtime;
 pub mod secrets;

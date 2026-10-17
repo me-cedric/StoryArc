@@ -684,6 +684,133 @@ namespace StoryArc.Interop
         [DllImport(__DllName, EntryPoint = "storyarc_epub_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern void storyarc_epub_free(void* epub);
 
+        /// <summary>
+        ///  Starts the PDF engine on its one thread, binding to the PDFium library in the folder at
+        ///  the UTF-8 path `library_dir` (`library_dir_len` bytes; zero to let the core look in
+        ///  `STORYARC_PDFIUM_DIR`, beside the executable, then the system). The first call decides
+        ///  the library for the process. A library that cannot be loaded is
+        ///  `STORYARC_ERROR_UNSUPPORTED`, with every folder tried in the message. Optional: the
+        ///  first `storyarc_pdf_open` starts the engine the same way with no folder.
+        ///
+        ///  # Safety
+        ///
+        ///  `library_dir` must point to `library_dir_len` readable bytes, or be null when the
+        ///  length is zero.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_engine_start", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_engine_start(byte* library_dir, nuint library_dir_len);
+
+        /// <summary>
+        ///  Opens the PDF at the UTF-8 path `path` (`path_len` bytes) through ranged reads and
+        ///  writes a PDF handle to `out_pdf`, freed with `storyarc_pdf_free`. A file PDFium cannot
+        ///  open is `STORYARC_ERROR_UNREADABLE`.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `out_pdf` must point to writable
+        ///  storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_open(byte* path, nuint path_len, void** out_pdf);
+
+        /// <summary>
+        ///  Writes the page count to `out_count`.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out_count` must point to one writable
+        ///  `uint32_t`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_page_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_page_count(void* pdf, uint* out_count);
+
+        /// <summary>
+        ///  Writes page `index`'s size in PDF points to `out_width` and `out_height`. An index past
+        ///  the end is `STORYARC_ERROR_INVALID_ARGUMENT`.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out_width` and `out_height` must each point
+        ///  to one writable `float`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_page_size", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_page_size(void* pdf, uint index, float* out_width, float* out_height);
+
+        /// <summary>
+        ///  Renders page `index` to 8-bit RGBA, not premultiplied, rows top to bottom with no
+        ///  padding, at most `max_pixel_size` on its longest edge (zero for one pixel per point).
+        ///  Writes the pixels to `out_pixels` (`width * height * 4` bytes, freed with
+        ///  `storyarc_buffer_free`) and the size to `out_width` and `out_height`; on failure the
+        ///  three are zeroed.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out_pixels` must point to one writable
+        ///  `StoryArcBuffer`, `out_width` and `out_height` to one writable `uint32_t` each.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_render_page", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_render_page(void* pdf, uint index, uint max_pixel_size, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
+
+        /// <summary>
+        ///  Writes page `index`'s text, in content order, to `out` as UTF-8; empty for a page with
+        ///  no text layer. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_page_text", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_page_text(void* pdf, uint index, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes 1 to `out_flag` when any page carries text, else 0, so the app hides selection
+        ///  and search for an image-only file.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out_flag` must point to one writable `int32_t`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_has_text_layer", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_has_text_layer(void* pdf, int* out_flag);
+
+        /// <summary>
+        ///  Searches every page for `query` (`query_len` UTF-8 bytes), case folded, and writes the
+        ///  hits to `out` as a UTF-8 JSON array of `{"page", "rects": [{"left", "bottom", "right",
+        ///  "top"}]}` in PDF points with the origin at the page's bottom left. Free `out` with
+        ///  `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `query` must point to `query_len` readable
+        ///  bytes. `out` must point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_search", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_search(void* pdf, byte* query, nuint query_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the outline to `out` as a UTF-8 JSON array of `{"title", "page"?, "children"}`,
+        ///  nested as the file nests it and empty when it has none. Free `out` with
+        ///  `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_outline", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_outline(void* pdf, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Releases a PDF handle and closes the document. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `pdf` must be null or a live PDF handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_pdf_free(void* pdf);
+
 
     }
 

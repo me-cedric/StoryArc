@@ -132,10 +132,27 @@ pub struct FilenameCase {
     pub why: String,
 }
 
+/// One entry of the manifest's `pdfs` list: what both phones read from that file (task 4.4).
+/// Read by `tests/pdf.rs` alone, so the other binaries that share this module allow it.
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Pdf {
+    pub file: String,
+    pub pins: String,
+    pub expected_page_count: usize,
+    pub expected_page_size_points: [u32; 2],
+    pub has_text_layer: bool,
+    pub expected_page_text: Option<Vec<String>>,
+    pub expected_outline_titles: Option<Vec<String>>,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Manifest {
     pub comics: Vec<Comic>,
     pub ebooks: Vec<Ebook>,
+    #[allow(dead_code)]
+    pub pdfs: Vec<Pdf>,
     pub filenames: Vec<FilenameCase>,
 }
 
@@ -164,6 +181,15 @@ pub fn ebook(file: &str) -> &'static Ebook {
         .iter()
         .find(|fixture| fixture.file == file)
         .unwrap_or_else(|| panic!("no ebook fixture named {file} in manifest.json"))
+}
+
+#[allow(dead_code)]
+pub fn pdf(file: &str) -> &'static Pdf {
+    manifest()
+        .pdfs
+        .iter()
+        .find(|fixture| fixture.file == file)
+        .unwrap_or_else(|| panic!("no PDF fixture named {file} in manifest.json"))
 }
 
 pub fn filename_case(filename: &str) -> &'static FilenameCase {

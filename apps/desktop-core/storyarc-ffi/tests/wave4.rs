@@ -161,3 +161,150 @@ fn an_epub_handle_of_the_wrong_kind_is_refused() {
     unsafe { storyarc_cancel_token_free(token) };
     unsafe { storyarc_epub_free(ptr::null_mut()) };
 }
+
+// ── PDF (task 4.4) ───────────────────────────────────────────────────────────
+
+/// The pinned library, where `pnpm pdfium:fetch` puts it, or wherever `STORYARC_PDFIUM_DIR`
+/// says; the PDF cases skip with a line on stderr when neither holds it.
+fn pdf_library_dir() -> Option<PathBuf> {
+    if let Some(dir) = std::env::var_os("STORYARC_PDFIUM_DIR") {
+        return Some(PathBuf::from(dir));
+    }
+    let os = match std::env::consts::OS {
+        "macos" => "mac",
+        "linux" => "linux",
+        "windows" => "win",
+        _ => return None,
+    };
+    let arch = match std::env::consts::ARCH {
+        "aarch64" => "arm64",
+        "x86_64" => "x64",
+        _ => return None,
+    };
+    let folder = if os == "win" { "bin" } else { "lib" };
+    let dir = fixture("")
+        .parent()?
+        .parent()?
+        .join(".build/pdfium")
+        .join(format!("{os}-{arch}"))
+        .join(folder);
+    dir.is_dir().then_some(dir)
+}
+
+/// Starts the engine, or says why the case is skipped.
+fn pdf_engine() -> bool {
+    let dir = pdf_library_dir();
+    let bytes = dir
+        .as_ref()
+        .map(|d| d.to_str().unwrap().as_bytes().to_vec())
+        .unwrap_or_default();
+    let status = unsafe { storyarc_pdf_engine_start(bytes.as_ptr(), bytes.len()) };
+    if status == STORYARC_OK {
+        return true;
+    }
+    assert!(
+        dir.is_none(),
+        "the PDF engine did not start: {}",
+        last_error()
+    );
+    eprintln!("skipped: no PDFium library on this machine, run pnpm pdfium:fetch");
+    false
+}
+
+fn open_pdf(relative: &str) -> (i32, *mut c_void) {
+    let path = fixture(relative);
+    let bytes = path.to_str().unwrap().as_bytes();
+    let mut handle = ptr::null_mut();
+    let status = unsafe { storyarc_pdf_open(bytes.as_ptr(), bytes.len(), &mut handle) };
+    (status, handle)
+}
+
+#[test]
+fn a_pdf_renders_reads_searches_and_lists_its_outline_across_the_seam() {
+    if !pdf_engine() {
+        return;
+    }
+    let (status, pdf) = open_pdf("comics/text-pages.pdf");
+    assert_eq!(status, STORYARC_OK, "{}", last_error());
+
+    let mut count = 0u32;
+    assert_eq!(
+        unsafe { storyarc_pdf_page_count(pdf, &mut count) },
+        STORYARC_OK
+    );
+    assert_eq!(count, 3);
+
+    let (mut width, mut height) = (0f32, 0f32);
+    assert_eq!(
+        unsafe { storyarc_pdf_page_size(pdf, 0, &mut width, &mut height) },
+        STORYARC_OK
+    );
+    assert_eq!((width as u32, height as u32), (612, 792));
+    assert_eq!(
+        unsafe { storyarc_pdf_page_size(pdf, 3, &mut width, &mut height) },
+        STORYARC_ERROR_INVALID_ARGUMENT
+    );
+    assert_eq!((width, height), (0.0, 0.0));
+
+    let mut pixels = empty();
+    let (mut w, mut h) = (0u32, 0u32);
+    assert_eq!(
+        unsafe { storyarc_pdf_render_page(pdf, 0, 306, &mut pixels, &mut w, &mut h) },
+        STORYARC_OK
+    );
+    assert_eq!((w, h), (236, 306));
+    assert_eq!(take(pixels).len(), 236 * 306 * 4);
+
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_pdf_page_text(pdf, 1, &mut out) },
+        STORYARC_OK
+    );
+    assert_eq!(String::from_utf8(take(out)).unwrap().trim(), "Chapter Two");
+
+    let mut flag = 0i32;
+    assert_eq!(
+        unsafe { storyarc_pdf_has_text_layer(pdf, &mut flag) },
+        STORYARC_OK
+    );
+    assert_eq!(flag, 1);
+
+    let query = b"chapter three";
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_pdf_search(pdf, query.as_ptr(), query.len(), &mut out) },
+        STORYARC_OK
+    );
+    let hits = take_json(out);
+    assert_eq!(hits[0]["page"], 2);
+    assert!(hits[0]["rects"][0]["left"].as_f64().unwrap() > 70.0);
+
+    let mut out = empty();
+    assert_eq!(unsafe { storyarc_pdf_outline(pdf, &mut out) }, STORYARC_OK);
+    let outline = take_json(out);
+    assert_eq!(outline[1]["title"], "Chapter Two");
+    assert_eq!(outline[1]["page"], 1);
+    assert_eq!(outline[1]["children"], serde_json::json!([]));
+
+    unsafe { storyarc_pdf_free(pdf) };
+}
+
+#[test]
+fn a_pdf_that_is_not_one_is_unreadable_and_a_missing_file_not_found() {
+    if !pdf_engine() {
+        return;
+    }
+    let (status, handle) = open_pdf("comics/natural-sort.cbz");
+    assert_eq!(status, STORYARC_ERROR_UNREADABLE, "{}", last_error());
+    assert!(handle.is_null());
+    let (status, handle) = open_pdf("comics/not-there.pdf");
+    assert_eq!(status, STORYARC_ERROR_NOT_FOUND);
+    assert!(handle.is_null());
+
+    let mut count = 0u32;
+    assert_eq!(
+        unsafe { storyarc_pdf_page_count(ptr::null(), &mut count) },
+        STORYARC_ERROR_INVALID_ARGUMENT
+    );
+    unsafe { storyarc_pdf_free(ptr::null_mut()) };
+}
