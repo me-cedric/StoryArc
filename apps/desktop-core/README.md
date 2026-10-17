@@ -146,11 +146,20 @@ compile the Windows one. `paths::StorageLocations::current()` gives the store fi
 
 ## The C seam (`storyarc-ffi`)
 
-Twenty exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
-`storyarc-ffi/generated/NativeMethods.g.cs` by `build.rs` with csbindgen. Opaque tagged
-handles, Rust-owned buffers freed by `storyarc_buffer_free`, records as UTF-8 JSON, integer
-codes with `storyarc_last_error`, cancel tokens. A test reads the exports from the source and
-fails when the header or the generated file misses one.
+Forty-eight exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
+`storyarc-ffi/generated/NativeMethods.g.cs` by `build.rs` with csbindgen, which reads
+`src/lib.rs`, `src/network.rs` and `src/data.rs`. Opaque tagged handles, Rust-owned buffers
+freed by `storyarc_buffer_free`, records and requests as UTF-8 JSON, integer codes 0 to 9 with
+`storyarc_last_error`, cancel tokens. A test reads the exports from the three files and fails
+when the header or the generated file misses one.
+
+Wave 3 adds twenty-eight. The network, in `src/network.rs`: the runtime, the HTTP client and
+its certificate pins, SMB (`connect`, `identity`, `list`, `free`), an OPDS page or search, one
+Kavita call, the network state, and a download with a progress callback. The reader's data, in
+`src/data.rs`: the vault (`open`, `save`, `load`, `delete`, `free`), the download queue's rules
+and the shelves as value-plus-operations, the shelf edit pull, library import, export and
+sync, sealed secrets, the diagnostic's text and a folder's size. Codes 8 (`UNREACHABLE`, grey)
+and 9 (`UNAUTHORIZED`) are new; the C# `StoryArcStatus` enum gains them in lane W.
 
 ## Features
 

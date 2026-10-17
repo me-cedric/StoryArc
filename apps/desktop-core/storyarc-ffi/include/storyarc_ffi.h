@@ -30,6 +30,11 @@ extern "C" {
 #define STORYARC_ERROR_STORAGE 6
 /* The core failed in a way it has no case for: a defect, reported rather than a crash. */
 #define STORYARC_ERROR_INTERNAL 7
+/* The source, server or sync place did not answer: grey, never red. */
+#define STORYARC_ERROR_UNREACHABLE 8
+/* A credential, key or passphrase was refused, or a certificate is not trusted; the message
+ * names the challenge or the fingerprint. */
+#define STORYARC_ERROR_UNAUTHORIZED 9
 
 /* Bytes Rust owns. Read `len` bytes at `data`, then hand the whole struct to
  * storyarc_buffer_free exactly once. `data` is NULL when `len` is zero. */
@@ -127,6 +132,117 @@ int32_t storyarc_progress_write(const void *store, const uint8_t *record_json,
 
 /* Releases a store handle. */
 void storyarc_store_free(void *store);
+
+/* ---- Wave 3: the network (src/network.rs). Requests are UTF-8 JSON with a length. ------ */
+
+/* Creates the core's one runtime. Free it with storyarc_runtime_free when the app quits. */
+int32_t storyarc_runtime_new(void **out_runtime);
+
+/* Releases the runtime, after every handle made from it. */
+void storyarc_runtime_free(void *runtime);
+
+/* Creates the HTTP client every catalogue, server and download shares. */
+int32_t storyarc_http_new(const void *runtime, void **out_http);
+
+/* Pins the certificate fingerprint the reader accepted for `host`. */
+int32_t storyarc_http_pin(const void *http, const uint8_t *host, size_t host_len,
+                          const uint8_t *fingerprint, size_t fingerprint_len);
+
+/* Releases the HTTP client. */
+void storyarc_http_free(void *http);
+
+/* Connects to a share: {"address", "port"?, "username"?, "password"?}. The four named
+ * failures and the SMB 1 refusal are status codes with the remedy in the message. */
+int32_t storyarc_smb_connect(const void *runtime, const uint8_t *request, size_t request_len,
+                             void **out_share);
+
+/* Writes {"dialect", "isEncrypted"} for a connected share. */
+int32_t storyarc_smb_identity(const void *share, StoryArcBuffer *out);
+
+/* Lists one folder: [{"name", "path", "isDirectory", "length"}], folders first. */
+int32_t storyarc_smb_list(const void *share, const uint8_t *path, size_t path_len,
+                          StoryArcBuffer *out);
+
+/* Releases a share and its session. */
+void storyarc_smb_free(void *share);
+
+/* Fetches a catalogue page or a search: {"root", "url"?, "search"?, "username"?,
+ * "password"?, "token"?}. Writes the page, or {"localOnly": true}. */
+int32_t storyarc_opds_feed(const void *http, const uint8_t *request, size_t request_len,
+                           StoryArcBuffer *out);
+
+/* One Kavita call: {"address", "apiKey", "call", "library"?, "series"?}. */
+int32_t storyarc_kavita_call(const void *http, const uint8_t *request, size_t request_len,
+                             StoryArcBuffer *out);
+
+/* Writes 0 unmetered or undescribed, 1 metered, 2 no connection. */
+int32_t storyarc_network_state(const void *runtime, int32_t *out_state);
+
+/* Downloads one publication, resuming a partial file, verifying it by indexing and moving it
+ * into place. `progress` may be NULL; it receives `context`, the bytes so far and the total or
+ * -1. Writes {"path", "resumption", "length", "publication"}. */
+int32_t storyarc_download_fetch(const void *http, const uint8_t *request, size_t request_len,
+                                const void *cancel,
+                                void (*progress)(void *context, uint64_t received, int64_t total),
+                                void *context, StoryArcBuffer *out);
+
+/* ---- Wave 3: the reader's data (src/data.rs). ------------------------------------------ */
+
+/* Opens the vault over the system's store, or the session alone when none runs. */
+int32_t storyarc_vault_open(const void *runtime, void **out_vault);
+
+/* Saves a secret under {"sourceId", "field"}. Writes {"stored": true} or
+ * {"stored": false, "notice"}. */
+int32_t storyarc_vault_save(const void *vault, const uint8_t *key, size_t key_len,
+                            const uint8_t *secret, size_t secret_len, StoryArcBuffer *out);
+
+/* Writes the secret under {"sourceId", "field"}, or STORYARC_ERROR_NOT_FOUND. */
+int32_t storyarc_vault_load(const void *vault, const uint8_t *key, size_t key_len,
+                            StoryArcBuffer *out);
+
+/* Removes the secret under {"sourceId", "field"} everywhere. */
+int32_t storyarc_vault_delete(const void *vault, const uint8_t *key, size_t key_len);
+
+/* Releases the vault; session-only secrets go with it. */
+void storyarc_vault_free(void *vault);
+
+/* Applies {"queue", "ops", "startable"?} to the download queue. Writes {"queue",
+ * "startable", "retry"}. */
+int32_t storyarc_queue_apply(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* Applies {"shelves", "ops"} to the collections and reading lists. Writes the shelves. */
+int32_t storyarc_shelves_apply(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* Reconciles offline shelf edits with {"queue", "remote"}. Writes {"toPush", "toDrop",
+ * "conflicts"}. */
+int32_t storyarc_shelf_pull(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* Merges a library document into the snapshot JSON this device holds. */
+int32_t storyarc_library_import(const uint8_t *document, size_t document_len,
+                                const uint8_t *snapshot, size_t snapshot_len,
+                                const uint8_t *device, size_t device_len, StoryArcBuffer *out);
+
+/* Writes the library document for {"snapshot", "appVersion", "device", "now", "forSync"?,
+ * "sealed"?}. */
+int32_t storyarc_library_export(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* Synchronises with the document in a folder: {"folder", "device", "appVersion", "now",
+ * "snapshot"}. An unreachable folder is STORYARC_ERROR_UNREACHABLE. */
+int32_t storyarc_library_sync(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* Opens sealed secrets: {"passphrase", "secrets"}. A wrong passphrase is
+ * STORYARC_ERROR_UNAUTHORIZED. */
+int32_t storyarc_secrets_open(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
+
+/* The diagnostic's text for {"title", "sections", "secrets"}, every secret removed. */
+int32_t storyarc_diagnostic_render(const uint8_t *request, size_t request_len,
+                                   StoryArcBuffer *out);
+
+/* Writes what every file under `path` weighs. */
+int32_t storyarc_storage_bytes(const uint8_t *path, size_t path_len, uint64_t *out_bytes);
+
+/* Seals secrets for an export: {"passphrase", "secrets": {id: text}}. */
+int32_t storyarc_secrets_seal(const uint8_t *request, size_t request_len, StoryArcBuffer *out);
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,8 @@ pub enum NetworkState {
 }
 
 /// The reader's settings that decide admission.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct DownloadPolicy {
     /// "Download over Wi-Fi only": on a desktop, over an unmetered connection only.
     pub unmetered_only: bool,

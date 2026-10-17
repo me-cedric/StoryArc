@@ -97,7 +97,7 @@ pub struct KavitaIdentity {
 }
 
 /// A library on the server.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KavitaLibrary {
     pub id: i64,
@@ -105,7 +105,7 @@ pub struct KavitaLibrary {
 }
 
 /// A series, with its reading totals.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KavitaSeries {
     pub id: i64,
@@ -119,7 +119,7 @@ pub struct KavitaSeries {
 }
 
 /// A chapter: Kavita's unit of progress.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KavitaChapter {
     pub id: i64,
@@ -152,7 +152,7 @@ impl KavitaChapter {
 }
 
 /// One file of a chapter.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KavitaFile {
     #[serde(default)]
@@ -160,7 +160,7 @@ pub struct KavitaFile {
 }
 
 /// A volume and its chapters.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KavitaVolume {
     pub id: i64,

@@ -27,7 +27,8 @@ use crate::shelves::{
 pub const MAXIMUM_COVER_BYTES: usize = 8 * 1024 * 1024;
 
 /// Everything a device holds that a document carries.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct LibrarySnapshot {
     pub sources: Vec<DocumentSource>,
     pub certificate_pins: BTreeMap<String, Vec<String>>,

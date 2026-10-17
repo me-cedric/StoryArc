@@ -103,6 +103,20 @@ impl PinnedShelves {
     }
 }
 
+/// On the wire, the pins are their sorted tokens, as the library document's `pinnedShelves`.
+impl serde::Serialize for PinnedShelves {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.tokens().serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for PinnedShelves {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let tokens = Vec::<String>::deserialize(deserializer)?;
+        Ok(Self::of_tokens(tokens.iter().map(String::as_str)))
+    }
+}
+
 /// A shelf a server described when it last answered, kept for the home surface.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct RememberedShelf {
