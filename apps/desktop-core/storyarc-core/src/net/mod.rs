@@ -317,33 +317,43 @@ impl HttpClient {
     pub async fn send_async(&self, request: Request) -> Result<Response, HttpError> {
         let mut body = Vec::new();
         let mut response = self
-            .stream_async(request, &CancelToken::new(), |chunk| {
-                body.extend_from_slice(chunk);
-                Ok(())
-            })
+            .stream_async(
+                request,
+                &CancelToken::new(),
+                |_| Ok(()),
+                |chunk| {
+                    body.extend_from_slice(chunk);
+                    Ok(())
+                },
+            )
             .await?;
         response.body = body;
         Ok(response)
     }
 
-    /// Sends `request` and hands the body to `sink` as it arrives, for downloads. The
-    /// returned response carries the headers and an empty body.
+    /// Sends `request`, shows `head` the status and headers before any byte of the body, and
+    /// hands the body to `sink` as it arrives, for downloads. Either may refuse with a reason,
+    /// which ends the transfer as [`HttpError::Sink`]. The returned response carries the
+    /// headers and an empty body.
     pub fn stream(
         &self,
         request: Request,
         cancel: &CancelToken,
+        head: impl FnOnce(&Response) -> Result<(), String>,
         sink: impl FnMut(&[u8]) -> Result<(), String>,
     ) -> Result<Response, HttpError> {
         self.runtime
-            .block_on(self.stream_async(request, cancel, sink))
+            .block_on(self.stream_async(request, cancel, head, sink))
     }
 
     pub async fn stream_async(
         &self,
         request: Request,
         cancel: &CancelToken,
+        head: impl FnOnce(&Response) -> Result<(), String>,
         mut sink: impl FnMut(&[u8]) -> Result<(), String>,
     ) -> Result<Response, HttpError> {
+        let mut head = Some(head);
         let mut url = request.url.clone();
         let started = Origin::of(&url).ok_or(HttpError::RefusedAddress)?;
         let bound = request.origin.clone().unwrap_or(started);
@@ -393,6 +403,9 @@ impl HttpClient {
                 challenge: text(reply.headers(), header::WWW_AUTHENTICATE),
                 body: Vec::new(),
             };
+            if let Some(head) = head.take() {
+                head(&response).map_err(HttpError::Sink)?;
+            }
             let mut reply = reply;
             loop {
                 if cancel.is_cancelled() {
