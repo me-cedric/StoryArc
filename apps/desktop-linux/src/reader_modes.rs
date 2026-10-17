@@ -184,7 +184,7 @@ impl Reader {
         let count = self.publication.page_count as usize;
         let page = place.page as usize;
         let target = match action {
-            PageAction::Next if page + 1 >= count => {
+            PageAction::Next if page + 1 >= count || self.scroll.at_end() => {
                 self.show_end();
                 return;
             }

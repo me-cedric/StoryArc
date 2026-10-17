@@ -6,6 +6,7 @@
 //! and how far down it.
 
 use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 
 use adw::prelude::*;
 use gtk::gdk;
@@ -18,11 +19,11 @@ const PORTRAIT: (i32, i32) = (2, 3);
 pub struct ScrollView {
     pub scrolled: gtk::ScrolledWindow,
     strip: gtk::Box,
-    pictures: RefCell<Vec<gtk::Picture>>,
-    sizes: RefCell<Vec<(i32, i32)>>,
+    pictures: Rc<RefCell<Vec<gtk::Picture>>>,
+    sizes: Rc<RefCell<Vec<(i32, i32)>>>,
     /// The pages that hold pixels now.
     loaded: RefCell<std::collections::HashSet<usize>>,
-    axis: Cell<Axis>,
+    axis: Rc<Cell<Axis>>,
 }
 
 impl ScrollView {
@@ -34,14 +35,36 @@ impl ScrollView {
             .vexpand(true)
             .css_classes(["storyarc-reader"])
             .build();
+        let pictures: Rc<RefCell<Vec<gtk::Picture>>> = Rc::default();
+        let sizes: Rc<RefCell<Vec<(i32, i32)>>> = Rc::default();
+        let axis = Rc::new(Cell::new(Axis::Vertical));
+        // Each page is as long as its shape asks at the width (or height) the window
+        // gives it, so the strip follows a resize.
+        for adjustment in [scrolled.vadjustment(), scrolled.hadjustment()] {
+            let (scrolled, pictures, sizes, axis) = (
+                scrolled.clone(),
+                pictures.clone(),
+                sizes.clone(),
+                axis.clone(),
+            );
+            adjustment.connect_page_size_notify(move |_| {
+                fit(&scrolled, &pictures.borrow(), &sizes.borrow(), axis.get());
+            });
+        }
         Self {
             scrolled,
             strip,
-            pictures: RefCell::default(),
-            sizes: RefCell::default(),
+            pictures,
+            sizes,
             loaded: RefCell::default(),
-            axis: Cell::new(Axis::Vertical),
+            axis,
         }
+    }
+
+    /// Whether the window is at the far end of the strip, however short the last page.
+    pub fn at_end(&self) -> bool {
+        let adjustment = self.adjustment();
+        adjustment.value() + adjustment.page_size() >= adjustment.upper() - 1.0
     }
 
     /// Lays out `count` pages on `axis`, each in the shape `sizes` gives (width, height),
@@ -84,6 +107,12 @@ impl ScrollView {
         *self.pictures.borrow_mut() = pictures;
         *self.sizes.borrow_mut() = sizes.to_vec();
         self.loaded.borrow_mut().clear();
+        fit(
+            &self.scrolled,
+            &self.pictures.borrow(),
+            &self.sizes.borrow(),
+            axis,
+        );
     }
 
     /// Draws a decoded page in its place.
@@ -175,6 +204,41 @@ impl ScrollView {
     }
 }
 
+/// The length of a page along the axis when the window gives the strip `across` pixels on
+/// the other one: the page's shape, scaled to that. Never less than one pixel.
+pub fn length_along(page: (i32, i32), axis: Axis, across: f64) -> i32 {
+    let (width, height) = (f64::from(page.0.max(1)), f64::from(page.1.max(1)));
+    let length = match axis {
+        Axis::Vertical => across * height / width,
+        Axis::Horizontal => across * width / height,
+    };
+    (length.round() as i32).max(1)
+}
+
+/// Asks every page for its length along the axis; the other dimension stays the window's.
+fn fit(
+    scrolled: &gtk::ScrolledWindow,
+    pictures: &[gtk::Picture],
+    sizes: &[(i32, i32)],
+    axis: Axis,
+) {
+    let across = match axis {
+        Axis::Vertical => scrolled.hadjustment().page_size(),
+        Axis::Horizontal => scrolled.vadjustment().page_size(),
+    };
+    if across < 1.0 {
+        return;
+    }
+    for (index, picture) in pictures.iter().enumerate() {
+        let shape = sizes.get(index).copied().unwrap_or(PORTRAIT);
+        let length = length_along(shape, axis, across);
+        match axis {
+            Axis::Vertical => picture.set_size_request(-1, length),
+            Axis::Horizontal => picture.set_size_request(length, -1),
+        }
+    }
+}
+
 /// The page whose extent holds `offset`, and how far into it, from 0 to 1.
 pub fn place_at(extents: &[(f64, f64)], offset: f64) -> ScrollPlace {
     let index = extents
@@ -196,6 +260,14 @@ pub fn place_at(extents: &[(f64, f64)], offset: f64) -> ScrollPlace {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_page_is_as_long_as_its_shape_asks_at_the_width_the_window_gives() {
+        assert_eq!(length_along((1000, 1500), Axis::Vertical, 800.0), 1200);
+        assert_eq!(length_along((1500, 1000), Axis::Horizontal, 600.0), 900);
+        assert_eq!(length_along((0, 0), Axis::Vertical, 10.0), 10);
+        assert_eq!(length_along((1000, 1), Axis::Vertical, 10.0), 1);
+    }
 
     #[test]
     fn the_place_is_the_page_at_the_leading_edge_and_how_far_into_it() {

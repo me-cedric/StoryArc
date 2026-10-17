@@ -183,6 +183,20 @@ pub fn present(reader: &Rc<Reader>) {
             browser.reader.jump_to(browser.centre.get());
         }
     });
+    // Enter on the slider goes to the page it shows; a Scale does not take Enter itself.
+    let enter = gtk::EventControllerKey::new();
+    enter.set_propagation_phase(gtk::PropagationPhase::Capture);
+    let (focus, go_to) = (slider.clone(), go.clone());
+    enter.connect_key_pressed(move |_, key, _, _| {
+        let is_enter = matches!(key, gdk::Key::Return | gdk::Key::KP_Enter);
+        if is_enter && focus.has_focus() {
+            go_to.emit_clicked();
+            glib::Propagation::Stop
+        } else {
+            glib::Propagation::Proceed
+        }
+    });
+    dialog.add_controller(enter);
     browser.centre_on(current);
     // The carousel has its width once it is laid out; the centred page waits for that.
     let weak = Rc::downgrade(&browser);

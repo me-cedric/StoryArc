@@ -224,6 +224,10 @@ pub fn install_keys(reader: &Rc<Reader>) {
         let Some(reader) = weak.upgrade() else {
             return glib::Propagation::Proceed;
         };
+        // A dialog over the window (the page browser, the adjustments) keeps its own keys.
+        if reader.window.visible_dialog().is_some() {
+            return glib::Propagation::Proceed;
+        }
         let focused_text = gtk::prelude::GtkWindowExt::focus(&reader.window)
             .is_some_and(|widget| widget.is::<gtk::Editable>() || widget.is::<gtk::Text>());
         let mapped = match key {

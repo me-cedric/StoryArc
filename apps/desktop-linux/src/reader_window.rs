@@ -526,6 +526,7 @@ fn parts(publication: &Publication, menu: &gio::Menu) -> Parts {
     let menu_button = gtk::MenuButton::builder()
         .icon_name("view-more-symbolic")
         .tooltip_text(tr("detail.more", "More actions"))
+        .primary(true)
         .menu_model(menu)
         .build();
     let header = adw::HeaderBar::new();

@@ -237,7 +237,30 @@ pub fn tr_plural(key: &str, one: &str, other: &str, count: u64) -> String {
         .get()
         .and_then(|catalogue| catalogue.get_plural(key, count))
         .unwrap_or(if count == 1 { one } else { other });
-    fill(template, &[&count])
+    fill(template, &[&group_digits(count, language())])
+}
+
+/// A count written the way its language groups digits: a comma in English, a point in
+/// German, a narrow no-break space in French, a point from five digits in Spanish.
+pub fn group_digits(count: u64, language: &str) -> String {
+    let digits = count.to_string();
+    let (separator, minimum) = match language {
+        "de" => ("\u{2e}", 4),
+        "fr" => ("\u{202f}", 4),
+        "es" => ("\u{2e}", 5),
+        _ => (",", 4),
+    };
+    if digits.len() < minimum {
+        return digits;
+    }
+    let mut grouped = String::with_capacity(digits.len() + digits.len() / 3);
+    for (index, digit) in digits.chars().enumerate() {
+        if index > 0 && (digits.len() - index).is_multiple_of(3) {
+            grouped.push_str(separator);
+        }
+        grouped.push(digit);
+    }
+    grouped
 }
 
 /// `tr` with the catalogue's `%s`, `%d` and positional `%1$s` placeholders filled in order.
@@ -381,6 +404,27 @@ msgstr ""
         );
         assert_eq!(fill("no placeholder", &[&1]), "no placeholder");
         assert_eq!(fill("trailing %", &[]), "trailing %");
+    }
+
+    #[test]
+    fn a_count_is_grouped_as_its_language_writes_it() {
+        assert_eq!(group_digits(999, "en"), "999");
+        assert_eq!(group_digits(10_000, "en"), "10,000");
+        assert_eq!(group_digits(1_234_567, "en"), "1,234,567");
+        assert_eq!(group_digits(1_234, "de"), "1.234");
+        assert_eq!(group_digits(1_234, "fr"), "1\u{202f}234");
+        // Spanish groups from five digits (CLDR minimum grouping digits of two).
+        assert_eq!(group_digits(1_234, "es"), "1234");
+        assert_eq!(group_digits(12_345, "es"), "12.345");
+        assert_eq!(group_digits(0, "en"), "0");
+    }
+
+    #[test]
+    fn a_plural_count_is_filled_in_grouped() {
+        assert_eq!(
+            tr_plural("missing %d", "%d title", "%d titles", 10_000),
+            "10,000 titles"
+        );
     }
 
     #[test]
