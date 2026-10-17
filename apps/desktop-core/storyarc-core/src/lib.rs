@@ -2,7 +2,13 @@
 
 pub mod domain;
 pub mod formats;
+pub mod image;
 pub mod io;
+pub mod library;
+pub mod locale;
+pub mod paths;
+pub mod sources;
+pub mod store;
 
 /// The crate version, for example `0.1.0`.
 pub fn version() -> &'static str {

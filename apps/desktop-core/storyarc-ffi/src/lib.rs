@@ -3,22 +3,42 @@
 //!
 //! The seam's rules (design.md, Decision 5): opaque handles, byte buffers that Rust owns and
 //! `storyarc_buffer_free` releases, integer status codes with `storyarc_last_error` for the
-//! message, and `storyarc_cancel` on a token for cancellation. Task 1.8a exports the four
-//! calls the interop tests exercise; later waves add publication handles under the same
-//! rules.
+//! message, and `storyarc_cancel` on a token for cancellation. Task 1.8a exported the four
+//! calls the interop tests exercise. Wave 2 adds three tagged handles over
+//! `storyarc_core::library` — a folder source, an open publication and the progress store —
+//! with records crossing as UTF-8 JSON and pages as RGBA buffers.
+//!
+//! A handle is used by one thread at a time and released once by its own `_free`; releasing
+//! null is a no-op. Paths and JSON arrive as UTF-8 bytes with a length, never NUL-terminated.
+
+mod seam;
 
 use std::cell::RefCell;
 use std::ffi::{CString, c_char, c_void};
 use std::sync::OnceLock;
 
+use storyarc_core::domain::{PublicationIdentity, ReadingProgress};
 use storyarc_core::io::CancelToken;
+use storyarc_core::library::{FolderSource, OpenPublication, ProgressStore};
+
+use seam::{FOLDER, PUBLICATION, STORE, borrow, guard, into_handle, library_failure, release};
 
 /// The call succeeded.
 pub const STORYARC_OK: i32 = 0;
-/// A pointer or length the call cannot work with. The message names which.
+/// A pointer, length, handle or index the call cannot work with. The message names which.
 pub const STORYARC_ERROR_INVALID_ARGUMENT: i32 = 1;
 /// The call was abandoned because its cancel token fired.
 pub const STORYARC_ERROR_CANCELLED: i32 = 2;
+/// Nothing at the path the call was given.
+pub const STORYARC_ERROR_NOT_FOUND: i32 = 3;
+/// A format or codec this build refuses. The message names it, for the reader.
+pub const STORYARC_ERROR_UNSUPPORTED: i32 = 4;
+/// A publication or page in a supported format that is damaged, locked or too large.
+pub const STORYARC_ERROR_UNREADABLE: i32 = 5;
+/// The local store refused, or the disk is full.
+pub const STORYARC_ERROR_STORAGE: i32 = 6;
+/// The core failed in a way it has no case for. A defect, reported rather than a crash.
+pub const STORYARC_ERROR_INTERNAL: i32 = 7;
 
 /// Bytes Rust owns. The caller reads `len` bytes at `data` and hands the whole struct back
 /// to `storyarc_buffer_free` exactly once. `data` is null when `len` is zero.
@@ -183,6 +203,295 @@ pub unsafe extern "C" fn storyarc_cancel_token_free(token: *mut c_void) {
     drop(unsafe { Box::from_raw(token.cast::<CancelToken>()) });
 }
 
+/// Scans the folder at the UTF-8 path `path` (`path_len` bytes) and writes a folder handle
+/// to `out_folder`, freed with `storyarc_folder_free`. `cancel` may be null; when it fires
+/// the call returns `STORYARC_ERROR_CANCELLED` and no handle. A missing folder is
+/// `STORYARC_ERROR_NOT_FOUND`.
+///
+/// # Safety
+///
+/// `path` must point to `path_len` readable bytes. `cancel` must be null or a live token.
+/// `out_folder` must point to writable storage for one pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_folder_open(
+    path: *const u8,
+    path_len: usize,
+    cancel: *const c_void,
+    out_folder: *mut *mut c_void,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        unsafe { seam::write(out_folder, std::ptr::null_mut(), "out_folder")? };
+        let path = unsafe { seam::utf8(path, path_len, "path")? };
+        let token = if cancel.is_null() {
+            CancelToken::new()
+        } else {
+            // SAFETY: the caller promises a live token from `storyarc_cancel_token_new`.
+            unsafe { &*cancel.cast::<CancelToken>() }.clone()
+        };
+        let source = FolderSource::open(path, &token).map_err(|e| library_failure(&e))?;
+        if source.was_cancelled() {
+            return Err(fail(
+                STORYARC_ERROR_CANCELLED,
+                "the folder scan was cancelled",
+            ));
+        }
+        // SAFETY: checked writable above.
+        unsafe { out_folder.write(into_handle(FOLDER, source)) };
+        Ok(())
+    })
+}
+
+/// Writes the folder's publications to `out` as a UTF-8 JSON array of publication records,
+/// the shape the phones' library documents use. Free `out` with `storyarc_buffer_free`.
+///
+/// # Safety
+///
+/// `folder` must be null or a live folder handle. `out` must point to one writable
+/// `StoryArcBuffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_folder_records(
+    folder: *const c_void,
+    out: *mut StoryArcBuffer,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        let source: &FolderSource = unsafe { borrow(folder, FOLDER, "folder")? };
+        let records = StoryArcBuffer::from_vec(source.records_json().into_bytes());
+        unsafe { seam::write(out, records, "out") }
+    })
+}
+
+/// Releases a folder handle. Null is ignored.
+///
+/// # Safety
+///
+/// `folder` must be null or a live folder handle, released once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_folder_free(folder: *mut c_void) {
+    // SAFETY: the caller's promise, passed on.
+    unsafe { release::<FolderSource>(folder, FOLDER) };
+}
+
+/// Opens the comic at the UTF-8 path `path` (`path_len` bytes) — a CBZ, CBR, CBT or a
+/// folder of images — and writes a publication handle to `out_publication`, freed with
+/// `storyarc_publication_free`. A refused format is `STORYARC_ERROR_UNSUPPORTED` with its
+/// name in the message.
+///
+/// # Safety
+///
+/// `path` must point to `path_len` readable bytes. `out_publication` must point to writable
+/// storage for one pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_publication_open(
+    path: *const u8,
+    path_len: usize,
+    out_publication: *mut *mut c_void,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        unsafe { seam::write(out_publication, std::ptr::null_mut(), "out_publication")? };
+        let path = unsafe { seam::utf8(path, path_len, "path")? };
+        let opened = OpenPublication::open(path).map_err(|e| library_failure(&e))?;
+        // SAFETY: checked writable above.
+        unsafe { out_publication.write(into_handle(PUBLICATION, opened)) };
+        Ok(())
+    })
+}
+
+/// Writes the publication's page count to `out_count`.
+///
+/// # Safety
+///
+/// `publication` must be null or a live publication handle. `out_count` must point to one
+/// writable `uint32_t`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_publication_page_count(
+    publication: *const c_void,
+    out_count: *mut u32,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        let opened: &OpenPublication = unsafe { borrow(publication, PUBLICATION, "publication")? };
+        let count = u32::try_from(opened.page_count()).unwrap_or(u32::MAX);
+        unsafe { seam::write(out_count, count, "out_count") }
+    })
+}
+
+/// Writes the publication's record to `out` as a UTF-8 JSON object: title, series, number,
+/// authors, identity, page count and the rest. Free `out` with `storyarc_buffer_free`.
+///
+/// # Safety
+///
+/// `publication` must be null or a live publication handle. `out` must point to one
+/// writable `StoryArcBuffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_publication_metadata(
+    publication: *const c_void,
+    out: *mut StoryArcBuffer,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        let opened: &OpenPublication = unsafe { borrow(publication, PUBLICATION, "publication")? };
+        let record = StoryArcBuffer::from_vec(opened.metadata_json().into_bytes());
+        unsafe { seam::write(out, record, "out") }
+    })
+}
+
+/// Decodes page `index` to 8-bit RGBA, not premultiplied, rows top to bottom with no
+/// padding, at most `max_pixel_size` on its longest edge (zero for the page's own size).
+/// Writes the pixels to `out_pixels` (`width * height * 4` bytes, freed with
+/// `storyarc_buffer_free`) and the size to `out_width` and `out_height`. On failure the
+/// three are zeroed: an index past the end is `STORYARC_ERROR_INVALID_ARGUMENT`, a codec
+/// this build refuses `STORYARC_ERROR_UNSUPPORTED`, a damaged page
+/// `STORYARC_ERROR_UNREADABLE`, each with the codec named in the message.
+///
+/// # Safety
+///
+/// `publication` must be null or a live publication handle. `out_pixels` must point to one
+/// writable `StoryArcBuffer`, `out_width` and `out_height` to one writable `uint32_t` each.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_publication_decode_page(
+    publication: *const c_void,
+    index: u32,
+    max_pixel_size: u32,
+    out_pixels: *mut StoryArcBuffer,
+    out_width: *mut u32,
+    out_height: *mut u32,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on; every output is zeroed before any work.
+        unsafe {
+            seam::write(
+                out_pixels,
+                StoryArcBuffer::from_vec(Vec::new()),
+                "out_pixels",
+            )?;
+            seam::write(out_width, 0, "out_width")?;
+            seam::write(out_height, 0, "out_height")?;
+        }
+        let opened: &OpenPublication = unsafe { borrow(publication, PUBLICATION, "publication")? };
+        let limit = (max_pixel_size > 0).then_some(max_pixel_size);
+        let page = opened
+            .decode_page(index as usize, limit)
+            .map_err(|e| library_failure(&e))?;
+        // SAFETY: all three checked writable above.
+        unsafe {
+            out_width.write(page.width);
+            out_height.write(page.height);
+            out_pixels.write(StoryArcBuffer::from_vec(page.rgba));
+        }
+        Ok(())
+    })
+}
+
+/// Releases a publication handle. Null is ignored.
+///
+/// # Safety
+///
+/// `publication` must be null or a live publication handle, released once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_publication_free(publication: *mut c_void) {
+    // SAFETY: the caller's promise, passed on.
+    unsafe { release::<OpenPublication>(publication, PUBLICATION) };
+}
+
+/// Opens or creates the progress store at the UTF-8 path `path` (`path_len` bytes) and
+/// writes a store handle to `out_store`, freed with `storyarc_store_free`.
+///
+/// # Safety
+///
+/// `path` must point to `path_len` readable bytes. `out_store` must point to writable
+/// storage for one pointer.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_store_open(
+    path: *const u8,
+    path_len: usize,
+    out_store: *mut *mut c_void,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        unsafe { seam::write(out_store, std::ptr::null_mut(), "out_store")? };
+        let path = unsafe { seam::utf8(path, path_len, "path")? };
+        let store = ProgressStore::open(path).map_err(|e| library_failure(&e))?;
+        // SAFETY: checked writable above.
+        unsafe { out_store.write(into_handle(STORE, store)) };
+        Ok(())
+    })
+}
+
+/// Reads the progress record of the publication whose identity is the UTF-8 JSON object at
+/// `identity_json` (`serverSourceId`, `serverRemoteId`, `contentDigest`, `normalizedPath`,
+/// any of them). Writes the record to `out` as UTF-8 JSON, or `null` when there is none;
+/// free `out` with `storyarc_buffer_free`.
+///
+/// # Safety
+///
+/// `store` must be null or a live store handle. `identity_json` must point to
+/// `identity_len` readable bytes. `out` must point to one writable `StoryArcBuffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_progress_read(
+    store: *const c_void,
+    identity_json: *const u8,
+    identity_len: usize,
+    out: *mut StoryArcBuffer,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        let store: &ProgressStore = unsafe { borrow(store, STORE, "store")? };
+        let text = unsafe { seam::utf8(identity_json, identity_len, "identity_json")? };
+        let identity: PublicationIdentity = serde_json::from_str(text).map_err(|error| {
+            fail(
+                STORYARC_ERROR_INVALID_ARGUMENT,
+                &format!("identity_json is not an identity: {error}"),
+            )
+        })?;
+        let record = store.read(&identity).map_err(|e| library_failure(&e))?;
+        let json = serde_json::to_string(&record)
+            .map_err(|error| fail(STORYARC_ERROR_INTERNAL, &error.to_string()))?;
+        unsafe { seam::write(out, StoryArcBuffer::from_vec(json.into_bytes()), "out") }
+    })
+}
+
+/// Records a position: the UTF-8 JSON progress record at `record_json`, in the shape the
+/// phones' library documents use. Finished stays finished. A record that is not one is
+/// `STORYARC_ERROR_INVALID_ARGUMENT`; a full disk is `STORYARC_ERROR_STORAGE`.
+///
+/// # Safety
+///
+/// `store` must be null or a live store handle. `record_json` must point to `record_len`
+/// readable bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_progress_write(
+    store: *const c_void,
+    record_json: *const u8,
+    record_len: usize,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        let store: &ProgressStore = unsafe { borrow(store, STORE, "store")? };
+        let text = unsafe { seam::utf8(record_json, record_len, "record_json")? };
+        let record: ReadingProgress = serde_json::from_str(text).map_err(|error| {
+            fail(
+                STORYARC_ERROR_INVALID_ARGUMENT,
+                &format!("record_json is not a progress record: {error}"),
+            )
+        })?;
+        store.write(&record).map_err(|e| library_failure(&e))
+    })
+}
+
+/// Releases a store handle. Null is ignored.
+///
+/// # Safety
+///
+/// `store` must be null or a live store handle, released once.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_store_free(store: *mut c_void) {
+    // SAFETY: the caller's promise, passed on.
+    unsafe { release::<ProgressStore>(store, STORE) };
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,27 +598,59 @@ mod tests {
         unsafe { storyarc_cancel_token_free(std::ptr::null_mut()) };
     }
 
+    fn crate_file(relative: &str) -> String {
+        std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
+            .unwrap_or_else(|error| panic!("{relative}: {error}"))
+    }
+
+    /// Every `extern "C"` function this file exports, read from the source itself so a new
+    /// export cannot be added without the two checks below seeing it.
+    fn exports() -> Vec<String> {
+        let source = crate_file("src/lib.rs");
+        let exports: Vec<String> = source
+            .lines()
+            .filter_map(|line| {
+                let rest = line.trim_start().strip_prefix("pub ")?;
+                let rest = rest.strip_prefix("unsafe ").unwrap_or(rest);
+                let name = rest.strip_prefix("extern \"C\" fn ")?;
+                Some(name.split('(').next()?.to_owned())
+            })
+            .collect();
+        assert_eq!(exports.len(), 20, "{exports:?}");
+        exports
+    }
+
+    /// The status codes, as this file defines them.
+    const CODES: [(&str, i32); 8] = [
+        ("STORYARC_OK", STORYARC_OK),
+        (
+            "STORYARC_ERROR_INVALID_ARGUMENT",
+            STORYARC_ERROR_INVALID_ARGUMENT,
+        ),
+        ("STORYARC_ERROR_CANCELLED", STORYARC_ERROR_CANCELLED),
+        ("STORYARC_ERROR_NOT_FOUND", STORYARC_ERROR_NOT_FOUND),
+        ("STORYARC_ERROR_UNSUPPORTED", STORYARC_ERROR_UNSUPPORTED),
+        ("STORYARC_ERROR_UNREADABLE", STORYARC_ERROR_UNREADABLE),
+        ("STORYARC_ERROR_STORAGE", STORYARC_ERROR_STORAGE),
+        ("STORYARC_ERROR_INTERNAL", STORYARC_ERROR_INTERNAL),
+    ];
+
     /// The committed C# file is what `build.rs` wrote for *this* source: every export has a
-    /// `DllImport`, under the library name the Windows app loads.
+    /// `DllImport` and every status code a constant, under the library name the Windows app
+    /// loads.
     #[test]
-    fn the_generated_csharp_declares_every_export() {
-        let generated = std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("generated/NativeMethods.g.cs"),
-        )
-        .expect("build.rs wrote generated/NativeMethods.g.cs");
-        for export in [
-            "storyarc_core_version",
-            "storyarc_buffer_roundtrip",
-            "storyarc_buffer_free",
-            "storyarc_last_error",
-            "storyarc_cancel_token_new",
-            "storyarc_cancel",
-            "storyarc_cancel_token_is_cancelled",
-            "storyarc_cancel_token_free",
-        ] {
+    fn the_generated_csharp_declares_every_export_and_code() {
+        let generated = crate_file("generated/NativeMethods.g.cs");
+        for export in exports() {
             assert!(
                 generated.contains(&format!("EntryPoint = \"{export}\"")),
                 "{export} has no DllImport in the generated file"
+            );
+        }
+        for (name, value) in CODES {
+            assert!(
+                generated.contains(&format!("internal const int {name} = {value};")),
+                "{name} = {value} is not in the generated file"
             );
         }
         assert!(generated.contains("__DllName = \"storyarc_ffi\""));
@@ -317,26 +658,20 @@ mod tests {
         assert!(generated.contains("struct StoryArcBuffer"));
     }
 
-    /// The hand-written header and the generated C# name the same exports.
+    /// The hand-written header declares the same exports and the same codes.
     #[test]
-    fn the_c_header_declares_every_export() {
-        let header = std::fs::read_to_string(
-            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("include/storyarc_ffi.h"),
-        )
-        .expect("include/storyarc_ffi.h");
-        for export in [
-            "storyarc_core_version",
-            "storyarc_buffer_roundtrip",
-            "storyarc_buffer_free",
-            "storyarc_last_error",
-            "storyarc_cancel_token_new",
-            "storyarc_cancel(",
-            "storyarc_cancel_token_is_cancelled",
-            "storyarc_cancel_token_free",
-        ] {
+    fn the_c_header_declares_every_export_and_code() {
+        let header = crate_file("include/storyarc_ffi.h");
+        for export in exports() {
             assert!(
-                header.contains(export),
+                header.contains(&format!(" {export}(")) || header.contains(&format!("*{export}(")),
                 "{export} is missing from the header"
+            );
+        }
+        for (name, value) in CODES {
+            assert!(
+                header.contains(&format!("#define {name} {value}\n")),
+                "{name} {value} is missing from the header"
             );
         }
     }

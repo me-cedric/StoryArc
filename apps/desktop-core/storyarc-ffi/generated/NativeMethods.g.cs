@@ -16,6 +16,38 @@ namespace StoryArc.Interop
     {
         const string __DllName = "storyarc_ffi";
 
+        /// <summary>
+        ///  The call succeeded.
+        /// </summary>
+        internal const int STORYARC_OK = 0;
+        /// <summary>
+        ///  A pointer, length, handle or index the call cannot work with. The message names which.
+        /// </summary>
+        internal const int STORYARC_ERROR_INVALID_ARGUMENT = 1;
+        /// <summary>
+        ///  The call was abandoned because its cancel token fired.
+        /// </summary>
+        internal const int STORYARC_ERROR_CANCELLED = 2;
+        /// <summary>
+        ///  Nothing at the path the call was given.
+        /// </summary>
+        internal const int STORYARC_ERROR_NOT_FOUND = 3;
+        /// <summary>
+        ///  A format or codec this build refuses. The message names it, for the reader.
+        /// </summary>
+        internal const int STORYARC_ERROR_UNSUPPORTED = 4;
+        /// <summary>
+        ///  A publication or page in a supported format that is damaged, locked or too large.
+        /// </summary>
+        internal const int STORYARC_ERROR_UNREADABLE = 5;
+        /// <summary>
+        ///  The local store refused, or the disk is full.
+        /// </summary>
+        internal const int STORYARC_ERROR_STORAGE = 6;
+        /// <summary>
+        ///  The core failed in a way it has no case for. A defect, reported rather than a crash.
+        /// </summary>
+        internal const int STORYARC_ERROR_INTERNAL = 7;
 
 
 
@@ -98,6 +130,155 @@ namespace StoryArc.Interop
         /// </summary>
         [DllImport(__DllName, EntryPoint = "storyarc_cancel_token_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern void storyarc_cancel_token_free(void* token);
+
+        /// <summary>
+        ///  Scans the folder at the UTF-8 path `path` (`path_len` bytes) and writes a folder handle
+        ///  to `out_folder`, freed with `storyarc_folder_free`. `cancel` may be null; when it fires
+        ///  the call returns `STORYARC_ERROR_CANCELLED` and no handle. A missing folder is
+        ///  `STORYARC_ERROR_NOT_FOUND`.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `cancel` must be null or a live token.
+        ///  `out_folder` must point to writable storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_folder_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_folder_open(byte* path, nuint path_len, void* cancel, void** out_folder);
+
+        /// <summary>
+        ///  Writes the folder's publications to `out` as a UTF-8 JSON array of publication records,
+        ///  the shape the phones' library documents use. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `folder` must be null or a live folder handle. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_folder_records", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_folder_records(void* folder, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Releases a folder handle. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `folder` must be null or a live folder handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_folder_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_folder_free(void* folder);
+
+        /// <summary>
+        ///  Opens the comic at the UTF-8 path `path` (`path_len` bytes) — a CBZ, CBR, CBT or a
+        ///  folder of images — and writes a publication handle to `out_publication`, freed with
+        ///  `storyarc_publication_free`. A refused format is `STORYARC_ERROR_UNSUPPORTED` with its
+        ///  name in the message.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `out_publication` must point to writable
+        ///  storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_publication_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_publication_open(byte* path, nuint path_len, void** out_publication);
+
+        /// <summary>
+        ///  Writes the publication's page count to `out_count`.
+        ///
+        ///  # Safety
+        ///
+        ///  `publication` must be null or a live publication handle. `out_count` must point to one
+        ///  writable `uint32_t`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_publication_page_count", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_publication_page_count(void* publication, uint* out_count);
+
+        /// <summary>
+        ///  Writes the publication's record to `out` as a UTF-8 JSON object: title, series, number,
+        ///  authors, identity, page count and the rest. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `publication` must be null or a live publication handle. `out` must point to one
+        ///  writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_publication_metadata", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_publication_metadata(void* publication, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Decodes page `index` to 8-bit RGBA, not premultiplied, rows top to bottom with no
+        ///  padding, at most `max_pixel_size` on its longest edge (zero for the page's own size).
+        ///  Writes the pixels to `out_pixels` (`width * height * 4` bytes, freed with
+        ///  `storyarc_buffer_free`) and the size to `out_width` and `out_height`. On failure the
+        ///  three are zeroed: an index past the end is `STORYARC_ERROR_INVALID_ARGUMENT`, a codec
+        ///  this build refuses `STORYARC_ERROR_UNSUPPORTED`, a damaged page
+        ///  `STORYARC_ERROR_UNREADABLE`, each with the codec named in the message.
+        ///
+        ///  # Safety
+        ///
+        ///  `publication` must be null or a live publication handle. `out_pixels` must point to one
+        ///  writable `StoryArcBuffer`, `out_width` and `out_height` to one writable `uint32_t` each.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_publication_decode_page", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_publication_decode_page(void* publication, uint index, uint max_pixel_size, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
+
+        /// <summary>
+        ///  Releases a publication handle. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `publication` must be null or a live publication handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_publication_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_publication_free(void* publication);
+
+        /// <summary>
+        ///  Opens or creates the progress store at the UTF-8 path `path` (`path_len` bytes) and
+        ///  writes a store handle to `out_store`, freed with `storyarc_store_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `out_store` must point to writable
+        ///  storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_store_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_store_open(byte* path, nuint path_len, void** out_store);
+
+        /// <summary>
+        ///  Reads the progress record of the publication whose identity is the UTF-8 JSON object at
+        ///  `identity_json` (`serverSourceId`, `serverRemoteId`, `contentDigest`, `normalizedPath`,
+        ///  any of them). Writes the record to `out` as UTF-8 JSON, or `null` when there is none;
+        ///  free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `store` must be null or a live store handle. `identity_json` must point to
+        ///  `identity_len` readable bytes. `out` must point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_progress_read", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_progress_read(void* store, byte* identity_json, nuint identity_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Records a position: the UTF-8 JSON progress record at `record_json`, in the shape the
+        ///  phones' library documents use. Finished stays finished. A record that is not one is
+        ///  `STORYARC_ERROR_INVALID_ARGUMENT`; a full disk is `STORYARC_ERROR_STORAGE`.
+        ///
+        ///  # Safety
+        ///
+        ///  `store` must be null or a live store handle. `record_json` must point to `record_len`
+        ///  readable bytes.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_progress_write", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_progress_write(void* store, byte* record_json, nuint record_len);
+
+        /// <summary>
+        ///  Releases a store handle. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `store` must be null or a live store handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_store_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_store_free(void* store);
 
 
     }
