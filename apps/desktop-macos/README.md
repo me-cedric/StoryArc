@@ -101,6 +101,14 @@ front, then copy the images and `macos-version.txt` from the container's
 `tmp/snapshots/failures/`. On a major macOS version other than the one the references name
 the screen test is skipped, with that reason.
 
+The references draw the same on every Mac because the run pins what the Mac would
+otherwise choose. The first walk of a run copies the fixture comics into the container
+afresh, each on its own fixed date a day apart in name order (`TestFixtures.layDownComics`),
+so *Recently Added* does not follow the checkout's or the copy's clock, and empties the cover
+cache. The scheme's test action runs in English for the US region, with scroll bars shown
+only while scrolling (`project.yml`). What it does not pin: the system accent colour (the
+references assume the default, Multicolor), Reduce Transparency and Increase Contrast.
+
 Requires macOS 26, Xcode 27.1 with the Metal toolchain component (`AGENTS.md`
 section 3b) and `brew install xcodegen`. For the Xcode IDE, run
 `cd apps/desktop-macos && xcodegen generate && open StoryArcMac.xcodeproj`.

@@ -57,27 +57,49 @@ enum MacCatalogue {
         let window = try #require(ShellWalk.waitForLibraryWindow())
         hold(window, at: librarySize)
         defer { release(window) }
-        let steps: [(String, () -> Void)] = [
-            ("home", { library.navigationRequest = .go(.home) }),
-            ("library-grid", { library.model.layout = .grid; library.navigationRequest = .go(.library) }),
+        let steps: [(String, () async -> Void)] = [
+            ("home", { await request(.go(.home), of: library) }),
+            ("library-grid", {
+                library.model.layout = .grid
+                await request(.go(.library), of: library)
+            }),
             ("library-list", { library.model.layout = .list }),
-            ("search", { library.model.layout = .grid; library.navigationRequest = .search("sort") }),
-            ("detail", { library.navigationRequest = .details(publicationID: reading.id) }),
+            ("search", {
+                library.model.layout = .grid
+                await request(.search("sort"), of: library)
+            }),
+            ("detail", { await request(.details(publicationID: reading.id), of: library) }),
         ]
         for (name, step) in steps {
             if name == "detail" {
-                library.navigationRequest = .search("")
+                await request(.search(""), of: library)
                 try await Task.sleep(for: .milliseconds(300))
-                library.navigationRequest = .go(.library)
+                await request(.go(.library), of: library)
                 try await Task.sleep(for: .milliseconds(500))
             }
-            step()
+            await step()
             try await Task.sleep(for: .milliseconds(900))
             try await visit(name, window)
         }
-        library.navigationRequest = .root
+        await request(.root, of: library)
         try await Task.sleep(for: .milliseconds(300))
-        library.navigationRequest = .go(.home)
+        await request(.go(.home), of: library)
+    }
+
+    /// Asks the library window to go somewhere, and waits until it has taken the request.
+    ///
+    /// The window acts on a *change* of the request. One left unread by an earlier walk, the
+    /// same as the one asked for now, would be no change at all, and the window would stay
+    /// where that walk left it: Home drawn as the library grid, half the pixels wrong. So a
+    /// request still pending is cleared first.
+    private static func request(_ navigation: LibraryNavigation, of library: MacLibrary) async {
+        if library.navigationRequest != nil {
+            library.navigationRequest = nil
+            await Walk.settle()
+        }
+        library.navigationRequest = navigation
+        let taken = await Walk.until { library.navigationRequest == nil ? true : nil }
+        #expect(taken == true, "the library window did not take \(navigation)")
     }
 
     private static func readerScreens(library: MacLibrary, reading: Publication, _ visit: Visit) async throws {

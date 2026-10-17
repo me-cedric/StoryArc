@@ -36,6 +36,29 @@ extension WindowWalks {
             }
         }
 
+        @Test("The fixture comics are laid down on fixed dates, a day apart in name order, every time")
+        func fixtureDates() throws {
+            let folder = URL.temporaryDirectory
+                .appending(path: "dates-\(UUID().uuidString)", directoryHint: .isDirectory)
+            defer { try? FileManager.default.removeItem(at: folder) }
+            // Twice: the second lays the folder down over the first, as a run does over the last.
+            try TestFixtures.layDownComics(at: folder)
+            try TestFixtures.layDownComics(at: folder)
+            let names = try FileManager.default
+                .contentsOfDirectory(atPath: folder.path(percentEncoded: false))
+                .sorted()
+            #expect(names.count > 20)
+            for (index, name) in names.enumerated() {
+                let values = try folder.appending(path: name).resourceValues(
+                    forKeys: [.addedToDirectoryDateKey, .creationDateKey, .contentModificationDateKey]
+                )
+                let expected = TestFixtures.arrival(at: index)
+                #expect(values.addedToDirectoryDate == expected, "\(name) was added on \(String(describing: values))")
+                #expect(values.creationDate == expected, "\(name)")
+                #expect(values.contentModificationDate == expected, "\(name)")
+            }
+        }
+
         @Test("A changed image is caught and an identical one passes")
         func comparison() throws {
             let plain = try #require(Self.image(changing: 0))
