@@ -22,7 +22,9 @@ public enum AppearanceChoice
 }
 
 /// <summary>
-/// The settings record the preferences page edits and the app reads at launch. Saved as JSON
+/// The settings record the preferences page edits and the app reads at launch. <c>DownloadsUnmeteredOnly</c> is "Wi-Fi only" read
+/// as a desktop reads it (over an unmetered connection only), <c>StorageLimitBytes</c> the most the downloads may hold, and
+/// <c>SyncFolder</c> the folder that holds the sync document (a path, never a credential). Saved as JSON
 /// through a source-generated context; a missing or damaged file gives <see cref="Default"/>, so a
 /// bad file never costs a reader their library (desktop-clients tasks 2.47 and 2.47e).
 /// </summary>
@@ -30,7 +32,10 @@ public sealed record AppSettings(
     [property: JsonConverter(typeof(JsonStringEnumConverter<AccentChoice>))] AccentChoice Accent = AccentChoice.StoryArc,
     [property: JsonConverter(typeof(JsonStringEnumConverter<AppearanceChoice>))] AppearanceChoice Appearance = AppearanceChoice.System,
     bool ClickZonesOn = true,
-    [property: JsonConverter(typeof(JsonStringEnumConverter<TransitionMode>))] TransitionMode Transition = TransitionMode.Slide)
+    [property: JsonConverter(typeof(JsonStringEnumConverter<TransitionMode>))] TransitionMode Transition = TransitionMode.Slide,
+    bool DownloadsUnmeteredOnly = true,
+    long? StorageLimitBytes = null,
+    string? SyncFolder = null)
 {
     /// <summary>
     /// What a reader who has chosen nothing gets: the brand accent, the system appearance, the

@@ -24,6 +24,59 @@ internal static class StateFiles
     /// <summary>The core's progress store: one position per publication, in the phones' shape (task 2.44).</summary>
     public static string ProgressPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "progress.sqlite");
 
+    /// <summary>The network sources: ids, names and addresses, never a credential (task 3.21).</summary>
+    public static string NetworkSourcesPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "network-sources.json");
+
+    /// <summary>The certificates the reader accepted: public fingerprints.</summary>
+    public static string PinsPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "certificate-pins.json");
+
+    /// <summary>The download queue (task 3.23): rows hold an address, never a credential.</summary>
+    public static string DownloadQueuePath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "download-queue.json");
+
+    /// <summary>The collections and reading lists (task 3.23a).</summary>
+    public static string ShelvesPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "shelves.json");
+
+    /// <summary>The pinned shelves, as tokens in the order pinned.</summary>
+    public static string PinnedShelvesPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "pinned-shelves.json");
+
+    /// <summary>The offline edits owed to server shelves.</summary>
+    public static string ShelfEditsPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "shelf-edits.json");
+
+    /// <summary>Where downloads land: the package's local data, which MSIX does not roam.</summary>
+    public static string DownloadsFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "downloads");
+
+    /// <summary>The cover cache, local and never roamed.</summary>
+    public static string CoversFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "covers");
+
+    /// <summary>Written when the reader clears the library's records: the progress store is open, so its files go at the next start.</summary>
+    public static string ClearRecordsMarker => Path.Combine(ApplicationData.Current.LocalFolder.Path, "clear-records.pending");
+
+    /// <summary>
+    /// Removes the library's records when the last run asked to clear them, before the store opens. A file that cannot be removed leaves the
+    /// marker in place, so the next start tries again.
+    /// </summary>
+    public static void ApplyPendingRecordsClear()
+    {
+        if (!File.Exists(ClearRecordsMarker))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var path in new[] { ProgressPath, ProgressPath + "-wal", ProgressPath + "-shm", ShelvesPath, PinnedShelvesPath, ShelfEditsPath })
+            {
+                File.Delete(path);
+            }
+
+            File.Delete(ClearRecordsMarker);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            // Left for the next start.
+        }
+    }
+
     public static string? Read(string path)
     {
         try

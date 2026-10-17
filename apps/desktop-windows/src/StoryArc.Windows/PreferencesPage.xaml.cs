@@ -2,7 +2,9 @@ using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using StoryArc.Interop.Export;
 using StoryArc.Interop.Settings;
+using StoryArc.Interop.Sync;
 using StoryArc.Interop.SystemSettings;
 using StoryArc.Windows.Shell;
 
@@ -101,6 +103,22 @@ public sealed partial class PreferencesPage : UserControl
                 break;
             case "transition":
                 editor = TransitionChoiceBox(title);
+                break;
+            case "sources":
+            case "addSource":
+                editor = ActionButton(Strings.Get("sources_add"), () => Host.OpenLibrary().ShowSources());
+                break;
+            case "downloads":
+                editor = UnmeteredOnlySwitch(title, note);
+                break;
+            case "storage":
+                editor = StorageEditor(note);
+                break;
+            case "sync":
+                editor = SyncEditor(note);
+                break;
+            case "privacy":
+                editor = ActionButton(Strings.Get("privacy_diagnostic_show"), () => _ = ShowDiagnosticAsync());
                 break;
             default:
                 editor = null;

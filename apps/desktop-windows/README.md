@@ -180,6 +180,40 @@ read with System.Text.Json source generation.
 State lives in the package's `LocalFolder`: `session.json`, `settings.json`, `sources.json`,
 `recent.json` and the core's `progress.sqlite`.
 
+## Wave 3: sources, secrets, sync and downloads
+
+Written, like wave 2, without a .NET SDK: [`desktop-conformance-windows-wave3.md`](../../docs/delivery/desktop-conformance-windows-wave3.md)
+says which scenario is tested, which is wired and unwalked, and which is not started, and lists
+the gaps found in the core's seam. Test command: `pnpm test:desktop:interop`.
+
+### The seam, in `StoryArc.Interop`
+
+| Folder | Holds |
+| --- | --- |
+| `Network/` | `CoreRuntime` (one runtime; every handle made from it keeps it alive), `CoreHttp` (catalogue, Kavita, a download with its `[UnmanagedCallersOnly]` progress callback; one client per transfer), `SmbShare`, `PinBook` and `CertificateChallenge` |
+| `Credentials/` | `CredentialVault` over the core's vault (Credential Manager), `SourceCredentials` (the 2560-byte rule, one outcome per save) |
+| `Data/` | The queue's rules (`DownloadQueues`, `QueueOp`), the shelves (`ShelfRules`, `ShelfOp`, `ShelfEditQueue`), `LibraryDocuments` (import, export, sync, sealed credentials), `Diagnostics`, `StorageBytes` |
+| `Downloads/` | `DownloadCoordinator` (metered, retry, quit, resume) over an `IDownloadTransfer`; `CoreDownloadTransfer` is the real one |
+| `Sources/` | `NetworkSourceList` (no secret field; a sign-in typed into an address is split out), `SourceProbe`, `SourceFailure` (each problem named apart) |
+| `Sync/` | `LibrarySyncRunner`: at start without blocking, at quit within five seconds and only when the position changed, grey when the folder is away |
+| `Export/` | `DiagnosticReport` and `DiagnosticFile` (a save that names its failure), `StorageUsage` (each store sized and cleared), `DiskFull` |
+| `Library/ShelfScreens.cs` | `PinnedShelves`, `ShelfPageModel`, `ShelfMembership`, `ShelfMemberId`, `HomeShelfRows` |
+
+### The app, in `StoryArc.Windows`
+
+| File | Does |
+| --- | --- |
+| `Shell/NetworkServices.cs` | The one owner of the runtime, the vault, the sources, the queue, the sync and the shelves; moves each change to the interface thread |
+| `SourcesPage.xaml` | The sources, each with its state in grey; the add sheet, Test, Browse, Rename, Remove |
+| `DownloadQueuePanel.xaml` | The queue in a flyout beside the Downloads title |
+| `ShelvesPage.xaml` | Every shelf and one shelf's page; pin, rename, delete, reorder |
+| `PreferencesPage.Wave3.cs` | Unmetered only, storage and Clear, the sync folder, the diagnostic export |
+| `Shell/SourceMessages.cs` | The sentence for each source problem, from the shared catalogue |
+
+New state in `LocalFolder`: `network-sources.json`, `certificate-pins.json`, `download-queue.json`,
+`shelves.json`, `pinned-shelves.json`, `shelf-edits.json`, and the `downloads` folder. None holds a
+credential. The manifest gains `internetClient` and `privateNetworkClientServer`.
+
 ## Open questions
 
 1. Does the D3D11 curl hold monitor rate on a 120 Hz display while a XAML flyout animates? This is the first spike.

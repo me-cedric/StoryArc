@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The sources page (desktop-clients task 3.21): the network sources the reader added, each with how it stands in grey, and the way to add one.
+     Discovery of shares is stated absent once, in grey, and the address field is the way in. The rows are drawn in code from NetworkServices. -->
+<UserControl
+    x:Class="StoryArc.Windows.SourcesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="720" Margin="24,16" Spacing="16" HorizontalAlignment="Stretch">
+            <TextBlock x:Name="PageTitle" Style="{ThemeResource TitleTextBlockStyle}" />
+            <TextBlock
+                x:Name="DiscoveryNote"
+                TextWrapping="Wrap"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            <Button x:Name="AddButton" Click="OnAdd" AutomationProperties.AutomationId="AddSource" />
+            <TextBlock
+                x:Name="EmptyNote"
+                TextWrapping="Wrap"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <StackPanel x:Name="SourcesPanel" Spacing="8" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

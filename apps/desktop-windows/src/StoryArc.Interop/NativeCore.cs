@@ -32,6 +32,15 @@ public enum StoryArcStatus
 
     /// <summary>The core failed in a way it has no case for: a defect, reported rather than a crash.</summary>
     Internal = 7,
+
+    /// <summary>The source, server or sync place did not answer. Grey, never red: the app tries again later.</summary>
+    Unreachable = 8,
+
+    /// <summary>
+    /// A credential, key or passphrase was refused, or a certificate is not trusted. The message names the
+    /// challenge, or the certificate's fingerprint for <c>storyarc_http_pin</c>.
+    /// </summary>
+    Unauthorized = 9,
 }
 
 /// <summary>
@@ -126,6 +135,49 @@ public static unsafe class NativeCore
     /// <summary>A string as the UTF-8 bytes the seam takes for a path or a JSON argument.</summary>
     internal static byte[] Utf8(string text) => Encoding.UTF8.GetBytes(text);
 
+    /// <summary>The shape of every wave 3 export that takes one JSON request and writes one buffer.</summary>
+    internal unsafe delegate int JsonExport(byte* request, nuint requestLength, StoryArcBuffer* output);
+
+    /// <summary>The same for the exports that work on a handle first: the HTTP client, the share, the vault.</summary>
+    internal unsafe delegate int HandleJsonExport(void* handle, byte* request, nuint requestLength, StoryArcBuffer* output);
+
+    /// <summary>
+    /// Calls an export of the <see cref="JsonExport"/> shape with <paramref name="request"/> as UTF-8 and
+    /// answers the text it wrote. The request bytes are wiped afterwards, because a request can carry the
+    /// one password or token its call needs. A failure throws <see cref="StoryArcException"/> and frees
+    /// whatever buffer the core left.
+    /// </summary>
+    internal static string CallJson(JsonExport export, string call, string request) =>
+        CallJson((_, data, length, output) => export(data, length, output), null, call, request);
+
+    /// <summary>As <see cref="CallJson(JsonExport, string, string)"/> for an export that takes <paramref name="handle"/> first.</summary>
+    internal static string CallJson(HandleJsonExport export, void* handle, string call, string request)
+    {
+        var bytes = Utf8(request);
+        StoryArcBuffer buffer = default;
+        int status;
+        try
+        {
+            fixed (byte* data = bytes)
+            {
+                status = export(handle, data, (nuint)bytes.Length, &buffer);
+            }
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(bytes);
+        }
+
+        if (status != NativeMethods.STORYARC_OK)
+        {
+            var error = new StoryArcException(call, (StoryArcStatus)status, LastError());
+            NativeMethods.storyarc_buffer_free(buffer);
+            throw error;
+        }
+
+        return TakeString(buffer);
+    }
+
     private static string? ReadStatic(byte* text) =>
         text is null ? null : Marshal.PtrToStringUTF8((nint)text);
 }
@@ -144,7 +196,54 @@ public abstract unsafe class CoreHandle : SafeHandle
     {
     }
 
+    private CoreHandle? _owner;
+
     public override bool IsInvalid => handle == IntPtr.Zero;
+
+    /// <summary>
+    /// Keeps <paramref name="owner"/> alive for as long as this handle is: the core frees its runtime only
+    /// after every handle made from it, and this is how the wrapper keeps that order. Call
+    /// <see cref="ReleaseOwner"/> from <c>ReleaseHandle</c>, after the handle's own free.
+    /// </summary>
+    protected void Retain(CoreHandle owner)
+    {
+        var added = false;
+        owner.DangerousAddRef(ref added);
+        if (!added)
+        {
+            throw new ObjectDisposedException(owner.GetType().Name);
+        }
+
+        _owner = owner;
+    }
+
+    protected void ReleaseOwner()
+    {
+        _owner?.DangerousRelease();
+        _owner = null;
+    }
+
+    /// <summary>
+    /// As <see cref="Use{T}"/> without the per-handle gate, for the two handles the core shares between
+    /// threads by design: the runtime, and a call that only borrows it. A blocking call on the runtime
+    /// (a share connecting) must not hold up a poll of the network state.
+    /// </summary>
+    protected T UseShared<T>(Func<nint, T> call)
+    {
+        var added = false;
+        try
+        {
+            DangerousAddRef(ref added);
+            return call(handle);
+        }
+        finally
+        {
+            if (added)
+            {
+                DangerousRelease();
+            }
+        }
+    }
 
     /// <summary>Runs <paramref name="call"/> with the live pointer. Throws <see cref="ObjectDisposedException"/> after dispose.</summary>
     protected T Use<T>(Func<nint, T> call)

@@ -458,6 +458,150 @@ msgstr "Envoyer"
 msgid "desktop.command.openFile"
 msgstr "Ouvrir un fichier…"
 
+#, c-format
+msgid "desktop.w3.diagnostic.cannotWrite___"
+msgstr "« %s » ne peut pas être écrit : %s. Choisissez un autre emplacement."
+
+msgid "desktop.w3.diagnostic.close"
+msgstr "Fermer"
+
+msgid "desktop.w3.diagnostic.save"
+msgstr "Enregistrer dans un fichier…"
+
+#, c-format
+msgid "desktop.w3.diagnostic.saved___"
+msgstr "Enregistré dans %s."
+
+msgid "desktop.w3.downloads.diskFull"
+msgstr "Le disque est plein. Libérez de l’espace ou videz un cache, puis réessayez."
+
+#, c-format
+msgid "desktop.w3.downloads.inProgress___"
+msgstr "En cours (%s)"
+
+msgid "desktop.w3.downloads.metered"
+msgstr "Cette connexion est limitée : les téléchargements que vous n’avez pas lancés attendent. Vous pouvez toujours en lancer un vous-même."
+
+msgid "desktop.w3.downloads.queueEmpty"
+msgstr "Rien n’attend d’être téléchargé."
+
+msgid "desktop.w3.downloads.queued"
+msgstr "En attente de son tour"
+
+msgid "desktop.w3.downloads.quitBody"
+msgstr "Un téléchargement est en cours. Il se met en pause, garde ce qu’il a reçu et reprend à la prochaine ouverture de StoryArc."
+
+msgid "desktop.w3.downloads.quitConfirm"
+msgstr "Mettre en pause et quitter"
+
+msgid "desktop.w3.downloads.quitTitle"
+msgstr "Mettre le téléchargement en pause et quitter ?"
+
+msgid "desktop.w3.downloads.signInNeeded"
+msgstr "La source a refusé la connexion."
+
+msgid "desktop.w3.downloads.waitingForConnection"
+msgstr "En attente d’une connexion"
+
+msgid "desktop.w3.downloads.waitingForUnmetered"
+msgstr "En attente d’une connexion non limitée"
+
+msgid "desktop.w3.downloads.willRetry"
+msgstr "Nouvel essai dans un instant."
+
+msgid "desktop.w3.shelves.addToShelf"
+msgstr "Ajouter à une étagère"
+
+#, c-format
+msgid "desktop.w3.shelves.conflictBody___"
+msgstr "Quelqu’un a modifié « %s » avant vous sur le serveur ; vos ajouts en attente ont été abandonnés : %s."
+
+msgid "desktop.w3.shelves.newCollectionName"
+msgstr "Nouvelle collection"
+
+msgid "desktop.w3.shelves.newListName"
+msgstr "Nouvelle liste de lecture"
+
+msgid "desktop.w3.shelves.none"
+msgstr "Aucune étagère pour l’instant. Créez une collection ou une liste de lecture."
+
+msgid "desktop.w3.shelves.notHere"
+msgstr "Indisponible pour l’instant"
+
+msgid "desktop.w3.shelves.openShelf"
+msgstr "Ouvrir"
+
+msgid "desktop.w3.shelves.setCover"
+msgstr "Utiliser comme couverture"
+
+msgid "desktop.w3.sources.browse"
+msgstr "Parcourir"
+
+#, c-format
+msgid "desktop.w3.sources.credentialRefused___"
+msgstr "Windows n’a pas conservé le mot de passe : %s. Rien n’a été enregistré : cette source demande une connexion."
+
+msgid "desktop.w3.sources.credentialTooLong"
+msgstr "C’est plus long que les 2560 octets que conserve le Gestionnaire d’informations d’identification de Windows. Rien n’a été enregistré : cette source demande une connexion."
+
+msgid "desktop.w3.sources.discoveryAbsent"
+msgstr "Windows ne permet pas à StoryArc de trouver les partages de votre réseau. Saisissez plutôt l’adresse de l’ordinateur."
+
+msgid "desktop.w3.sources.kavitaDownloadUnavailable"
+msgstr "La lecture d’un chapitre Kavita depuis ici n’est pas encore disponible. Les bibliothèques et votre progression sont affichées."
+
+msgid "desktop.w3.sources.kind"
+msgstr "Type"
+
+msgid "desktop.w3.sources.name"
+msgstr "Nom"
+
+msgid "desktop.w3.sources.shareListOnly"
+msgstr "Les fichiers d’un partage sont listés ici. Les ouvrir depuis le partage n’est pas encore disponible."
+
+msgid "desktop.w3.sources.test"
+msgstr "Tester la connexion"
+
+msgid "desktop.w3.storage.clear"
+msgstr "Vider"
+
+msgid "desktop.w3.storage.clearAtNextStart"
+msgstr "Ces fiches sont en cours d’utilisation ; elles seront vidées au prochain démarrage de StoryArc."
+
+#, c-format
+msgid "desktop.w3.storage.clearFailed___"
+msgstr "Impossible de vider : %s."
+
+msgid "desktop.w3.storage.clearRecordsBody"
+msgstr "Toutes les positions de lecture et les listes conservées par l’app sont supprimées de cet appareil. Vos fichiers et vos bibliothèques ne sont pas touchés."
+
+msgid "desktop.w3.storage.covers"
+msgstr "Couvertures"
+
+msgid "desktop.w3.storage.downloads"
+msgstr "Téléchargements"
+
+#, c-format
+msgid "desktop.w3.storage.freed___"
+msgstr "%s libérés."
+
+msgid "desktop.w3.storage.records"
+msgstr "Fiches de la bibliothèque"
+
+#, c-format
+msgid "desktop.w3.storage.where___"
+msgstr "Conservé dans %s, que Windows ne synchronise pas avec d’autres ordinateurs."
+
+msgid "desktop.w3.sync.chooseFolder"
+msgstr "Choisir le dossier de synchronisation"
+
+#, c-format
+msgid "desktop.w3.sync.folder___"
+msgstr "Dossier de synchronisation : %s"
+
+msgid "desktop.w3.sync.noFolder"
+msgstr "Aucun dossier de synchronisation choisi"
+
 msgid "detail.chapter.finished"
 msgstr "Terminé"
 

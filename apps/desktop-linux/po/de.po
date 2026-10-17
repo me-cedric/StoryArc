@@ -458,6 +458,150 @@ msgstr "Senden"
 msgid "desktop.command.openFile"
 msgstr "Datei öffnen…"
 
+#, c-format
+msgid "desktop.w3.diagnostic.cannotWrite___"
+msgstr "„%s“ kann nicht geschrieben werden: %s. Wähle einen anderen Ort."
+
+msgid "desktop.w3.diagnostic.close"
+msgstr "Schließen"
+
+msgid "desktop.w3.diagnostic.save"
+msgstr "In Datei speichern …"
+
+#, c-format
+msgid "desktop.w3.diagnostic.saved___"
+msgstr "Gespeichert unter %s."
+
+msgid "desktop.w3.downloads.diskFull"
+msgstr "Der Datenträger ist voll. Schaffe Platz oder leere einen Cache und versuche es erneut."
+
+#, c-format
+msgid "desktop.w3.downloads.inProgress___"
+msgstr "In Arbeit (%s)"
+
+msgid "desktop.w3.downloads.metered"
+msgstr "Diese Verbindung ist getaktet, daher warten Downloads, die du nicht selbst gestartet hast. Du kannst weiterhin selbst einen starten."
+
+msgid "desktop.w3.downloads.queueEmpty"
+msgstr "Nichts wartet auf den Download."
+
+msgid "desktop.w3.downloads.queued"
+msgstr "Wartet, bis es an der Reihe ist"
+
+msgid "desktop.w3.downloads.quitBody"
+msgstr "Ein Download läuft. Er pausiert, behält das Geladene und wird beim nächsten Start von StoryArc fortgesetzt."
+
+msgid "desktop.w3.downloads.quitConfirm"
+msgstr "Pausieren und beenden"
+
+msgid "desktop.w3.downloads.quitTitle"
+msgstr "Download pausieren und beenden?"
+
+msgid "desktop.w3.downloads.signInNeeded"
+msgstr "Die Quelle hat die Anmeldung abgelehnt."
+
+msgid "desktop.w3.downloads.waitingForConnection"
+msgstr "Warten auf eine Verbindung"
+
+msgid "desktop.w3.downloads.waitingForUnmetered"
+msgstr "Warten auf eine Verbindung ohne Datenlimit"
+
+msgid "desktop.w3.downloads.willRetry"
+msgstr "Wird gleich erneut versucht."
+
+msgid "desktop.w3.shelves.addToShelf"
+msgstr "Zu Regal hinzufügen"
+
+#, c-format
+msgid "desktop.w3.shelves.conflictBody___"
+msgstr "Jemand hat „%s“ zuerst auf dem Server geändert, daher wurden deine wartenden Ergänzungen verworfen: %s."
+
+msgid "desktop.w3.shelves.newCollectionName"
+msgstr "Neue Sammlung"
+
+msgid "desktop.w3.shelves.newListName"
+msgstr "Neue Leseliste"
+
+msgid "desktop.w3.shelves.none"
+msgstr "Noch keine Regale. Lege eine Sammlung oder Leseliste an."
+
+msgid "desktop.w3.shelves.notHere"
+msgstr "Derzeit nicht verfügbar"
+
+msgid "desktop.w3.shelves.openShelf"
+msgstr "Öffnen"
+
+msgid "desktop.w3.shelves.setCover"
+msgstr "Als Cover verwenden"
+
+msgid "desktop.w3.sources.browse"
+msgstr "Durchsuchen"
+
+#, c-format
+msgid "desktop.w3.sources.credentialRefused___"
+msgstr "Windows hat das Passwort nicht gespeichert: %s. Nichts wurde gespeichert, daher braucht diese Quelle eine Anmeldung."
+
+msgid "desktop.w3.sources.credentialTooLong"
+msgstr "Das ist länger als die 2560 Bytes, die die Windows-Anmeldeinformationsverwaltung speichert. Nichts wurde gespeichert, daher braucht diese Quelle eine Anmeldung."
+
+msgid "desktop.w3.sources.discoveryAbsent"
+msgstr "Windows bietet StoryArc keine Möglichkeit, Freigaben im Netzwerk zu finden. Gib stattdessen die Adresse des Computers ein."
+
+msgid "desktop.w3.sources.kavitaDownloadUnavailable"
+msgstr "Ein Kavita-Kapitel von hier zu lesen ist noch nicht möglich. Bibliotheken und dein Fortschritt werden angezeigt."
+
+msgid "desktop.w3.sources.kind"
+msgstr "Art"
+
+msgid "desktop.w3.sources.name"
+msgstr "Name"
+
+msgid "desktop.w3.sources.shareListOnly"
+msgstr "Dateien auf einer Freigabe werden hier aufgelistet. Sie von der Freigabe zu öffnen ist noch nicht möglich."
+
+msgid "desktop.w3.sources.test"
+msgstr "Verbindung testen"
+
+msgid "desktop.w3.storage.clear"
+msgstr "Leeren"
+
+msgid "desktop.w3.storage.clearAtNextStart"
+msgstr "Diese Einträge sind gerade in Gebrauch und werden beim nächsten Start von StoryArc geleert."
+
+#, c-format
+msgid "desktop.w3.storage.clearFailed___"
+msgstr "Leeren nicht möglich: %s."
+
+msgid "desktop.w3.storage.clearRecordsBody"
+msgstr "Alle Leseposition und die von der App geführten Listen werden von diesem Gerät entfernt. Deine Dateien und Bibliotheken bleiben unberührt."
+
+msgid "desktop.w3.storage.covers"
+msgstr "Cover"
+
+msgid "desktop.w3.storage.downloads"
+msgstr "Downloads"
+
+#, c-format
+msgid "desktop.w3.storage.freed___"
+msgstr "%s freigegeben."
+
+msgid "desktop.w3.storage.records"
+msgstr "Bibliothekseinträge"
+
+#, c-format
+msgid "desktop.w3.storage.where___"
+msgstr "Gespeichert in %s; Windows überträgt das nicht auf andere Computer."
+
+msgid "desktop.w3.sync.chooseFolder"
+msgstr "Sync-Ordner wählen"
+
+#, c-format
+msgid "desktop.w3.sync.folder___"
+msgstr "Sync-Ordner: %s"
+
+msgid "desktop.w3.sync.noFolder"
+msgstr "Kein Sync-Ordner gewählt"
+
 msgid "detail.chapter.finished"
 msgstr "Beendet"
 
