@@ -3,9 +3,23 @@ Type=Application
 Name=StoryArc
 GenericName=Comic, ebook and audiobook reader
 Comment=Read comics, ebooks and audiobooks from folders, shares and servers
-Exec=storyarc
+Exec=storyarc %F
 Icon=com.mecedric.StoryArc
 Terminal=false
 Categories=Office;Viewer;Graphics;
-Keywords=comics;cbz;epub;ebook;audiobook;reader;
+Keywords=comics;cbz;cbr;cbt;epub;ebook;audiobook;reader;
 StartupNotify=true
+MimeType=application/vnd.comicbook+zip;application/x-cbz;application/vnd.comicbook-rar;application/x-cbr;application/x-cbt;
+Actions=continue-reading;library;downloads;
+
+[Desktop Action continue-reading]
+Name=Continue Reading
+Exec=storyarc --continue-reading
+
+[Desktop Action library]
+Name=Library
+Exec=storyarc --library
+
+[Desktop Action downloads]
+Name=Downloads
+Exec=storyarc --downloads
