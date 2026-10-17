@@ -57,7 +57,7 @@ public sealed class ShelfScreensTests
             .. ShelfMembership.Removing(added.Find(Crossover)!, [ShelfMemberId.Of(b)]),
         ]);
 
-        Assert.Empty(ShelfMembership.Containing(removed, b).Where(shelf => shelf.Name == "Crossover"));
+        Assert.DoesNotContain(ShelfMembership.Containing(removed, b), shelf => shelf.Name == "Crossover");
         Assert.Equal(new[] { "path:/a.cbz" }, removed.Find(Images)!.Members);
     }
 
