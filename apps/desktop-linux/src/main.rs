@@ -42,8 +42,12 @@ mod reader_modes;
 mod reader_scroll;
 mod reader_window;
 mod reading;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod remote_sources;
 #[cfg(test)]
 mod scratch;
+#[allow(dead_code)] // pure model, wired by the UI of its task
+mod secret_state;
 mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
