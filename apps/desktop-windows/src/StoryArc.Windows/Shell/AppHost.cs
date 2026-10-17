@@ -120,6 +120,7 @@ internal sealed class AppHost
         }
 
         OpenPaths(launch.Paths, launch.Origin);
+        OpenLinks(launch.Links, waitForLibrary: true);
     }
 
     /// <summary>
@@ -143,9 +144,62 @@ internal sealed class AppHost
         {
             OpenPaths(launch.Paths, launch.Origin);
         }
-        else
+        else if (launch.Links.Count == 0)
         {
             OpenLibrary().Activate();
+        }
+
+        OpenLinks(launch.Links, waitForLibrary: false);
+    }
+
+    /// <summary>
+    /// Opens what <c>storyarc://</c> links name (task 5.8): a publication in a reader window, a source on the sources
+    /// page, a name the app does not hold in grey in the library. A link that names nothing to open is dropped, so a link
+    /// never changes a setting or any data. At launch the first scan may not have run, so the links wait for the first
+    /// records; shortcut: an empty library never resolves them, and a source added later is not waited for.
+    /// </summary>
+    private void OpenLinks(IReadOnlyList<string> links, bool waitForLibrary)
+    {
+        if (links.Count == 0)
+        {
+            return;
+        }
+
+        if (waitForLibrary && Library is { } scanning && scanning.Records.Count == 0)
+        {
+            void OnScanned()
+            {
+                if (scanning.Records.Count == 0)
+                {
+                    return;
+                }
+
+                scanning.Changed -= OnScanned;
+                OpenLinks(links, waitForLibrary: false);
+            }
+
+            scanning.Changed += OnScanned;
+            return;
+        }
+
+        var records = Library?.Records ?? [];
+        var sources = (Library?.Sources ?? []).Select(status => status.Source).ToList();
+        foreach (var link in links)
+        {
+            var action = StoryArcLink.Resolve(link, records, sources);
+            switch (action.Outcome)
+            {
+                case LinkOutcome.OpenPublication:
+                    _ = OpenReaderAsync(action.Id!, restored: null);
+                    break;
+                case LinkOutcome.ShowSource:
+                    OpenLibrary().ShowSources();
+                    break;
+                case LinkOutcome.NotFound:
+                    Library?.Refuse(new Refusal(action.Name!, Format("link_notFound___", "Nothing named “{0}” in your library", action.Name!)));
+                    OpenLibrary().Activate();
+                    break;
+            }
         }
     }
 
@@ -318,6 +372,9 @@ internal sealed class AppHost
                 break;
             case "settings":
                 OpenLibrary().ShowPreferences();
+                break;
+            case "acknowledgements" when window.Content is { XamlRoot: { } root }:
+                _ = AcknowledgementsDialog.ShowAsync(root);
                 break;
             case "fullScreen" when window is ReaderWindow reader:
                 reader.ToggleFullScreen();

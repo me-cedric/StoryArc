@@ -2717,6 +2717,35 @@
         }
       }
     },
+    "link.notFound %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nichts namens „%@“ in Ihrer Bibliothek"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing named “%@” in your library"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada llamado «%@» en tu biblioteca"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien nommé « %@ » dans votre bibliothèque"
+          }
+        }
+      }
+    },
     "menu.main": {
       "extractionState": "manual",
       "localizations": {

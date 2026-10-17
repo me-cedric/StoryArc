@@ -1691,6 +1691,10 @@ msgstr "Biblioteca"
 msgid "library.view"
 msgstr "Vista"
 
+#, c-format
+msgid "link.notFound %s"
+msgstr "Nada llamado «%s» en tu biblioteca"
+
 msgid "menu.main"
 msgstr "Menú principal"
 

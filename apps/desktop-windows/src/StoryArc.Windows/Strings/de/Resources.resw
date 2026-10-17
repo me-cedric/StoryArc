@@ -2122,6 +2122,10 @@
     <value>Ansicht</value>
     <comment>library.view</comment>
   </data>
+  <data name="link_notFound___" xml:space="preserve">
+    <value>Nichts namens „{0}“ in Ihrer Bibliothek</value>
+    <comment>link.notFound %@</comment>
+  </data>
   <data name="menu_main" xml:space="preserve">
     <value>Hauptmenü</value>
     <comment>menu.main</comment>

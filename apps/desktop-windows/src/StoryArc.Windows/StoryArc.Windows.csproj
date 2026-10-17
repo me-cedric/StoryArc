@@ -31,7 +31,20 @@
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <!-- The pinned EPUB renderer (desktop-clients task 4.16), served to the WebView2 from the app's own scheme. -->
     <Content Include="$(RepoRoot)apps/desktop-web/epub/dist/storyarc-epub.js" Link="Assets\storyarc-epub.js" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The generated licence notices, read at run time by the About page (desktop-clients task 6.3). -->
+    <Content Include="$(RepoRoot)THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <!-- Publish settings (desktop-clients task 6.7). Trimming and ReadyToRun both need a self-contained app
+       (NETSDK1102), and this app is framework dependent: it runs on the .NET and Windows App SDK runtimes the
+       package depends on. So the base sets neither, and no AOT either (design.md, Open Question 6, is open). -->
+  <PropertyGroup>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishAot>false</PublishAot>
+    <SelfContained>false</SelfContained>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+  </PropertyGroup>
 
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
