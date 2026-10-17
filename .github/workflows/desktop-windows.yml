@@ -72,6 +72,15 @@ jobs:
           key: pdfium-win-x64-${{ hashFiles('apps/desktop-core/pdfium/pin.json') }}
       - run: node scripts/pdfium-fetch.mjs --platform win-x64
       - run: pwsh apps/desktop-windows/build.ps1 -Platform x64 -Configuration Release
+      # The unsigned MSIX of task 6.7. Unproven on a runner (design.md, Open Question 9), so it does not fail the build
+      # while the first runs show whether the dotnet SDK alone makes the package; make it required once one is green.
+      - run: pwsh apps/desktop-windows/build.ps1 -Platform x64 -Configuration Release -Package
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyarc-msix-x64
+          path: .build/msix/x64/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
           name: storyarc-windows-x64
@@ -98,6 +107,15 @@ jobs:
           key: pdfium-win-arm64-${{ hashFiles('apps/desktop-core/pdfium/pin.json') }}
       - run: node scripts/pdfium-fetch.mjs --platform win-arm64
       - run: pwsh apps/desktop-windows/build.ps1 -Platform ARM64 -Configuration Release
+      # The unsigned MSIX of task 6.7. Unproven on a runner (design.md, Open Question 9), so it does not fail the build
+      # while the first runs show whether the dotnet SDK alone makes the package; make it required once one is green.
+      - run: pwsh apps/desktop-windows/build.ps1 -Platform ARM64 -Configuration Release -Package
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storyarc-msix-arm64
+          path: .build/msix/ARM64/
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         with:
           name: storyarc-windows-arm64

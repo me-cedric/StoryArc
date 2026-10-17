@@ -9,7 +9,9 @@ param(
     [ValidateSet('x64', 'ARM64')]
     [string]$Platform = 'x64',
     [ValidateSet('Debug', 'Release')]
-    [string]$Configuration = 'Release'
+    [string]$Configuration = 'Release',
+    # Also make the unsigned MSIX into .build/msix/<Platform> (task 6.7). Off by default: it needs the MSIX tooling of the runner.
+    [switch]$Package
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,6 +34,15 @@ try {
 
     Invoke-Step "dotnet build $Platform" {
         dotnet build apps/desktop-windows/src/StoryArc.Windows -c $Configuration "-p:Platform=$Platform"
+    }
+
+    if ($Package) {
+        # The Store signs the package after submission, so it is built unsigned. Forward slashes with a trailing one:
+        # a trailing backslash before a closing quote breaks the native command line.
+        $packageDir = "$($root.Path -replace '\\', '/')/.build/msix/$Platform/"
+        Invoke-Step "msix $Platform" {
+            dotnet build apps/desktop-windows/src/StoryArc.Windows -c $Configuration "-p:Platform=$Platform" -p:GenerateAppxPackageOnBuild=true -p:AppxPackageSigningEnabled=false -p:AppxBundle=Never "-p:AppxPackageDir=$packageDir"
+        }
     }
 
     # ponytail: ARM64 libraries do not load on an x64 host, so the tests run only for the host platform.

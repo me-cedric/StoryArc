@@ -35,6 +35,17 @@
     <Content Include="$(RepoRoot)THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- Publish settings (desktop-clients task 6.7). Trimming and ReadyToRun both need a self-contained app
+       (NETSDK1102), and this app is framework dependent: it runs on the .NET and Windows App SDK runtimes the
+       package depends on. So the base sets neither, and no AOT either (design.md, Open Question 6, is open). -->
+  <PropertyGroup>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <PublishAot>false</PublishAot>
+    <SelfContained>false</SelfContained>
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
+  </PropertyGroup>
+
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
