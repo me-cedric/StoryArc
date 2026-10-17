@@ -116,6 +116,10 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.books
+        # The brand accent, as on iOS. A copy of `apps/ios/App/Resources/Assets.xcassets/
+        # AccentColor.colorset`: on a Mac whose system accent is Multicolor (the default) the
+        # sidebar's selection and icons take it, which no SwiftUI tint reaches.
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     # A shared scheme rather than the one Xcode makes up. The made-up scheme gathers
