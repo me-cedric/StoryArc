@@ -311,6 +311,6 @@ public sealed class EpubHost
         ".then(function(parts){var locator=window.__storyarcLocator||null;\n" +
         "return StoryArcEpub.open({container:document.getElementById('reader'),manifest:parts[0],positions:parts[1],locator:locator})})\n" +
         ".then(function(opened){reader=opened;queue.forEach(function(m){reader.receive(m)});queue=[]})\n" +
-        ".catch(function(error){window.chrome.webview.postMessage(JSON.stringify({type:'host-error',seq:0,message:String(error)}))});\n" +
+        ".catch(function(error){window.chrome.webview.postMessage({type:'host-error',seq:0,message:String(error)})});\n" +
         "})();\n";
 }

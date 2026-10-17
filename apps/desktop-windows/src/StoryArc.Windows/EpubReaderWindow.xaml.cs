@@ -172,7 +172,7 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;
         core.Settings.IsBuiltInErrorPageEnabled = false;
 
-        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All, CoreWebView2WebResourceRequestSourceKinds.All);
         core.WebResourceRequested += OnWebResourceRequested;
         core.NavigationStarting += (sender, args) => args.Cancel = !_opened.Host.AllowsNavigation(args.Uri, isFrame: false);
         core.FrameNavigationStarting += (sender, args) => args.Cancel = !_opened.Host.AllowsNavigation(args.Uri, isFrame: true);
