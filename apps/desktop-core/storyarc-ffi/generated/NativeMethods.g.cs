@@ -48,6 +48,15 @@ namespace StoryArc.Interop
         ///  The core failed in a way it has no case for. A defect, reported rather than a crash.
         /// </summary>
         internal const int STORYARC_ERROR_INTERNAL = 7;
+        /// <summary>
+        ///  The source, server or sync place did not answer. Grey, never red: try again later.
+        /// </summary>
+        internal const int STORYARC_ERROR_UNREACHABLE = 8;
+        /// <summary>
+        ///  A credential, key or passphrase was refused, or a certificate is not trusted; the message
+        ///  names the challenge or the fingerprint.
+        /// </summary>
+        internal const int STORYARC_ERROR_UNAUTHORIZED = 9;
 
 
 
@@ -279,6 +288,338 @@ namespace StoryArc.Interop
         /// </summary>
         [DllImport(__DllName, EntryPoint = "storyarc_store_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern void storyarc_store_free(void* store);
+
+        /// <summary>
+        ///  Creates the core's one runtime and writes its handle to `out_runtime`; free it with
+        ///  `storyarc_runtime_free` when the app quits.
+        ///
+        ///  # Safety
+        ///
+        ///  `out_runtime` must point to writable storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_runtime_new", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_runtime_new(void** out_runtime);
+
+        /// <summary>
+        ///  Releases the runtime. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `runtime` must be null or a live runtime handle, released once, after every handle made
+        ///  from it.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_runtime_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_runtime_free(void* runtime);
+
+        /// <summary>
+        ///  Creates the HTTP client every catalogue, server and download shares, trusting what the
+        ///  system trusts. Free it with `storyarc_http_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `runtime` must be a live runtime handle; `out_http` must point to storage for a pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_http_new", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_http_new(void* runtime, void** out_http);
+
+        /// <summary>
+        ///  Pins the certificate whose SHA-256 `fingerprint` the reader accepted for `host`, after an
+        ///  `STORYARC_ERROR_UNAUTHORIZED` whose message named it. Both strings are UTF-8 with lengths.
+        ///
+        ///  # Safety
+        ///
+        ///  `http` must be a live HTTP handle; each string must point to its length in readable bytes.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_http_pin", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_http_pin(void* http, byte* host, nuint host_len, byte* fingerprint, nuint fingerprint_len);
+
+        /// <summary>
+        ///  Releases the HTTP client. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `http` must be null or a live HTTP handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_http_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_http_free(void* http);
+
+        /// <summary>
+        ///  Connects to a share and writes its handle to `out_share`. The request is
+        ///  `{"address", "port"?, "username"?, "password"?}`; no username is a guest. The four named
+        ///  failures and the SMB 1 refusal come back as status codes with their remedy in the message.
+        ///
+        ///  # Safety
+        ///
+        ///  `runtime` must be a live runtime handle; `request` must point to `request_len` bytes;
+        ///  `out_share` must point to storage for one pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_smb_connect", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_smb_connect(void* runtime, byte* request, nuint request_len, void** out_share);
+
+        /// <summary>
+        ///  Writes `{"dialect", "isEncrypted"}` for a connected share.
+        ///
+        ///  # Safety
+        ///
+        ///  `share` must be a live share handle; `out` must point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_smb_identity", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_smb_identity(void* share, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Lists one folder of the share, `path` relative to the address's folder (empty for it),
+        ///  as `[{"name", "path", "isDirectory", "length"}]`, folders first, in natural order.
+        ///
+        ///  # Safety
+        ///
+        ///  `share` must be a live share handle; `path` must point to `path_len` bytes; `out` must
+        ///  point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_smb_list", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_smb_list(void* share, byte* path, nuint path_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Releases a share and its session. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `share` must be null or a live share handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_smb_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_smb_free(void* share);
+
+        /// <summary>
+        ///  Fetches a catalogue page: the root, `url`, or a search of `url` for `search`. The request
+        ///  is `{"root", "url"?, "search"?, "username"?, "password"?, "token"?}`; the credential goes to
+        ///  the root's origin only. Writes the page as JSON, or `{"localOnly": true}` for a catalogue
+        ///  without search. A 401 is `STORYARC_ERROR_UNAUTHORIZED` naming the scheme; an untrusted
+        ///  certificate is the same code naming its fingerprint for `storyarc_http_pin`.
+        ///
+        ///  # Safety
+        ///
+        ///  `http` must be a live HTTP handle; `request` must point to `request_len` bytes; `out` must
+        ///  point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_opds_feed", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_opds_feed(void* http, byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  One Kavita call: `{"address", "apiKey", "call": "connect" | "libraries" | "series" |
+        ///  "volumes" | "continuePoint", "library"? , "series"?}`. Writes the server's records as
+        ///  JSON with `pages` and `pagesRead` per chapter. A refused key is
+        ///  `STORYARC_ERROR_UNAUTHORIZED`.
+        ///
+        ///  # Safety
+        ///
+        ///  `http` must be a live HTTP handle; `request` must point to `request_len` bytes; `out` must
+        ///  point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_kavita_call", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_kavita_call(void* http, byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the connection's state to `out_state`: 0 unmetered (or undescribed), 1 metered,
+        ///  2 no connection. Polled by the app; a change feeds the download queue's hold.
+        ///
+        ///  # Safety
+        ///
+        ///  `runtime` must be a live runtime handle; `out_state` must point to one writable `int32_t`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_network_state", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_network_state(void* runtime, int* out_state);
+
+        /// <summary>
+        ///  Downloads one publication into the downloads folder, resuming a partial file with a range
+        ///  request, verifying it by indexing and moving it into place. The request is `{"folder",
+        ///  "id", "title", "url", "seriesHint"?, "origin"?, "username"?, "password"?, "token"?}`.
+        ///  Writes `{"path", "resumption", "length", "publication"}`. A file that is not a publication
+        ///  is `STORYARC_ERROR_UNREADABLE` (re-queue once); a raised `cancel` keeps the partial file.
+        ///
+        ///  # Safety
+        ///
+        ///  `http` must be a live HTTP handle; `request` must point to `request_len` bytes; `cancel`
+        ///  must be null or a live token; `progress` may be null, and is called on the calling thread
+        ///  with `context`, the bytes so far and the total or -1 when the server named none; `out` must point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_download_fetch", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_download_fetch(void* http, byte* request, nuint request_len, void* cancel, delegate* unmanaged[Cdecl]<void*, ulong, long, void> progress, void* context, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Opens the vault over the system's store (Credential Manager on Windows), or over the
+        ///  session alone when none runs. Free it with `storyarc_vault_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `runtime` must be a live runtime handle; `out_vault` must point to storage for a pointer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_vault_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_vault_open(void* runtime, void** out_vault);
+
+        /// <summary>
+        ///  Saves the secret (`secret_len` UTF-8 bytes) under `{"sourceId", "field"}`. Writes
+        ///  `{"stored": true}`, or `{"stored": false, "notice": "..."}` when it is held for the
+        ///  session only, the notice present the first time only.
+        ///
+        ///  # Safety
+        ///
+        ///  `vault` must be a live vault handle; `key` and `secret` must point to their lengths in
+        ///  readable bytes; `out` must point to one writable `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_vault_save", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_vault_save(void* vault, byte* key, nuint key_len, byte* secret, nuint secret_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the secret under `{"sourceId", "field"}` to `out` as UTF-8, or returns
+        ///  `STORYARC_ERROR_NOT_FOUND`. Free `out` as soon as the secret has been used.
+        ///
+        ///  # Safety
+        ///
+        ///  As `storyarc_vault_save`, without the secret.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_vault_load", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_vault_load(void* vault, byte* key, nuint key_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Removes the secret under `{"sourceId", "field"}` from the store and the session.
+        ///
+        ///  # Safety
+        ///
+        ///  `vault` must be a live vault handle; `key` must point to `key_len` readable bytes.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_vault_delete", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_vault_delete(void* vault, byte* key, nuint key_len);
+
+        /// <summary>
+        ///  Releases the vault; session-only secrets go with it. Null is ignored.
+        ///
+        ///  # Safety
+        ///
+        ///  `vault` must be null or a live vault handle, released once.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_vault_free", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern void storyarc_vault_free(void* vault);
+
+        /// <summary>
+        ///  Applies the reader's and the network's changes to the download queue, in order:
+        ///  `{"queue", "ops": [{"op": "queue" | "pause" | "resume" | "pauseAll" | "resumeAll" |
+        ///  "remove" | "move" | "advance" | "fail" | "failVerification" | "finish" | "hold" |
+        ///  "reclaim", ...}], "startable"?: [network, policy]}`. Writes `{"queue", "startable",
+        ///  "retry": [[id, backoffSeconds]]}`.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_queue_apply", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_queue_apply(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Applies shelf operations in order: `{"shelves", "ops": [{"op": "createCollection" |
+        ///  "renameCollection" | "addMembers" | "removeMembers" | "setCollectionCover" |
+        ///  "deleteCollection" | "createList" | "renameList" | "append" | "removeEntry" | "moveEntry" |
+        ///  "setListCover" | "deleteList" | "removeSource", ...}]}`. Writes the shelves.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_shelves_apply", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_shelves_apply(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Reconciles the offline edits with the shelves that answered: `{"queue", "remote"}`.
+        ///  Writes `{"toPush", "toDrop", "conflicts": [{"shelf", "discarded"}]}`; the caller pushes,
+        ///  then records the baselines and the notices in its queue.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_shelf_pull", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_shelf_pull(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Imports a library document (`document_len` bytes) into the snapshot JSON this device holds,
+        ///  merging record by record, and writes `{"snapshot", "conflicts", "pinsAdded",
+        ///  "sourcesNeedingSignIn", "membersAdded"}`. A newer format is `STORYARC_ERROR_UNSUPPORTED`
+        ///  naming both versions; over 64 MiB is refused before parsing.
+        ///
+        ///  # Safety
+        ///
+        ///  Each input must point to its length in readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_library_import", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_library_import(byte* document, nuint document_len, byte* snapshot, nuint snapshot_len, byte* device, nuint device_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes the library document for `{"snapshot", "appVersion", "device", "now", "forSync"?,
+        ///  "sealed"?}`: secrets out of every address, and sealed under the passphrase only when asked.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_library_export", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_library_export(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Synchronises with the document in the folder the reader chose: `{"folder", "device",
+        ///  "appVersion", "now", "snapshot"}`. Writes the merge as `storyarc_library_import` does, with
+        ///  `"copies"` merged and removed. An unreachable folder is `STORYARC_ERROR_UNREACHABLE`
+        ///  (grey); a document from a newer app is `STORYARC_ERROR_UNSUPPORTED`; losing every attempt
+        ///  to another device is `STORYARC_ERROR_UNREACHABLE` with "busy" in the message.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_library_sync", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_library_sync(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Opens a document's sealed secrets: `{"passphrase", "secrets"}`. Writes `{id: secret}` for
+        ///  the caller to hand straight to the vault. A wrong passphrase is
+        ///  `STORYARC_ERROR_UNAUTHORIZED`, and nothing opens.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_secrets_open", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_secrets_open(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  The diagnostic's text for `{"title", "sections": [{"name", "lines": [[key, value]]}],
+        ///  "secrets": [...]}`: every held secret and every hostname removed, then the phones' rules.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_diagnostic_render", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_diagnostic_render(byte* request, nuint request_len, StoryArcBuffer* @out);
+
+        /// <summary>
+        ///  Writes what every file under the UTF-8 `path` weighs to `out_bytes`, for the storage view;
+        ///  a missing folder weighs nothing.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes; `out_bytes` to one writable `uint64_t`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_storage_bytes", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_storage_bytes(byte* path, nuint path_len, ulong* out_bytes);
+
+        /// <summary>
+        ///  Seals secrets for an export on their own: `{"passphrase", "secrets": {id: text}}`. Writes
+        ///  the `secrets` object a document carries.
+        ///
+        ///  # Safety
+        ///
+        ///  `request` must point to `request_len` readable bytes; `out` to one writable buffer.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_secrets_seal", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_secrets_seal(byte* request, nuint request_len, StoryArcBuffer* @out);
 
 
     }

@@ -6,12 +6,22 @@
 //! message, and `storyarc_cancel` on a token for cancellation. Task 1.8a exported the four
 //! calls the interop tests exercise. Wave 2 adds three tagged handles over
 //! `storyarc_core::library` — a folder source, an open publication and the progress store —
-//! with records crossing as UTF-8 JSON and pages as RGBA buffers.
+//! with records crossing as UTF-8 JSON and pages as RGBA buffers. Wave 3 adds the network
+//! (`network.rs`: the runtime, HTTP with pins, SMB, OPDS, Kavita, the metered flag, a
+//! download) and the reader's data (`data.rs`: the vault, the download queue's rules, shelves
+//! and offline edits, the library document and sync, sealed secrets, the diagnostic, storage),
+//! with two more status codes for a grey unreachable source and a refused credential.
 //!
 //! A handle is used by one thread at a time and released once by its own `_free`; releasing
 //! null is a no-op. Paths and JSON arrive as UTF-8 bytes with a length, never NUL-terminated.
 
+mod data;
+mod network;
+mod records;
 mod seam;
+
+pub use data::*;
+pub use network::*;
 
 use std::cell::RefCell;
 use std::ffi::{CString, c_char, c_void};
@@ -39,6 +49,11 @@ pub const STORYARC_ERROR_UNREADABLE: i32 = 5;
 pub const STORYARC_ERROR_STORAGE: i32 = 6;
 /// The core failed in a way it has no case for. A defect, reported rather than a crash.
 pub const STORYARC_ERROR_INTERNAL: i32 = 7;
+/// The source, server or sync place did not answer. Grey, never red: try again later.
+pub const STORYARC_ERROR_UNREACHABLE: i32 = 8;
+/// A credential, key or passphrase was refused, or a certificate is not trusted; the message
+/// names the challenge or the fingerprint.
+pub const STORYARC_ERROR_UNAUTHORIZED: i32 = 9;
 
 /// Bytes Rust owns. The caller reads `len` bytes at `data` and hands the whole struct back
 /// to `storyarc_buffer_free` exactly once. `data` is null when `len` is zero.
@@ -603,10 +618,12 @@ mod tests {
             .unwrap_or_else(|error| panic!("{relative}: {error}"))
     }
 
-    /// Every `extern "C"` function this file exports, read from the source itself so a new
-    /// export cannot be added without the two checks below seeing it.
+    /// Every `extern "C"` function the crate exports, read from the three files that hold
+    /// them, so a new export cannot be added without the two checks below seeing it.
     fn exports() -> Vec<String> {
-        let source = crate_file("src/lib.rs");
+        let source = ["src/lib.rs", "src/network.rs", "src/data.rs"]
+            .map(crate_file)
+            .join("\n");
         let exports: Vec<String> = source
             .lines()
             .filter_map(|line| {
@@ -616,12 +633,12 @@ mod tests {
                 Some(name.split('(').next()?.to_owned())
             })
             .collect();
-        assert_eq!(exports.len(), 20, "{exports:?}");
+        assert_eq!(exports.len(), 48, "{exports:?}");
         exports
     }
 
     /// The status codes, as this file defines them.
-    const CODES: [(&str, i32); 8] = [
+    const CODES: [(&str, i32); 10] = [
         ("STORYARC_OK", STORYARC_OK),
         (
             "STORYARC_ERROR_INVALID_ARGUMENT",
@@ -633,6 +650,8 @@ mod tests {
         ("STORYARC_ERROR_UNREADABLE", STORYARC_ERROR_UNREADABLE),
         ("STORYARC_ERROR_STORAGE", STORYARC_ERROR_STORAGE),
         ("STORYARC_ERROR_INTERNAL", STORYARC_ERROR_INTERNAL),
+        ("STORYARC_ERROR_UNREACHABLE", STORYARC_ERROR_UNREACHABLE),
+        ("STORYARC_ERROR_UNAUTHORIZED", STORYARC_ERROR_UNAUTHORIZED),
     ];
 
     /// The committed C# file is what `build.rs` wrote for *this* source: every export has a

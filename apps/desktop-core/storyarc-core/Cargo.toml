@@ -69,6 +69,64 @@ icu = "2.3.1"
 # notify 8.2.0, CC0-1.0: the native folder watchers (inotify, ReadDirectoryChangesW,
 # FSEvents) behind the watcher abstraction of task 2.3.
 notify = "8.2.0"
+# tokio 1.53.3, MIT: the core's one async runtime (design.md, Open Question 5), for the
+# network sources. Multi-threaded with timers and sockets, nothing else.
+tokio = { version = "1.53.3", features = ["rt-multi-thread", "time", "net", "io-util", "sync", "macros"] }
+# futures-util 0.3.34, MIT OR Apache-2.0: `StreamExt` over the SMB directory listing stream.
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+# smb 0.12.1, MIT: the SMB 2 and 3 client behind `RandomAccessSource` (task 3.1's winner,
+# docs/delivery/desktop-spike-smb.md). Signing and encryption on; compression, NetBIOS and the
+# std::fs impls off, so less of the crate parses what a server sends. Its tree carries no GPL
+# or LGPL crate (sspi and picky are MIT OR Apache-2.0). Pinned exactly: pre-1.0, one maintainer.
+smb = { version = "=0.12.1", default-features = false, features = ["async", "sign", "encrypt"] }
+# reqwest 0.13.5, MIT OR Apache-2.0: HTTP for OPDS, Kavita and downloads (design.md, Decision
+# 5, pinned here by task 3.4). rustls with no provider of its own: the core hands it a
+# configuration whose verifier asks the system first and then the reader's pins.
+reqwest = { version = "0.13.5", default-features = false, features = ["rustls-no-provider"] }
+# rustls 0.23.46, Apache-2.0 OR ISC OR MIT, with the `ring` provider (Apache-2.0 AND ISC),
+# which builds with a C compiler alone where aws-lc needs CMake and NASM on Windows.
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
+# rustls-platform-verifier 0.7.1, MIT OR Apache-2.0: "a certificate the system does not
+# trust" is the system's own answer — Keychain, CryptoAPI, or the distro's trust store.
+rustls-platform-verifier = "0.7.1"
+# uuid 1.28.0, MIT OR Apache-2.0: shelf ids, read in either case from iOS and Android and
+# minted as version 4 for a new collection or reading list. Already in the tree through smb.
+uuid = { version = "1.28.0", default-features = false, features = ["std", "v4"] }
+# The library document's sealed secrets (`library-portability`, task 3.8): PBKDF2-HMAC-SHA256
+# and AES-256-GCM, the two the phones use, with the parameters in the document. All three are
+# already in the tree through smb's NTLM and SMB 3 encryption.
+# aes-gcm 0.11.1, MIT OR Apache-2.0, without its own random source.
+aes-gcm = { version = "0.11.1", default-features = false, features = ["aes", "alloc"] }
+# pbkdf2 0.13.0, MIT OR Apache-2.0, with HMAC over the sha2 above.
+pbkdf2 = { version = "0.13.0", default-features = false, features = ["hmac"] }
+# getrandom 0.3.4, MIT OR Apache-2.0: the salt and each nonce, from the system.
+getrandom = "0.3.4"
+# base64 0.22.1, MIT OR Apache-2.0: the salt, nonces, ciphertexts and chosen covers.
+base64 = "0.22.1"
+# quick-xml 0.42.0, MIT: OPDS 1.2 Atom feeds and OpenSearch descriptions. A real XML reader
+# here, unlike ComicInfo's flat scrape, because a feed nests links inside entries.
+quick-xml = "0.42.0"
+
+# The secure stores of task 3.3 (design.md, Decision 7), each built only on its own system.
+# design.md names `keyring` 4.2.0; that crate is now an umbrella whose default feature pulls
+# every platform's store, so the core takes its two Windows parts directly.
+[target.'cfg(windows)'.dependencies]
+# keyring-core 1.0.1, MIT OR Apache-2.0: the entry API the Windows store implements.
+keyring-core = "=1.0.1"
+# windows-native-keyring-store 1.1.0, MIT OR Apache-2.0: Credential Manager. Without its
+# `search` feature, which only adds the regex crate.
+windows-native-keyring-store = { version = "=1.1.0", default-features = false }
+# windows 0.62.2, MIT OR Apache-2.0: the metered flag of task 3.9, the Internet connection
+# profile's NetworkCostType and the data saver, through WinRT. Already in the tree.
+windows = { version = "0.62.2", default-features = false, features = ["std", "Foundation", "Networking_Connectivity"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# oo7 0.6.0, MIT: Secret Service on the host and the Secret portal's file keyring in a
+# Flatpak, on tokio (Open Question 5) with its pure-Rust crypto. Pinned exactly: pre-1.0.
+oo7 = { version = "=0.6.0", default-features = false, features = ["tokio", "native_crypto"] }
+# zbus 5.19.0, MIT, on tokio: the metered flag of task 3.9, from the network-monitor portal and
+# NetworkManager. Already in the tree through oo7.
+zbus = { version = "5.19.0", default-features = false, features = ["tokio"] }
 
 [build-dependencies]
 # cc 1.6.0, MIT OR Apache-2.0: compiles the vendored libarchive sources from build.rs, the
@@ -79,3 +137,9 @@ cc = "=1.6.0"
 [dev-dependencies]
 # tempfile 3.27.0, MIT OR Apache-2.0: scratch folders for the scanner, watcher and store tests.
 tempfile = "3.27.0"
+# log 0.4.34, MIT OR Apache-2.0: tests/secrets.rs installs a logger that keeps every line the
+# core and its crates write, and searches it for a secret.
+log = "0.4.34"
+# rcgen 0.14.10, MIT OR Apache-2.0: a self-signed certificate made at test time, so the pin
+# flow of tests/opds.rs meets a server the system does not trust. No key file is committed.
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "crypto"] }

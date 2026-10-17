@@ -1,12 +1,21 @@
 //! Shared desktop core for StoryArc on Windows and Linux. It has no UI code and never will.
 
+pub mod diagnostics;
 pub mod domain;
+pub mod downloads;
 pub mod formats;
 pub mod image;
 pub mod io;
 pub mod library;
 pub mod locale;
+pub mod metered;
+pub mod net;
 pub mod paths;
+pub mod portability;
+pub mod runtime;
+pub mod secrets;
+pub mod secure_store;
+pub mod shelves;
 pub mod sources;
 pub mod store;
 

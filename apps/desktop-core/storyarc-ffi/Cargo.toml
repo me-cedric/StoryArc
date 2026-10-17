@@ -18,6 +18,8 @@ storyarc-core = { path = "../storyarc-core" }
 # serde_json 1.0.154, MIT OR Apache-2.0: the identities and progress records C# hands over
 # as UTF-8 JSON (design.md, Decision 5, rule 3). The version the core already uses.
 serde_json = "1.0.154"
+# serde 1.0.229, MIT OR Apache-2.0: the wave 3 requests C# sends as JSON. The core's version.
+serde = { version = "1.0.229", features = ["derive"] }
 
 [dev-dependencies]
 # tempfile 3.27.0, MIT OR Apache-2.0: scratch folders and stores for the seam tests. The
