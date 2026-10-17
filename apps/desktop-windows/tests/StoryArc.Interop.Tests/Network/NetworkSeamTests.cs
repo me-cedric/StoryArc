@@ -306,7 +306,10 @@ public sealed class NetworkSeamTests(ITestOutputHelper output)
         Assert.Equal(Resumption.Fresh, landing.Resumption);
         Assert.Equal(body.Length, landing.Length);
         Assert.Equal(body, File.ReadAllBytes(landing.Path));
-        Assert.Equal("natural-sort", landing.Publication!.DisplayTitle);
+        // The core files a download under the catalogue's title ("Natural Sort.cbz") and indexes it there, so the record
+        // shows the title the catalogue gave, not the stem the bytes were served from.
+        Assert.Equal("Natural Sort", landing.Publication!.DisplayTitle);
+        Assert.Equal("Natural Sort.cbz", Path.GetFileName(landing.Path));
         Assert.Equal(new DownloadProgress((ulong)body.Length, body.Length), reports.Last);
         Assert.Equal(1.0, reports.Last!.Value.Fraction);
         Assert.Equal(body.Length, StorageBytes.Of(folder.FullPath));
