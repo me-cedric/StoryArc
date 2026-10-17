@@ -19,6 +19,8 @@ final class MacLibrary {
     let bookmarks: MacFolderBookmarks
     let recents = RecentPublications()
     let watcher = MacFolderWatcher()
+    /// The configured servers and the sheets that add them. Wave 3.
+    let servers: MacSources
 
     /// Every folder the reader chose, with its state. Grey ones keep their place.
     private(set) var sources: [FolderSource] = []
@@ -62,6 +64,7 @@ final class MacLibrary {
             downloadStore: DownloadStore(),
             journal: ScanJournal()
         )
+        servers = MacSources(model: model)
         Self.live = self
     }
 
@@ -85,6 +88,8 @@ final class MacLibrary {
         startWatching()
         // Each `addFolder` starts a walk that the next one cancels; one rescan walks them all.
         if restored.folders.count > 1 { await model.rescan() }
+        // The servers join the shelf beside the folders, as on a phone.
+        await model.readServers()
         await refreshProgress()
     }
 

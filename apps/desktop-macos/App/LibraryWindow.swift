@@ -143,7 +143,12 @@ struct LibraryWindow: View {
         LibraryActions(
             openFile: { Task { for target in await library.chooseFile() { openWindow.reader(target) } } },
             addFolder: { library.chooseFolder() },
-            refresh: { Task { await library.model.rescan() } },
+            refresh: {
+                Task {
+                    await library.model.rescan()
+                    await library.servers.refresh()
+                }
+            },
             find: { isSearchFocused = true },
             viewAsGrid: { library.model.layout = .grid },
             viewAsList: { library.model.layout = .list },

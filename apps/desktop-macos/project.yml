@@ -111,6 +111,13 @@ targets:
         product: Formats
       - package: StoryArcKit
         product: ReaderFeature
+      # Wave 3: the three kinds of server a reader can add, and the preferences' diagnostic.
+      - package: StoryArcKit
+        product: Catalogue
+      - package: StoryArcKit
+        product: Kavita
+      - package: StoryArcKit
+        product: Smb
       - package: licences
         product: StoryArcLicences
     settings:
@@ -163,6 +170,10 @@ targets:
         product: StoryArcCore
       - package: StoryArcKit
         product: Formats
+      - package: StoryArcKit
+        product: Catalogue
+      - package: StoryArcKit
+        product: Smb
       - package: licences
         product: StoryArcLicences
     settings:

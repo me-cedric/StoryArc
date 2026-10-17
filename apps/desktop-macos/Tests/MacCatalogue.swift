@@ -1,4 +1,5 @@
 import AppKit
+import LibraryFeature
 import Persistence
 import StoryArcCore
 import Testing
@@ -50,7 +51,7 @@ enum MacCatalogue {
         _ = await Walk.until(.seconds(3)) { NSApplication.shared.isActive ? true : nil }
         try await libraryScreens(library: library, reading: reading, visit)
         try await readerScreens(library: library, reading: reading, visit)
-        try await settingsScreens(visit)
+        try await settingsScreens(library: library, visit)
     }
 
     private static func libraryScreens(library: MacLibrary, reading: Publication, _ visit: Visit) async throws {
@@ -129,7 +130,7 @@ enum MacCatalogue {
         await Walk.close([window])
     }
 
-    private static func settingsScreens(_ visit: Visit) async throws {
+    private static func settingsScreens(library: MacLibrary, _ visit: Visit) async throws {
         let before = ShellWalk.visibleWindows()
         ShellWalk.openSettings()
         let window = try #require(await Walk.until { ShellWalk.visibleWindows().first { !before.contains($0) } })
@@ -142,6 +143,27 @@ enum MacCatalogue {
             try await Task.sleep(for: .milliseconds(600))
             window.makeKeyAndOrderFront(nil)
             try await visit("settings-\(tab.rawValue)", window)
+            if tab == .sources { try await sourceSheets(library: library, on: window, visit) }
+        }
+    }
+
+    /// The three add sheets, empty, over the Sources tab. Wave 3, task 3.10.
+    private static func sourceSheets(library: MacLibrary, on window: NSWindow, _ visit: Visit) async throws {
+        let servers = library.servers
+        servers.discoversShares = false
+        servers.resetSheets()
+        defer { servers.discoversShares = true }
+        let sheets: [(AddedSource, String)] = [
+            (.share, "source-share"), (.catalogue, "source-catalogue"), (.kavita, "source-kavita"),
+        ]
+        for (kind, name) in sheets {
+            servers.adding = kind
+            let sheet = try #require(await Walk.until { window.attachedSheet }, "the \(name) sheet did not open")
+            try await Task.sleep(for: .milliseconds(700))
+            try await visit(name, sheet)
+            servers.adding = nil
+            _ = await Walk.until { window.attachedSheet == nil ? true : nil }
+            try await Task.sleep(for: .milliseconds(300))
         }
     }
 

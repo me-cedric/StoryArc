@@ -73,9 +73,15 @@ enum AccessibilityAudit {
         let app = AXUIElementCreateApplication(getpid())
         AXUIElementSetMessagingTimeout(app, 5)
         let windows = value(app, kAXWindowsAttribute) as? [AXUIElement] ?? []
-        guard let element = windows.first(where: { frame(of: $0) == axFrame(of: window) })
-            ?? windows.first(where: { string($0, kAXTitleAttribute) == window.title })
+        // A sheet is no window of its own to the accessibility server: it is an `AXSheet`
+        // child of the window it hangs from, which is where VoiceOver finds it too.
+        let host = window.sheetParent ?? window
+        guard let hostElement = windows.first(where: { frame(of: $0) == axFrame(of: host) })
+            ?? windows.first(where: { string($0, kAXTitleAttribute) == host.title })
         else { return [] }
+        let sheets = (value(hostElement, kAXChildrenAttribute) as? [AXUIElement] ?? [])
+            .filter { string($0, kAXRoleAttribute) == "AXSheet" }
+        guard let element = window.sheetParent == nil ? hostElement : sheets.first else { return [] }
         var found: [Control] = []
         var budget = 8_000
         walk(element, depth: 0, budget: &budget, into: &found)

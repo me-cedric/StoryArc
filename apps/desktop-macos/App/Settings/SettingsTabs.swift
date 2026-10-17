@@ -23,47 +23,6 @@ struct SettingsTabContent: View {
     }
 }
 
-/// Sources: the folders, each with its state, and the one way to add one.
-private struct SourcesSettingsTab: View {
-    let library: MacLibrary
-
-    var body: some View {
-        Section {
-            if library.sources.isEmpty {
-                Text("desktop.settings.sources.none").foregroundStyle(.secondary)
-            }
-            ForEach(library.sources) { source in
-                HStack {
-                    Image(systemName: "folder").foregroundStyle(source.isGrey ? .secondary : .primary)
-                    VStack(alignment: .leading) {
-                        Text(source.name).foregroundStyle(source.isGrey ? .secondary : .primary)
-                        if source.state == .offline {
-                            Text("desktop.settings.sources.offline").scaledFont(.caption).foregroundStyle(.secondary)
-                        } else if source.state == .needsAccess {
-                            Text("desktop.settings.sources.needsAccess")
-                                .scaledFont(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    if source.state == .needsAccess {
-                        Button { library.repick(source) } label: { Text("desktop.source.chooseAgain") }
-                    }
-                    Button(role: .destructive) { library.removeFolder(source) } label: {
-                        Text("desktop.settings.sources.remove")
-                    }
-                }
-            }
-        } header: {
-            Text("desktop.settings.sources.folders")
-        } footer: {
-            Text("desktop.settings.sources.footer").foregroundStyle(.secondary)
-        }
-        Section {
-            Button { library.chooseFolder() } label: { Text("desktop.menu.addFolder") }
-        }
-    }
-}
-
 /// Appearance: the appearance, the accent, the text size.
 private struct AppearanceSettingsTab: View {
     var body: some View {
