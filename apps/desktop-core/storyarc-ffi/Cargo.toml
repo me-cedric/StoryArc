@@ -15,6 +15,14 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
 storyarc-core = { path = "../storyarc-core" }
+# serde_json 1.0.154, MIT OR Apache-2.0: the identities and progress records C# hands over
+# as UTF-8 JSON (design.md, Decision 5, rule 3). The version the core already uses.
+serde_json = "1.0.154"
+
+[dev-dependencies]
+# tempfile 3.27.0, MIT OR Apache-2.0: scratch folders and stores for the seam tests. The
+# version the core's tests already use.
+tempfile = "3.27.0"
 
 [build-dependencies]
 # csbindgen 1.9.8, MIT: reads the `extern "C"` functions of src/lib.rs and writes the C#

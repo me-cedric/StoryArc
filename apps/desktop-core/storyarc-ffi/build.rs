@@ -32,6 +32,9 @@ fn main() {
         .csharp_class_name("NativeMethods")
         .csharp_class_accessibility("internal")
         .csharp_file_header(HEADER)
+        // The status codes too, so the C# enum can be checked against the Rust values
+        // rather than against a hand copy of the header.
+        .csharp_generate_const_filter(|name| name.starts_with("STORYARC_"))
         .generate_csharp_file(&fresh)
         .expect("write the generated C# declarations into OUT_DIR");
 

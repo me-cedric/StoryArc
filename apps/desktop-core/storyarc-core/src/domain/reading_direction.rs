@@ -1,6 +1,9 @@
 //! Which way a publication reads. Mirrored from `ReadingPreferences.swift`.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ReadingDirection {
     LeftToRight,
     RightToLeft,
