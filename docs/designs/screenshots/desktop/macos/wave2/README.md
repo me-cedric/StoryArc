@@ -1,9 +1,11 @@
 # macOS wave 2 — library, reader and preferences
 
-Taken 2026-10-17 from the ad-hoc build of `apps/desktop-macos` (macOS 27.0.1, Xcode 27.1)
-over `packages/test-fixtures/comics`, copied into the app's container as its one library
-folder, with one reading position written for `natural-sort.cbz` (page 5 of 12) so Home has
-a Keep reading shelf. Tasks 2.9 to 2.23e of `desktop-clients`; the conformance walk that
+Taken again 2026-10-17 at the head of `lane/macos-wave2-fixes` from the ad-hoc build of
+`apps/desktop-macos` (macOS 27.0.1, Xcode 27.1) over `packages/test-fixtures/comics`, copied
+into the app's container as its one library folder. The screens are those of
+`Tests/MacCatalogue.swift`, which empties the progress store and then writes one reading
+position for `natural-sort.cbz` (page 5 of 12) and marks `image-pages.cbz` finished on
+15 January 2026, so Home has every shelf it can have over the fixtures. Tasks 2.9 to 2.23e of `desktop-clients`; the conformance walk that
 reads these frames is [`desktop-conformance-macos-wave2.md`](../../../../../delivery/desktop-conformance-macos-wave2.md).
 
 Every screen in four frames: light and dark, each at the default text size and at the
@@ -12,14 +14,20 @@ in for the system's largest text size that macOS does not have.
 
 | Frame | What it shows |
 | --- | --- |
-| `home-<variant>.png` | The library window on Home: Keep reading with the one book in progress, its progress rail and percentage. No Up next shelf: no fixture series has a finished issue, so the shelf is absent, as `home-screen` asks of an empty shelf. |
-| `library-grid-<variant>.png` | Library, as a grid, in title order, under the notice that two publications could not be opened (`refused.cb7` and `password-protected.cbz`), with *Show* and its close mark. |
+| `home-<variant>.png` | The library window on Home under the notice that two publications could not be opened (*Show* and its close mark): Keep reading with the one book in progress, its rail and percentage; Recently Added with *Show All* in its heading; Finished, grouped under January 2026. No Up next shelf: no fixture series has a finished issue with a next one. |
+| `library-grid-<variant>.png` | Library, as a grid, in title order, with the letter index rail down its trailing edge. |
 | `library-list-<variant>.png` | Library, as a list: cover, title, series line and format, percent read at the end. |
 | `search-<variant>.png` | The toolbar search with "sort" typed: the field stays in the toolbar and the results take the content column. |
-| `detail-<variant>.png` | The publication page of `natural-sort`: the cover wash, the one primary action (*Continue at Page 5 of 12*), the borderless More menu, and the line naming the folder. |
-| `reader-<variant>.png` | The reader window on page 5, with the chrome up: the page layout and zoom menus at the top, the counter and the page slider at the foot, both on glass. |
+| `detail-<variant>.png` | The publication page of `natural-sort`: the cover wash, the one primary action (*Continue at Page 5 of 12*), the borderless More menu, and the line naming the folder. It has no series, so no other-issues shelf. |
+| `reader-<variant>.png` | The reader window on page 5 with the chrome up: the contents, adjust, page mode, layout and zoom controls at the head, each at least 28 points, the counter and the large page slider at the foot, on glass. |
+| `reader-pages-<variant>.png` | The page browser open above the foot: page 5 in the centre, outlined, with its neighbours. |
+| `reader-end-<variant>.png` | The end of the publication: marked finished, *Back to the Page* and *Close*. No next issue: `natural-sort` has no series. |
+| `reader-scroll-<variant>.png` | The vertical continuous scroll after the chrome has hidden: the page alone, to the window's width. |
+| `settings-sources-<variant>.png` | Preferences, Sources: the one fixture folder and the way to add another. |
 | `settings-appearance-<variant>.png` | Preferences, Appearance: appearance, accent (StoryArc or System) and text size. |
-| `settings-reading-<variant>.png` | Preferences, Reading: the edge click zones (on), the cover alone (on), and the page turn, which says the curl is a later version. |
+| `settings-reading-<variant>.png` | Preferences, Reading: the edge click zones, the cover alone, and the default page mode, which says the curl is a later version. |
+| `settings-privacy-<variant>.png` | Preferences, Privacy, with *Reset Settings*. |
+| `settings-about-<variant>.png` | Preferences, About: version, byline, the free-and-open sentence, the four links and the acknowledgements. |
 
 `<variant>` is `light`, `dark`, `light-largest` or `dark-largest`.
 
@@ -61,3 +69,7 @@ wave 1's.
   picker draws its value with the control's own font. The labels, the footers and every
   window's content scale.
 - **Increase Contrast and Reduce Transparency are not here**, as in wave 1.
+- **These frames are not the snapshot references.** The same screens are held by
+  `apps/desktop-macos/Tests/__Snapshots__/`, drawn in-process at one pixel per point without
+  the materials; a change to a screen fails that suite until its references are recorded
+  again, and these frames are retaken by hand.
