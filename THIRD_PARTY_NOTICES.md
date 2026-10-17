@@ -82,6 +82,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust async-dnssd 0.5.1](https://github.com/stbuehler/rust-async-dnssd) | `MIT` |
 | [Rust async-recursion 1.2.0](https://github.com/dcchut/async-recursion) | `MIT OR Apache-2.0` |
 | [Rust async-trait 0.1.92](https://github.com/dtolnay/async-trait) | `MIT OR Apache-2.0` |
+| [Rust atomic_refcell 0.1.14](https://github.com/mozilla/atomic_refcell) | `Apache-2.0 OR MIT` |
 | [Rust atomic-waker 1.1.2](https://github.com/smol-rs/atomic-waker) | `Apache-2.0 OR MIT` |
 | [Rust autocfg 1.5.1](https://github.com/cuviper/autocfg) | `Apache-2.0 OR MIT` |
 | [Rust av-data 0.4.4](https://github.com/rust-av/rust-av) | `MIT` |
@@ -213,6 +214,14 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust group 0.14.0](https://github.com/zkcrypto/group) | `MIT/Apache-2.0` |
 | [Rust gsk4-sys 0.11.5](https://github.com/gtk-rs/gtk4-rs) | `MIT` |
 | [Rust gsk4 0.11.5](https://github.com/gtk-rs/gtk4-rs) | `MIT` |
+| [Rust gstreamer-base-sys 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT` |
+| [Rust gstreamer-base 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT OR Apache-2.0` |
+| [Rust gstreamer-play-sys 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT` |
+| [Rust gstreamer-play 0.25.0](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT OR Apache-2.0` |
+| [Rust gstreamer-sys 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT` |
+| [Rust gstreamer-video-sys 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT` |
+| [Rust gstreamer-video 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT OR Apache-2.0` |
+| [Rust gstreamer 0.25.4](https://gitlab.freedesktop.org/gstreamer/gstreamer-rs) | `MIT OR Apache-2.0` |
 | [Rust gtk4-macros 0.11.5](https://github.com/gtk-rs/gtk4-rs) | `MIT` |
 | [Rust gtk4-sys 0.11.5](https://github.com/gtk-rs/gtk4-rs) | `MIT` |
 | [Rust gtk4 0.11.5](https://github.com/gtk-rs/gtk4-rs) | `MIT` |
@@ -282,6 +291,8 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust itertools 0.15.0](https://github.com/rust-itertools/itertools) | `MIT OR Apache-2.0` |
 | [Rust itoa 1.0.18](https://github.com/dtolnay/itoa) | `MIT OR Apache-2.0` |
 | [Rust ixdtf 0.6.6](https://github.com/unicode-org/icu4x) | `Unicode-3.0` |
+| [Rust javascriptcore6-sys 0.6.0](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
+| [Rust javascriptcore6 0.6.0](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
 | [Rust jni-macros 0.22.4](https://github.com/jni-rs/jni-rs) | `MIT OR Apache-2.0` |
 | [Rust jni-sys-macros 0.4.1](https://github.com/jni-rs/jni-sys) | `MIT OR Apache-2.0` |
 | [Rust jni-sys 0.4.1](https://github.com/jni-rs/jni-sys) | `MIT OR Apache-2.0` |
@@ -292,6 +303,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust keyring-core 1.0.1](https://github.com/open-source-cooperative/keyring-core.git) | `MIT OR Apache-2.0` |
 | [Rust kqueue-sys 1.1.2](https://gitlab.com/rust-kqueue/rust-kqueue-sys) | `MIT` |
 | [Rust kqueue 1.2.1](https://gitlab.com/rust-kqueue/rust-kqueue) | `MIT` |
+| [Rust kstring 2.0.5](https://github.com/cobalt-org/kstring) | `MIT OR Apache-2.0` |
 | [Rust lazy_static 1.5.1](https://github.com/rust-lang-nursery/lazy-static.rs) | `MIT OR Apache-2.0` |
 | [Rust libadwaita-sys 0.9.2](https://gitlab.gnome.org/World/Rust/libadwaita-rs) | `MIT` |
 | [Rust libadwaita 0.9.2](https://gitlab.gnome.org/World/Rust/libadwaita-rs) | `MIT` |
@@ -318,6 +330,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust modular-bitfield 0.11.2](https://github.com/robbepop/modular-bitfield) | `MIT/Apache-2.0` |
 | [Rust moxcms 0.8.1](https://github.com/awxkee/moxcms.git) | `BSD-3-Clause OR Apache-2.0` |
 | [Rust mp4parse 0.17.0](https://github.com/mozilla/mp4parse-rust) | `MPL-2.0` |
+| [Rust muldiv 1.0.1](https://github.com/sdroege/rust-muldiv) | `MIT` |
 | [Rust nom 7.1.3](https://github.com/Geal/nom) | `MIT` |
 | [Rust notify-types 2.1.0](https://github.com/notify-rs/notify.git) | `MIT OR Apache-2.0` |
 | [Rust notify 8.2.0](https://github.com/notify-rs/notify.git) | `CC0-1.0` |
@@ -337,6 +350,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust once_cell 1.21.4](https://github.com/matklad/once_cell) | `MIT OR Apache-2.0` |
 | [Rust oo7 0.6.0](https://github.com/linux-credentials/oo7) | `MIT` |
 | [Rust openssl-probe 0.2.1](https://github.com/rustls/openssl-probe) | `MIT OR Apache-2.0` |
+| [Rust option-operations 0.6.1](https://github.com/fengalin/option-operations) | `MIT/Apache-2.0` |
 | [Rust ordered-stream 0.2.0](https://github.com/danieldg/ordered-stream) | `MIT OR Apache-2.0` |
 | [Rust owo-colors 4.4.0](https://github.com/owo-colors/owo-colors) | `MIT` |
 | [Rust p256 0.14.0-rc.14](https://github.com/RustCrypto/elliptic-curves) | `Apache-2.0 OR MIT` |
@@ -346,6 +360,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust pango 0.22.9](https://github.com/gtk-rs/gtk-rs-core) | `MIT` |
 | [Rust parking 2.2.1](https://github.com/smol-rs/parking) | `Apache-2.0 OR MIT` |
 | [Rust pastey 0.1.1](https://github.com/as1100k/pastey) | `MIT OR Apache-2.0` |
+| [Rust pastey 0.2.3](https://github.com/as1100k/pastey) | `MIT OR Apache-2.0` |
 | [Rust pbkdf2 0.12.2](https://github.com/RustCrypto/password-hashes/tree/master/pbkdf2) | `MIT OR Apache-2.0` |
 | [Rust pbkdf2 0.13.0](https://github.com/RustCrypto/password-hashes) | `MIT OR Apache-2.0` |
 | [Rust pdfium-render 0.9.4](https://github.com/ajrcarey/pdfium-render) | `MIT OR Apache-2.0` |
@@ -453,6 +468,8 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust smb-transport 0.12.1](https://github.com/afiffon/smb-rs) | `MIT` |
 | [Rust smb 0.12.1](https://github.com/afiffon/smb-rs) | `MIT` |
 | [Rust socket2 0.6.5](https://github.com/rust-lang/socket2) | `MIT OR Apache-2.0` |
+| [Rust soup3-sys 0.9.0](https://gitlab.gnome.org/World/Rust/soup3-rs) | `MIT` |
+| [Rust soup3 0.9.0](https://gitlab.gnome.org/World/Rust/soup3-rs) | `MIT` |
 | [Rust spki 0.8.1](https://github.com/RustCrypto/formats) | `Apache-2.0 OR MIT` |
 | [Rust sponge-cursor 0.1.0](https://github.com/RustCrypto/utils) | `MIT OR Apache-2.0` |
 | [Rust sqlite-wasm-rs 0.5.5](https://github.com/Spxg/sqlite-wasm-rs) | `MIT` |
@@ -521,6 +538,8 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust wasm-bindgen 0.2.129](https://github.com/wasm-bindgen/wasm-bindgen) | `MIT OR Apache-2.0` |
 | [Rust web-sys 0.3.106](https://github.com/wasm-bindgen/wasm-bindgen/tree/master/crates/web-sys) | `MIT OR Apache-2.0` |
 | [Rust web-time 1.1.0](https://github.com/daxpedda/web-time) | `MIT OR Apache-2.0` |
+| [Rust webkit6-sys 0.6.0](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
+| [Rust webkit6 0.6.1](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
 | [Rust webpki-root-certs 1.0.9](https://github.com/rustls/webpki-roots) | `CDLA-Permissive-2.0` |
 | [Rust weezl 0.1.12](https://github.com/image-rs/weezl) | `MIT OR Apache-2.0` |
 | [Rust widestring 1.2.1](https://github.com/VoidStarKat/widestring-rs) | `MIT OR Apache-2.0` |
