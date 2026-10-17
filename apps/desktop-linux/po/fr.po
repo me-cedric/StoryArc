@@ -619,9 +619,29 @@ msgstr "Ce livre a besoin du runtime WebView2, absent de ce PC"
 msgid "desktop.w4.pdf.contents"
 msgstr "Sommaire"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Résultat suivant"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Résultat précédent"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s sur %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s trouvés"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Ce fichier est fait d’images de pages : il n’y a donc aucun texte à sélectionner ni à rechercher."
+
 #, c-format
 msgid "desktop.w4.pdf.matches %d"
 msgstr "%d occurrences"
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Introuvable"
 
 msgid "desktop.w4.pdf.noMatches"
 msgstr "Aucune occurrence"
@@ -629,12 +649,33 @@ msgstr "Aucune occurrence"
 msgid "desktop.w4.pdf.noOutline"
 msgstr "Ce PDF ne déclare pas de sommaire"
 
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Cette page ne contient pas de texte."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Plan"
+
 #, c-format
 msgid "desktop.w4.pdf.page %d"
 msgstr "Page %d"
 
+msgid "desktop.w4.pdf.pageText"
+msgstr "Texte de la page"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Rechercher dans le document"
+
 msgid "desktop.w4.pdf.searchPlaceholder"
 msgstr "Rechercher dans ce PDF"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Cette page n’a rien à lire à voix haute."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Lire à voix haute"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Lecture à voix haute"
 
 msgid "detail.chapter.finished"
 msgstr "Terminé"

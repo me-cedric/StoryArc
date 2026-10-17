@@ -1,6 +1,7 @@
 //! A publication a reader window holds: the core's record and the open container its
-//! pages come from (`storyarc_core::library::OpenPublication`). The window decodes pages
-//! on a worker, so the container sits behind a mutex the worker locks.
+//! pages come from, a comic archive (`storyarc_core::library::OpenPublication`) or a PDF
+//! (`storyarc_core::pdf::PdfDocument`, task 4.11). The window decodes pages on a worker,
+//! so the container sits behind a mutex the worker locks.
 
 use std::collections::HashSet;
 use std::path::Path;
@@ -9,7 +10,10 @@ use std::sync::{Arc, Mutex};
 use storyarc_core::domain::{self, ImageAdjustments, PublicationFormat};
 use storyarc_core::formats::ComicArchive;
 use storyarc_core::image::{self, DecodedPage, PageSize};
+use storyarc_core::io::source::FileSource;
 use storyarc_core::library::{LibraryError, OpenPublication};
+use storyarc_core::pdf::{PdfDocument, PdfEngine, PdfMatch, PdfOutlineEntry};
+use storyarc_core::sources::PublicationIndexer;
 
 use crate::reading::chapters::{self, Marker};
 
@@ -29,7 +33,20 @@ pub struct Publication {
     pub declared_spreads: HashSet<usize>,
     /// Where the container declares each chapter starts, with its name when it has one.
     pub markers: Vec<Marker>,
-    open: Arc<Mutex<OpenPublication>>,
+    open: Arc<Mutex<Container>>,
+}
+
+/// What the pages come from.
+enum Container {
+    /// Boxed: the archive index is large next to the PDF handle.
+    Comic(Box<OpenPublication>),
+    Pdf(PdfDocument),
+}
+
+/// Whether a path is a PDF, which opens through the core's PDF engine.
+pub fn is_pdf(path: &Path) -> bool {
+    path.extension()
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("pdf"))
 }
 
 impl std::fmt::Debug for Publication {
@@ -58,6 +75,9 @@ impl Publication {
     /// reader cannot page yet, a damaged archive) is refused by name, with its reason,
     /// as `publication-formats` requires; the caller shows it in grey.
     pub fn open(path: &Path) -> Result<Self, String> {
+        if is_pdf(path) {
+            return Self::open_pdf(path);
+        }
         let open = OpenPublication::open(path).map_err(|error| refusal(path, &error))?;
         if open.page_count() == 0 {
             return Err(format!("{}: the archive holds no page", file_name(path)));
@@ -70,8 +90,78 @@ impl Publication {
             declared_spreads: open.declared_spreads().into_iter().collect(),
             markers: chapter_markers(path, record.format),
             record,
-            open: Arc::new(Mutex::new(open)),
+            open: Arc::new(Mutex::new(Container::Comic(Box::new(open)))),
         })
+    }
+
+    /// Opens a PDF through the core's engine (`ebook-reader`, PDF rendering). The engine
+    /// binds the pinned PDFium once per process; without the library the file is refused
+    /// by name with where the library was looked for. The outline's entries that name a
+    /// page become the reader's chapter markers.
+    fn open_pdf(path: &Path) -> Result<Self, String> {
+        let name = file_name(path);
+        let record = PublicationIndexer::index_path(path, None)
+            .map_err(|error| format!("{name}: {error}"))?;
+        let engine = PdfEngine::start(None).map_err(|error| format!("{name}: {error}"))?;
+        let source = FileSource::open(path).map_err(|error| format!("{name}: {error}"))?;
+        let document = engine
+            .open(Arc::new(source))
+            .map_err(|error| format!("{name}: {error}"))?;
+        if document.page_count() == 0 {
+            return Err(format!("{name}: the document holds no page"));
+        }
+        let markers = outline_markers(&document.outline().unwrap_or_default());
+        Ok(Self {
+            id: path.to_string_lossy().into_owned(),
+            title: record.display_title.clone(),
+            page_count: document.page_count(),
+            declared_spreads: HashSet::new(),
+            markers,
+            record,
+            open: Arc::new(Mutex::new(Container::Pdf(document))),
+        })
+    }
+
+    /// Whether the pages are a PDF, whose text, search and outline the reader offers.
+    pub fn is_pdf(&self) -> bool {
+        self.open
+            .lock()
+            .is_ok_and(|open| matches!(&*open, Container::Pdf(_)))
+    }
+
+    /// Whether any page carries text, so selection and search are offered (`ebook-reader`,
+    /// A text layer is detected rather than assumed). False for a comic.
+    pub fn has_text_layer(&self) -> bool {
+        match self.open.lock().as_deref() {
+            Ok(Container::Pdf(document)) => document.has_text_layer().unwrap_or(false),
+            _ => false,
+        }
+    }
+
+    /// One page's text, in content order; empty for a page without text. Blocks.
+    pub fn page_text(&self, index: usize) -> String {
+        match self.open.lock().as_deref() {
+            Ok(Container::Pdf(document)) => document
+                .page_text(u32::try_from(index).unwrap_or(u32::MAX))
+                .unwrap_or_default(),
+            _ => String::new(),
+        }
+    }
+
+    /// Every hit of `query`, page by page, case folded by the engine. Blocks.
+    pub fn search(&self, query: &str) -> Vec<PdfMatch> {
+        match self.open.lock().as_deref() {
+            Ok(Container::Pdf(document)) => document.search(query).unwrap_or_default(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// The outline as the file nests it; empty for a comic or a PDF without one.
+    pub fn outline(&self) -> Vec<PdfOutlineEntry> {
+        match self.open.lock().as_deref() {
+            Ok(Container::Pdf(document)) => document.outline().unwrap_or_default(),
+            _ => Vec::new(),
+        }
     }
 
     /// Decodes one page to RGBA, at most `edge` on its longest edge, with the reader's
@@ -87,9 +177,14 @@ impl Publication {
             .open
             .lock()
             .map_err(|_| "the publication is no longer readable".to_owned())?;
-        let page = open
-            .decode_page(index, Some(edge))
-            .map_err(|error| error.to_string())?;
+        let page = match &*open {
+            Container::Comic(open) => open
+                .decode_page(index, Some(edge))
+                .map_err(|error| error.to_string())?,
+            Container::Pdf(document) => document
+                .render_page(u32::try_from(index).unwrap_or(u32::MAX), Some(edge))
+                .map_err(|error| error.to_string())?,
+        };
         Ok(if adjustments.is_neutral() {
             page
         } else {
@@ -109,16 +204,28 @@ impl Publication {
         let Ok(open) = self.open.lock() else {
             return Vec::new();
         };
-        (0..open.page_count())
-            .map(|index| {
-                open.page_size(index).map_or((2, 3), |size| {
-                    (
-                        i32::try_from(size.width).unwrap_or(2),
-                        i32::try_from(size.height).unwrap_or(3),
-                    )
+        match &*open {
+            Container::Comic(open) => (0..open.page_count())
+                .map(|index| {
+                    open.page_size(index).map_or((2, 3), |size| {
+                        (
+                            i32::try_from(size.width).unwrap_or(2),
+                            i32::try_from(size.height).unwrap_or(3),
+                        )
+                    })
                 })
-            })
-            .collect()
+                .collect(),
+            Container::Pdf(document) => (0..document.page_count())
+                .map(|index| {
+                    document.page_size(index).map_or((2, 3), |(width, height)| {
+                        (
+                            width.round().max(1.0) as i32,
+                            height.round().max(1.0) as i32,
+                        )
+                    })
+                })
+                .collect(),
+        }
     }
 
     /// Whether the publication can be reopened now, for restoration.
@@ -140,6 +247,21 @@ fn chapter_markers(path: &Path, format: PublicationFormat) -> Vec<Marker> {
         |_| Vec::new(),
         |archive| chapters::markers(&archive.chapter_start_indices(), &archive.chapter_titles()),
     )
+}
+
+/// The chapter markers a PDF outline gives: each top-level entry that names a page,
+/// deduplicated by page, with the first title for that page.
+fn outline_markers(outline: &[PdfOutlineEntry]) -> Vec<Marker> {
+    let mut titles = std::collections::HashMap::new();
+    let mut starts = Vec::new();
+    for entry in outline {
+        if let Some(page) = entry.page {
+            let page = page as usize;
+            starts.push(page);
+            titles.entry(page).or_insert_with(|| entry.title.clone());
+        }
+    }
+    chapters::markers(&starts, &titles)
 }
 
 /// Whether a decoded page is a landscape spread that stands alone (`PageDecoder.isSpread`).
@@ -187,6 +309,86 @@ pub(crate) mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../packages/test-fixtures/comics")
             .join(name)
+    }
+
+    /// The corpus PDF through the window's own publication, or `None` where the pinned
+    /// PDFium is not on disk (`pnpm pdfium:fetch`; the container build fetches it).
+    fn pdf(name: &str) -> Option<Publication> {
+        if PdfEngine::start(None).is_err() {
+            eprintln!("skipped: no PDFium library (STORYARC_PDFIUM_DIR); run pnpm pdfium:fetch");
+            return None;
+        }
+        Some(Publication::open(&fixture(name)).expect("the corpus PDF opens"))
+    }
+
+    #[test]
+    fn the_text_pdf_reads_as_the_phones_read_it_at_the_window() {
+        let Some(book) = pdf("text-pages.pdf") else {
+            return;
+        };
+        assert!(book.is_pdf());
+        assert_eq!(book.page_count, 3);
+        assert_eq!(book.page_sizes(), vec![(612, 792); 3]);
+        assert!(book.has_text_layer());
+        let texts: Vec<String> = (0..3)
+            .map(|i| book.page_text(i).trim().to_owned())
+            .collect();
+        assert_eq!(texts, ["Chapter One", "Chapter Two", "Chapter Three"]);
+        let titles: Vec<Option<String>> = book.markers.iter().map(|m| m.title.clone()).collect();
+        assert_eq!(
+            titles,
+            [
+                Some("Chapter One".into()),
+                Some("Chapter Two".into()),
+                Some("Chapter Three".into())
+            ]
+        );
+        assert_eq!(
+            book.markers.iter().map(|m| m.index).collect::<Vec<_>>(),
+            [0, 1, 2]
+        );
+        assert_eq!(book.outline().len(), 3);
+        let hits = book.search("chapter two");
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].page, 1);
+        assert_eq!(
+            book.search("Chapter")
+                .iter()
+                .map(|h| h.page)
+                .collect::<Vec<_>>(),
+            [0, 1, 2]
+        );
+        assert!(book.search("nowhere").is_empty());
+        // The core renders one pixel per point and never upscales (`ebook-reader`, A
+        // rendered page is bounded by what it is shown at), so the page view scales it.
+        let page = book.decode(0).expect("the first page renders");
+        assert_eq!((page.width, page.height), (612, 792));
+    }
+
+    #[test]
+    fn the_image_pdf_reads_as_a_comic_with_no_text_controls() {
+        let Some(book) = pdf("image-pages.pdf") else {
+            return;
+        };
+        assert_eq!(book.page_count, 3);
+        assert_eq!(book.page_sizes(), vec![(200, 300); 3]);
+        assert!(!book.has_text_layer());
+        assert!(book.markers.is_empty());
+        assert!(book.search("anything").is_empty());
+        let page = book.decode(1).expect("an image page renders");
+        assert_eq!((page.width, page.height), (200, 300));
+    }
+
+    #[test]
+    fn bytes_that_are_not_a_pdf_are_refused_by_name() {
+        if PdfEngine::start(None).is_err() {
+            return;
+        }
+        let dir = tempfile::tempdir().expect("a folder");
+        let path = dir.path().join("not-really.pdf");
+        std::fs::write(&path, b"%PDF-1.7 but then nothing of the sort").expect("written");
+        let refusal = Publication::open(&path).expect_err("refused");
+        assert!(refusal.starts_with("not-really.pdf: "), "{refusal}");
     }
 
     #[test]

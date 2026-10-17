@@ -89,6 +89,19 @@ the code still compiles against the floor features.
 CI: `.github/workflows/desktop-linux.yml` on `ubuntu-24.04`, which matches the
 floor. It is path-filtered, so mobile CI is unaffected.
 
+## Wave 4: EPUB, PDF, audio and speech
+
+| Part | Where | How it is proved |
+| --- | --- | --- |
+| EPUB | `src/epub_host.rs` (the rules), `src/epub_view.rs` (WebKitGTK), `src/epub_window.rs` (the window) over the core's manifest and positions and the pinned bundle of `apps/desktop-web/epub` | `epub_view::tests::the_eight_vector_page_reaches_nothing_through_the_guarded_view`: nine arrivals unguarded, zero guarded, every subresource and a media range through the scheme handler, the corpus book `ready` over the scheme. Needs a display: `scripts/headless-proof.sh epub_view`. |
+| PDF | `src/publication.rs` (a second container over `storyarc_core::pdf`), `src/pdf_ui.rs` (text pane, search, outline, read aloud) | `publication::tests::the_text_pdf_*`, `the_image_pdf_*`, `bytes_that_are_not_a_pdf_*`, with the pinned PDFium the container build fetches into its target volume. |
+| Audio and speech | `src/audio.rs` (GstPlay), `src/speech.rs` (SSIP) | `audio::tests::a_chapter_plays_*` on a null sink, `speech::tests::a_sentence_speaks_*`; the spike record is `docs/delivery/desktop-spike-audio-linux.md`. |
+| MPRIS | `src/mpris.rs` over GDBus | `mpris::tests::playerctl_controls_*` on a private bus, under `headless-proof.sh mpris`. |
+| The player | `src/player.rs`, `src/player_ui.rs`: the mini player in a revealer at the foot of the library, idle inhibit while playing | The walk: `headless-proof.sh --walk <folder>` runs `scripts/wave4-walk.sh` and leaves captures and accessibility trees (`scripts/a11y-tree.py`). |
+
+`headless-proof.sh` runs the display and bus tests under cage with a session bus and an
+accessibility bus; the gate `container-build.sh` runs the rest and skips these by name.
+
 ## Distros and build dependencies
 
 Targets: Arch, Manjaro, Ubuntu 24.04, Pop!_OS 24.04 and Fedora. All versions were
@@ -113,6 +126,8 @@ package of it is installed or linked.
 | GTK 4 | `libgtk-4-dev` | `gtk4` | `gtk4-devel` |
 | libadwaita | `libadwaita-1-dev` | `libadwaita` | `libadwaita-devel` |
 | WebKitGTK 6.0 | `libwebkitgtk-6.0-dev` | `webkitgtk-6.0` | `webkitgtk6.0-devel` |
+| GStreamer, GstPlay and the decoders | `libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav` | `gstreamer gst-plugins-base-libs gst-plugins-bad-libs gst-plugins-good gst-libav` | `gstreamer1-devel gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel gstreamer1-plugins-good` (no AAC without RPM Fusion) |
+| Run: read aloud | `speech-dispatcher` with a module such as `speech-dispatcher-espeak-ng` | same | same |
 | Rust 1.92 or newer | `rustup` | `rustup` or `rust` | `rustup` or `cargo rust` |
 | Data file checks | `appstream desktop-file-utils` | same | same |
 | Run: file picker, dark mode | `xdg-desktop-portal-gtk` | same | same |

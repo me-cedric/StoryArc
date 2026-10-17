@@ -619,9 +619,29 @@ msgstr "Este libro necesita el entorno WebView2, que este PC no tiene"
 msgid "desktop.w4.pdf.contents"
 msgstr "Contenido"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Siguiente coincidencia"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Coincidencia anterior"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s de %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s encontrados"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Este archivo son imágenes de páginas, así que no hay texto que seleccionar ni buscar."
+
 #, c-format
 msgid "desktop.w4.pdf.matches %d"
 msgstr "%d coincidencias"
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "No encontrado"
 
 msgid "desktop.w4.pdf.noMatches"
 msgstr "Sin coincidencias"
@@ -629,12 +649,33 @@ msgstr "Sin coincidencias"
 msgid "desktop.w4.pdf.noOutline"
 msgstr "Este PDF no declara un índice"
 
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Esta página no tiene texto."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Índice"
+
 #, c-format
 msgid "desktop.w4.pdf.page %d"
 msgstr "Página %d"
 
+msgid "desktop.w4.pdf.pageText"
+msgstr "Texto de la página"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Buscar en el documento"
+
 msgid "desktop.w4.pdf.searchPlaceholder"
 msgstr "Buscar en este PDF"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Esta página no tiene nada que leer en voz alta."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Leer en voz alta"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Leyendo en voz alta"
 
 msgid "detail.chapter.finished"
 msgstr "Terminado"

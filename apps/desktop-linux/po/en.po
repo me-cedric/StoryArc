@@ -619,9 +619,29 @@ msgstr "This book needs the WebView2 runtime, which this PC does not have"
 msgid "desktop.w4.pdf.contents"
 msgstr "Contents"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Next match"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Previous match"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s of %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s found"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "This file is images of pages, so there is no text to select or search."
+
 #, c-format
 msgid "desktop.w4.pdf.matches %d"
 msgstr "%d matches"
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Not found"
 
 msgid "desktop.w4.pdf.noMatches"
 msgstr "No matches"
@@ -629,12 +649,33 @@ msgstr "No matches"
 msgid "desktop.w4.pdf.noOutline"
 msgstr "This PDF declares no contents"
 
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "This page has no text."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Outline"
+
 #, c-format
 msgid "desktop.w4.pdf.page %d"
 msgstr "Page %d"
 
+msgid "desktop.w4.pdf.pageText"
+msgstr "Page text"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Search in the document"
+
 msgid "desktop.w4.pdf.searchPlaceholder"
 msgstr "Search in this PDF"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "This page has nothing to read aloud."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Read aloud"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Reading aloud"
 
 msgid "detail.chapter.finished"
 msgstr "Finished"

@@ -3,6 +3,7 @@
 
 mod about;
 mod app;
+mod audio;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod commands;
 mod cover_colour;
@@ -12,6 +13,9 @@ mod detail_view;
 mod diagnostic_export;
 mod download_rules;
 mod downloads_ui;
+mod epub_host;
+mod epub_view;
+mod epub_window;
 mod folders;
 mod fullscreen;
 mod home_view;
@@ -29,9 +33,13 @@ mod library_selection;
 mod library_views;
 mod library_window;
 mod menus;
+mod mpris;
 mod network_ui;
 mod opening;
 mod page_view;
+mod pdf_ui;
+mod player;
+mod player_ui;
 mod portal;
 mod preferences_dialog;
 mod preferences_pages;
@@ -58,6 +66,7 @@ mod settings;
 mod shelf_rules;
 mod shelf_ui;
 mod sources;
+mod speech;
 mod storage_rules;
 mod storage_ui;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
@@ -230,6 +239,26 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             let _ = gtk::prelude::WidgetExt::activate_action(&window, &format!("win.{name}"), None);
         })
         .build();
+    // `reader-action "'find'"` runs a window action of the reader window opened last, for the
+    // walks: a wtype Control chord was not delivered under cage (task 4.11's walk).
+    let on = shared.clone();
+    let reader_action = gio::ActionEntry::builder("reader-action")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let (Some(window), Some(name)) = (
+                on.readers
+                    .borrow()
+                    .last()
+                    .map(|handle| handle.window.clone()),
+                parameter.and_then(|value| value.get::<String>()),
+            ) else {
+                return;
+            };
+            let outcome =
+                gtk::prelude::WidgetExt::activate_action(&window, &format!("win.{name}"), None);
+            glib::g_message!(session::LOG_DOMAIN, "reader-action {name}: {outcome:?}");
+        })
+        .build();
     let on = shared.clone();
     let show_shelf = gio::ActionEntry::builder("show-shelf")
         .parameter_type(Some(glib::VariantTy::STRING))
@@ -243,6 +272,7 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
         .build();
     application.add_action_entries([
         library_action,
+        reader_action,
         show_shelf,
         quit,
         preferences,

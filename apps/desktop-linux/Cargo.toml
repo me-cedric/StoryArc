@@ -20,3 +20,18 @@ workspace = true
 storyarc-core = { path = "../desktop-core/storyarc-core" }
 gtk = { package = "gtk4", version = "0.11", features = ["v4_14"] }
 adw = { package = "libadwaita", version = "0.9", features = ["v1_5"] }
+# webkit6 0.6.1, MIT: WebKitGTK 6.0 for the EPUB renderer (design.md, Decision 4 and 6).
+# Pinned exactly because the crate's major is young; `v2_44` is the WebKitGTK floor.
+webkit = { package = "webkit6", version = "=0.6.1", features = ["v2_44"] }
+# serde_json 1.0.154, MIT OR Apache-2.0: the renderer's messages and the manifest it
+# takes are JSON. Already in the tree through the core.
+serde_json = "1.0.154"
+# gstreamer 0.25.4 and gstreamer-play 0.25.0, MIT OR Apache-2.0: audiobook and read-aloud
+# playback through GstPlay over playbin (design.md, Decision 5b; task 4.12). GStreamer 1.24
+# is what Ubuntu 24.04 ships; GstPlay needs 1.20. Same glib as gtk4.
+gstreamer = "0.25.4"
+gstreamer-play = "0.25.0"
+
+[dev-dependencies]
+# tempfile 3.27.0, MIT OR Apache-2.0: a folder for the content filter store in the egress test.
+tempfile = "3.27.0"

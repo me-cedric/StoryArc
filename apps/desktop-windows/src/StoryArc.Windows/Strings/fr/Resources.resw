@@ -782,9 +782,33 @@
     <value>Sommaire</value>
     <comment>desktop.w4.pdf.contents</comment>
   </data>
+  <data name="desktop_w4_pdf_findNext" xml:space="preserve">
+    <value>Résultat suivant</value>
+    <comment>desktop.w4.pdf.findNext</comment>
+  </data>
+  <data name="desktop_w4_pdf_findPrevious" xml:space="preserve">
+    <value>Résultat précédent</value>
+    <comment>desktop.w4.pdf.findPrevious</comment>
+  </data>
+  <data name="desktop_w4_pdf_hitOfHits______" xml:space="preserve">
+    <value>{0} sur {1}</value>
+    <comment>desktop.w4.pdf.hitOfHits______</comment>
+  </data>
+  <data name="desktop_w4_pdf_hits___" xml:space="preserve">
+    <value>{0} trouvés</value>
+    <comment>desktop.w4.pdf.hits___</comment>
+  </data>
+  <data name="desktop_w4_pdf_imagesOnly" xml:space="preserve">
+    <value>Ce fichier est fait d’images de pages : il n’y a donc aucun texte à sélectionner ni à rechercher.</value>
+    <comment>desktop.w4.pdf.imagesOnly</comment>
+  </data>
   <data name="desktop_w4_pdf_matches__lld" xml:space="preserve">
     <value>{0} occurrences</value>
     <comment>desktop.w4.pdf.matches %lld</comment>
+  </data>
+  <data name="desktop_w4_pdf_noHits" xml:space="preserve">
+    <value>Introuvable</value>
+    <comment>desktop.w4.pdf.noHits</comment>
   </data>
   <data name="desktop_w4_pdf_noMatches" xml:space="preserve">
     <value>Aucune occurrence</value>
@@ -794,13 +818,41 @@
     <value>Ce PDF ne déclare pas de sommaire</value>
     <comment>desktop.w4.pdf.noOutline</comment>
   </data>
+  <data name="desktop_w4_pdf_noTextOnPage" xml:space="preserve">
+    <value>Cette page ne contient pas de texte.</value>
+    <comment>desktop.w4.pdf.noTextOnPage</comment>
+  </data>
+  <data name="desktop_w4_pdf_outline" xml:space="preserve">
+    <value>Plan</value>
+    <comment>desktop.w4.pdf.outline</comment>
+  </data>
   <data name="desktop_w4_pdf_page__lld" xml:space="preserve">
     <value>Page {0}</value>
     <comment>desktop.w4.pdf.page %lld</comment>
   </data>
+  <data name="desktop_w4_pdf_pageText" xml:space="preserve">
+    <value>Texte de la page</value>
+    <comment>desktop.w4.pdf.pageText</comment>
+  </data>
+  <data name="desktop_w4_pdf_search" xml:space="preserve">
+    <value>Rechercher dans le document</value>
+    <comment>desktop.w4.pdf.search</comment>
+  </data>
   <data name="desktop_w4_pdf_searchPlaceholder" xml:space="preserve">
     <value>Rechercher dans ce PDF</value>
     <comment>desktop.w4.pdf.searchPlaceholder</comment>
+  </data>
+  <data name="desktop_w4_player_nothingToSay" xml:space="preserve">
+    <value>Cette page n’a rien à lire à voix haute.</value>
+    <comment>desktop.w4.player.nothingToSay</comment>
+  </data>
+  <data name="desktop_w4_player_readAloud" xml:space="preserve">
+    <value>Lire à voix haute</value>
+    <comment>desktop.w4.player.readAloud</comment>
+  </data>
+  <data name="desktop_w4_player_readingAloud" xml:space="preserve">
+    <value>Lecture à voix haute</value>
+    <comment>desktop.w4.player.readingAloud</comment>
   </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Terminé</value>

@@ -619,9 +619,29 @@ msgstr "Dieses Buch braucht die WebView2-Laufzeit, die auf diesem PC fehlt"
 msgid "desktop.w4.pdf.contents"
 msgstr "Inhalt"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Nächster Treffer"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Vorheriger Treffer"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s von %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s gefunden"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Diese Datei besteht aus Seitenbildern, es gibt also keinen Text zum Auswählen oder Suchen."
+
 #, c-format
 msgid "desktop.w4.pdf.matches %d"
 msgstr "%d Treffer"
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Nicht gefunden"
 
 msgid "desktop.w4.pdf.noMatches"
 msgstr "Keine Treffer"
@@ -629,12 +649,33 @@ msgstr "Keine Treffer"
 msgid "desktop.w4.pdf.noOutline"
 msgstr "Dieses PDF hat kein Inhaltsverzeichnis"
 
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Diese Seite enthält keinen Text."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Gliederung"
+
 #, c-format
 msgid "desktop.w4.pdf.page %d"
 msgstr "Seite %d"
 
+msgid "desktop.w4.pdf.pageText"
+msgstr "Seitentext"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Im Dokument suchen"
+
 msgid "desktop.w4.pdf.searchPlaceholder"
 msgstr "In diesem PDF suchen"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Diese Seite enthält nichts zum Vorlesen."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Vorlesen"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Wird vorgelesen"
 
 msgid "detail.chapter.finished"
 msgstr "Beendet"
