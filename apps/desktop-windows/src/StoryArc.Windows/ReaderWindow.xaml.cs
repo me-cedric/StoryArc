@@ -23,7 +23,7 @@ namespace StoryArc.Windows;
 /// screen with <c>AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen)</c> and back to
 /// <c>AppWindowPresenterKind.Default</c> (Microsoft.UI.Windowing).
 /// </summary>
-public sealed partial class ReaderWindow : Window
+public sealed partial class ReaderWindow : Window, IPublicationWindow
 {
     private static readonly TimeSpan ChromeTick = TimeSpan.FromMilliseconds(500);
 
@@ -114,7 +114,7 @@ public sealed partial class ReaderWindow : Window
         PageMoved(isTurn: false);
     }
 
-    internal string PublicationId => _opened.Id;
+    public string PublicationId => _opened.Id;
 
     internal ScrollViewer Scroller => PageScroller;
 
@@ -123,7 +123,7 @@ public sealed partial class ReaderWindow : Window
     internal (Grid Slot, Image Image, Border Placeholder, TextBlock Reason) SecondSlotParts => (SecondSlot, SecondPage, SecondPlaceholder, SecondReason);
 
     /// <summary>What the session file keeps for this window: its last windowed frame and its page, counted from one.</summary>
-    internal ReaderWindowState State() => _lastWindowed with { Page = _navigator.CurrentPage + 1 };
+    public ReaderWindowState State() => _lastWindowed with { Page = _navigator.CurrentPage + 1 };
 
     /// <summary>Says in grey, under the page, that the rest of the publication cannot be read; the pages held stay.</summary>
     internal void ShowUnavailable(string sentence)
@@ -146,7 +146,7 @@ public sealed partial class ReaderWindow : Window
     }
 
     /// <summary>The reader's commands from the menu or a shortcut. The page keys arrive through <see cref="OnKeyDown"/> instead.</summary>
-    internal void Run(string commandId)
+    public void Run(string commandId)
     {
         switch (commandId)
         {

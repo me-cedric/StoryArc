@@ -22,7 +22,7 @@ internal sealed class AppHost
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(500);
 
-    private readonly WindowRegistry<ReaderWindow> _readers = new();
+    private readonly WindowRegistry<IPublicationWindow> _readers = new();
     private readonly List<Window> _windows = [];
     private readonly HashSet<string> _opening = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ProgressTarget> _targets = new(StringComparer.OrdinalIgnoreCase);
@@ -224,17 +224,14 @@ internal sealed class AppHost
 
         try
         {
-            var opened = await OpenedPublication.OpenAsync(path);
-            var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
-            _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
-            var window = new ReaderWindow(this, opened, restored, start);
-            _windows.Add(window);
+            var (window, title) = await OpenWindowAsync(path, restored);
+            _windows.Add((Window)window);
             _readers.ReaderOpened(path, window);
-            window.Closed += (sender, args) => ReaderClosed(window);
+            ((Window)window).Closed += (sender, args) => ReaderClosed(window);
             Repaint();
             window.Activate();
             _session.ReaderChanged(window.State());
-            Library?.Opened(path, opened.Record.DisplayTitle);
+            Library?.Opened(path, title);
         }
         catch (StoryArcException error)
         {
@@ -251,6 +248,24 @@ internal sealed class AppHost
         {
             _opening.Remove(path);
         }
+    }
+
+    /// <summary>The window of a publication by its format: the comic reader (wave 2), the EPUB reader (4.16) or the PDF reader (4.17).</summary>
+    private async Task<(IPublicationWindow Window, string Title)> OpenWindowAsync(string path, ReaderWindowState? restored)
+    {
+        var extension = Path.GetExtension(path);
+        if (string.Equals(extension, ".epub", StringComparison.OrdinalIgnoreCase))
+        {
+            var epub = await OpenedEpub.OpenAsync(path);
+            var startPosition = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(epub.Identity) ?? 0;
+            _targets[path] = new ProgressTarget(epub.Identity, epub.PositionCount);
+            return (new EpubReaderWindow(this, epub, restored, startPosition), epub.Title);
+        }
+
+        var opened = await OpenedPublication.OpenAsync(path);
+        var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
+        _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
+        return (new ReaderWindow(this, opened, restored, start), opened.Record.DisplayTitle);
     }
 
     public void LibraryMoved(LibraryWindowState state) => _session.LibraryChanged(state);
@@ -298,7 +313,7 @@ internal sealed class AppHost
                 Library?.RefreshAll();
                 break;
             default:
-                if (window is ReaderWindow pages)
+                if (window is IPublicationWindow pages)
                 {
                     pages.Run(commandId);
                 }
@@ -421,11 +436,11 @@ internal sealed class AppHost
         _readers.LibraryClosed();
     }
 
-    private void ReaderClosed(ReaderWindow window)
+    private void ReaderClosed(IPublicationWindow window)
     {
         _ = _progress.Flush(window.PublicationId);
         _targets.Remove(window.PublicationId);
-        _windows.Remove(window);
+        _windows.Remove((Window)window);
         _session.ReaderClosed(window.PublicationId);
         _readers.ReaderClosed(window.PublicationId);
     }

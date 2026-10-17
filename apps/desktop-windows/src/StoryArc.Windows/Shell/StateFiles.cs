@@ -48,6 +48,9 @@ internal static class StateFiles
     /// <summary>The cover cache, local and never roamed.</summary>
     public static string CoversFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "covers");
 
+    /// <summary>The WebView2 user data of the EPUB windows (task 4.16): cache and storage of a renderer that never reaches the network.</summary>
+    public static string WebViewDataFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "webview2");
+
     /// <summary>Written when the reader clears the library's records: the progress store is open, so its files go at the next start.</summary>
     public static string ClearRecordsMarker => Path.Combine(ApplicationData.Current.LocalFolder.Path, "clear-records.pending");
 
