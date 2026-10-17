@@ -613,6 +613,47 @@ msgstr "Dossier de synchronisation : %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Aucun dossier de synchronisation choisi"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Résultat suivant"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Résultat précédent"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s sur %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s trouvés"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Ce fichier est fait d’images de pages : il n’y a donc aucun texte à sélectionner ni à rechercher."
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Introuvable"
+
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Cette page ne contient pas de texte."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Plan"
+
+msgid "desktop.w4.pdf.pageText"
+msgstr "Texte de la page"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Rechercher dans le document"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Cette page n’a rien à lire à voix haute."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Lire à voix haute"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Lecture à voix haute"
+
 msgid "detail.chapter.finished"
 msgstr "Terminé"
 

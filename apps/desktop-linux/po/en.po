@@ -613,6 +613,47 @@ msgstr "Sync folder: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No sync folder chosen"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Next match"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Previous match"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s of %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s found"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "This file is images of pages, so there is no text to select or search."
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Not found"
+
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "This page has no text."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Outline"
+
+msgid "desktop.w4.pdf.pageText"
+msgstr "Page text"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Search in the document"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "This page has nothing to read aloud."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Read aloud"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Reading aloud"
+
 msgid "detail.chapter.finished"
 msgstr "Finished"
 

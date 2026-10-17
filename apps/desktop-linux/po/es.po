@@ -613,6 +613,47 @@ msgstr "Carpeta de sincronización: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No se eligió carpeta de sincronización"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Siguiente coincidencia"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Coincidencia anterior"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s de %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s encontrados"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Este archivo son imágenes de páginas, así que no hay texto que seleccionar ni buscar."
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "No encontrado"
+
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Esta página no tiene texto."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Índice"
+
+msgid "desktop.w4.pdf.pageText"
+msgstr "Texto de la página"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Buscar en el documento"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Esta página no tiene nada que leer en voz alta."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Leer en voz alta"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Leyendo en voz alta"
+
 msgid "detail.chapter.finished"
 msgstr "Terminado"
 

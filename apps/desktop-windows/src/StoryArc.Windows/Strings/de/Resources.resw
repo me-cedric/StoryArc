@@ -774,6 +774,58 @@
     <value>Kein Sync-Ordner gewählt</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_pdf_findNext" xml:space="preserve">
+    <value>Nächster Treffer</value>
+    <comment>desktop.w4.pdf.findNext</comment>
+  </data>
+  <data name="desktop_w4_pdf_findPrevious" xml:space="preserve">
+    <value>Vorheriger Treffer</value>
+    <comment>desktop.w4.pdf.findPrevious</comment>
+  </data>
+  <data name="desktop_w4_pdf_hitOfHits______" xml:space="preserve">
+    <value>{0} von {1}</value>
+    <comment>desktop.w4.pdf.hitOfHits______</comment>
+  </data>
+  <data name="desktop_w4_pdf_hits___" xml:space="preserve">
+    <value>{0} gefunden</value>
+    <comment>desktop.w4.pdf.hits___</comment>
+  </data>
+  <data name="desktop_w4_pdf_imagesOnly" xml:space="preserve">
+    <value>Diese Datei besteht aus Seitenbildern, es gibt also keinen Text zum Auswählen oder Suchen.</value>
+    <comment>desktop.w4.pdf.imagesOnly</comment>
+  </data>
+  <data name="desktop_w4_pdf_noHits" xml:space="preserve">
+    <value>Nicht gefunden</value>
+    <comment>desktop.w4.pdf.noHits</comment>
+  </data>
+  <data name="desktop_w4_pdf_noTextOnPage" xml:space="preserve">
+    <value>Diese Seite enthält keinen Text.</value>
+    <comment>desktop.w4.pdf.noTextOnPage</comment>
+  </data>
+  <data name="desktop_w4_pdf_outline" xml:space="preserve">
+    <value>Gliederung</value>
+    <comment>desktop.w4.pdf.outline</comment>
+  </data>
+  <data name="desktop_w4_pdf_pageText" xml:space="preserve">
+    <value>Seitentext</value>
+    <comment>desktop.w4.pdf.pageText</comment>
+  </data>
+  <data name="desktop_w4_pdf_search" xml:space="preserve">
+    <value>Im Dokument suchen</value>
+    <comment>desktop.w4.pdf.search</comment>
+  </data>
+  <data name="desktop_w4_player_nothingToSay" xml:space="preserve">
+    <value>Diese Seite enthält nichts zum Vorlesen.</value>
+    <comment>desktop.w4.player.nothingToSay</comment>
+  </data>
+  <data name="desktop_w4_player_readAloud" xml:space="preserve">
+    <value>Vorlesen</value>
+    <comment>desktop.w4.player.readAloud</comment>
+  </data>
+  <data name="desktop_w4_player_readingAloud" xml:space="preserve">
+    <value>Wird vorgelesen</value>
+    <comment>desktop.w4.player.readingAloud</comment>
+  </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Beendet</value>
     <comment>detail.chapter.finished</comment>

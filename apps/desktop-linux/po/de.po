@@ -613,6 +613,47 @@ msgstr "Sync-Ordner: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Kein Sync-Ordner gewählt"
 
+msgid "desktop.w4.pdf.findNext"
+msgstr "Nächster Treffer"
+
+msgid "desktop.w4.pdf.findPrevious"
+msgstr "Vorheriger Treffer"
+
+#, c-format
+msgid "desktop.w4.pdf.hitOfHits______"
+msgstr "%s von %s"
+
+#, c-format
+msgid "desktop.w4.pdf.hits___"
+msgstr "%s gefunden"
+
+msgid "desktop.w4.pdf.imagesOnly"
+msgstr "Diese Datei besteht aus Seitenbildern, es gibt also keinen Text zum Auswählen oder Suchen."
+
+msgid "desktop.w4.pdf.noHits"
+msgstr "Nicht gefunden"
+
+msgid "desktop.w4.pdf.noTextOnPage"
+msgstr "Diese Seite enthält keinen Text."
+
+msgid "desktop.w4.pdf.outline"
+msgstr "Gliederung"
+
+msgid "desktop.w4.pdf.pageText"
+msgstr "Seitentext"
+
+msgid "desktop.w4.pdf.search"
+msgstr "Im Dokument suchen"
+
+msgid "desktop.w4.player.nothingToSay"
+msgstr "Diese Seite enthält nichts zum Vorlesen."
+
+msgid "desktop.w4.player.readAloud"
+msgstr "Vorlesen"
+
+msgid "desktop.w4.player.readingAloud"
+msgstr "Wird vorgelesen"
+
 msgid "detail.chapter.finished"
 msgstr "Beendet"
 

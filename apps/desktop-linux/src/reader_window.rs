@@ -38,7 +38,7 @@ use crate::session::{self, CoreProgress, LOG_DOMAIN};
 use crate::settings::{Fit, Preferences};
 use crate::strings::{tr, tr_args};
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
-use crate::{reader_input, reader_modes};
+use crate::{pdf_ui, reader_input, reader_modes};
 
 /// How often the window looks at its timers: the chrome, the write clock, full screen,
 /// and whether a resize changed the number of pages on screen.
@@ -47,6 +47,9 @@ const TICK: Duration = Duration::from_millis(250);
 const REACHABLE_EVERY: u32 = 8;
 /// Pages kept decoded on either side of the reader's place.
 pub(crate) const KEEP_AROUND: usize = 4;
+
+/// Chrome that follows the page, told after each screen is shown.
+pub(crate) type PageShown = Box<dyn Fn()>;
 
 pub(crate) const IMPLEMENTED: [&str; 15] = [
     "win.next-page",
@@ -78,11 +81,15 @@ pub struct Reader {
     availability: Cell<Availability>,
     pub(crate) preferences: RefCell<Preferences>,
     ticks: Cell<u32>,
-    toolbar: adw::ToolbarView,
+    pub(crate) toolbar: adw::ToolbarView,
     pub(crate) page_view: PageView,
     note: gtk::Label,
     pub(crate) counter: gtk::Label,
-    banner: adw::Banner,
+    pub(crate) banner: adw::Banner,
+    /// Beside the page: a pane a format adds, such as the PDF text pane.
+    pub(crate) pane_slot: adw::Bin,
+    /// Called after each screen is shown, for chrome that follows the page.
+    pub(crate) on_page_shown: RefCell<Vec<PageShown>>,
     pub(crate) menu: gio::Menu,
     pub(crate) decoded: RefCell<HashMap<usize, PageImage>>,
     requested: RefCell<HashSet<usize>>,
@@ -300,6 +307,9 @@ impl Reader {
             }
             self.forget_far_pages(page.page as usize);
         }
+        for shown in self.on_page_shown.borrow().iter() {
+            shown();
+        }
     }
 
     /// What the view draws for a page now: its pixels, or a placeholder of the shape its
@@ -471,6 +481,8 @@ impl Reader {
 /// The widgets the window is made of, before the reader holds them.
 struct Parts {
     toolbar: adw::ToolbarView,
+    header: adw::HeaderBar,
+    pane_slot: adw::Bin,
     page_view: PageView,
     note: gtk::Label,
     counter: gtk::Label,
@@ -534,13 +546,20 @@ fn parts(publication: &Publication, menu: &gio::Menu) -> Parts {
     header.set_title_widget(Some(&adw::WindowTitle::new(&publication.title, "")));
 
     let banner = adw::Banner::builder().build();
+    let pane_slot = adw::Bin::new();
+    let body = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+    content.set_hexpand(true);
+    body.append(&content);
+    body.append(&pane_slot);
     let toolbar = adw::ToolbarView::new();
     toolbar.add_top_bar(&header);
     toolbar.add_top_bar(&banner);
     toolbar.add_bottom_bar(&bottom);
-    toolbar.set_content(Some(&content));
+    toolbar.set_content(Some(&body));
     Parts {
         toolbar,
+        header,
+        pane_slot,
         page_view,
         note,
         counter,
@@ -596,6 +615,8 @@ pub fn open(
         note: parts.note,
         counter: parts.counter,
         banner: parts.banner,
+        pane_slot: parts.pane_slot,
+        on_page_shown: RefCell::default(),
         menu,
         decoded: RefCell::default(),
         requested: RefCell::default(),
@@ -620,6 +641,9 @@ pub fn open(
     reader.relayout();
 
     install_actions(&window, &reader);
+    if reader.publication.is_pdf() {
+        pdf_ui::install(&reader, &parts.header);
+    }
     reader_modes::install(&window, &reader);
     reader_input::install_pointer(&reader);
     reader_input::install_keys(&reader);
