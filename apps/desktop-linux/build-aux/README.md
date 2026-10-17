@@ -24,8 +24,8 @@ against a pinned sha256, and runs it in a throwaway `python:3.12-slim` container
 The generator is MIT licensed (`__license__` in the script and `cargo/pyproject.toml`
 in that repository); it is fetched rather than vendored so the pin stays one line.
 
-The output was last generated from the `Cargo.lock` at commit `9ca4b487`: 83 crates,
-all from crates.io, and one inline `cargo/config`.
+The output was last generated on 2026-10-17 from the `Cargo.lock` at commit `1d19c50f`
+(wave 2 added crates): 239 archive sources, all from crates.io, plus the inline `cargo/config`.
 
 ## What the manifest bundles, and what it does not
 
@@ -59,24 +59,31 @@ runtime, SDK and Rust extension install into a named volume on the first run and
 A CI job can run the same command in that image with `options: --privileged`; the
 ubuntu-24.04 runner has no flatpak-builder package of its own.
 
-## What the try showed, 2026-10-16
+## What the try showed
 
-Run on an Apple silicon Mac, so the aarch64 runtime and the aarch64 PDFium tarball.
-The runtime, SDK and Rust extension 26.08 installed from Flathub, the `pdfium` module
-built, and `cargo --offline build` compiled every crate from `cargo-sources.json`
-with no network. The `storyarc` module then stopped at two lines outside this
-directory, each proved by a diagnostic copy of the manifest that is not committed:
+2026-10-16, Apple silicon Mac (aarch64 runtime and PDFium tarball): the `storyarc`
+module stopped at two lines outside this directory, the libarchive `_GNU_SOURCE`
+line in the core's build and the app icon's non-square `viewBox`. Both are fixed on
+`main`; the icon is now `0 0 521.14 521.14`, square.
 
-1. `third_party/libarchive/.../archive_util.c` calls `getresuid` and `getresgid`,
-   which glibc declares only under `_GNU_SOURCE`; the SDK's gcc compiles C23 by
-   default, where an implicit declaration is an error. Fedora, Arch and Manjaro
-   fail the same way in `container-build.sh`. With `CFLAGS=-D_GNU_SOURCE` the
-   module builds. The fix belongs in `apps/desktop-core/storyarc-core/build.rs`
-   or `libarchive/config-linux.h`.
-2. `flatpak build-export` refuses the icon: `com.mecedric.StoryArc.svg` has
-   `viewBox="66 44 362 456"`, and an exported icon must be square. With a square
-   placeholder the export, the install and `flatpak info` all pass, and the
-   installed app carries `files/bin/storyarc` and `files/lib/libpdfium.so`. The
-   fix belongs in `apps/desktop-linux/data/icons/`.
+2026-10-17, same Mac, `cargo-sources.json` regenerated from the current `Cargo.lock`:
+`apps/desktop-linux/scripts/flatpak-build.sh`, as committed, exits 0. The runtime
+and SDK installed, `pdfium` and `storyarc` built offline, `flatpak build-export`
+accepted the icon, and `flatpak info com.mecedric.StoryArc` reports version 0.1.0 on
+`org.gnome.Platform/aarch64/51`, 13.2 MB. This is task 1.23's proof for aarch64. The
+x86_64 build is not run here; CI would run it.
 
-Once both land, `scripts/flatpak-build.sh` as committed is the whole proof.
+`scripts/container-build.sh`, same day (task 1.24):
+
+| Distro | Result |
+| --- | --- |
+| Fedora (cargo 1.99.0) | Passes: core and ffi tests, `storyarc-linux` build and tests, `desktop-file-validate`, `appstreamcli validate`. |
+| Arch | Not proven. Emulated amd64 stalled twice, see below. |
+| Manjaro | Not proven. Stalled once in the package step, see below. |
+
+Arch and Manjaro run as emulated amd64 under Rosetta. Their first runs stalled with
+no output for over 20 minutes, the container idle at 0 percent CPU, while a Docker
+daemon shared with other builds was busy. A rerun of Arch alone then
+produced no output for 30 minutes, because `docker run` did not start while two wedged
+containers from the first attempt could not be killed. Run both again on a quiet Docker
+daemon; nothing in the logs points at the code.
