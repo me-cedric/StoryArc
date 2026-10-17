@@ -129,7 +129,11 @@ public sealed class NetworkSeamTests(ITestOutputHelper output)
         Assert.Contains(home.Navigation!, section => section.Title == "All publications");
 
         var all = http.OpdsFeed(new OpdsRequest(root, Url: $"http://127.0.0.1:{mock.Port}/opds/all"));
-        Assert.Equal(2, all.Publications!.Count);
+        // The mock lists its three scripted demonstration entries (a flaky, an unopenable and a slow transfer) ahead of the
+        // corpus on the first page of "All publications", so the two copied books arrive as five.
+        Assert.Equal(5, all.Publications!.Count);
+        Assert.Contains(all.Publications!, entry => entry.Title == "natural-sort");
+        Assert.Contains(all.Publications!, entry => entry.Title == "manga-metadata");
         Assert.All(all.Publications!, entry => Assert.True(entry.CanDownload, entry.Title + " names a file the app can open"));
 
         var json = http.OpdsFeed(new OpdsRequest($"http://127.0.0.1:{mock.Port}/opds2"));
@@ -302,7 +306,10 @@ public sealed class NetworkSeamTests(ITestOutputHelper output)
         Assert.Equal(Resumption.Fresh, landing.Resumption);
         Assert.Equal(body.Length, landing.Length);
         Assert.Equal(body, File.ReadAllBytes(landing.Path));
-        Assert.Equal("natural-sort", landing.Publication!.DisplayTitle);
+        // The core files a download under the catalogue's title ("Natural Sort.cbz") and indexes it there, so the record
+        // shows the title the catalogue gave, not the stem the bytes were served from.
+        Assert.Equal("Natural Sort", landing.Publication!.DisplayTitle);
+        Assert.Equal("Natural Sort.cbz", Path.GetFileName(landing.Path));
         Assert.Equal(new DownloadProgress((ulong)body.Length, body.Length), reports.Last);
         Assert.Equal(1.0, reports.Last!.Value.Fraction);
         Assert.Equal(body.Length, StorageBytes.Of(folder.FullPath));

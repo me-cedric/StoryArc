@@ -96,7 +96,9 @@ public sealed class ShelfScreensTests
         var written = LibraryDocuments.Export(snapshot, "1.0.0", "windows", DateTimeOffset.UnixEpoch);
         var merged = LibraryDocuments.Import(LibraryDocuments.ToFileBytes(written), "{}", "windows");
 
-        Assert.Equal(pinned.Tokens, merged.PinnedShelves());
+        // The document's pinnedShelves is a set written sorted, so two devices write the same text; the pin order is a
+        // local arrangement and does not travel (core `PinnedShelves`, iOS `PinnedShelves.tokens`).
+        Assert.Equal(pinned.Tokens.Order(StringComparer.Ordinal), merged.PinnedShelves());
     }
 
     [Fact]

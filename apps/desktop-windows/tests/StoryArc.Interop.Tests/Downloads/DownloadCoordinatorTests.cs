@@ -96,9 +96,14 @@ public sealed class DownloadCoordinatorTests
         Assert.Equal("waitingForNetwork", waiting.Pause);
         Assert.Empty(run.Transfer.Started);
 
+        // A row the fake has no script for blocks until the test releases it, so this one is scripted to land the moment it starts.
+        run.Transfer.On("a", Step.Land(1000, Resumption.Fresh));
         run.Connection = ConnectionState.Unmetered;
         run.Coordinator.NetworkChanged();
         run.Eventually(() => run.Coordinator.Queue.Get("a")!.Status == DownloadStatus.Finished, "it runs when a connection returns");
+
+        Assert.Equal(new[] { "a" }, run.Transfer.Started);
+        run.Eventually(() => run.Landed.Count == 1, "it reports the landing");
     }
 
     [Fact]
