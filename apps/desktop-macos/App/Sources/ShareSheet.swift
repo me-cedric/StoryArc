@@ -31,7 +31,7 @@ struct ShareSheet: View {
                         TextField(text: $connection.host, prompt: Text(verbatim: "nas.local")) {
                             Text("desktop.share.host")
                         }
-                        TextField(text: $connection.share, prompt: Text(verbatim: "Comics")) {
+                        TextField(text: $connection.share, prompt: Text("desktop.share.share.prompt")) {
                             Text("desktop.share.share")
                         }
                     } footer: {

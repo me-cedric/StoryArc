@@ -153,6 +153,20 @@ need explicit labels. macOS has no system text scaling, so the reader's own size
 scenarios. **Measured 2026-10-17:** `dynamicTypeSize` does nothing on macOS, so every Mac window scales its fonts
 through its own size setting, and the largest-size frames are taken that way.
 
+**As built, 2026-10-17 (wave 3, lane M).** The Mac mirrors the core's wave 3 through StoryArcKit: `Smb`,
+`Catalogue` and `Kavita` behind source screens in the sidebar with Bonjour discovery (`App/Sources/`), the login
+keychain through `MacCredentialStore`, a metered policy over `NWPathMonitor` with a fake monitor in its tests
+(`App/Downloads/MeteredPolicy.swift`), a download queue that pauses at quit and resumes at launch, sync at start and
+quit through `LibrarySync` with a five-second give-up, a diagnostic export through `NSSavePanel`, storage store by
+store, and the shelves of `ShelvesStore` in the sidebar, on a shelf page and on Home (`App/Shelves/`). The walks run
+inside the app against the repository's mock servers, with the ports read from `TEST_RUNNER_STORYARC_*_PORT`
+(`Tests/MockServers.swift`); a walk whose server is not listening skips and says so. Two facts moved the plan: the
+vendored SMB client of ADR-0019 encrypts, so the encryption-required share connects encrypted and the refusal the
+task text expected does not exist; and `LibraryModel` exposes neither deleting a shelf nor removing a collection
+member, so the Mac writes both through `ShelvesStore` and reloads. 206 tests in 53 suites; the wave 3 walk is in
+`docs/delivery/desktop-conformance-macos-wave3.md`, with 18 failures that are all screens the Mac does not have yet
+(source renaming and reordering, OPDS and Kavita browsing, server shelves).
+
 **Distribution.** Local run is ad hoc signed (`CODE_SIGN_IDENTITY=-`). A downloaded build is quarantined and
 Gatekeeper blocks it unless notarised (Reported). Notarisation and the Mac App Store need the 99 USD Apple Developer
 Program and are the owner's step (Open Questions).

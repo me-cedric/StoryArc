@@ -21,7 +21,7 @@ struct CatalogueSheet: View {
             SheetTitle(title: "desktop.sources.add.catalogue.title")
             Form {
                 Section {
-                    TextField(text: $connection.address, prompt: Text(verbatim: "https://")) {
+                    TextField(text: $connection.address, prompt: Text("desktop.catalogue.address.prompt")) {
                         Text("desktop.catalogue.address")
                     }
                 } footer: {
@@ -127,7 +127,7 @@ struct KavitaSheet: View {
             SheetTitle(title: "desktop.sources.add.kavita.title")
             Form {
                 Section {
-                    TextField(text: $connection.address, prompt: Text(verbatim: "https://")) {
+                    TextField(text: $connection.address, prompt: Text("desktop.kavita.address.prompt")) {
                         Text("desktop.kavita.address")
                     }
                     if !connection.addressCarriesKey {

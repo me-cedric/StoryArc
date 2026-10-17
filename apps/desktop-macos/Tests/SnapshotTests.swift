@@ -16,7 +16,10 @@ extension WindowWalks {
     struct SnapshotTests {
         @Test(
             "Every catalogue screen matches its reference in light, dark and the largest text",
-            .enabled(if: SnapshotRecord.canCompare, "the references were drawn on another major version of macOS")
+            .enabled(if: SnapshotRecord.canCompare, "the references were drawn on another major version of macOS"),
+            .enabled(Comment(rawValue: AppActivation.refusal)) {
+                await AppActivation.activate() || AppActivation.isRequired
+            }
         )
         func catalogue() async throws {
             let (library, reading) = try await MacCatalogue.prepare()
@@ -33,6 +36,9 @@ extension WindowWalks {
                 try await MacCatalogue.walk(library: library, reading: reading) { screen, window in
                     await MacSnapshot.assert(window, named: "\(screen).\(suffix)")
                 }
+            }
+            if !AppActivation.notHeld.isEmpty {
+                print("snapshots not held, the app was not in front: \(AppActivation.notHeld.joined(separator: ", "))")
             }
         }
 

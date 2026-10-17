@@ -114,7 +114,10 @@ To record again, run the test command with `TEST_RUNNER_STORYARC_SNAPSHOT_RECORD
 front, then copy the images and `macos-version.txt` from the container's
 `tmp/snapshots/record/` into `Tests/__Snapshots__/`. A failing run leaves the drawn image in
 `tmp/snapshots/failures/`. On a major macOS version other than the one the references name
-the screen test is skipped, with that reason.
+the screen test is skipped, with that reason. The references are drawn with the app in
+front; when another application is in use macOS can refuse to bring the test host forward,
+every window then draws inactive, and the screen test is skipped with that reason too
+(`Tests/AppActivation.swift`). On CI (`CI` set) the test runs regardless and reports it.
 
 The references draw the same on every Mac because the run pins what the Mac would
 otherwise choose. The first walk of a run copies the fixture comics into the container

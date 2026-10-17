@@ -486,23 +486,43 @@ Capabilities walked: `sources`, `network-share`, `kavita-server`, `opds-catalog`
 
 **Lane M**
 
-- [ ] 3.10 **Sources and the sandbox.** Source screens over `Smb`, `Catalogue` and `Kavita`, the data-protection keychain
+- [x] 3.10 **Sources and the sandbox.** Source screens over `Smb`, `Catalogue` and `Kavita`, the data-protection keychain
   wrapper, discovery through Bonjour with the permission text. The `Smb` package has no SMB 3 encryption (ADR-0018), so the source
   says it is not encrypted and a server that requires encryption fails to connect with encryption named as the reason.
   Verify: a walk adds each source type against the mock servers, and a walk against a server that requires encryption shows
   the named failure.
-- [ ] 3.11 **Metered networks, test first** with a fake path monitor, then the policy. Verify: tests for metered, unmetered,
+  **Built 2026-10-17:** `SourcesWalkTests` adds a catalogue (14 publications), a signed-in catalogue (11), a Kavita
+  server (14) and a share (15, SMB 3.1.1) against the mocks, and Bonjour finds the host. The premise of the task text is
+  stale: the vendored client of ADR-0019 encrypts, so the share that requires encryption connects encrypted, and the
+  source says so; no refusal is left to name. Frames under `docs/designs/screenshots/desktop/macos/wave3/`.
+- [x] 3.11 **Metered networks, test first** with a fake path monitor, then the policy. Verify: tests for metered, unmetered,
   unknown and a mid-download change.
-- [ ] 3.12 **Downloads UI** with a quit prompt that says the download pauses, resume at launch, no notification. Verify: a walk
+  **Built 2026-10-17:** `MeteredPolicyTests`, 11 tests over a fake path monitor; the download walk held on metered, ran by hand
+  and resumed on unmetered.
+- [x] 3.12 **Downloads UI** with a quit prompt that says the download pauses, resume at launch, no notification. Verify: a walk
   quits during a download and relaunches.
-- [ ] 3.13 **Sync at start and quit** within five seconds and non-blocking. Verify: a test with a slow location.
-- [ ] 3.14 **Diagnostics export to a file** with a save panel, a failure that names the location, a cancel that writes nothing.
+  **Built 2026-10-17:** `DownloadsQuitTests` and `DownloadsWalkTests`; a quit and a relaunch end the test host, so the walk
+  asserts the restoration of the saved queue (paused at 97 bytes with a resume token, finished on relaunch).
+- [x] 3.13 **Sync at start and quit** within five seconds and non-blocking. Verify: a test with a slow location.
+  **Built 2026-10-17:** `SyncTests`; a slow place gave up after 5.05 s and the quit went on, a share synced in 0.08 s.
+- [x] 3.14 **Diagnostics export to a file** with a save panel, a failure that names the location, a cancel that writes nothing.
   Verify: tests for the three, and the redaction test of the mobile export passes unchanged.
-- [ ] 3.15 **Storage preferences** with each store clearable and a full-disk message. Verify: a walk clears each.
-- [ ] 3.15a **Collections and reading lists screens, test first.** A model test for membership, pinned order and the offline
+  **Built 2026-10-17:** `DiagnosticExportTests`: save, a failure that names the place, a cancel that writes nothing, and
+  the redaction test unchanged.
+- [x] 3.15 **Storage preferences** with each store clearable and a full-disk message. Verify: a walk clears each.
+  **Built 2026-10-17:** `StorageTests` and `StorageWalkTests` clear each store; the full-disk message is drawn from the
+  catalogue screen `storage`.
+- [x] 3.15a **Collections and reading lists screens, test first.** A model test for membership, pinned order and the offline
   edit queue shown grey. Then the shelves in the sidebar, the shelf page, Add to Shelf in the context menu, bulk actions and
   the shelves on Home. Verify: the tests pass and a walk creates a shelf, adds publications and sees it on Home.
-- [ ] 3.16 **Conformance walk** for the Wave 3 capabilities. Verify: `docs/delivery/desktop-conformance-macos-wave3.md`.
+  **Built 2026-10-17:** `ShelvesModelTests` (9 tests) and `ShelvesWalkTests`, which makes a shelf, adds two books, finds
+  "Walk Shelf, 2 books" on Home and deletes the shelf with the books kept. A bulk mark undoes for 10 s; a bulk download
+  states its count, not its size, because a catalogue gives no size before the transfer. Server lists are not shown, so
+  the grey offline edit is tested and drawn nowhere.
+- [x] 3.16 **Conformance walk** for the Wave 3 capabilities. Verify: `docs/delivery/desktop-conformance-macos-wave3.md`.
+  **Built 2026-10-17:** 190 scenarios, pass 59, seen 28, fail 18 (all screens the Mac does not have: renaming and
+  reordering sources, OPDS and Kavita browsing, server shelves), later 23 (portability), n/a 4, not walked 58; the
+  suite passes 206 tests in 53 suites.
 
 **Lane L**
 

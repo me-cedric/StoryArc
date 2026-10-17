@@ -61,8 +61,7 @@ enum MacCatalogue {
 
     /// Brings up each screen in turn and hands it to `visit`.
     static func walk(library: MacLibrary, reading: Publication, _ visit: Visit) async throws {
-        _ = try? await NSWorkspace.shared.openApplication(at: Bundle.main.bundleURL, configuration: .init())
-        _ = await Walk.until(.seconds(3)) { NSApplication.shared.isActive ? true : nil }
+        _ = await AppActivation.activate()
         try await libraryScreens(library: library, reading: reading, visit)
         try await readerScreens(library: library, reading: reading, visit)
         try await settingsScreens(library: library, visit)

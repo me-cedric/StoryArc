@@ -62,6 +62,7 @@ enum MacSnapshot {
     static func assert(
         _ window: NSWindow, named name: String, sourceLocation: SourceLocation = #_sourceLocation
     ) async {
+        guard await AppActivation.holdsFront(for: name, sourceLocation: sourceLocation) else { return }
         guard var image = draw(window) else {
             Issue.record("\(name): the window could not be drawn", sourceLocation: sourceLocation)
             return
@@ -79,6 +80,7 @@ enum MacSnapshot {
         var difference = difference(image, stored)
         for _ in 1..<attempts where difference > pixelTolerance {
             try? await Task.sleep(for: .milliseconds(500))
+            guard await AppActivation.holdsFront(for: name, sourceLocation: sourceLocation) else { return }
             invalidate(window.contentView?.superview ?? window.contentView)
             guard let again = draw(window) else { break }
             image = again

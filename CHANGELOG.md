@@ -11,6 +11,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, wave 3.** Sources, secrets, sync and downloads reach the desktops. The Mac adds
+  shares, catalogues and Kavita servers with Bonjour discovery and the login keychain, holds downloads on
+  metered links and pauses them at quit, syncs at start and quit within five seconds, exports a diagnostic
+  to a file, shows storage store by store, and keeps collections and reading lists in the sidebar and on
+  Home (206 tests). The shared core gains the SMB client, secrets behind a store trait, the metered policy,
+  the download queue, sync and portability, diagnostics and shelves behind forty-eight seam calls; the
+  Linux and Windows apps carry the same screens, proved by the Ubuntu container and by CI.
 - **Desktop clients, wave 2.** A comic opens and reads on the Mac: reader windows that come back
   after a relaunch, the menu bar with its shortcuts, keys and pointer reading with the edge click
   zones on by default, zoom and spreads, a drag to turn, full screen, progress written within five
