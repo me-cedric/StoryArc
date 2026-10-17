@@ -83,7 +83,14 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for PageView {}
+    impl ObjectImpl for PageView {
+        fn dispose(&self) {
+            // The context menu's popover is parented here; it leaves with the view.
+            while let Some(child) = self.obj().first_child() {
+                child.unparent();
+            }
+        }
+    }
 
     impl WidgetImpl for PageView {
         fn snapshot(&self, snapshot: &gtk::Snapshot) {
@@ -91,25 +98,27 @@ mod imp {
             let viewport = widget.viewport();
             let pages = self.pages.borrow();
             let sizes: Vec<Size> = pages.iter().map(PageImage::size).collect();
-            let fitted = widget.fitted();
-            if fitted.width <= 0.0 {
-                return;
-            }
-            let zoom = self.zoom.get();
-            let scaled = Size::new(fitted.width * zoom.scale(), fitted.height * zoom.scale());
-            let x = (viewport.width - scaled.width) / 2.0 + zoom.offset().width + self.slide.get();
-            let y = (viewport.height - scaled.height) / 2.0 + zoom.offset().height;
-            let combined = combined_size(&sizes);
-            let unit = scaled.height / combined.height.max(1.0);
-            let mut left = x;
-            for (page, size) in pages.iter().zip(&sizes) {
-                let width = if size.height > 0.0 {
-                    size.width * combined.height / size.height * unit
-                } else {
-                    0.0
-                };
-                let bounds =
-                    graphene::Rect::new(left as f32, y as f32, width as f32, scaled.height as f32);
+            let rects = page_rects(
+                &sizes,
+                widget.fitted(),
+                self.zoom.get(),
+                self.slide.get(),
+                viewport,
+            );
+            // A zoomed page is larger than the view: it never draws over the chrome.
+            snapshot.push_clip(&graphene::Rect::new(
+                0.0,
+                0.0,
+                viewport.width as f32,
+                viewport.height as f32,
+            ));
+            for (page, rect) in pages.iter().zip(rects) {
+                let bounds = graphene::Rect::new(
+                    rect.x as f32,
+                    rect.y as f32,
+                    rect.width as f32,
+                    rect.height as f32,
+                );
                 match page {
                     PageImage::Ready(texture) => snapshot.append_scaled_texture(
                         texture,
@@ -120,10 +129,55 @@ mod imp {
                         snapshot.append_color(&placeholder_colour(&*widget), &bounds);
                     }
                 }
-                left += width;
             }
+            snapshot.pop();
         }
     }
+}
+
+/// Where one page of the screen is drawn, in the view's own coordinates.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PageRect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
+}
+
+/// Lays the screen's pages side by side at one height: the whole fitted to `fitted`,
+/// scaled by the zoom, centred, then moved by the pan and the drag's slide.
+pub fn page_rects(
+    pages: &[Size],
+    fitted: Size,
+    zoom: ZoomModel,
+    slide: f64,
+    viewport: Size,
+) -> Vec<PageRect> {
+    let combined = combined_size(pages);
+    if fitted.width <= 0.0 || combined.height <= 0.0 {
+        return Vec::new();
+    }
+    let scaled = Size::new(fitted.width * zoom.scale(), fitted.height * zoom.scale());
+    let y = (viewport.height - scaled.height) / 2.0 + zoom.offset().height;
+    let mut left = (viewport.width - scaled.width) / 2.0 + zoom.offset().width + slide;
+    pages
+        .iter()
+        .map(|page| {
+            let width = if page.height > 0.0 {
+                page.width / page.height * scaled.height
+            } else {
+                0.0
+            };
+            let rect = PageRect {
+                x: left,
+                y,
+                width,
+                height: scaled.height,
+            };
+            left += width;
+            rect
+        })
+        .collect()
 }
 
 /// The quiet block: the page colour of the reading theme, a shade off the background.
@@ -222,6 +276,37 @@ impl PageView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_pair_is_centred_side_by_side_and_a_zoom_pans_and_slides_it() {
+        let pages = [Size::new(1000.0, 1500.0), Size::new(1000.0, 1500.0)];
+        let viewport = Size::new(1000.0, 600.0);
+        let fitted = Size::new(800.0, 600.0);
+        let rects = page_rects(&pages, fitted, ZoomModel::default(), 0.0, viewport);
+        assert_eq!(
+            rects,
+            [
+                PageRect {
+                    x: 100.0,
+                    y: 0.0,
+                    width: 400.0,
+                    height: 600.0
+                },
+                PageRect {
+                    x: 500.0,
+                    y: 0.0,
+                    width: 400.0,
+                    height: 600.0
+                },
+            ]
+        );
+        let zoomed = ZoomModel::default().magnified(2.0);
+        let rects = page_rects(&pages, fitted, zoomed, 30.0, viewport);
+        assert_eq!(rects[0].x, (1000.0 - 1600.0) / 2.0 + 30.0);
+        assert_eq!(rects[0].height, 1200.0);
+        assert_eq!(rects[1].x, rects[0].x + 800.0);
+        assert!(page_rects(&[], fitted, zoomed, 0.0, viewport).is_empty());
+    }
 
     #[test]
     fn two_pages_side_by_side_share_one_height() {

@@ -215,6 +215,10 @@ fn install_context_menu(reader: &Rc<Reader>) {
 /// so a text field keeps them, and the reader maps them itself.
 pub fn install_keys(reader: &Rc<Reader>) {
     let controller = gtk::EventControllerKey::new();
+    // Capture: an arrow turns the page before a focused header button can take it to
+    // move the focus, which ate the first turn on a walk under cage. A text field in
+    // focus still keeps every key (`focused_text` below).
+    controller.set_propagation_phase(gtk::PropagationPhase::Capture);
     let weak = Rc::downgrade(reader);
     controller.connect_key_pressed(move |_, key, _, state| {
         let Some(reader) = weak.upgrade() else {
