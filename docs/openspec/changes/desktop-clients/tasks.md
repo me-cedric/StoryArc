@@ -563,12 +563,20 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 **Lane C**
 
-- [ ] 4.3 **Manifest and positions, test first.** `tests/epub_positions.rs` asserts equal `position` values with iOS and
+- [x] 4.3 **Manifest and positions, test first.** `tests/epub_positions.rs` asserts equal `position` values with iOS and
   Android for every corpus book (the compressed entry size divided by 1024, rounded up, minimum 1). Then the builder in
   `src/epub/`. Verify: `pnpm test:desktop:core` passes.
+  **Built 2026-10-17:** `storyarc-core/src/epub/` builds the manifest and the positions from `EpubReader`; the test
+  holds the seven corpus books that open to counts read from their central directories and recomputes the rule over
+  the ZIP; five seam exports (`storyarc_epub_*`) carry both to the Windows app. `pnpm test:desktop:core` passes.
 - [ ] 4.4 **PDF** through `pdfium-render` on one thread, with `Read + Seek` over `RandomAccessSource`, text, search and the
   outline. File `src/pdf/`. Verify: the first page of a 300 MB file over SMB shows without a full transfer, and the corpus PDF
   text and outline match.
+  **Built 2026-10-17, owed by a host:** `storyarc-core/src/pdf/` binds the pinned PDFium at run time and runs every
+  call on one thread; `tests/pdf.rs` matches the corpus PDFs' text, outline, sizes and text layer, and renders the
+  first page of a 50 MB file built in the test after 2,458 bytes of a counting source; ten seam exports
+  (`storyarc_pdf_*`). The 300 MB file over an SMB share is the host walk at the end of the waves. The tests need the
+  library on disk (`pnpm pdfium:fetch`) and skip by name without it, as in the distro containers.
 
 **Lane M**
 

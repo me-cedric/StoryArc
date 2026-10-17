@@ -25,7 +25,7 @@ pub use comic_archive::{
     ComicArchive, ComicArchiveError, RarComicArchive, TarComicArchive, ZipComicArchive,
 };
 pub use comic_info::ComicInfo;
-pub use epub::{EpubError, EpubMetadata, EpubReader, EpubSpineItem, EpubTocEntry};
+pub use epub::{EpubError, EpubMetadata, EpubReader, EpubResource, EpubSpineItem, EpubTocEntry};
 pub use filename_metadata::FilenameMetadata;
 pub use image_folder::ImageFolderArchive;
 pub use page_codec::PageCodec;

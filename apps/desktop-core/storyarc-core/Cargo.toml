@@ -106,6 +106,7 @@ base64 = "0.22.1"
 # quick-xml 0.42.0, MIT: OPDS 1.2 Atom feeds and OpenSearch descriptions. A real XML reader
 # here, unlike ComicInfo's flat scrape, because a feed nests links inside entries.
 quick-xml = "0.42.0"
+pdfium-render = { version = "0.9.4", default-features = false, features = ["pdfium_7881"] }
 
 # The secure stores of task 3.3 (design.md, Decision 7), each built only on its own system.
 # design.md names `keyring` 4.2.0; that crate is now an umbrella whose default feature pulls

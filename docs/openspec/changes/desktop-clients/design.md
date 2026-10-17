@@ -420,6 +420,20 @@ there is found by the Rust reader and not by Swift; `FilenameMetadata.trimmingLe
 Swift and is mirrored and pinned as such; and the Swift XML scraper attaches the next element's text to a
 self-closing tag, which the Rust one does not. None changes a fixture's expectation today.
 
+**As built, 2026-10-17 (wave 4, lane C).** Item 8, the EPUB manifest and positions, is `storyarc-core/src/epub/`
+over `EpubReader`, which now also lists every manifest item and the ZIP entry of a path: one reflowable
+reading-order entry gives `ceil(compressed size / 1024)` positions and at least one, a fixed-layout entry one, with
+`progression` and `totalProgression` as Readium computes them; `tests/epub_positions.rs` holds the seven corpus
+books that open to counts read from their central directories. Item 9, PDF, is `storyarc-core/src/pdf/` on
+`pdfium-render` 0.9.4 (MIT, with `libloading` ISC) bound at run time to the pinned PDFium; one thread owns the
+library and every open document, and a call is a message answered before it returns. `tests/pdf.rs` runs six cases
+against the corpus PDFs and a 50 MB file built in the test, and `scripts/pdfium-fetch.mjs` (`pnpm pdfium:fetch`)
+puts the pinned library under `.build/pdfium/` after checking its digest; the two macOS assets joined `pin.json` for
+that, verified the same way. The seam grew from forty-eight to sixty-three exports (`src/reading.rs`: five for the
+EPUB, ten for PDF) and `csbindgen` reads four files. Owed: the PDF tests skip by name where the library is absent,
+which today is every distro container and the CI test job until it fetches the library; the 300 MB SMB case is a
+host walk.
+
 **Async runtime.** `oo7` needs one. Decide one runtime for the core and the Linux app before the first secret is stored
 (Open Questions).
 
@@ -489,6 +503,12 @@ locator local.
   full transfer. PDFium is not thread safe: one dedicated PDF thread. It is the first bundled PDF engine in the project
   and parses untrusted input, so `SECURITY.md` adds PDF to its attack-surface list. `Windows.Data.Pdf` has no text,
   search or outline, so it cannot meet `ebook-reader` and is rejected. macOS keeps PDFKit.
+  **As built, 2026-10-17 (task 4.4):** `load_pdf_from_reader` over a `SourceReader` adapter on `RandomAccessSource`;
+  the first page of a 50 MB file is rendered after 2,458 bytes read, the last page after the image it draws. Pages
+  render to RGBA at a longest-edge limit, text comes per page, search is case folded with rectangles in PDF points,
+  and the outline is nested with a depth and entry cap against a cyclic file. The library is found in the folder the
+  app names, `STORYARC_PDFIUM_DIR`, beside the executable, then the system. The SMB half of the verify line is owed
+  to a host.
 - **RAR.** The same vendored libarchive sources compile on three build systems (SwiftPM, CMake, `cc`). `pnpm libarchive:pin`
   keeps one copy. The vendored `config.h` stays untouched, because iOS and Android compile it (D11). Linux and MSVC each get
   a desktop-only config header under `apps/desktop-core/storyarc-core/libarchive/`, which `build.rs` puts ahead of the

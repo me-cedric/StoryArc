@@ -1,5 +1,5 @@
 {
-  "$comment": "The bundled PDFium for Windows and Linux (ADR-0018, design.md Decision 7). One tag, the pdfium-render release whose `pdfium_latest` feature binds to it, and the sha256 of each release asset the desktop builds download. Checked by scripts/pdfium-pin-check.mjs; bump the tag only with a pdfium-render release that raises `pdfium_latest`.",
+  "$comment": "The bundled PDFium for Windows and Linux (ADR-0018, design.md Decision 7). One tag, the pdfium-render release whose `pdfium_latest` feature binds to it, and the sha256 of each release asset the desktop builds and the core's tests download (scripts/pdfium-fetch.mjs). Checked by scripts/pdfium-pin-check.mjs; bump the tag only with a pdfium-render release that raises `pdfium_latest`.",
   "tag": "chromium/7881",
   "pdfiumVersion": "151.0.7881.0",
   "pdfiumRender": "0.9.4",
@@ -11,7 +11,9 @@
     "pdfium-linux-x64.tgz": "1470e21b8b4a3b4ad7f85684e2da11d94f3b69a86d81dee11b9b6709d927ac1d",
     "pdfium-linux-arm64.tgz": "ee7f7b7d5468958336a818c1cd580bdd20972846b7377b13f9a923d92d1d4674",
     "pdfium-win-x64.tgz": "73cc0de638ac2095e7445bf56a38200a5b7c7ca0e9f4ba144598f2457377ac08",
-    "pdfium-win-arm64.tgz": "d3035d4d2cacac6ecd1a2ece197a3d702a1b2a58466276b9f870b8cb278a9d84"
+    "pdfium-win-arm64.tgz": "d3035d4d2cacac6ecd1a2ece197a3d702a1b2a58466276b9f870b8cb278a9d84",
+    "pdfium-mac-arm64.tgz": "52e94ca5aa8847934330daf3f8150c190682c5ca93831468794f8b90d4392e40",
+    "pdfium-mac-x64.tgz": "6dedf83990e0e3d6b7c93c9e7589c5a126b0ae14b7464d76120cff7a26afb18b"
   },
-  "$verified": "Each digest was computed with `shasum -a 256` over the asset downloaded from the release on 2026-10-16, and each matched the digest the GitHub release API reports for that asset. `node scripts/pdfium-pin-check.mjs --upstream` repeats the API half; `--verify <file>` repeats the download half against a tarball on disk."
+  "$verified": "Each digest was computed with `shasum -a 256` over the asset downloaded from the release on 2026-10-16, and each matched the digest the GitHub release API reports for that asset. `node scripts/pdfium-pin-check.mjs --upstream` repeats the API half; `--verify <file>` repeats the download half against a tarball on disk. The two macOS assets were added on 2026-10-17 the same way, for the core's PDF tests on a Mac host; no desktop app ships them, since macOS reads PDF through PDFKit."
 }

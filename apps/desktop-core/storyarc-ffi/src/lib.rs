@@ -10,18 +10,22 @@
 //! (`network.rs`: the runtime, HTTP with pins, SMB, OPDS, Kavita, the metered flag, a
 //! download) and the reader's data (`data.rs`: the vault, the download queue's rules, shelves
 //! and offline edits, the library document and sync, sealed secrets, the diagnostic, storage),
-//! with two more status codes for a grey unreachable source and a refused credential.
+//! with two more status codes for a grey unreachable source and a refused credential. Wave
+//! 4 adds reading (`reading.rs`: the EPUB manifest, positions and resources for the
+//! bundle, and the PDF engine).
 //!
 //! A handle is used by one thread at a time and released once by its own `_free`; releasing
 //! null is a no-op. Paths and JSON arrive as UTF-8 bytes with a length, never NUL-terminated.
 
 mod data;
 mod network;
+mod reading;
 mod records;
 mod seam;
 
 pub use data::*;
 pub use network::*;
+pub use reading::*;
 
 use std::cell::RefCell;
 use std::ffi::{CString, c_char, c_void};
@@ -618,12 +622,17 @@ mod tests {
             .unwrap_or_else(|error| panic!("{relative}: {error}"))
     }
 
-    /// Every `extern "C"` function the crate exports, read from the three files that hold
+    /// Every `extern "C"` function the crate exports, read from the four files that hold
     /// them, so a new export cannot be added without the two checks below seeing it.
     fn exports() -> Vec<String> {
-        let source = ["src/lib.rs", "src/network.rs", "src/data.rs"]
-            .map(crate_file)
-            .join("\n");
+        let source = [
+            "src/lib.rs",
+            "src/network.rs",
+            "src/data.rs",
+            "src/reading.rs",
+        ]
+        .map(crate_file)
+        .join("\n");
         let exports: Vec<String> = source
             .lines()
             .filter_map(|line| {
@@ -633,7 +642,7 @@ mod tests {
                 Some(name.split('(').next()?.to_owned())
             })
             .collect();
-        assert_eq!(exports.len(), 48, "{exports:?}");
+        assert_eq!(exports.len(), 63, "{exports:?}");
         exports
     }
 

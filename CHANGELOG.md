@@ -11,6 +11,10 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, wave 4, the core.** The shared Rust core builds the Readium manifest and the positions list
+  the desktop EPUB bundle takes, with the position numbers iOS and Android show, and reads PDF through PDFium on
+  one thread over ranged reads: pages, text, search and the outline, the first page of a large file without the
+  rest of it. Fifteen new seam calls for the Windows app.
 - **Desktop clients, wave 3.** Sources, secrets, sync and downloads reach the desktops. The Mac adds
   shares, catalogues and Kavita servers with Bonjour discovery and the login keychain, holds downloads on
   metered links and pauses them at quit, syncs at start and quit within five seconds, exports a diagnostic
