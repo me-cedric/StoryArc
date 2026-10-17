@@ -36,7 +36,20 @@ pub struct HomeHooks {
 
 /// Home: the shelves with something on them. An empty library is a status page that
 /// offers to add a folder; a library with no history yet says where to start.
-pub fn home_page(home: &Home, covers: &Rc<Covers>, hooks: &HomeHooks) -> gtk::Widget {
+/// A pinned shelf on Home: its publications, how many it holds, and where its heading goes.
+pub struct PinnedRow {
+    pub name: String,
+    pub total: usize,
+    pub publications: Vec<Publication>,
+    pub open: Rc<dyn Fn()>,
+}
+
+pub fn home_page(
+    home: &Home,
+    pinned: &[PinnedRow],
+    covers: &Rc<Covers>,
+    hooks: &HomeHooks,
+) -> gtk::Widget {
     let shelves = match home {
         Home::EmptyLibrary => {
             let add = gtk::Button::builder()
@@ -56,7 +69,7 @@ pub fn home_page(home: &Home, covers: &Rc<Covers>, hooks: &HomeHooks) -> gtk::Wi
                 .build()
                 .upcast();
         }
-        Home::Shelves(shelves) if shelves.is_empty() => {
+        Home::Shelves(shelves) if shelves.is_empty() && pinned.is_empty() => {
             let browse = gtk::Button::builder()
                 .label(tr("sidebar.library", "Library"))
                 .action_name("win.show-library")
@@ -86,6 +99,9 @@ pub fn home_page(home: &Home, covers: &Rc<Covers>, hooks: &HomeHooks) -> gtk::Wi
         .build();
     for row in shelves {
         column.append(&shelf_row(row, covers, hooks));
+    }
+    for row in pinned {
+        column.append(&pinned_row(row, covers, hooks));
     }
     gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
@@ -214,4 +230,41 @@ fn card(publication: &Publication, covers: &Rc<Covers>, hooks: &HomeHooks) -> gt
     let publication = publication.clone();
     button.connect_clicked(move |_| open(&publication));
     button
+}
+
+/// A pinned shelf: the shelf's name for a heading, which leads to its page, over a row of
+/// cards like any other.
+fn pinned_row(row: &PinnedRow, covers: &Rc<Covers>, hooks: &HomeHooks) -> gtk::Box {
+    let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    let line = gtk::Box::builder().spacing(12).build();
+    line.append(
+        &gtk::Label::builder()
+            .label(&row.name)
+            .xalign(0.0)
+            .hexpand(true)
+            .css_classes(["title-3"])
+            .accessible_role(gtk::AccessibleRole::Heading)
+            .build(),
+    );
+    let all = gtk::Button::builder()
+        .label(format!("{} · {}", tr("shelves.open", "Shelf"), row.total))
+        .css_classes(["flat"])
+        .valign(gtk::Align::Center)
+        .build();
+    let open = row.open.clone();
+    all.connect_clicked(move |_| open());
+    line.append(&all);
+    section.append(&line);
+    let flow = gtk::FlowBox::builder()
+        .selection_mode(gtk::SelectionMode::None)
+        .max_children_per_line(12)
+        .column_spacing(12)
+        .row_spacing(12)
+        .homogeneous(true)
+        .build();
+    for publication in &row.publications {
+        flow.append(&card(publication, covers, hooks));
+    }
+    section.append(&flow);
+    section
 }

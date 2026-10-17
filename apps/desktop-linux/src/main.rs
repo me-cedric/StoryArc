@@ -9,10 +9,9 @@ mod cover_colour;
 mod covers;
 mod detail_panes;
 mod detail_view;
-#[allow(dead_code)] // pure model, wired by the UI of its task
 mod diagnostic_export;
-#[allow(dead_code)] // pure model, wired by the UI of its task
 mod download_rules;
+mod downloads_ui;
 mod folders;
 mod fullscreen;
 mod home_view;
@@ -30,6 +29,7 @@ mod library_selection;
 mod library_views;
 mod library_window;
 mod menus;
+mod network_ui;
 mod opening;
 mod page_view;
 mod portal;
@@ -46,23 +46,25 @@ mod reader_modes;
 mod reader_scroll;
 mod reader_window;
 mod reading;
-#[allow(dead_code)] // pure model, wired by the UI of its task
+mod remote_browse;
 mod remote_sources;
 #[cfg(test)]
 mod scratch;
-#[allow(dead_code)] // pure model, wired by the UI of its task
 mod secret_state;
+mod services;
 mod session;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod settings;
+mod shelf_rules;
+mod shelf_ui;
 mod sources;
-#[allow(dead_code)] // pure model, wired by the UI of its task
 mod storage_rules;
+mod storage_ui;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod strings;
 mod style;
-#[allow(dead_code)] // pure model, wired by the UI of its task
 mod sync_rules;
+mod sync_ui;
 mod theme;
 mod window_state;
 #[allow(dead_code)] // pure model; recording and forgetting a reader is the session file's own tests
@@ -115,6 +117,13 @@ fn startup(application: &adw::Application, shared: &Shared) {
     launch::add_actions(application, shared);
     menus::install_accelerators(application);
     sources::start(shared);
+    network_ui::start(shared);
+    let on = shared.clone();
+    shared.services.start(move || {
+        network_ui::check_sign_ins(&on);
+        downloads_ui::start(&on);
+        sync_ui::at_start(&on);
+    });
 }
 
 // ponytail: a debug build run from the tree has no installed icon, so it reads the source copy.
@@ -191,7 +200,33 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
 /// Writes the session, then every reader's position, then closes every window and ends
 /// the process even if one declined to close. A write that fails never stops any of it.
 fn close_all_and_quit(application: &adw::Application, shared: &Shared) {
+    // A download in progress is the one thing a quit asks about: it pauses, and resumes at
+    // the next launch (`desktop-experience`, No presence when the app is closed).
+    if let (Some(prompt), Some(window)) =
+        (shared.downloads.quit_prompt(), application.active_window())
+    {
+        let alert = adw::AlertDialog::new(Some(&prompt.title), Some(&prompt.body));
+        alert.add_responses(&[
+            ("cancel", &strings::tr("sources.rename.cancel", "Cancel")),
+            ("quit", &strings::tr("menu.quit", "Quit")),
+        ]);
+        alert.set_response_appearance("quit", adw::ResponseAppearance::Suggested);
+        alert.set_close_response("cancel");
+        let (app, on) = (application.clone(), shared.clone());
+        alert.connect_response(None, move |_, response| {
+            if response == "quit" {
+                finish_quit(&app, &on);
+            }
+        });
+        alert.present(Some(&window));
+        return;
+    }
+    finish_quit(application, shared);
+}
+
+fn finish_quit(application: &adw::Application, shared: &Shared) {
     shared.quitting.set(true);
+    downloads_ui::pause_for_quit(shared);
     shared.save_session();
     let readers: Vec<_> = shared
         .readers
@@ -205,6 +240,9 @@ fn close_all_and_quit(application: &adw::Application, shared: &Shared) {
     for window in application.windows() {
         window.close();
     }
+    // The sync document is written once more when a position changed, for five seconds at
+    // most, and the app quits whatever came of it.
+    let _ = sync_ui::at_quit(shared);
     application.quit();
 }
 

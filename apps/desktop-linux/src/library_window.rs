@@ -40,7 +40,8 @@ use crate::opening::LaunchAction;
 use crate::strings::{tr, tr_args};
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH, WindowState};
 use crate::{
-    launch, library_data, library_find, library_notices, library_selection, menus, session, sources,
+    downloads_ui, launch, library_data, library_find, library_notices, library_selection, menus,
+    network_ui, remote_browse, session, shelf_ui, sources,
 };
 
 const SECTIONS: [(&str, &str, Destination); 3] = [
@@ -49,7 +50,10 @@ const SECTIONS: [(&str, &str, Destination); 3] = [
     ("sidebar.downloads", "Downloads", Destination::Downloads),
 ];
 
-const IMPLEMENTED: [&str; 11] = [
+const IMPLEMENTED: [&str; 14] = [
+    "win.add-share",
+    "win.add-catalogue",
+    "win.add-kavita",
     "win.open-file",
     "win.add-source",
     "win.refresh-sources",
@@ -69,6 +73,7 @@ pub struct LibraryUi {
     pub(crate) split: adw::NavigationSplitView,
     pub(crate) sections: gtk::ListBox,
     pub(crate) folders: gtk::ListBox,
+    pub(crate) shelves: gtk::ListBox,
     pub(crate) navigation: adw::NavigationView,
     pub(crate) panes: DetailPanes,
     pub(crate) stack: gtk::Stack,
@@ -117,8 +122,11 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     let folders = gtk::ListBox::builder()
         .css_classes(["navigation-sidebar"])
         .build();
+    let shelves = gtk::ListBox::builder()
+        .css_classes(["navigation-sidebar"])
+        .build();
     let split = adw::NavigationSplitView::builder()
-        .sidebar(&sidebar_page(&sections, &folders))
+        .sidebar(&sidebar_page(&sections, &folders, &shelves))
         .build();
 
     let store = gio::ListStore::new::<glib::BoxedAnyObject>();
@@ -143,14 +151,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
     let rail = library_cells::index_rail();
     let shelf = gtk::Overlay::builder().child(&layouts).build();
     shelf.add_overlay(&rail);
-    let downloads = adw::StatusPage::builder()
-        .icon_name("folder-download-symbolic")
-        .title(tr("sidebar.downloads", "Downloads"))
-        .description(tr(
-            "library.empty.onDevice",
-            "Nothing in your library is on this device yet. What you keep here can be read without a connection.",
-        ))
-        .build();
+    let downloads = downloads_ui::page(shared);
     let search_ui = SearchUi::new();
     let home = adw::Bin::new();
     let stack = gtk::Stack::builder()
@@ -217,6 +218,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
         split,
         sections,
         folders,
+        shelves,
         navigation,
         panes: DetailPanes::new(panes, pane),
         stack,
@@ -256,6 +258,7 @@ pub fn open(shared: &Shared, state: &WindowState, missing: &[String]) -> adw::Ap
         Layout::List => "list",
     });
     install_actions(shared, &ui);
+    shelf_ui::install(shared, &ui);
     connect(shared, &ui, &grid, &list);
     detail_panes::follow_width(shared, &ui);
     launch::install_drop(window.upcast_ref(), shared);
@@ -316,18 +319,43 @@ fn sections_list() -> gtk::ListBox {
     list
 }
 
-fn sidebar_page(sections: &gtk::ListBox, folders: &gtk::ListBox) -> adw::NavigationPage {
+fn sidebar_page(
+    sections: &gtk::ListBox,
+    folders: &gtk::ListBox,
+    shelves: &gtk::ListBox,
+) -> adw::NavigationPage {
     let menu_button = gtk::MenuButton::builder()
         .icon_name("open-menu-symbolic")
         .tooltip_text(tr("menu.main", "Main menu"))
         .menu_model(&menus::primary_menu())
         .primary(true)
         .build();
-    let add = gtk::Button::builder()
+    let add_menu = gio::Menu::new();
+    add_menu.append(
+        Some(&tr("library.addSource", "Add Folder…")),
+        Some("win.add-source"),
+    );
+    add_menu.append(
+        Some(&tr("sources.add.share", "Network share…")),
+        Some("win.add-share"),
+    );
+    add_menu.append(
+        Some(&tr("sources.add.catalogue", "Online library…")),
+        Some("win.add-catalogue"),
+    );
+    add_menu.append(
+        Some(&tr("sources.add.kavita", "Kavita library…")),
+        Some("win.add-kavita"),
+    );
+    let add = gtk::MenuButton::builder()
         .icon_name("list-add-symbolic")
-        .tooltip_text(tr("library.addSource", "Add Folder…"))
-        .action_name("win.add-source")
+        .tooltip_text(tr("sources.add", "Add a library"))
+        .menu_model(&add_menu)
         .build();
+    add.update_property(&[gtk::accessible::Property::Label(&tr(
+        "sources.add",
+        "Add a library",
+    ))]);
     let header = adw::HeaderBar::new();
     header.pack_start(&add);
     header.pack_end(&menu_button);
@@ -343,6 +371,16 @@ fn sidebar_page(sections: &gtk::ListBox, folders: &gtk::ListBox) -> adw::Navigat
             .build(),
     );
     column.append(folders);
+    column.append(
+        &gtk::Label::builder()
+            .label(tr("shelves.title", "Shelves"))
+            .xalign(0.0)
+            .margin_start(12)
+            .margin_top(12)
+            .css_classes(["heading", "dimmed"])
+            .build(),
+    );
+    column.append(shelves);
     let toolbar = adw::ToolbarView::new();
     toolbar.add_top_bar(&header);
     toolbar.set_content(Some(&scrolled(&column)));
@@ -362,6 +400,18 @@ fn install_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
     });
     let on = shared.clone();
     add(window, "refresh-sources", move |_| sources::refresh(&on));
+    let on = shared.clone();
+    add(window, "add-share", move |window| {
+        network_ui::present_share(&on, window.upcast_ref());
+    });
+    let on = shared.clone();
+    add(window, "add-catalogue", move |window| {
+        network_ui::present_catalogue(&on, window.upcast_ref());
+    });
+    let on = shared.clone();
+    add(window, "add-kavita", move |window| {
+        network_ui::present_kavita(&on, window.upcast_ref());
+    });
     let weak = Rc::downgrade(ui);
     add(window, "find", move |_| {
         if let Some(ui) = weak.upgrade() {
@@ -513,10 +563,25 @@ fn connect(shared: &Shared, ui: &Rc<LibraryUi>, grid: &gtk::GridView, list: &gtk
     // A folder in the sidebar is a second way into the library: the library, narrowed to
     // that folder by the same filter the Filter menu offers by name.
     let on = shared.clone();
+    ui.shelves.connect_row_activated(move |list, row| {
+        if let Some(ui) = on.library_ui.borrow().clone() {
+            ui.sections.unselect_all();
+            ui.folders.unselect_all();
+        }
+        let _ = list;
+        shelf_ui::activate_row(&on, row.index() as usize);
+    });
+    let on = shared.clone();
     ui.folders.connect_row_activated(move |_, row| {
         let Some(ui) = on.library_ui.borrow().clone() else {
             return;
         };
+        let folders = on.sources.summary().len();
+        if row.index() as usize >= folders {
+            ui.sections.unselect_all();
+            remote_browse::open(&on, row.index() as usize - folders);
+            return;
+        }
         let Some((name, _, _)) = on.sources.summary().into_iter().nth(row.index() as usize) else {
             return;
         };
@@ -654,8 +719,26 @@ fn show_home(
             }
         }),
     };
-    ui.home
-        .set_child(Some(&home_view::home_page(&home, &ui.covers, &hooks)));
+    let pinned: Vec<home_view::PinnedRow> = shelf_ui::home_rows(shared)
+        .into_iter()
+        .map(|row| {
+            let weak = Rc::downgrade(shared);
+            let shelf = row.shelf.clone();
+            home_view::PinnedRow {
+                name: row.name,
+                total: row.total,
+                publications: row.publications,
+                open: Rc::new(move || {
+                    if let Some(shared) = weak.upgrade() {
+                        shelf_ui::show(&shared, &shelf);
+                    }
+                }),
+            }
+        })
+        .collect();
+    ui.home.set_child(Some(&home_view::home_page(
+        &home, &pinned, &ui.covers, &hooks,
+    )));
 }
 
 /// Rebuilds what the library shows from the folders and the progress store: the folder
@@ -668,6 +751,10 @@ pub fn refresh(shared: &Shared) {
     let publications = shared.sources.publications();
     let progress = library_data::progress_index(shared);
     refresh_folders(shared, &ui);
+    shelf_ui::fill_sidebar(shared, &ui.shelves);
+    if let Some(fill) = shared.shelf_fill.borrow().as_ref() {
+        fill();
+    }
     library_notices::refresh_banners(shared, &ui);
     show_home(shared, &ui, &publications, &progress);
 
@@ -785,5 +872,18 @@ fn refresh_folders(shared: &Shared, ui: &Rc<LibraryUi>) {
         {
             ui.folders.select_row(Some(&row));
         }
+    }
+    // The network libraries follow the folders: grey when unreachable or signed out.
+    for entry in shared.remote.entries.borrow().iter() {
+        let line = gtk::Box::builder().spacing(6).build();
+        line.append(&gtk::Image::from_icon_name("network-server-symbolic"));
+        let title = gtk::Label::builder()
+            .label(&entry.record.name)
+            .xalign(0.0)
+            .ellipsize(gtk::pango::EllipsizeMode::Middle)
+            .build();
+        library_views::set_class(&title, "dimmed", entry.grey.is_some());
+        line.append(&title);
+        ui.folders.append(&line);
     }
 }

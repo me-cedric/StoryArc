@@ -35,15 +35,14 @@ pub fn network_changed(
 /// A download the reader asked for by hand: it runs on a metered connection too.
 pub fn started_by_hand(
     queue: &DownloadQueue,
-    id: &str,
-    title: &str,
-    remote: &str,
+    download: Download,
     network: NetworkState,
     policy: &DownloadPolicy,
     used: u64,
 ) -> DownloadQueue {
-    let added = queue.queueing(Download::new(id, title, remote).by_hand());
-    added.holding(network, policy, used)
+    queue
+        .queueing(download.by_hand())
+        .holding(network, policy, used)
 }
 
 /// The grey line a row says while it waits, and nothing for a row that is not waiting.
@@ -134,9 +133,7 @@ mod tests {
     fn a_download_started_by_hand_runs_on_a_metered_connection() {
         let queue = started_by_hand(
             &DownloadQueue::default(),
-            "a",
-            "A",
-            "u",
+            Download::new("a", "A", "u"),
             NetworkState::Metered,
             &DownloadPolicy::default(),
             0,

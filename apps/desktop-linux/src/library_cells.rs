@@ -49,6 +49,7 @@ pub fn cell_menu(shared: &Shared, selected: impl Fn() -> usize + 'static) -> Cel
             simple.connect_activate(move |_, _| run(&on, action, &target, &parent));
             group.add_action(&simple);
         }
+        crate::shelf_ui::extend_cell_menu(&shared, &menu, &group, &publication);
         widget.insert_action_group("cell", Some(&group));
         let popover = gtk::PopoverMenu::from_model(Some(&menu));
         popover.set_parent(widget);

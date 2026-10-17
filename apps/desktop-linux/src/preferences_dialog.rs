@@ -141,6 +141,7 @@ pub fn present(shared: &Shared, parent: Option<&gtk::Window>) {
     dialog.add(&preferences_pages::libraries_page(shared, &dialog));
     dialog.add(&appearance_page);
     dialog.add(&reading_page);
+    dialog.add(&crate::storage_ui::storage_page(shared));
     dialog.add(&preferences_pages::privacy_page(shared));
     let on = shared.clone();
     dialog.connect_closed(move |_| {
