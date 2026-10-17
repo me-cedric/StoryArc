@@ -596,15 +596,30 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 4.10 **EPUB host test first** for `webkit6`: zero arrivals on the oldest WebKitGTK the floor allows and on the Flatpak
   runtime. Then the scheme, the filter store and the header. Verify: the egress test passes in both, and the range-request
   answer is recorded.
-- [ ] 4.11 **PDF window** over the core with selection, search and outline. Verify: the same PDF tests as 4.4.
-- [ ] 4.12 **Audio and speech spike** for GStreamer and speech-dispatcher (Assumed in the design). Exit: a chapter plays, seeks
+  **Built 2026-10-17, owed by a host:** the egress test counts 9 arrivals unguarded and 0 guarded on WebKitGTK 2.52.6 in
+  the container; every subresource and a media `Range: bytes=0-1445` (answered 206) came through the scheme handler and
+  the corpus book reports `ready`. The 2.44 floor and the Flatpak runtime are not run, and the view paints white in the
+  container (no GPU) although the renderer runs.
+- [x] 4.11 **PDF window** over the core with selection, search and outline. Verify: the same PDF tests as 4.4.
+  **Done 2026-10-17:** window-level PDF tests over the library the container build fetches; the walk shows the outline,
+  the text pane, search and read aloud. The core renders one pixel a point and never upscales, so a 612×792 page is
+  blurry on a large window (a follow-up for lane C); selection is through the text pane.
+- [x] 4.12 **Audio and speech spike** for GStreamer and speech-dispatcher (Assumed in the design). Exit: a chapter plays, seeks
   and reports position, and a sentence speaks, or the gap is written down. Verify:
   `docs/delivery/desktop-spike-audio-linux.md`.
+  **Done 2026-10-17:** `docs/delivery/desktop-spike-audio-linux.md`: a chapter plays, seeks and reports position on a
+  null sink; a sentence speaks BEGIN to END through libao's null driver; the gaps are written down.
 - [ ] 4.13 **Media keys and MPRIS** with title, cover and position, keys another application holds left alone. Verify: `playerctl`
   controls playback and shows the metadata.
+  **Built 2026-10-17, owed by a host:** `playerctl` reads status, title and position, pauses and seeks, on a private bus
+  in the walk; the keys with another player on a real desktop are owed.
 - [ ] 4.14 **Player and read-aloud UI**, a mini player in a revealer, idle inhibit while playing. Verify: a walk.
+  **Built 2026-10-17, owed by a host:** the mini player in a revealer, idle inhibit while playing, read aloud in the EPUB
+  and PDF windows and absent without a speech engine; a session granting the inhibit and sound heard are owed.
 - [ ] 4.15 **Screen reader walk** with Orca on GNOME and on Hyprland, and with no accessibility service. Verify:
   `docs/delivery/desktop-a11y-linux.md`.
+  **Built 2026-10-17, owed by a host:** `docs/delivery/desktop-a11y-linux.md` from the AT-SPI trees, with nameless
+  sidebar rows found and named; Orca on GNOME and Hyprland and the EPUB content over WebKitGTK's own connection are owed.
 
 **Lane W**
 
@@ -651,14 +666,18 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 5.5 **[L] Thumbnailer CLI** and its `.thumbnailer` file, for source and AUR builds only. A Flatpak does not export a
   thumbnailer to the host file manager (Inferred): research that first, and state in the task result that the Flatpak build
   shows no covers. Verify: a file manager shows covers for a source build and nothing is written to history.
-- [ ] 5.6 **[W] Thumbnails in Explorer.** Decide the native shim (Open Question 15). Deferral: left out of the first release if
+- [x] 5.6 **[W] Thumbnails in Explorer.** Decide the native shim (Open Question 15). Deferral: left out of the first release if
   the shim is not accepted. Verify: the decision is recorded in `design.md`.
+  **Decided 2026-10-17:** left out of the first release; the decision is under design Open Question 15.
 - [ ] 5.7 **[M] Handoff from iPhone and Spotlight titles**, clearing history clears the index. Depends on task 6.8: Handoff
   needs both apps signed by one Apple team. The Mac opens the book at the position it holds, never one read from the phone.
   Verify: a walk with an iPhone and a
   test that clearing history deletes the entries.
 - [ ] 5.8 **[M, L, W] The `storyarc://` link** and command line open, with an unknown title and a link carrying a command.
   Verify: tests for the three scenarios on each desktop.
+  **Windows built 2026-10-17, owed by a host:** `storyarc://publication/<title or id>` and `storyarc://source/<name>`,
+  registered as `windows.protocol` and handled for protocol, launch and command-line activations (`Activations.cs`,
+  `AppHost`); `StoryArcLinkTests` holds ten cases for the three scenarios. The Mac and Linux halves are open.
 - [ ] 5.9 **[M, L, W] The cold-launch budget.** Measure a cold launch on each desktop, on a mid-range laptop with a fixture
   library of 5,000 publications, against the owner's 1 second. Verify: a launch trace per desktop shows the library
   interactive within 1 second.
@@ -682,6 +701,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   row, and a missing row is named as unproved.
 - [ ] 6.3 **[P] Licence notices** for the Rust crates, the .NET packages, PDFium and libarchive, in the About windows. Verify:
   `pnpm notices:check` covers the desktop manifests and fails on an unlisted component.
+  **Built 2026-10-17:** `pnpm notices:check` reads the Cargo.lock crates, the NuGet packages, PDFium and libarchive
+  (549 crates, 7 packages) and fails by name on an unlisted one; the Windows About page shows the generated file
+  (`AcknowledgementsTests`). The Mac and Linux About windows are open.
 - [x] 6.4 **[P] `SECURITY.md`** lists PDF parsing next to archive parsing. Verify: the file names both.
   **Done 2026-10-17:** the *PDF parsing* row sits under the RAR rows, naming PDFKit, `PdfRenderer` and the pinned PDFium.
 - [ ] 6.5 **[P] Flatpak for release**, human-written Flathub copy, after Flathub's answer (task 1.25). Verify: the submission is
@@ -691,6 +713,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 6.7 **[P] Windows MSIX**, a Store dry run with the `runFullTrust` friction written down. Decide the publish
   settings here: trimming and ReadyToRun need a self-contained app (NETSDK1102), so the base sets neither. Verify:
   `docs/delivery/desktop-spike-store.md`.
+  **Built 2026-10-17, owed by a host:** the `.csproj` sets no trimming, ReadyToRun or AOT; `build.ps1 -Package` makes an
+  unsigned MSIX that the Windows jobs upload (`continue-on-error` until a run is green); `docs/delivery/desktop-spike-store.md`
+  lists the eight Store steps a Windows host owes and the `runFullTrust` friction.
 - [ ] 6.8 **[X] Owner: Apple Developer Program and notarisation**, and the Windows signing identity. Deferral: builds stay ad
   hoc and unsigned until the owner decides. Verify: the decision is in `design.md`.
   **Waiting on the owner, 2026-10-17:** design Open Question 8 records that both are owner purchases and that builds stay

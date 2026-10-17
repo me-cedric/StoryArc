@@ -706,6 +706,10 @@ Nothing migrates for a reader: no desktop app exists today. Rollback is deletion
 13. **Pop!_OS 26.04.** Release date and versions: recheck when it ships.
 14. **Audio and speech engines on Windows and Linux** are Assumed, not researched (Decision 5b). Spike in wave 4.
 15. **Thumbnails on Windows.** A native shim is unavoidable. Decide whether the feature is worth a C++ component.
+    **Answered 2026-10-17 (task 5.6):** left out of the first release. Explorer loads a thumbnail handler into its
+    own process and Microsoft does not support managed code there; the one path without C++ is a NativeAOT COM DLL,
+    untried, with its own cover reader and a COM server entry in the manifest, which is not worth the risk for a
+    feature the spec marks as later. Revisit after the first Store release with a C++ or NativeAOT spike if readers ask.
 
 ## Versions
 
