@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- The player window (desktop-clients task 4.20; docs/designs/desktop/windows.md section 4, 420 by 640): cover,
+     publication, chapter, the scrub control, back 15 s, play or pause, forward 30 s, speed, the sleep timer and the
+     chapter list. Every control states a name and, where it has one, its value, for Narrator. -->
+<Window
+    x:Class="StoryArc.Windows.PlayerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:StoryArc.Windows">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="Root">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar x:Name="AppTitleBar">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="Assets/AppIcon.ico" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <local:AppMenu x:Name="Menu" Grid.Row="1" />
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="24,16" Spacing="12" HorizontalAlignment="Stretch">
+                <Border
+                    Width="200"
+                    Height="200"
+                    CornerRadius="8"
+                    Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                    HorizontalAlignment="Center">
+                    <Image x:Name="Cover" Stretch="UniformToFill" />
+                </Border>
+                <TextBlock
+                    x:Name="TitleText"
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    TextWrapping="Wrap"
+                    TextAlignment="Center"
+                    AutomationProperties.LiveSetting="Polite" />
+                <TextBlock
+                    x:Name="ChapterText"
+                    TextWrapping="Wrap"
+                    TextAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    AutomationProperties.LiveSetting="Polite" />
+
+                <Slider
+                    x:Name="Scrubber"
+                    Minimum="0"
+                    StepFrequency="1"
+                    IsThumbToolTipEnabled="False"
+                    ValueChanged="OnScrubbed"
+                    AutomationProperties.AutomationId="PlayerPosition" />
+                <Grid>
+                    <TextBlock x:Name="ElapsedText" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Left" />
+                    <TextBlock x:Name="RemainingText" Style="{ThemeResource CaptionTextBlockStyle}" HorizontalAlignment="Right" />
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="16">
+                    <Button x:Name="BackButton" Click="OnSkipBack" AutomationProperties.AutomationId="PlayerSkipBack">
+                        <FontIcon Glyph="&#xED3C;" />
+                    </Button>
+                    <Button
+                        x:Name="PlayButton"
+                        Style="{ThemeResource AccentButtonStyle}"
+                        MinWidth="72"
+                        MinHeight="48"
+                        Click="OnPlayPause"
+                        AutomationProperties.AutomationId="PlayerPlayPause">
+                        <FontIcon x:Name="PlayGlyph" Glyph="&#xE768;" />
+                    </Button>
+                    <Button x:Name="ForwardButton" Click="OnSkipForward" AutomationProperties.AutomationId="PlayerSkipForward">
+                        <FontIcon Glyph="&#xED3D;" />
+                    </Button>
+                </StackPanel>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ComboBox
+                        x:Name="SpeedBox"
+                        HorizontalAlignment="Stretch"
+                        SelectionChanged="OnSpeedChanged"
+                        AutomationProperties.AutomationId="PlayerSpeed" />
+                    <ComboBox
+                        x:Name="SleepBox"
+                        Grid.Column="1"
+                        HorizontalAlignment="Stretch"
+                        SelectionChanged="OnSleepChanged"
+                        AutomationProperties.AutomationId="PlayerSleep" />
+                </Grid>
+                <TextBlock
+                    x:Name="SleepText"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    HorizontalAlignment="Center"
+                    Visibility="Collapsed"
+                    AutomationProperties.LiveSetting="Polite" />
+
+                <TextBlock x:Name="ChaptersTitle" Style="{ThemeResource BodyStrongTextBlockStyle}" Margin="0,12,0,0" />
+                <ListView
+                    x:Name="ChapterList"
+                    SelectionMode="None"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnChapterClick"
+                    AutomationProperties.AutomationId="PlayerChapters" />
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Window>

@@ -61,6 +61,7 @@ internal sealed class AppHost
         _progress = new ProgressWriter((IProgressStore?)_savedPages ?? new UnavailableProgressStore());
         Library = _coreProgress is null ? null : new LibraryService(dispatcher, _coreProgress);
         Network = CreateNetwork(dispatcher);
+        Playback = CreatePlayback(dispatcher);
 
         _readers.LastWindowClosed += Exit;
         Settings.Changed += _ => Repaint();
@@ -85,6 +86,9 @@ internal sealed class AppHost
 
     /// <summary>The network sources, the vault, the downloads, the sync and the shelves (wave 3); <c>null</c> when the core's store or runtime could not start.</summary>
     internal NetworkServices? Network { get; }
+
+    /// <summary>The one player (tasks 4.19 and 4.20), or <c>null</c> when the media stack could not be made.</summary>
+    internal PlaybackService? Playback { get; }
 
     /// <summary>
     /// Opens what the last run left open, then what this launch asked for. A launch for files opens
@@ -254,6 +258,19 @@ internal sealed class AppHost
     private async Task<(IPublicationWindow Window, string Title)> OpenWindowAsync(string path, ReaderWindowState? restored)
     {
         var extension = Path.GetExtension(path);
+        if (OpenRequest.Audio.Contains(extension))
+        {
+            if (Playback is not { } playback)
+            {
+                throw new StoryArcException("playback", StoryArcStatus.Unsupported, Strings.Get("player_finished_stopped", "Playback stopped"));
+            }
+
+            var title = Path.GetFileNameWithoutExtension(path);
+            var seconds = restored is { Page: > 0 } ? restored.Page - 1 : 0;
+            playback.PlayNarrated(path, title, author: null, coverPath: null, TimeSpan.FromSeconds(seconds));
+            return (new PlayerWindow(this, playback, path, restored), title);
+        }
+
         if (string.Equals(extension, ".epub", StringComparison.OrdinalIgnoreCase))
         {
             var epub = await OpenedEpub.OpenAsync(path);
@@ -313,6 +330,15 @@ internal sealed class AppHost
                 break;
             case "refreshSources":
                 Library?.RefreshAll();
+                break;
+            case "playPause" when window is not PlayerWindow:
+                Playback?.TogglePlayPause();
+                break;
+            case "skipBack" when window is not PlayerWindow:
+                Playback?.SkipBack();
+                break;
+            case "skipForward" when window is not PlayerWindow:
+                Playback?.SkipForward();
                 break;
             default:
                 if (window is IPublicationWindow pages)
@@ -457,10 +483,52 @@ internal sealed class AppHost
             _ = Task.Run(network.QuitAsync).Wait(TimeSpan.FromSeconds(6));
         }
 
+        Playback?.Dispose();
         Network?.Dispose();
         Library?.Dispose();
         _coreProgress?.Dispose();
         Application.Current.Exit();
+    }
+
+    /// <summary>Brings the player window to the front, or opens it for what plays. Nothing happens while nothing plays.</summary>
+    public void OpenPlayer()
+    {
+        if (Playback is not { } playback || playback.Model.Item is not { } item)
+        {
+            return;
+        }
+
+        if (_readers.ReaderFor(item.PublicationId) is PlayerWindow existing)
+        {
+            existing.Activate();
+            return;
+        }
+
+        if (_readers.ReaderFor(item.PublicationId) is { } reader)
+        {
+            // The voice reads a publication whose own window is open: that window is the way back to the book.
+            reader.Activate();
+            return;
+        }
+
+        var window = new PlayerWindow(this, playback, item.PublicationId, restored: null);
+        _windows.Add(window);
+        _readers.ReaderOpened(item.PublicationId, window);
+        window.Closed += (sender, args) => ReaderClosed(window);
+        window.Activate();
+    }
+
+    private PlaybackService? CreatePlayback(DispatcherQueue dispatcher)
+    {
+        try
+        {
+            return new PlaybackService(dispatcher, (publicationId, position) => Network?.PositionChanged());
+        }
+        catch (Exception error) when (error is InvalidOperationException or System.Runtime.InteropServices.COMException or TypeLoadException)
+        {
+            // The media stack is absent (a Windows build with media features removed): the library and the readers still work.
+            return null;
+        }
     }
 
     private NetworkServices? CreateNetwork(DispatcherQueue dispatcher)

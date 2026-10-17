@@ -613,6 +613,29 @@ msgstr "Sync folder: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No sync folder chosen"
 
+msgid "desktop.w4.epub.noWebView"
+msgstr "This book needs the WebView2 runtime, which this PC does not have"
+
+msgid "desktop.w4.pdf.contents"
+msgstr "Contents"
+
+#, c-format
+msgid "desktop.w4.pdf.matches %d"
+msgstr "%d matches"
+
+msgid "desktop.w4.pdf.noMatches"
+msgstr "No matches"
+
+msgid "desktop.w4.pdf.noOutline"
+msgstr "This PDF declares no contents"
+
+#, c-format
+msgid "desktop.w4.pdf.page %d"
+msgstr "Page %d"
+
+msgid "desktop.w4.pdf.searchPlaceholder"
+msgstr "Search in this PDF"
+
 msgid "detail.chapter.finished"
 msgstr "Finished"
 

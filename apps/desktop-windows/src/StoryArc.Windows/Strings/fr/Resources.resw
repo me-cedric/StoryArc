@@ -774,6 +774,34 @@
     <value>Aucun dossier de synchronisation choisi</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_epub_noWebView" xml:space="preserve">
+    <value>Ce livre a besoin du runtime WebView2, absent de ce PC</value>
+    <comment>desktop.w4.epub.noWebView</comment>
+  </data>
+  <data name="desktop_w4_pdf_contents" xml:space="preserve">
+    <value>Sommaire</value>
+    <comment>desktop.w4.pdf.contents</comment>
+  </data>
+  <data name="desktop_w4_pdf_matches__lld" xml:space="preserve">
+    <value>{0} occurrences</value>
+    <comment>desktop.w4.pdf.matches %lld</comment>
+  </data>
+  <data name="desktop_w4_pdf_noMatches" xml:space="preserve">
+    <value>Aucune occurrence</value>
+    <comment>desktop.w4.pdf.noMatches</comment>
+  </data>
+  <data name="desktop_w4_pdf_noOutline" xml:space="preserve">
+    <value>Ce PDF ne déclare pas de sommaire</value>
+    <comment>desktop.w4.pdf.noOutline</comment>
+  </data>
+  <data name="desktop_w4_pdf_page__lld" xml:space="preserve">
+    <value>Page {0}</value>
+    <comment>desktop.w4.pdf.page %lld</comment>
+  </data>
+  <data name="desktop_w4_pdf_searchPlaceholder" xml:space="preserve">
+    <value>Rechercher dans ce PDF</value>
+    <comment>desktop.w4.pdf.searchPlaceholder</comment>
+  </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Terminé</value>
     <comment>detail.chapter.finished</comment>

@@ -613,6 +613,29 @@ msgstr "Carpeta de sincronización: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No se eligió carpeta de sincronización"
 
+msgid "desktop.w4.epub.noWebView"
+msgstr "Este libro necesita el entorno WebView2, que este PC no tiene"
+
+msgid "desktop.w4.pdf.contents"
+msgstr "Contenido"
+
+#, c-format
+msgid "desktop.w4.pdf.matches %d"
+msgstr "%d coincidencias"
+
+msgid "desktop.w4.pdf.noMatches"
+msgstr "Sin coincidencias"
+
+msgid "desktop.w4.pdf.noOutline"
+msgstr "Este PDF no declara un índice"
+
+#, c-format
+msgid "desktop.w4.pdf.page %d"
+msgstr "Página %d"
+
+msgid "desktop.w4.pdf.searchPlaceholder"
+msgstr "Buscar en este PDF"
+
 msgid "detail.chapter.finished"
 msgstr "Terminado"
 

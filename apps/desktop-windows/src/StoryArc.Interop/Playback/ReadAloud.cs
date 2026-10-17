@@ -160,3 +160,69 @@ public sealed class ReadAloudModel
     /// <summary>Where the voice got to, for the progress record: the chapter and the sentence, or <c>null</c> before the start.</summary>
     public (int Chapter, int Sentence)? Place => _chapterIndex < 0 ? null : (_chapterIndex, Math.Max(0, _sentenceIndex));
 }
+
+/// <summary>
+/// The text of an XHTML chapter for a voice: tags dropped, <c>script</c> and <c>style</c> bodies with
+/// them, block boundaries as paragraph breaks, the common entities decoded, and white space folded.
+/// </summary>
+public static class XhtmlText
+{
+    private static readonly string[] BlockTags = ["p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "tr", "section", "article", "blockquote", "aside", "figcaption", "td"];
+
+    public static string Strip(string xhtml)
+    {
+        var text = new StringBuilder(xhtml.Length);
+        var index = 0;
+        while (index < xhtml.Length)
+        {
+            var open = xhtml.IndexOf('<', index);
+            if (open < 0)
+            {
+                text.Append(xhtml, index, xhtml.Length - index);
+                break;
+            }
+
+            text.Append(xhtml, index, open - index);
+            var close = xhtml.IndexOf('>', open);
+            if (close < 0)
+            {
+                break;
+            }
+
+            var tag = xhtml[(open + 1)..close].Trim();
+            var name = TagName(tag);
+            if (name is "script" or "style")
+            {
+                var end = xhtml.IndexOf("</" + name, close, StringComparison.OrdinalIgnoreCase);
+                index = end < 0 ? xhtml.Length : xhtml.IndexOf('>', end) + 1;
+                continue;
+            }
+
+            if (tag.StartsWith("!--", StringComparison.Ordinal))
+            {
+                var end = xhtml.IndexOf("-->", open, StringComparison.Ordinal);
+                index = end < 0 ? xhtml.Length : end + 3;
+                continue;
+            }
+
+            if (BlockTags.Contains(name))
+            {
+                text.Append("\n\n");
+            }
+
+            index = close + 1;
+        }
+
+        var decoded = System.Net.WebUtility.HtmlDecode(text.ToString());
+        return string.Join("\n\n", decoded.Split("\n\n", StringSplitOptions.RemoveEmptyEntries)
+            .Select(paragraph => string.Join(' ', paragraph.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)))
+            .Where(paragraph => paragraph.Length > 0));
+    }
+
+    private static string TagName(string tag)
+    {
+        var body = tag.TrimStart('/').TrimEnd('/');
+        var end = body.IndexOfAny([' ', '\t', '\n', '\r', '/']);
+        return (end < 0 ? body : body[..end]).ToLowerInvariant();
+    }
+}

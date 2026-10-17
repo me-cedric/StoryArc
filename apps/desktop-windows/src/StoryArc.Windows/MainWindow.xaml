@@ -95,6 +95,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Microsoft.UI.Xaml.Controls.TitleBar (Windows App SDK 1.7 and later). The title is set in
@@ -273,5 +274,34 @@
                 <local:PreferencesPage x:Name="Preferences" Grid.Row="1" Visibility="Collapsed" />
             </Grid>
         </NavigationView>
+            <!-- The compact player bar (desktop-clients task 4.20; audio-playback "The compact bar"; read-aloud "The transport
+             outside the reader"): one element naming what plays, play or pause, and the way to the player. Absent, with no
+             space reserved, while nothing plays; it never takes focus when it appears. -->
+        <Grid
+            x:Name="PlayerBar"
+            Grid.Row="3"
+            Padding="16,8"
+            ColumnSpacing="12"
+            Visibility="Collapsed"
+            Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
+            AutomationProperties.AutomationId="CompactPlayer">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Button x:Name="PlayerBarPlay" Click="OnPlayerBarPlay" AutomationProperties.AutomationId="CompactPlayerPlayPause">
+                <FontIcon x:Name="PlayerBarGlyph" Glyph="&#xE768;" />
+            </Button>
+            <TextBlock
+                x:Name="PlayerBarText"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                TextTrimming="CharacterEllipsis"
+                AutomationProperties.LiveSetting="Polite" />
+            <Button x:Name="PlayerBarOpen" Grid.Column="2" Click="OnPlayerBarOpen" AutomationProperties.AutomationId="CompactPlayerOpen">
+                <FontIcon Glyph="&#xE8A7;" />
+            </Button>
+        </Grid>
     </Grid>
 </Window>

@@ -613,6 +613,29 @@ msgstr "Dossier de synchronisation : %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Aucun dossier de synchronisation choisi"
 
+msgid "desktop.w4.epub.noWebView"
+msgstr "Ce livre a besoin du runtime WebView2, absent de ce PC"
+
+msgid "desktop.w4.pdf.contents"
+msgstr "Sommaire"
+
+#, c-format
+msgid "desktop.w4.pdf.matches %d"
+msgstr "%d occurrences"
+
+msgid "desktop.w4.pdf.noMatches"
+msgstr "Aucune occurrence"
+
+msgid "desktop.w4.pdf.noOutline"
+msgstr "Ce PDF ne déclare pas de sommaire"
+
+#, c-format
+msgid "desktop.w4.pdf.page %d"
+msgstr "Page %d"
+
+msgid "desktop.w4.pdf.searchPlaceholder"
+msgstr "Rechercher dans ce PDF"
+
 msgid "detail.chapter.finished"
 msgstr "Terminé"
 

@@ -613,6 +613,29 @@ msgstr "Sync-Ordner: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Kein Sync-Ordner gewählt"
 
+msgid "desktop.w4.epub.noWebView"
+msgstr "Dieses Buch braucht die WebView2-Laufzeit, die auf diesem PC fehlt"
+
+msgid "desktop.w4.pdf.contents"
+msgstr "Inhalt"
+
+#, c-format
+msgid "desktop.w4.pdf.matches %d"
+msgstr "%d Treffer"
+
+msgid "desktop.w4.pdf.noMatches"
+msgstr "Keine Treffer"
+
+msgid "desktop.w4.pdf.noOutline"
+msgstr "Dieses PDF hat kein Inhaltsverzeichnis"
+
+#, c-format
+msgid "desktop.w4.pdf.page %d"
+msgstr "Seite %d"
+
+msgid "desktop.w4.pdf.searchPlaceholder"
+msgstr "In diesem PDF suchen"
+
 msgid "detail.chapter.finished"
 msgstr "Beendet"
 

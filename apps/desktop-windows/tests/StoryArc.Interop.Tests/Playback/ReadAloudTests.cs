@@ -109,4 +109,19 @@ public sealed class ReadAloudTests
         refused.SessionChanged(session);
         Assert.False(refused.IsHeld);
     }
+
+    [Fact]
+    public void A_chapters_markup_reads_as_paragraphs_with_scripts_styles_and_comments_dropped()
+    {
+        const string xhtml = """
+            <?xml version="1.0"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>One</title><style>p { color: red }</style></head>
+            <body><!-- a note --><h1>Chapter   One</h1><p>Call me <em>Ishmael</em>.&nbsp;It&#8217;s true.</p>
+            <script>track("x")</script><p>Second<br/>line.</p></body></html>
+            """;
+
+        var text = XhtmlText.Strip(xhtml);
+
+        Assert.Equal("One\n\nChapter One\n\nCall me Ishmael. It\u2019s true.\n\nSecond\n\nline.", text);
+        Assert.Equal(new[] { "One", "Chapter One", "Call me Ishmael.", "It\u2019s true.", "Second", "line." }, SentenceSplitter.Split(text));
+    }
 }

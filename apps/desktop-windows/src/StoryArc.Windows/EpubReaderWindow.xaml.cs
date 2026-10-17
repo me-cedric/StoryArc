@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.Web.WebView2.Core;
 using StoryArc.Interop.Epub;
 using StoryArc.Interop.Opening;
+using StoryArc.Interop.Playback;
 using StoryArc.Interop.Shell;
 using StoryArc.Windows.Shell;
 using Windows.System;
@@ -91,7 +92,53 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
             case "lastPage":
                 GoTo(_opened.PositionCount - 1);
                 break;
+            case "readAloud":
+                StartReadAloud();
+                break;
         }
+    }
+
+    /// <summary>
+    /// Read aloud from the chapter being shown (task 4.20; ebook-reader "Reading aloud"): the voice takes the one player,
+    /// the page follows it chapter by chapter through a <c>go</c>, and the control is absent without a voice.
+    /// </summary>
+    private void StartReadAloud()
+    {
+        if (_host.Playback is not { } playback || !PlaybackService.HasVoice)
+        {
+            return;
+        }
+
+        var queue = new ReadAloudModel(1, _opened.ReadingOrder.Count, _opened.SentencesOf);
+        var chapter = ChapterOfPosition();
+        var lastChapter = -1;
+        playback.ReadAloud(PublicationId, _opened.Title, _opened.Author, queue, chapter, _opened.Chapters(), sentence =>
+        {
+            if (sentence is null || sentence.ChapterIndex == lastChapter)
+            {
+                return;
+            }
+
+            lastChapter = sentence.ChapterIndex;
+            if (sentence.LocatorJson is { } locator)
+            {
+                Post(_commands.Go(locator));
+            }
+        });
+    }
+
+    /// <summary>The reading-order index of the position being shown, from the positions list's href.</summary>
+    private int ChapterOfPosition()
+    {
+        if (EpubProgress.LocatorAt(_opened.PositionsJson, _position - 1) is { } locator
+            && System.Text.Json.Nodes.JsonNode.Parse(locator) is System.Text.Json.Nodes.JsonObject node
+            && node["href"]?.GetValue<string>() is { } href)
+        {
+            var index = _opened.ReadingOrder.ToList().FindIndex(entry => entry.Href == href);
+            return index < 0 ? 0 : index;
+        }
+
+        return 0;
     }
 
     private async Task StartAsync()
@@ -232,9 +279,12 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         UnavailableText.Visibility = Visibility.Visible;
     }
 
+    /// <summary>The page commands, and Read Aloud where the system has a voice and the app a player; never zoom or spreads, which a reflowable book has not.</summary>
     private bool IsAvailable(string commandId) =>
-        commandId != "fullScreen" && commandId is not ("zoomIn" or "zoomOut" or "fitPage" or "singlePage" or "twoPages")
-        && CommandRouting.IsHandled(commandId, WindowKind.Reader);
+        commandId == "readAloud"
+            ? _host.Playback is not null && PlaybackService.HasVoice
+            : commandId != "fullScreen" && commandId is not ("zoomIn" or "zoomOut" or "fitPage" or "singlePage" or "twoPages" or "showContents")
+                && CommandRouting.IsHandled(commandId, WindowKind.Reader);
 
     private void Invoke(string commandId) => _host.Invoke(commandId, this);
 

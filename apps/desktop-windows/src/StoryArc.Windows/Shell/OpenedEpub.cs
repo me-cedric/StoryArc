@@ -1,6 +1,7 @@
 using System.Text.Json;
 using StoryArc.Interop;
 using StoryArc.Interop.Epub;
+using StoryArc.Interop.Playback;
 
 namespace StoryArc.Windows.Shell;
 
@@ -10,7 +11,7 @@ namespace StoryArc.Windows.Shell;
 /// it under. The window owns it and disposes it when it closes.
 /// </summary>
 /// <param name="Id">The file path: the key of the window registry, the session and the recent list.</param>
-internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Host, string Title, string PositionsJson, int PositionCount, CoreIdentity Identity) : IDisposable
+internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Host, string Title, string? Author, string PositionsJson, int PositionCount, CoreIdentity Identity, IReadOnlyList<ReadingOrderEntry> ReadingOrder) : IDisposable
 {
     /// <summary>The pinned renderer, copied beside the app by the project file from <c>apps/desktop-web/epub/dist</c>.</summary>
     private static readonly Lazy<byte[]> Bundle = new(() => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", "storyarc-epub.js")));
@@ -35,7 +36,15 @@ internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Ho
             // The seam has no identity export for an EPUB yet (a gap for the core owner), so the record is filed under the
             // file's path, which is what the session and the recent list key on too.
             var identity = new CoreIdentity(ContentDigest: "path-" + id, NormalizedPath: path);
-            return new OpenedEpub(path, handle, host, title, positions, Math.Max(1, EpubProgress.Count(positions)), identity);
+            var author = metadata.ValueKind == JsonValueKind.Object && metadata.TryGetProperty("author", out var authorNode)
+                ? authorNode.ValueKind == JsonValueKind.String ? authorNode.GetString() : authorNode.ValueKind == JsonValueKind.Array && authorNode.GetArrayLength() > 0 ? authorNode[0].ToString() : null
+                : null;
+            var toc = TocTitles(manifest.RootElement);
+            var order = manifest.RootElement.TryGetProperty("readingOrder", out var orderNode) && orderNode.ValueKind == JsonValueKind.Array
+                ? orderNode.EnumerateArray().Select(link => link.GetProperty("href").GetString() ?? string.Empty).Where(href => href.Length > 0)
+                    .Select((href, index) => new ReadingOrderEntry(index, href, toc.GetValueOrDefault(href) ?? toc.GetValueOrDefault(href.Split('#')[0]) ?? Path.GetFileNameWithoutExtension(href))).ToList()
+                : [];
+            return new OpenedEpub(path, handle, host, title, author, positions, Math.Max(1, EpubProgress.Count(positions)), identity, order);
         }
         catch
         {
@@ -44,5 +53,58 @@ internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Ho
         }
     });
 
+    /// <summary>
+    /// The sentences of the reading-order item <paramref name="index"/>, for the voice: the chapter's XHTML through the core,
+    /// its markup stripped, split at sentence ends. A resource the container lacks reads as no sentences.
+    /// </summary>
+    public IReadOnlyList<Sentence> SentencesOf(int index)
+    {
+        if (index < 0 || index >= ReadingOrder.Count)
+        {
+            return [];
+        }
+
+        var entry = ReadingOrder[index];
+        var resource = Handle.Resource(entry.Href.Split('#')[0]);
+        if (resource is null)
+        {
+            return [];
+        }
+
+        var locator = System.Text.Json.Nodes.JsonNode.Parse("{}")!.AsObject();
+        locator["href"] = entry.Href;
+        var locatorJson = locator.ToJsonString();
+        return SentenceSplitter.Split(XhtmlText.Strip(System.Text.Encoding.UTF8.GetString(resource.Bytes)))
+            .Select(text => new Sentence(text, index, locatorJson))
+            .ToList();
+    }
+
+    /// <summary>The chapters as the player lists them: one a reading-order item, a second long each, so the list has an order and names.</summary>
+    public IReadOnlyList<PlaybackChapter> Chapters() =>
+        ReadingOrder.Select(entry => new PlaybackChapter(entry.Title, TimeSpan.FromSeconds(entry.Index), TimeSpan.FromSeconds(1))).ToList();
+
+    /// <summary>The title the table of contents gives each href; the first entry wins when two name one href.</summary>
+    private static Dictionary<string, string?> TocTitles(JsonElement root)
+    {
+        var titles = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (!root.TryGetProperty("toc", out var toc) || toc.ValueKind != JsonValueKind.Array)
+        {
+            return titles;
+        }
+
+        foreach (var link in toc.EnumerateArray())
+        {
+            if (link.TryGetProperty("href", out var href) && href.ValueKind == JsonValueKind.String && href.GetString() is { Length: > 0 } key)
+            {
+                _ = titles.TryAdd(key, link.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String ? title.GetString() : null);
+            }
+        }
+
+        return titles;
+    }
+
     public void Dispose() => Handle.Dispose();
 }
+
+/// <summary>One item of the reading order: its index, its container href and the title the table of contents gives it, or its file name.</summary>
+internal sealed record ReadingOrderEntry(int Index, string Href, string Title);
