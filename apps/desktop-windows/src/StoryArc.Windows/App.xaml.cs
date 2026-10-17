@@ -1,19 +1,29 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using StoryArc.Windows.Shell;
 
 namespace StoryArc.Windows;
 
 public partial class App : Application
 {
-    private Window? _window;
+    // Held for the life of the app: the windows, the session and the settings are its.
+    private AppHost? _host;
 
     public App()
     {
         InitializeComponent();
     }
 
+    /// <summary>
+    /// Starts the host with what this process was launched for (<see cref="Program.FirstActivation"/>):
+    /// a file from Explorer or the command line opens its reader without bringing the library in
+    /// front of it. A launch that a later process redirects here arrives through <see cref="Program.Redirected"/>.
+    /// </summary>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        _window.Activate();
+        var host = new AppHost(DispatcherQueue.GetForCurrentThread());
+        _host = host;
+        host.Start(Activations.Read(Program.FirstActivation, Environment.GetCommandLineArgs()));
+        Program.Redirected += redirected => host.Activate(Activations.Read(redirected, commandLine: null));
     }
 }

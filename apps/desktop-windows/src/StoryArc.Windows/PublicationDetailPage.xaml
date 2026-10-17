@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- A publication's detail (desktop-clients task 2.47d, as 2.23d; capability publication-detail): a
+     page in the library window's content frame, with the cover washed across the header, one primary
+     action, a menu of the rest, and one line that names where the file lives. -->
+<Page
+    x:Class="StoryArc.Windows.PublicationDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel Spacing="16" Padding="24" MaxWidth="960" HorizontalAlignment="Left">
+            <!-- The header: the cover washed behind, faint, under a gradient to the page's colour; and
+                 the cover itself beside the title. No cover: the quiet placeholder alone. -->
+            <Grid CornerRadius="8" MinHeight="280">
+                <Image x:Name="Wash" Stretch="UniformToFill" Opacity="0.25" />
+                <Rectangle>
+                    <Rectangle.Fill>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Offset="0" Color="Transparent" />
+                            <GradientStop Offset="1" Color="{ThemeResource SolidBackgroundFillColorBase}" />
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Grid ColumnSpacing="24" Padding="24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Width="160" Height="240" CornerRadius="4" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                        <Image x:Name="Cover" Stretch="UniformToFill" AutomationProperties.AccessibilityView="Raw" />
+                    </Grid>
+                    <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Bottom">
+                        <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+                        <TextBlock x:Name="SubtitleText" Style="{ThemeResource SubtitleTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="CreditsText" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="PrimaryButton" Style="{ThemeResource AccentButtonStyle}" Click="OnPrimary" AutomationProperties.AutomationId="DetailPrimary" />
+                            <DropDownButton x:Name="MoreButton" AutomationProperties.AutomationId="DetailMore">
+                                <DropDownButton.Flyout>
+                                    <MenuFlyout>
+                                        <MenuFlyoutItem x:Name="ShowInFolderItem" Click="OnShowInFolder" />
+                                    </MenuFlyout>
+                                </DropDownButton.Flyout>
+                            </DropDownButton>
+                        </StackPanel>
+                        <ProgressBar x:Name="Progress" Maximum="100" MaxWidth="320" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+
+            <!-- Where the file lives, in one line; grey when its source is not answering. -->
+            <TextBlock x:Name="LocationText" Style="{ThemeResource CaptionTextBlockStyle}" TextWrapping="Wrap" />
+            <TextBlock
+                x:Name="UnavailableText"
+                Visibility="Collapsed"
+                Style="{ThemeResource BodyTextBlockStyle}"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                TextWrapping="Wrap" />
+            <TextBlock x:Name="SummaryText" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>
