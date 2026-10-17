@@ -1,9 +1,11 @@
 # macOS conformance walk — wave 2
 
 Task 2.24 of `desktop-clients`. Every scenario of the capabilities wave 2 names, run against
-the Mac app at the head of `lane/macos-wave2` on 2026-10-17 (macOS 27.0.1, Xcode 27.1, the
-ad-hoc signed sandboxed build), with the result it gave. The scenarios are read from the
-specs by name, so a scenario added to a spec later is missing here until the walk runs again.
+the Mac app at the head of `lane/macos-wave2-fixes` on 2026-10-17 (macOS 27.0.1, Xcode 27.1,
+the ad-hoc signed sandboxed build), with the result it gave. The first run, at the head of
+`lane/macos-wave2`, found 40 failures; this run follows the branch that fixes them, where
+`xcodebuild test` passes 145 tests in 41 suites. The scenarios are read from the specs by
+name, so a scenario added to a spec later is missing here until the walk runs again.
 
 | Result | Means |
 | --- | --- |
@@ -14,7 +16,7 @@ specs by name, so a scenario added to a spec later is missing here until the wal
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another platform's scenario. |
 | not walked | Built in wave 2 and not exercised here, for the reason given. |
 
-Totals: pass 170, seen 70, fail 40, later 110, n/a 46, not walked 73, of 509 scenarios.
+Totals: pass 202, seen 74, fail 0, later 111, n/a 46, not walked 76, of 509 scenarios.
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`):
 the fixture comics of `packages/test-fixtures` are copied into the container and scanned as
@@ -34,26 +36,35 @@ English titles in every language (`95d63b51`); 133 strings were missing from the
 dropped the zoom (`c9ffe569`); the sidebar drew in the system's blue rather than the
 brand colour (`eb132907`).
 
+**The 40 failures of the first run, fixed on `lane/macos-wave2-fixes`**, each with its
+commit: *Start from the Beginning* on a cover, confirmed before the place is cleared
+(`1dd35e96`); the other issues of a series on a publication's page (`4768986b`); Recently
+Added and Finished on Home, each heading leading to the rest (`72b33c8c`); an About tab and
+*Reset Settings* (`6e8c57b4`); sections and a letter index on a long shelf (`90558446`);
+page modes and the continuous scroll, the four fits, image adjustments with border cropping,
+the slider's thumbnail and way back, the page browser, chapter actions and the end screen
+(`96a1dec7`); an accessibility audit over every catalogue screen, which found 46 controls
+unnamed or under 20 × 20 points and had them fixed (`f809e2a0`); snapshot tests over the same
+screens (`864b58be`, `c6982b7b`). The wave 2 frames were retaken over the catalogue
+(`73edc9f0`).
+
 ## The failures, in one list
 
-Every **fail** below, by capability and requirement, so the next wave can take them as tasks.
+None remain. The scenarios the first run failed that do not pass now, with why:
 
-- `comic-reader` · Page transitions in the comic reader: The Mac reader changes pages without a transition; only a drag slides the page (task 2.15). No mode choice, no continuous scroll, no scroll axis. Wave 2 builds the slide and the fade under Reduce Motion only.
-- `comic-reader` · Page fitting and zoom: Fit page only; no fit width or original size on the Mac yet (the Reader menu lists Fit Page).
-- `comic-reader` · Navigation within a publication: A slider without thumbnails.
-- `comic-reader` · Navigation within a publication: The page slider and the *5 / 12* counter exist (frame `reader-*.png`, Go to Page in the Reader menu). No thumbnails, no thumbnail browser, no chapters, no end-of-publication screen on the Mac.
-- `comic-reader` · Image adjustments: Not built on the Mac.
-- `comic-reader` · Page browser: Not built on the Mac.
-- `page-transitions` · Transition modes: No mode choice on the Mac: the preferences name the slide and say the curl is later (frame `settings-reading-*.png`); keys and clicks change the page without the slide.
-- `library-browsing` · Presentation: No sections on the Mac.
-- `library-browsing` · Presentation: No index rail on the Mac.
-- `reading-progress` · Resuming: No *Read from the beginning* action on the Mac page yet.
-- `native-experience` · Visual proof of interface changes: The Mac has no snapshot tests; its proof is the capture suite's frames.
-- `native-experience` · Visual proof of interface changes: No accessibility audit runs on the Mac yet.
-- `settings-and-about` · Settings organisation: No reset on the Mac preferences.
-- `settings-and-about` · About: The system About panel only; no support link, acknowledgements or problem report on the Mac yet.
-- `home-screen` · The rest of the home surface: Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home.
-- `publication-detail` · What the page shows: No other-issues shelf on the Mac page.
+- `home-screen` · *Pinned shelves* is **later**: a pinned shelf needs collections and reading
+  lists, task 3.15a in wave 3.
+- `comic-reader` · *Page slider with thumbnails* and *The slider moves the carousel* are
+  **not walked**: both are built, the jump and the way back are asserted, and no walk
+  synthesises a slider drag.
+- `comic-reader` · *Right-to-left reading* and *Reduce Motion* in the page browser are **not
+  walked**: built, and not exercised with a right-to-left publication in the browser or with
+  the system setting changed.
+- `comic-reader` · *Continuous scroll*, *Scroll axis for webtoons*, *Adjustments available*,
+  *One page in the centre* and *Assistive technology* in the page browser,
+  `page-transitions` · *Scroll axis* and `library-browsing` · *The index without sight* are
+  **seen**: a frame or the code shows them and a test asserts part of each, as each row
+  says; the rest of each is not asserted.
 
 ## comic-reader
 
@@ -61,44 +72,44 @@ Source: `docs/openspec/specs/comic-reader/spec.md`.
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Page transitions in the comic reader | Mode persistence | **fail** | The Mac reader changes pages without a transition; only a drag slides the page (task 2.15). No mode choice, no continuous scroll, no scroll axis. Wave 2 builds the slide and the fade under Reduce Motion only. |
-| Page transitions in the comic reader | Continuous scroll | **fail** | The Mac reader changes pages without a transition; only a drag slides the page (task 2.15). No mode choice, no continuous scroll, no scroll axis. Wave 2 builds the slide and the fade under Reduce Motion only. |
-| Page transitions in the comic reader | Scroll axis for webtoons | **fail** | The Mac reader changes pages without a transition; only a drag slides the page (task 2.15). No mode choice, no continuous scroll, no scroll axis. Wave 2 builds the slide and the fade under Reduce Motion only. |
+| Page transitions in the comic reader | Mode persistence | pass | `ReaderModesTests` *A mode chosen for one issue applies to its series; a series never opened takes the default* (and the comic default apart from the reflowable one); `ReaderModesWalkTests` *A chosen mode applies at once without losing the page, a key turns in it, and it comes back* |
+| Page transitions in the comic reader | Continuous scroll | seen | `ReaderModesWalkTests` *A chosen mode applies at once without losing the page, a key turns in it, and it comes back* (the scroll keeps the page and Space turns in it); pages meet with no gap and Page Mode offers a separator (`ReaderScrollCanvas`, `ReaderMenus`); frame `reader-scroll-*.png`. The exact offset within a page on a return is kept by `ReaderScrollCanvas` and not asserted. |
+| Page transitions in the comic reader | Scroll axis for webtoons | seen | Both scroll axes are offered in Page Mode and either can be chosen; the default axis for tall pages is `ReaderModel`'s measure of the first pages (StoryArcKit, tested there). No tall fixture is opened in a Mac walk. |
 | Page transitions in the comic reader | Curl over image pages | later | The curl is wave 5. |
 | Reading direction | Manga defaults | pass | `PageKeyMapperTests` (right-to-left mirrors the arrows), `SpreadDecisionTests` (right-to-left order), the reader's Reading Direction menu on the page |
 | Reading direction | Overriding direction | pass | `PageKeyMapperTests` (right-to-left mirrors the arrows), `SpreadDecisionTests` (right-to-left order), the reader's Reading Direction menu on the page |
-| Page fitting and zoom | Fit modes | **fail** | Fit page only; no fit width or original size on the Mac yet (the Reader menu lists Fit Page). |
+| Page fitting and zoom | Fit modes | pass | `ReaderModesTests` *Each fit sizes the page as a multiple of fit-to-screen and opens at its top on the reading side*; `ReaderModesWalkTests` *Fit width fills the width from the top, and a turn keeps it*; the fit is kept per series as the mode is (`ReaderState`) |
 | Page fitting and zoom | Double-page spreads | pass | `SpreadDecisionTests`, `ReaderWalkTests` |
 | Page fitting and zoom | Zooming | pass | `ZoomModelTests`, `SpreadDecisionTests`, `ReaderWalkTests` *A key turns one page in a narrow window and a spread in a wide one* |
-| Page fitting and zoom | Zoom persists across pages | pass | `ZoomModelTests` *A turn keeps the zoom and opens the page at its top, on the side reading starts from* (fixed on this branch; the Mac has no fit-to-width mode, so the zoom is the fit-page zoom) |
+| Page fitting and zoom | Zoom persists across pages | pass | `ZoomModelTests` *A turn keeps the zoom and opens the page at its top, on the side reading starts from*; `ReaderModesWalkTests` *Fit width fills the width from the top, and a turn keeps it* |
 | Auto-hiding chrome | Entering the reader | pass | `PointerReadingTests` (zones on by default, chrome hides after three seconds), `PointerAndFilesWalkTests` *A click on the right edge turns the page*; frame `reader-*.png` |
 | Auto-hiding chrome | Revealing controls | pass | `PointerReadingTests` (zones on by default, chrome hides after three seconds), `PointerAndFilesWalkTests` *A click on the right edge turns the page*; frame `reader-*.png` |
 | Auto-hiding chrome | Everything else is in the menu, and labelled | pass | `PointerReadingTests` (zones on by default, chrome hides after three seconds), `PointerAndFilesWalkTests` *A click on the right edge turns the page*; frame `reader-*.png` |
 | Auto-hiding chrome | Edge taps turn pages | pass | `PointerAndFilesWalkTests` *A click on the right edge turns the page* |
 | Auto-hiding chrome | Chrome does not obscure the page | pass | `PointerReadingTests` (zones on by default, chrome hides after three seconds), `PointerAndFilesWalkTests` *A click on the right edge turns the page*; frame `reader-*.png` |
 | Auto-hiding chrome | Fewer controls is not fewer ways in | pass | `PointerReadingTests` (zones on by default, chrome hides after three seconds), `PointerAndFilesWalkTests` *A click on the right edge turns the page*; frame `reader-*.png` |
-| Navigation within a publication | Page slider with thumbnails | **fail** | A slider without thumbnails. |
+| Navigation within a publication | Page slider with thumbnails | not walked | `ReaderModesWalkTests` *A jump from the slider or the browser keeps the way back, and the browser leaves the reader alone* asserts the jump and the way back; the thumbnail above the thumb is drawn by `ReaderSlider` while it is dragged, and no walk synthesises a drag. |
 | Navigation within a publication | Where the reader is, at a glance | seen | The *5 / 12* counter, frame `reader-*.png` |
-| Navigation within a publication | Thumbnail browser | **fail** | The page slider and the *5 / 12* counter exist (frame `reader-*.png`, Go to Page in the Reader menu). No thumbnails, no thumbnail browser, no chapters, no end-of-publication screen on the Mac. |
-| Navigation within a publication | Chapter navigation | **fail** | The page slider and the *5 / 12* counter exist (frame `reader-*.png`, Go to Page in the Reader menu). No thumbnails, no thumbnail browser, no chapters, no end-of-publication screen on the Mac. |
-| Navigation within a publication | Reaching the end | **fail** | The page slider and the *5 / 12* counter exist (frame `reader-*.png`, Go to Page in the Reader menu). No thumbnails, no thumbnail browser, no chapters, no end-of-publication screen on the Mac. |
-| Image adjustments | Adjustments available | **fail** | Not built on the Mac. |
-| Image adjustments | Cropping borders | **fail** | Not built on the Mac. |
-| Image adjustments | Persisting adjustments | **fail** | Not built on the Mac. |
+| Navigation within a publication | Thumbnail browser | pass | `ReaderModesWalkTests` *A jump from the slider or the browser keeps the way back, and the browser leaves the reader alone*; frame `reader-pages-*.png` |
+| Navigation within a publication | Chapter navigation | pass | `ReaderChaptersTests` *Previous and next chapter move within the publication, and run out at its ends*; the contents menu and the Reader menu carry both actions |
+| Navigation within a publication | Reaching the end | pass | `ReaderModesWalkTests` *A turn past the last page shows the end, marks the publication finished and moves nothing*; `ReaderChaptersTests` *Only a forward turn from the last slot reaches the end*; frame `reader-end-*.png`. The next issue is offered when the series has one; deleting a download is wave 3. |
+| Image adjustments | Adjustments available | seen | `AdjustmentsPanel` offers brightness, contrast, sharpness, greyscale and invert, applied live to the page through `AdjustedPage`; the panel is a popover the catalogue does not open. |
+| Image adjustments | Cropping borders | pass | `ReaderModesWalkTests` *Adjustments are kept for the series, and a page can be excused from the trim* |
+| Image adjustments | Persisting adjustments | pass | `ReaderModesWalkTests` *Adjustments are kept for the series, and a page can be excused from the trim* |
 | Reader performance | Prefetching | not walked | `ReaderModel` (StoryArcKit) warms the pages around the current one; not measured on the Mac. |
 | Reader performance | Page not yet available | pass | The reader draws a quiet placeholder for an undecoded page; `SpreadDecisionTests` *A narrow window keeps the reader on the same page* |
 | Reader performance | Screen stays awake | pass | `DisplayAwakeTests` |
 | System integration | Hardware page turns | n/a | Hardware page turns and orientation lock are mobile (Decision 9); keys replace them, `PageKeyMapperTests` |
 | System integration | Orientation lock | n/a | Hardware page turns and orientation lock are mobile (Decision 9); keys replace them, `PageKeyMapperTests` |
 | System integration | Screenshot and recording | n/a | Mobile behaviour. |
-| Page browser | One page in the centre | **fail** | Not built on the Mac. |
-| Page browser | Browsing does not move the reader | **fail** | Not built on the Mac. |
-| Page browser | The slider moves the carousel | **fail** | Not built on the Mac. |
-| Page browser | Chapters in the browser | **fail** | Not built on the Mac. |
-| Page browser | No chapter markers | **fail** | Not built on the Mac. |
-| Page browser | Right-to-left reading | **fail** | Not built on the Mac. |
-| Page browser | Reduce Motion | **fail** | Not built on the Mac. |
-| Page browser | Assistive technology | **fail** | Not built on the Mac. |
+| Page browser | One page in the centre | seen | Frame `reader-pages-*.png`: page 5 centred, larger, outlined, numbered, the current page underlined (`PageBrowserStrip`) |
+| Page browser | Browsing does not move the reader | pass | `ReaderModesWalkTests` *A jump from the slider or the browser keeps the way back, and the browser leaves the reader alone* |
+| Page browser | The slider moves the carousel | not walked | `PageBrowserStrip` centres the page the slider points at while it is dragged; no walk synthesises a drag. |
+| Page browser | Chapters in the browser | pass | `ReaderChaptersTests` *The browser names the chapter in force…*, *A chapter's first page has a badge…*, *The slider has a tick at each chapter's start…* |
+| Page browser | No chapter markers | pass | `ReaderChaptersTests` *The browser names the chapter in force, by its title or its position, and nothing without markers* |
+| Page browser | Right-to-left reading | not walked | The carousel takes the right-to-left layout direction with the slider (`PageBrowserStrip`); no right-to-left publication is opened in the browser by a walk. |
+| Page browser | Reduce Motion | not walked | Under Reduce Motion the centred page does not scale and the outline stays (`PageBrowserStrip`); the system setting is not changed in this session. |
+| Page browser | Assistive technology | seen | `AccessibilityAuditTests` *Every control on every catalogue screen is named and at least the macOS floor* reads a name on every page of the carousel on `reader-pages`; the name carries the page number and the chapter, and the current page has a *current* value (`PageBrowserStrip`), which no test reads. |
 
 ## page-transitions
 
@@ -106,9 +117,9 @@ Source: `docs/openspec/specs/page-transitions/spec.md`.
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Transition modes | Choosing a mode | **fail** | No mode choice on the Mac: the preferences name the slide and say the curl is later (frame `settings-reading-*.png`); keys and clicks change the page without the slide. |
-| Transition modes | Scroll axis | **fail** | No mode choice on the Mac: the preferences name the slide and say the curl is later (frame `settings-reading-*.png`); keys and clicks change the page without the slide. |
-| Transition modes | A mode is unavailable for the content | **fail** | No mode choice on the Mac: the preferences name the slide and say the curl is later (frame `settings-reading-*.png`); keys and clicks change the page without the slide. |
+| Transition modes | Choosing a mode | pass | `ReaderModesWalkTests` *A chosen mode applies at once without losing the page, a key turns in it, and it comes back*; `ReaderModesTests` *Every mode is listed; the curl is absent with one sentence, since the Mac has none yet* |
+| Transition modes | Scroll axis | seen | Page Mode lists the vertical and the horizontal scroll, so the axis is chosen apart from the mode; the default axis is `ReaderModel`'s (StoryArcKit). No tall or declared-axis fixture is opened in a Mac walk. |
+| Transition modes | A mode is unavailable for the content | pass | `ReaderModesTests` *Under Reduce Motion the slide is listed, marked unavailable with the reason, and the fade runs* |
 | The curl | The page follows the finger | later | Wave 5 (task list: the curl is wave 5). |
 | The curl | The sheet rolls rather than folds | later | Wave 5 (task list: the curl is wave 5). |
 | The curl | Turning back | later | Wave 5 (task list: the curl is wave 5). |
@@ -118,8 +129,8 @@ Source: `docs/openspec/specs/page-transitions/spec.md`.
 | The curl | Curl direction respects reading direction | later | Wave 5 (task list: the curl is wave 5). |
 | The curl | Curl is not offered where it cannot be honest | later | Wave 5 (task list: the curl is wave 5). |
 | The curl | Every other mode stays available | later | Wave 5 (task list: the curl is wave 5). |
-| Reduced motion | Reduce Motion is on | not walked | The reader drops its animations when Reduce Motion is on and the preferences say pages fade (`settings-reading-*.png` shows the slide line); not walked with the system setting changed, which is a system setting this session does not touch. |
-| Reduced motion | Reduce Motion turned off mid-session | not walked | The reader drops its animations when Reduce Motion is on and the preferences say pages fade (`settings-reading-*.png` shows the slide line); not walked with the system setting changed, which is a system setting this session does not touch. |
+| Reduced motion | Reduce Motion is on | pass | `ReaderModesTests` *Under Reduce Motion the slide is listed, marked unavailable with the reason, and the fade runs*, with Reduce Motion handed to the model; the system setting itself is not changed in this session. |
+| Reduced motion | Reduce Motion turned off mid-session | not walked | The stored choice survives Reduce Motion (`ReaderModesTests`, *the stored choice was lost* guards it) and the reader reads the setting live; turning the system setting off is not walked. |
 | Turn triggers | Tap zones | pass | `PointerReadingTests`, `PointerAndFilesWalkTests` |
 | Turn triggers | Turning the tap zones off | pass | `PointerAndFilesWalkTests` *…turning the zones off stops it at once* |
 | Turn triggers | The tap zones are on until a reader says otherwise | pass | `PointerReadingTests` *The zones are on when nothing is stored* |
@@ -165,21 +176,21 @@ Source: `docs/openspec/specs/library-browsing/spec.md`.
 | What could not be opened | Announced without sight | not walked | The list rows combine name and reason for VoiceOver; no VoiceOver walk. |
 | Presentation | Switching layout | pass | View as Grid and View as List (`CommandTests`); frames |
 | Presentation | Adaptive columns | pass | `LibraryViewModelTests` *The grid adds columns with the width* |
-| Presentation | Cover art is shown whole | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | Progress on covers | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | What is on the device | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
+| Presentation | Cover art is shown whole | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | Progress on covers | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | What is on the device | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
 | Presentation | A series is one row | pass | `LibraryViewModelTests` (grouping by series) |
-| Presentation | A shelf of issues | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | The choice between series and issues | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | Opening a series | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | Sectioning a long library | **fail** | No sections on the Mac. |
-| Presentation | An index down the side of a long shelf | **fail** | No index rail on the Mac. |
-| Presentation | A sort no letter describes | **fail** | No sections on the Mac. |
-| Presentation | The index without sight | **fail** | No index rail on the Mac. |
-| Presentation | A publication that cannot be read now | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | The controls that change the view are grouped | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | A control that stands alone carries a name | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
-| Presentation | An ordering says that it is an ordering | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png`. No index rail and no sections on the Mac. |
+| Presentation | A shelf of issues | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | The choice between series and issues | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | Opening a series | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | Sectioning a long library | pass | `ShelfSectionTests` *A long shelf sorted by title divides by initial, the article ignored, in the shelf's order*, *Sorted by series…* |
+| Presentation | An index down the side of a long shelf | pass | `ShelfSectionTests` *The index holds one entry per letter…*, *A rail too short for every letter…*; frame `library-grid-*.png` |
+| Presentation | A sort no letter describes | pass | `ShelfSectionTests` *A sort no letter describes draws no index and no sections, and both return with the title sort* |
+| Presentation | The index without sight | seen | `AccessibilityAuditTests` *Every control on every catalogue screen is named and at least the macOS floor* reads every letter of the rail by name on `library-grid`; the rail is one named group and announces where the shelf moved (`ShelfIndexRail`), which no test hears. |
+| Presentation | A publication that cannot be read now | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | The controls that change the view are grouped | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | A control that stands alone carries a name | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
+| Presentation | An ordering says that it is an ordering | seen | `LibraryViewModelTests` (columns, series grouping, selection); frames `library-grid-*.png`, `library-list-*.png` |
 | Continue reading | Home view | pass | `HomePlanTests`; frame `home-*.png` |
 | Continue reading | Next in series | pass | `HomePlanTests` |
 
@@ -248,7 +259,7 @@ Source: `docs/openspec/specs/reading-progress/spec.md`.
 | Local progress store | Finished state | pass | `ProgressWriterTests`, `ReaderWalkTests` *…and closing writes it* |
 | Resuming | Continue from a resume affordance | pass | `DetailPresentationTests` (Continue at the page); frames `detail-*.png`, `reader-*.png` (opens on page 5) |
 | Resuming | Continue from the library | pass | `DetailPresentationTests` (Continue at the page); frames `detail-*.png`, `reader-*.png` (opens on page 5) |
-| Resuming | Restart deliberately | **fail** | No *Read from the beginning* action on the Mac page yet. |
+| Resuming | Restart deliberately | pass | `RestartTests` *Starting over asks first, a cancel keeps the place, and a confirm clears it*, *Offered on one publication with progress…* |
 | Synchronisation | Pushing progress | later | Wave 3. |
 | Synchronisation | Pulling progress | later | Wave 3. |
 | Synchronisation | Source cannot store progress | later | Wave 3. |
@@ -334,23 +345,23 @@ Source: `docs/openspec/specs/native-experience/spec.md`.
 | Reader chrome material | The preset grid on both platforms | later | Wave 4. |
 | Theme sheet reachability | Opening the sheet | later | The theme sheet is the EPUB reader's, wave 4. |
 | Theme sheet reachability | Applying a change with the sheet open | later | The theme sheet is the EPUB reader's, wave 4. |
-| Accessibility | Screen reader | not walked | Covers and pages carry labels (`CoverCell.label`, the reader's page label); no VoiceOver or Accessibility Inspector walk on the Mac yet. The text size is the app's own (frames `*-largest.png`). |
+| Accessibility | Screen reader | not walked | `AccessibilityAuditTests` *Every control on every catalogue screen is named and at least the macOS floor* finds a name on every control of every catalogue screen; reading order and the page announcement on a turn are not heard, since no VoiceOver walk runs on the Mac. |
 | Accessibility | Dynamic Type and font scale | pass | The app's own text size reaches every window (frames `*-largest.png`, `ChromeAccentTests`); the picker values in Preferences keep the control size |
 | Accessibility | Contrast and transparency | not walked | Covers and pages carry labels (`CoverCell.label`, the reader's page label); no VoiceOver or Accessibility Inspector walk on the Mac yet. The text size is the app's own (frames `*-largest.png`). |
 | Accessibility | Reduce Motion | not walked | The reader drops its animations under Reduce Motion; not walked. |
-| Accessibility | Touch targets | n/a | Pointer targets on a Mac; controls are system controls. |
+| Accessibility | Touch targets | n/a | Pointer targets on a Mac. The pointer floor of 20 × 20 points is measured by `AccessibilityAuditTests` *Every control on every catalogue screen is named and at least the macOS floor*. |
 | Accessibility | Keyboard and switch control | not walked | Covers and pages carry labels (`CoverCell.label`, the reader's page label); no VoiceOver or Accessibility Inspector walk on the Mac yet. The text size is the app's own (frames `*-largest.png`). |
 | Accessibility | Colour is never the only signal | not walked | Covers and pages carry labels (`CoverCell.label`, the reader's page label); no VoiceOver or Accessibility Inspector walk on the Mac yet. The text size is the app's own (frames `*-largest.png`). |
 | Performance and responsiveness | Cold launch | not walked | Task 5.11 measures it. |
 | Performance and responsiveness | Scrolling | not walked | `LibraryViewModelTests` arranges 10,000 publications under a second and `FolderWatcherTests` measures the main actor under a 2,000-file burst; cold launch is not measured (task 5.11). |
 | Performance and responsiveness | No blocking spinners | not walked | `LibraryViewModelTests` arranges 10,000 publications under a second and `FolderWatcherTests` measures the main actor under a 2,000-file burst; cold launch is not measured (task 5.11). |
 | Performance and responsiveness | Memory | not walked | `LibraryViewModelTests` arranges 10,000 publications under a second and `FolderWatcherTests` measures the main actor under a 2,000-file burst; cold launch is not measured (task 5.11). |
-| Visual proof of interface changes | Screen change | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 32 frames from inside the app |
-| Visual proof of interface changes | Snapshot tests hold the screen states | **fail** | The Mac has no snapshot tests; its proof is the capture suite's frames. |
-| Visual proof of interface changes | A device screenshot where only a device shows it | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 32 frames from inside the app |
-| Visual proof of interface changes | Guidelines are checked by machine | **fail** | No accessibility audit runs on the Mac yet. |
-| Visual proof of interface changes | Preview is not proof | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 32 frames from inside the app |
-| Visual proof of interface changes | Both appearances | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 32 frames from inside the app |
+| Visual proof of interface changes | Screen change | pass | `SnapshotTests` *Every catalogue screen matches its reference in light, dark and the largest text*; `docs/designs/screenshots/desktop/macos/wave2/`, 56 frames from inside the app over the 14 catalogue screens |
+| Visual proof of interface changes | Snapshot tests hold the screen states | pass | `SnapshotTests` *Every catalogue screen matches its reference in light, dark and the largest text*: 14 screens in light, dark and at the largest text, 42 references in `apps/desktop-macos/Tests/__Snapshots__/`; a changed image fails until recorded again. Drawn in-process, so without materials; skipped, and saying so, on another major macOS. |
+| Visual proof of interface changes | A device screenshot where only a device shows it | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 56 frames from inside the app over the 14 catalogue screens, from the window server, glass and sidebar material included |
+| Visual proof of interface changes | Guidelines are checked by machine | pass | `AccessibilityAuditTests` *Every control on every catalogue screen is named and at least the macOS floor*, on the 14 catalogue screens at the default and the largest text: no unnamed control and none under 20 × 20 points, the macOS floor, measured on each control. It found 46 and they are fixed (`f809e2a0`). Contrast is held by `pnpm tokens:check`. |
+| Visual proof of interface changes | Preview is not proof | pass | `SnapshotTests` *Every catalogue screen matches its reference in light, dark and the largest text* draws the running app's windows over fixture data; no `#Preview` is counted |
+| Visual proof of interface changes | Both appearances | pass | `SnapshotTests` *Every catalogue screen matches its reference in light, dark and the largest text* (light, dark, largest); `docs/designs/screenshots/desktop/macos/wave2/`, 56 frames from inside the app over the 14 catalogue screens |
 | The icon a reader chose | Surviving a reinstall or a restore | n/a | The icon chooser drops on desktops (Decision 9). |
 | The icon a reader chose | The platform refuses the change | n/a | The icon chooser drops on desktops (Decision 9). |
 | The icon a reader chose | The platform withdraws the ability | n/a | The icon chooser drops on desktops (Decision 9). |
@@ -382,14 +393,14 @@ Source: `docs/openspec/specs/settings-and-about/spec.md`.
 | Settings organisation | Structure | pass | `SettingsSearchTests`; frames `settings-*.png`; a reading setting applies to an open reader (`PointerAndFilesWalkTests`) |
 | Settings organisation | Searching settings | pass | `SettingsSearchTests` |
 | Settings organisation | Reading defaults | pass | `PointerAndFilesWalkTests` (a reading setting reaches an open reader at once) |
-| Settings organisation | Resetting | **fail** | No reset on the Mac preferences. |
+| Settings organisation | Resetting | pass | `AboutAndResetTests` *A reset puts every preference back and leaves the folders and the history alone*; frame `settings-privacy-*.png` |
 | Privacy | Privacy screen | not walked | Settings > Privacy states what is kept and where (`SettingsTabs.swift`); no frame of that tab. |
 | Privacy | Clearing data | not walked | Clear Reading History exists with a confirmation; not driven by a test. |
 | Privacy | Exporting a diagnostic | later | Wave 3; the Privacy tab says so. |
-| About | About contents | **fail** | The system About panel only; no support link, acknowledgements or problem report on the Mac yet. |
-| About | Support link | **fail** | The system About panel only; no support link, acknowledgements or problem report on the Mac yet. |
-| About | Acknowledgements | **fail** | The system About panel only; no support link, acknowledgements or problem report on the Mac yet. |
-| About | Reporting a problem | **fail** | The system About panel only; no support link, acknowledgements or problem report on the Mac yet. |
+| About | About contents | pass | `AboutAndResetTests` *The byline is the only row to the author's address…*, *The version and build are read from the app…*; frame `settings-about-*.png` |
+| About | Support link | pass | `AboutAndResetTests` *The byline is the only row to the author's address, and the other links are the spec's* |
+| About | Acknowledgements | pass | `AboutAndResetTests` *Every library the Mac build carries is acknowledged with its licence text* |
+| About | Reporting a problem | pass | `AboutAndResetTests` *A problem report opens the tracker with the version, the system and the device class, nothing else* |
 | What changed in this version | After an update | later | Not built on the Mac. |
 | What changed in this version | A first ever launch | later | Not built on the Mac. |
 | What changed in this version | Nothing worth saying | later | Not built on the Mac. |
@@ -418,11 +429,11 @@ Source: `docs/openspec/changes/one-library-three-destinations/specs/home-screen/
 | Up next | Finishing an issue in the reader | pass | `HomePlanTests` (a finished issue offers the next one) |
 | Up next | A series with nothing after it | pass | `HomePlanTests` |
 | Up next | The next issue lives on a source that is down | later | Remote sources are wave 3. |
-| The rest of the home surface | Recently added | **fail** | Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home. |
-| The rest of the home surface | Pinned shelves | **fail** | Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home. |
-| The rest of the home surface | Finished | **fail** | Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home. |
-| The rest of the home surface | Every shelf leads somewhere exhaustive | **fail** | Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home. |
-| The rest of the home surface | A shelf that would be empty | **fail** | Recently added is a sidebar filter, not a Home shelf; no Finished or pinned shelves on the Mac Home. |
+| The rest of the home surface | Recently added | pass | `HomePlanTests` *Recently added is newest first, and a shelf that holds more says so and leads to the rest*; frame `home-*.png` |
+| The rest of the home surface | Pinned shelves | later | Pinned shelves need collections and reading lists, task 3.15a in wave 3. |
+| The rest of the home surface | Finished | pass | `HomePlanTests` *Finished comes grouped by the month it was finished, newest month first, and is absent when empty*; frame `home-*.png` |
+| The rest of the home surface | Every shelf leads somewhere exhaustive | pass | `HomePlanTests` *Recently added…leads to the rest*; `LibraryWalkTests` *Home's Finished heading leads to the library narrowed to what has been finished* |
+| The rest of the home surface | A shelf that would be empty | pass | `HomePlanTests` *An empty shelf is absent…*, *Finished…is absent when empty* |
 | The home surface never waits on a source | Opening the app with every source down | not walked | Home reads only the local store and the model; no unreachable-source walk. |
 | The home surface never waits on a source | A slow source | later | Remote sources are wave 3. |
 | The home surface never waits on a source | Progress recorded on another device | later | Sync is wave 3. |
@@ -467,9 +478,9 @@ Source: `docs/openspec/changes/publication-detail/specs/publication-detail/spec.
 | Reaching a publication's page | Resuming does not come here | seen | In `LibraryGrid.swift` a double click and Read open the reader and Show Details pushes the page; not walked |
 | Reaching a publication's page | The same page for every kind of publication | seen | Show Details (⌘I) and the context menu push the page (frames `detail-*.png`) |
 | Reaching a publication's page | A publication that is no longer there | pass | `DetailPresentationTests` (offline: action absent, grey, the volume named) |
-| What the page shows | The cover leads | seen | Cover, title, series line, format and pages (frames); no other-issues shelf on the Mac yet |
-| What the page shows | Other issues in this series | **fail** | No other-issues shelf on the Mac page. |
-| What the page shows | Metadata the publication does not carry | seen | Cover, title, series line, format and pages (frames); no other-issues shelf on the Mac yet |
+| What the page shows | The cover leads | seen | Cover, title, series line, format and pages (frames `detail-*.png`) |
+| What the page shows | Other issues in this series | pass | `OtherIssuesTests` (order, no shelf without a series, read and on-this-Mac marks in words) |
+| What the page shows | Metadata the publication does not carry | seen | Cover, title, series line, format and pages (frames `detail-*.png`) |
 | What the page shows | No cover art | pass | `DetailPresentationTests` *A publication with no cover* |
 | One primary action | Reading from here | pass | `DetailPresentationTests`; frames `detail-*.png` |
 | One primary action | No copy on the device, and a library that answers | later | Downloads are wave 3. |
@@ -665,6 +676,6 @@ Source: `docs/openspec/changes/desktop-clients/specs/desktop-experience/spec.md`
 | Cold start and responsiveness on a desktop | Cold launch | not walked | Task 5.11 measures the cold launch; `LibraryViewModelTests` and `FolderWatcherTests` hold the arrangement and the burst. |
 | Cold start and responsiveness on a desktop | Resizing and scrolling | not walked | Task 5.11 measures the cold launch; `LibraryViewModelTests` and `FolderWatcherTests` hold the arrangement and the burst. |
 | Cold start and responsiveness on a desktop | A source that is slow or offline | later | Remote sources are wave 3. |
-| Visual proof of interface changes on a desktop | A change to a screen | seen | `docs/designs/screenshots/desktop/macos/wave2/`, taken from inside the app because the session has no Screen Recording grant |
+| Visual proof of interface changes on a desktop | A change to a screen | seen | `docs/designs/screenshots/desktop/macos/wave2/`, 56 frames from inside the app over the 14 catalogue screens, light and dark at the default and the largest text, taken from inside the app because the session has no Screen Recording grant; `SnapshotTests` *Every catalogue screen matches its reference in light, dark and the largest text* holds the same screens |
 | Visual proof of interface changes on a desktop | A Linux change | n/a | Linux. |
 | Visual proof of interface changes on a desktop | A system that cannot be captured | pass | The capture suite images the app's own windows from inside it, and each frame records how (`method.txt`) |
