@@ -3075,7 +3075,7 @@
     <comment>secrets.service</comment>
   </data>
   <data name="secrets_unavailable" xml:space="preserve">
-    <value>Esta sesión no tiene un llavero: la contraseña se guarda en memoria hasta que StoryArc se cierra. Instala gnome-keyring o KWallet para conservarla.</value>
+    <value>No hay ningún servicio de secretos en marcha, así que las contraseñas se conservan hasta que StoryArc se cierra. Inicia GNOME Keyring, KWallet, KeePassXC u oo7-daemon para conservarlas.</value>
     <comment>secrets.unavailable</comment>
   </data>
   <data name="settings_about" xml:space="preserve">

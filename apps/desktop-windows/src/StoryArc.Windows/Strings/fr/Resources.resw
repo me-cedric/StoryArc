@@ -3075,7 +3075,7 @@
     <comment>secrets.service</comment>
   </data>
   <data name="secrets_unavailable" xml:space="preserve">
-    <value>Aucun trousseau n’est disponible dans cette session : le mot de passe est conservé en mémoire jusqu’à la fermeture de StoryArc. Installez gnome-keyring ou KWallet pour le garder.</value>
+    <value>Aucun service de secrets ne tourne, donc les mots de passe sont conservés jusqu’à la fermeture de StoryArc. Lancez GNOME Keyring, KWallet, KeePassXC ou oo7-daemon pour les garder.</value>
     <comment>secrets.unavailable</comment>
   </data>
   <data name="settings_about" xml:space="preserve">

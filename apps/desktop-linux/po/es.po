@@ -2440,7 +2440,7 @@ msgid "secrets.service"
 msgstr "Las contraseñas se guardan en el llavero de tu escritorio."
 
 msgid "secrets.unavailable"
-msgstr "Esta sesión no tiene un llavero: la contraseña se guarda en memoria hasta que StoryArc se cierra. Instala gnome-keyring o KWallet para conservarla."
+msgstr "No hay ningún servicio de secretos en marcha, así que las contraseñas se conservan hasta que StoryArc se cierra. Inicia GNOME Keyring, KWallet, KeePassXC u oo7-daemon para conservarlas."
 
 msgid "settings.about"
 msgstr "Acerca de"

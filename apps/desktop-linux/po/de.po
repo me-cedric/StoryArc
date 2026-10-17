@@ -2440,7 +2440,7 @@ msgid "secrets.service"
 msgstr "Passwörter werden im Schlüsselbund Ihres Desktops aufbewahrt."
 
 msgid "secrets.unavailable"
-msgstr "In dieser Sitzung gibt es keinen Schlüsselbund: Das Passwort bleibt im Speicher, bis StoryArc beendet wird. Installieren Sie gnome-keyring oder KWallet, um es zu behalten."
+msgstr "Es läuft kein Secret Service, daher bleiben Passwörter nur bis zum Beenden von StoryArc erhalten. Starten Sie GNOME Keyring, KWallet, KeePassXC oder oo7-daemon, um sie zu behalten."
 
 msgid "settings.about"
 msgstr "Über"
