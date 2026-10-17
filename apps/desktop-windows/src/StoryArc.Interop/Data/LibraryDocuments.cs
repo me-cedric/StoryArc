@@ -33,7 +33,8 @@ public static class LibrarySnapshots
         IEnumerable<DocumentSource> sources,
         PinBook pins,
         ShelvesState shelves,
-        IEnumerable<string> progressRecords)
+        IEnumerable<string> progressRecords,
+        IEnumerable<string>? pinnedShelves = null)
     {
         var certificatePins = new JsonObject();
         foreach (var group in pins.All().GroupBy(pin => pin.Host))
@@ -46,6 +47,7 @@ public static class LibrarySnapshots
             ["sources"] = new JsonArray(sources.Select(source => (JsonNode?)source.ToNode()).ToArray()),
             ["certificatePins"] = certificatePins,
             ["shelves"] = JsonNode.Parse(shelves.Json),
+            ["pinnedShelves"] = new JsonArray((pinnedShelves ?? []).Select(token => (JsonNode?)token).ToArray()),
             ["progress"] = new JsonArray(progressRecords.Select(record => JsonNode.Parse(record)).ToArray()),
         };
         return snapshot.ToJsonString();
@@ -94,6 +96,10 @@ public sealed record LibraryMerge(
     /// <summary>The merged shelves, for the shelves file.</summary>
     public ShelvesState Shelves() =>
         JsonNode.Parse(SnapshotJson)?["shelves"] is { } shelves ? ShelvesState.FromJson(shelves.ToJsonString()) : ShelvesState.Empty;
+
+    /// <summary>The merged pinned shelves, as tokens in the order the document keeps.</summary>
+    public IReadOnlyList<string> PinnedShelves() =>
+        [.. (JsonNode.Parse(SnapshotJson)?["pinnedShelves"]?.AsArray() ?? new JsonArray()).Select(token => token!.GetValue<string>())];
 
     /// <summary>The merged certificate pins.</summary>
     public IReadOnlyList<CertificatePin> Pins() =>
