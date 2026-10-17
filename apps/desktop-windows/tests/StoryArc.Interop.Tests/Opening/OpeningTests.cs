@@ -10,12 +10,14 @@ namespace StoryArc.Interop.Tests.Opening;
 /// </summary>
 public sealed class OpeningTests
 {
+    // Forward slashes: Windows reads them as separators and so does every other host, so the names
+    // OpenRefusal takes with Path.GetFileName are the same on the Linux and macOS runners.
     private static readonly HashSet<string> Files = new(StringComparer.OrdinalIgnoreCase)
     {
-        @"C:\Comics\Saga 1.cbz", @"C:\Comics\Saga 2.cbr", @"C:\Comics\Old.cb7", @"C:\Comics\notes.txt", @"C:\Comics\Strip.cbt",
+        "C:/Comics/Saga 1.cbz", "C:/Comics/Saga 2.cbr", "C:/Comics/Old.cb7", "C:/Comics/notes.txt", "C:/Comics/Strip.cbt",
     };
 
-    private static readonly HashSet<string> Folders = new(StringComparer.OrdinalIgnoreCase) { @"C:\Comics\Manga" };
+    private static readonly HashSet<string> Folders = new(StringComparer.OrdinalIgnoreCase) { "C:/Comics/Manga" };
 
     private static OpenPlan Plan(IEnumerable<string> paths, int limit = OpenRequest.WindowLimit) =>
         OpenRequest.Plan(paths, Files.Contains, Folders.Contains, limit);
@@ -23,9 +25,9 @@ public sealed class OpeningTests
     [Fact]
     public void Supported_files_open_and_the_rest_are_refused_by_name_while_the_others_still_open()
     {
-        var plan = Plan([@"C:\Comics\Saga 1.cbz", @"C:\Comics\Old.cb7", @"C:\Comics\notes.txt", @"C:\Comics\Saga 2.cbr"]);
+        var plan = Plan(["C:/Comics/Saga 1.cbz", "C:/Comics/Old.cb7", "C:/Comics/notes.txt", "C:/Comics/Saga 2.cbr"]);
 
-        Assert.Equal(new[] { @"C:\Comics\Saga 1.cbz", @"C:\Comics\Saga 2.cbr" }, plan.Open);
+        Assert.Equal(new[] { "C:/Comics/Saga 1.cbz", "C:/Comics/Saga 2.cbr" }, plan.Open);
         Assert.Equal(new[] { RefusalReason.Cb7, RefusalReason.NotAFormat }, plan.Refused.Select(refusal => refusal.Reason));
         Assert.Equal("Old.cb7", plan.Refused[0].Name);
     }
@@ -33,7 +35,7 @@ public sealed class OpeningTests
     [Fact]
     public void A_file_that_cannot_be_reached_is_named_and_nothing_else_opens_for_it()
     {
-        var plan = Plan([@"E:\Unplugged\Gone.cbz"]);
+        var plan = Plan(["E:/Unplugged/Gone.cbz"]);
 
         Assert.Empty(plan.Open);
         var refusal = Assert.Single(plan.Refused);
@@ -44,18 +46,18 @@ public sealed class OpeningTests
     [Fact]
     public void Several_files_open_up_to_the_limit_and_the_rest_are_listed()
     {
-        var plan = Plan([@"C:\Comics\Saga 1.cbz", @"C:\Comics\Saga 2.cbr", @"C:\Comics\Strip.cbt"], limit: 2);
+        var plan = Plan(["C:/Comics/Saga 1.cbz", "C:/Comics/Saga 2.cbr", "C:/Comics/Strip.cbt"], limit: 2);
 
         Assert.Equal(2, plan.Open.Count);
-        Assert.Equal(new[] { @"C:\Comics\Strip.cbt" }, plan.Overflow);
+        Assert.Equal(new[] { "C:/Comics/Strip.cbt" }, plan.Overflow);
     }
 
     [Fact]
     public void A_dropped_folder_is_offered_as_a_library_and_not_opened()
     {
-        var plan = Plan([@"C:\Comics\Manga"]);
+        var plan = Plan(["C:/Comics/Manga"]);
 
-        Assert.Equal(new[] { @"C:\Comics\Manga" }, plan.Folders);
+        Assert.Equal(new[] { "C:/Comics/Manga" }, plan.Folders);
         Assert.Empty(plan.Open);
         Assert.Empty(plan.Refused);
     }
@@ -63,7 +65,7 @@ public sealed class OpeningTests
     [Fact]
     public void The_same_file_twice_opens_once_and_an_empty_request_is_empty()
     {
-        Assert.Single(Plan([@"C:\Comics\Saga 1.cbz", @"c:\comics\saga 1.CBZ"]).Open);
+        Assert.Single(Plan(["C:/Comics/Saga 1.cbz", "c:/comics/saga 1.CBZ"]).Open);
         Assert.True(Plan(["", "  "]).IsEmpty);
     }
 
