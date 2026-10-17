@@ -121,6 +121,11 @@ pub(crate) fn install_selection_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
         .connect_selection_changed(move |selection, _, _| {
             if let Some(ui) = weak.upgrade() {
                 let count = usize::try_from(selection.selection().size()).unwrap_or(0);
+                // Choosing anything, by Control or Shift click or Select All, is selection
+                // mode: the bar says how many and holds the way out.
+                if count > 0 && !ui.selecting.get() {
+                    reveal(&ui, true);
+                }
                 ui.selection_title
                     .set_title(&library_cells::selected_title(count));
                 ui.mark_read.set_sensitive(count > 0);
@@ -147,15 +152,21 @@ pub(crate) fn install_selection_actions(shared: &Shared, ui: &Rc<LibraryUi>) {
     ui.window.add_controller(escape);
 }
 
+/// Swaps the header and the action bar for selection mode's, or back; the choice itself
+/// is left as it is.
+fn reveal(ui: &LibraryUi, on: bool) {
+    ui.selecting.set(on);
+    ui.header
+        .set_visible_child_name(if on { "select" } else { "browse" });
+    ui.selection_bar.set_revealed(on);
+}
+
 pub(crate) fn set_selecting(shared: &Shared, on: bool) {
     let Some(ui) = shared.library_ui.borrow().clone() else {
         return;
     };
-    ui.selecting.set(on);
+    reveal(&ui, on);
     ui.selection.unselect_all();
-    ui.header
-        .set_visible_child_name(if on { "select" } else { "browse" });
-    ui.selection_bar.set_revealed(on);
     ui.mark_read.set_sensitive(false);
     ui.selection_title
         .set_title(&library_cells::selected_title(0));

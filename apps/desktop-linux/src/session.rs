@@ -279,4 +279,22 @@ mod tests {
         let record = store.read(&identity).expect("read").expect("a record");
         assert!(record.is_finished);
     }
+
+    #[test]
+    fn clearing_the_history_forgets_every_position_and_nothing_else() {
+        let store = Rc::new(library::ProgressStore::in_memory().expect("store"));
+        let first = PublicationIdentity::path("/comics/a.cbz");
+        let second = PublicationIdentity::path("/comics/b.cbz");
+        for (identity, path, page) in [(&first, "/comics/a.cbz", 3), (&second, "/comics/b.cbz", 9)]
+        {
+            CoreProgress::new(store.clone(), identity.clone(), 10)
+                .write(path, page)
+                .expect("written");
+        }
+        assert_eq!(store.recent(usize::MAX).expect("recent").len(), 2);
+        forget_history(&store).expect("cleared");
+        assert_eq!(store.recent(usize::MAX).expect("recent").len(), 0);
+        assert_eq!(CoreProgress::page(&store, &first), None);
+        assert_eq!(CoreProgress::page(&store, &second), None);
+    }
 }
