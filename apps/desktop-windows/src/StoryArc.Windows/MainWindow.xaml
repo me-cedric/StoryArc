@@ -1,18 +1,96 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- The library window: chrome only (desktop-clients task 1.18). Title bar, Mica, the four library
-     destinations the iOS app has, in its order, and an empty state. No feature lives here yet. -->
+<!-- The library window (desktop-clients tasks 1.18, 2.43 and 2.47a to 2.47d): the title bar with the
+     search field, the menu, and a NavigationView over Home, Library and Downloads. The search
+     results take over the content column while text is in the field; a publication's detail is a
+     page in the content frame, with the pane's back button. Chrome only: the covers are the interface. -->
 <Window
     x:Class="StoryArc.Windows.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:StoryArc.Windows">
+    xmlns:local="using:StoryArc.Windows"
+    xmlns:library="using:StoryArc.Windows.Library">
     <!-- Microsoft.UI.Xaml.Media.MicaBackdrop: Mica behind the title bar and the pane. Where Mica is
          not supported, or transparency is off, the system draws a solid colour in its place. -->
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
+        <Grid.Resources>
+            <!-- A cover in the grid and on a Home shelf: the cover in the page's ratio over a quiet
+                 placeholder, a thin progress line, the title and the series. ItemsView wants an
+                 ItemContainer at the root of its template. -->
+            <DataTemplate x:Key="GridCellTemplate" x:DataType="library:CoverCell">
+                <ItemContainer AutomationProperties.Name="{x:Bind AccessibleName}">
+                    <ItemContainer.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="{x:Bind OpenLabel}" Click="{x:Bind Open}" />
+                            <MenuFlyoutItem Text="{x:Bind DetailsLabel}" Click="{x:Bind ShowDetails}" />
+                        </MenuFlyout>
+                    </ItemContainer.ContextFlyout>
+                    <StackPanel Width="160" Spacing="6" Padding="0,0,0,8">
+                        <Grid Height="240" CornerRadius="4" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                            <TextBlock
+                                Text="{x:Bind UnreadableReason}"
+                                Visibility="{x:Bind UnreadableVisibility}"
+                                Margin="12"
+                                TextWrapping="Wrap"
+                                VerticalAlignment="Center"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Grid>
+                        <ProgressBar Value="{x:Bind ProgressPercent}" Maximum="100" Visibility="{x:Bind ProgressVisibility}" />
+                        <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                        <TextBlock
+                            Text="{x:Bind Subtitle}"
+                            TextTrimming="CharacterEllipsis"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </ItemContainer>
+            </DataTemplate>
+
+            <!-- A row of the list: a small cover, the title and series, and the progress. -->
+            <DataTemplate x:Key="ListRowTemplate" x:DataType="library:CoverCell">
+                <ItemContainer AutomationProperties.Name="{x:Bind AccessibleName}">
+                    <ItemContainer.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="{x:Bind OpenLabel}" Click="{x:Bind Open}" />
+                            <MenuFlyoutItem Text="{x:Bind DetailsLabel}" Click="{x:Bind ShowDetails}" />
+                        </MenuFlyout>
+                    </ItemContainer.ContextFlyout>
+                    <Grid ColumnSpacing="12" Padding="8,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="120" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Height="60" CornerRadius="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            <Image Source="{x:Bind Cover, Mode=OneWay}" Stretch="UniformToFill" />
+                        </Grid>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" Style="{ThemeResource BodyStrongTextBlockStyle}" />
+                            <TextBlock
+                                Text="{x:Bind Subtitle}"
+                                TextTrimming="CharacterEllipsis"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock
+                                Text="{x:Bind UnreadableReason}"
+                                Visibility="{x:Bind UnreadableVisibility}"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+                        <ProgressBar Grid.Column="2" VerticalAlignment="Center" Value="{x:Bind ProgressPercent}" Maximum="100" Visibility="{x:Bind ProgressVisibility}" />
+                    </Grid>
+                </ItemContainer>
+            </DataTemplate>
+
+            <UniformGridLayout x:Key="GridLayout" MinItemWidth="160" MinItemHeight="320" MinRowSpacing="16" MinColumnSpacing="16" ItemsStretch="None" />
+            <StackLayout x:Key="ListLayout" Spacing="2" />
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -20,11 +98,24 @@
         </Grid.RowDefinitions>
 
         <!-- Microsoft.UI.Xaml.Controls.TitleBar (Windows App SDK 1.7 and later). The title is set in
-             code from the package display name, the one place the app's name lives. -->
+             code from the package display name; the search field sits in its Content, which is where
+             docs/designs/desktop/windows.md section 2 draws it (task 2.47b). -->
         <TitleBar x:Name="AppTitleBar">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
+            <TitleBar.Content>
+                <AutoSuggestBox
+                    x:Name="SearchBox"
+                    MinWidth="240"
+                    MaxWidth="480"
+                    VerticalAlignment="Center"
+                    QueryIcon="Find"
+                    TextChanged="OnSearchTextChanged"
+                    QuerySubmitted="OnSearchSubmitted"
+                    PreviewKeyDown="OnSearchKeyDown"
+                    AutomationProperties.AutomationId="LibrarySearch" />
+            </TitleBar.Content>
         </TitleBar>
 
         <!-- The menu bar of task 2.38, below the title bar: MenuBar, or "..." in a narrow window. -->
@@ -32,8 +123,7 @@
 
         <!-- Microsoft.UI.Xaml.Controls.NavigationView. PaneDisplayMode Auto gives the three states by
              window width (expanded, compact, minimal), which is the "any window size" rule on this
-             platform. The items' text comes from the generated string resources in code; Tag holds the
-             resource name of each destination's empty-state sentence. -->
+             platform. The back button shows while a publication's detail page is in the content. -->
         <NavigationView
             x:Name="Navigation"
             Grid.Row="2"
@@ -41,42 +131,129 @@
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="True"
             SelectionChanged="OnSelectionChanged"
+            BackRequested="OnBackRequested"
             AutomationProperties.AutomationId="LibraryNavigation">
             <NavigationView.MenuItems>
-                <NavigationViewItem x:Name="HomeItem" Icon="Home" Tag="home_nothingOpen" AutomationProperties.AutomationId="NavHome" />
-                <NavigationViewItem x:Name="LibraryItem" Icon="Library" Tag="library_empty_subtitle" AutomationProperties.AutomationId="NavLibrary" />
-                <NavigationViewItem x:Name="OnDeviceItem" Icon="Download" Tag="library_empty_onDevice" AutomationProperties.AutomationId="NavOnDevice" />
-                <NavigationViewItem x:Name="SearchItem" Icon="Find" Tag="library_search_prompt" AutomationProperties.AutomationId="NavSearch" />
+                <NavigationViewItem x:Name="HomeItem" Icon="Home" AutomationProperties.AutomationId="NavHome" />
+                <NavigationViewItem x:Name="LibraryItem" Icon="Library" AutomationProperties.AutomationId="NavLibrary" />
+                <NavigationViewItem x:Name="OnDeviceItem" Icon="Download" AutomationProperties.AutomationId="NavOnDevice" />
             </NavigationView.MenuItems>
 
-            <!-- The empty state: centred, one sentence (docs/designs/desktop/windows.md, section 9).
-                 The button that section names arrives with the first feature that has an action. -->
             <Grid>
-            <StackPanel
-                x:Name="EmptyState"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                MaxWidth="480"
-                Margin="32"
-                Spacing="8">
-                <TextBlock
-                    x:Name="SectionTitle"
-                    Style="{ThemeResource SubtitleTextBlockStyle}"
-                    HorizontalAlignment="Center" />
-                <TextBlock
-                    x:Name="EmptyText"
-                    Style="{ThemeResource BodyTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    TextAlignment="Center"
-                    TextWrapping="Wrap" />
-                <TextBlock
-                    x:Name="CoreVersionText"
-                    Style="{ThemeResource CaptionTextBlockStyle}"
-                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                    HorizontalAlignment="Center" />
-            </StackPanel>
-            <!-- The settings page, shown when the Settings item of the pane is selected (task 2.47). -->
-            <local:PreferencesPage x:Name="Preferences" Visibility="Collapsed" />
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- What couldn't be opened: each file by name with its reason (desktop-experience,
+                     "Dropping what cannot be opened"). Informational, never an error colour. -->
+                <InfoBar
+                    x:Name="RefusalsBar"
+                    Severity="Informational"
+                    IsOpen="False"
+                    IsClosable="True"
+                    Closed="OnRefusalsClosed"
+                    Margin="16,8,16,0"
+                    AutomationProperties.LiveSetting="Polite"
+                    AutomationProperties.AutomationId="LibraryRefusals" />
+
+                <!-- Home (task 2.47c): the shelves with something on them, else one sentence. -->
+                <ScrollViewer x:Name="HomeView" Grid.Row="1" Visibility="Collapsed">
+                    <StackPanel x:Name="HomeShelvesPanel" Spacing="24" Padding="24" />
+                </ScrollViewer>
+
+                <!-- Library, Downloads and the search results (tasks 2.43, 2.47a and 2.47b). -->
+                <Grid x:Name="LibraryView" Grid.Row="1" Visibility="Collapsed" RowSpacing="8" Padding="16,8,16,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- The folder sources: each by name, grey when offline or needing access. -->
+                    <StackPanel x:Name="SourcesRow" Orientation="Horizontal" Spacing="8">
+                        <ItemsControl x:Name="SourcesList">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <Button x:Name="AddFolderButton" Click="OnAddFolder" AutomationProperties.AutomationId="AddFolder" />
+                        <Button x:Name="RefreshButton" Click="OnRefresh" AutomationProperties.AutomationId="RefreshSources">
+                            <FontIcon Glyph="&#xE72C;" />
+                        </Button>
+                        <TextBlock
+                            x:Name="UnwatchedNote"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed"
+                            Style="{ThemeResource CaptionTextBlockStyle}"
+                            Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+
+                    <!-- The view's title, the filter and sort flyouts, and grid or list. -->
+                    <Grid Grid.Row="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="ViewTitle" VerticalAlignment="Center" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <DropDownButton x:Name="FilterButton" Grid.Column="1" AutomationProperties.AutomationId="LibraryFilter">
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="FilterFlyout" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <DropDownButton x:Name="SortButton" Grid.Column="2" AutomationProperties.AutomationId="LibrarySort">
+                            <DropDownButton.Flyout>
+                                <MenuFlyout x:Name="SortFlyout" Placement="BottomEdgeAlignedRight" />
+                            </DropDownButton.Flyout>
+                        </DropDownButton>
+                        <SelectorBar x:Name="LayoutBar" Grid.Column="3" SelectionChanged="OnLayoutChanged">
+                            <SelectorBarItem x:Name="GridChoice" IsSelected="True">
+                                <SelectorBarItem.Icon>
+                                    <FontIcon Glyph="&#xF0E2;" />
+                                </SelectorBarItem.Icon>
+                            </SelectorBarItem>
+                            <SelectorBarItem x:Name="ListChoice">
+                                <SelectorBarItem.Icon>
+                                    <FontIcon Glyph="&#xE8FD;" />
+                                </SelectorBarItem.Icon>
+                            </SelectorBarItem>
+                        </SelectorBar>
+                    </Grid>
+
+                    <!-- Microsoft.UI.Xaml.Controls.ItemsView: virtualised, keyboard navigable, Control and
+                         Shift selection. Invoking an item (double click or Enter) opens it to read. -->
+                    <ItemsView
+                        x:Name="LibraryItems"
+                        Grid.Row="2"
+                        SelectionMode="Extended"
+                        IsItemInvokedEnabled="True"
+                        ItemInvoked="OnItemInvoked"
+                        ItemTemplate="{StaticResource GridCellTemplate}"
+                        Layout="{StaticResource GridLayout}"
+                        AutomationProperties.AutomationId="LibraryItems" />
+
+                    <TextBlock
+                        x:Name="LibraryEmptyText"
+                        Grid.Row="2"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="480"
+                        TextAlignment="Center"
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed"
+                        Style="{ThemeResource BodyTextBlockStyle}"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </Grid>
+
+                <!-- A publication's detail (task 2.47d): a page in the navigation frame. -->
+                <Frame x:Name="DetailFrame" Grid.Row="1" Visibility="Collapsed" />
+
+                <!-- The settings page, shown when the Settings item of the pane is selected (task 2.47). -->
+                <local:PreferencesPage x:Name="Preferences" Grid.Row="1" Visibility="Collapsed" />
             </Grid>
         </NavigationView>
     </Grid>

@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace StoryArc.Windows.Shell;
 
 /// <summary>
-/// The three Win32 calls the shell needs, each quoted from its Microsoft Learn page. Everything
+/// The Win32 calls the shell needs, each quoted from its Microsoft Learn page. Everything
 /// else goes through the Windows App SDK.
 /// </summary>
 internal static partial class Win32
@@ -31,6 +31,34 @@ internal static partial class Win32
     /// </summary>
     [LibraryImport("user32.dll")]
     internal static partial int ShowCursor([MarshalAs(UnmanagedType.Bool)] bool bShow);
+
+    /// <summary>
+    /// <c>ole32.dll</c> <c>CoWaitForMultipleObjects(DWORD dwFlags, DWORD dwTimeout, ULONG cHandles,
+    /// LPHANDLE pHandles, LPDWORD lpdwindex)</c> (combaseapi.h): waits on handles while pumping COM
+    /// calls, which a plain wait on an STA thread does not.
+    /// </summary>
+    [LibraryImport("ole32.dll")]
+    internal static partial int CoWaitForMultipleObjects(uint dwFlags, uint dwTimeout, uint cHandles, nint[] pHandles, out uint lpdwindex);
+
+    /// <summary>Waits for <paramref name="handle"/> without blocking COM on this thread: <c>CWMO_DEFAULT</c>, <c>INFINITE</c>.</summary>
+    internal static void WaitPumping(WaitHandle handle)
+    {
+        const uint Default = 0;
+        const uint Infinite = 0xFFFFFFFF;
+        var added = false;
+        try
+        {
+            handle.SafeWaitHandle.DangerousAddRef(ref added);
+            _ = CoWaitForMultipleObjects(Default, Infinite, 1, [handle.SafeWaitHandle.DangerousGetHandle()], out _);
+        }
+        finally
+        {
+            if (added)
+            {
+                handle.SafeWaitHandle.DangerousRelease();
+            }
+        }
+    }
 }
 
 /// <summary>

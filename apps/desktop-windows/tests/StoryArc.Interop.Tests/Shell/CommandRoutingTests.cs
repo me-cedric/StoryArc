@@ -27,7 +27,41 @@ public sealed class CommandRoutingTests
     [Fact]
     public void A_command_nothing_answers_yet_is_not_handled()
     {
-        Assert.False(CommandRouting.IsHandled("nextPage", WindowKind.Reader));
+        Assert.False(CommandRouting.IsHandled("bookmarkPage", WindowKind.Reader));
+    }
+
+    [Theory]
+    [InlineData("nextPage")]
+    [InlineData("previousPage")]
+    [InlineData("firstPage")]
+    [InlineData("lastPage")]
+    [InlineData("zoomIn")]
+    [InlineData("singlePage")]
+    public void The_page_commands_are_answered_in_a_reader_and_never_in_the_library(string command)
+    {
+        Assert.True(CommandRouting.IsHandled(command, WindowKind.Reader));
+        Assert.False(CommandRouting.IsHandled(command, WindowKind.Library));
+    }
+
+    [Theory]
+    [InlineData("viewGrid")]
+    [InlineData("goHome")]
+    [InlineData("find")]
+    [InlineData("showDetails")]
+    public void The_library_commands_are_answered_in_the_library_only(string command)
+    {
+        Assert.True(CommandRouting.IsHandled(command, WindowKind.Library));
+        Assert.False(CommandRouting.IsHandled(command, WindowKind.Reader));
+    }
+
+    [Fact]
+    public void Opening_a_file_and_adding_a_folder_are_answered_from_every_window()
+    {
+        foreach (var window in new[] { WindowKind.Library, WindowKind.Reader })
+        {
+            Assert.True(CommandRouting.IsHandled("openFile", window));
+            Assert.True(CommandRouting.IsHandled("addSource", window));
+        }
     }
 
     [Fact]

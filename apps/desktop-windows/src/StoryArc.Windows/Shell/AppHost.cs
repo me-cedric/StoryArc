@@ -1,5 +1,9 @@
+using System.Diagnostics;
+using System.Globalization;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using StoryArc.Interop;
+using StoryArc.Interop.Opening;
 using StoryArc.Interop.Progress;
 using StoryArc.Interop.Settings;
 using StoryArc.Interop.Shell;
@@ -7,19 +11,27 @@ using StoryArc.Interop.Shell;
 namespace StoryArc.Windows.Shell;
 
 /// <summary>
-/// The one place that knows which windows are open (desktop-clients tasks 2.37, 2.38 and 2.41).
-/// It restores the session at launch, opens a reader window per publication, answers the commands
-/// of <see cref="CommandRouting"/>, keeps the session file current, repaints the chrome when the
-/// settings or the system accent change, and quits with the last window. The decisions are in
-/// StoryArc.Interop (<see cref="WindowRegistry{TWindow}"/>, <see cref="SessionRecorder"/>,
-/// <see cref="SettingsStore"/>); this class only calls them and the WinUI window types.
+/// The one place that knows which windows are open (desktop-clients tasks 2.37 to 2.44). It restores
+/// the session at launch, opens what the launch asked for, opens a reader window per publication
+/// through the core, answers the commands of <see cref="CommandRouting"/>, keeps the session file and
+/// the reading positions current, repaints the chrome when the settings or the system accent change,
+/// and quits with the last window. The decisions are in StoryArc.Interop; this class calls them and
+/// the WinUI window types.
 /// </summary>
 internal sealed class AppHost
 {
+    private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(500);
+
     private readonly WindowRegistry<ReaderWindow> _readers = new();
     private readonly List<Window> _windows = [];
+    private readonly HashSet<string> _opening = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, ProgressTarget> _targets = new(StringComparer.OrdinalIgnoreCase);
     private readonly SessionRecorder _session;
-    private readonly ProgressWriter _progress = new(new PendingSeamProgressStore());
+    private readonly ProgressStore? _coreProgress;
+    private readonly CoreProgressStore? _savedPages;
+    private readonly ProgressWriter _progress;
+    private readonly Stopwatch _clock = Stopwatch.StartNew();
+    private readonly DispatcherQueueTimer _timer;
     private MainWindow? _library;
 
     public AppHost(DispatcherQueue dispatcher)
@@ -32,33 +44,83 @@ internal sealed class AppHost
             SessionState.Restore(StateFiles.Read(StateFiles.SessionPath)),
             text => _ = StateFiles.Write(StateFiles.SessionPath, text));
 
-        _readers.LastWindowClosed += () => Application.Current.Exit();
+        // The core's progress store. A store that cannot open leaves positions in memory, named as
+        // failed writes, and the session file still carries each reader's page.
+        try
+        {
+            _coreProgress = ProgressStore.Open(StateFiles.ProgressPath);
+            _savedPages = new CoreProgressStore(_coreProgress, Target, () => DateTimeOffset.Now);
+        }
+        catch (StoryArcException)
+        {
+            _coreProgress = null;
+        }
+
+        _progress = new ProgressWriter((IProgressStore?)_savedPages ?? new UnavailableProgressStore());
+        Library = _coreProgress is null ? null : new LibraryService(dispatcher, _coreProgress);
+
+        _readers.LastWindowClosed += Exit;
         Settings.Changed += _ => Repaint();
         SystemWatcher.Changed += _ => Repaint();
+
+        _timer = dispatcher.CreateTimer();
+        _timer.Interval = TickInterval;
+        _timer.Tick += (sender, args) =>
+        {
+            _ = _progress.Tick(_clock.Elapsed);
+            Library?.Tick();
+        };
     }
 
     public SettingsStore Settings { get; }
 
     public SystemSettingsWatcher SystemWatcher { get; }
 
+    /// <summary>The folder sources and their records; <c>null</c> only when the core's store could not open.</summary>
+    public LibraryService? Library { get; }
+
     /// <summary>
-    /// Opens what the last run left open. A session with no library window still opens one when
-    /// no reader comes back either, so the app never starts with nothing on screen. Whether a
-    /// publication can still be opened is the library's to say once the seam is bound (task 2.1);
-    /// until then every saved reader reopens.
+    /// Opens what the last run left open, then what this launch asked for. A launch for files opens
+    /// their readers without the library in front of them; otherwise a session with no library window
+    /// still opens one when no reader comes back, so the app never starts with nothing on screen. A
+    /// saved reader whose file is gone does not reopen, and the library names it in grey.
     /// </summary>
-    public void Start()
+    public void Start(LaunchRequest launch)
     {
+        Library?.Start();
+        _timer.Start();
+
         var saved = _session.State;
-        var plan = RestorationPlan.From(saved, _ => true);
-        if (saved.Library is not null || plan.Reopen.Count == 0)
+        var plan = RestorationPlan.From(saved, File.Exists);
+        if (!launch.OpensFiles && (saved.Library is not null || plan.Reopen.Count == 0))
         {
             OpenLibrary();
         }
 
+        foreach (var skipped in plan.Skipped)
+        {
+            _session.ReaderClosed(skipped);
+            Library?.Refuse(new Refusal(Path.GetFileName(skipped), Format("library_folderUnavailable___", "“{0}” can no longer be read", Path.GetFileName(skipped))));
+        }
+
         foreach (var reader in plan.Reopen)
         {
-            OpenReader(reader.PublicationId, reader);
+            _ = OpenReaderAsync(reader.PublicationId, reader);
+        }
+
+        OpenPaths(launch.Paths, launch.Origin);
+    }
+
+    /// <summary>A later launch redirected here: open what it carries, or bring the app forward.</summary>
+    public void Activate(LaunchRequest launch)
+    {
+        if (launch.OpensFiles)
+        {
+            OpenPaths(launch.Paths, launch.Origin);
+        }
+        else
+        {
+            OpenLibrary().Activate();
         }
     }
 
@@ -80,28 +142,102 @@ internal sealed class AppHost
         return _library;
     }
 
-    /// <summary>A second open of a publication finds its window and brings it to the front.</summary>
-    public ReaderWindow OpenReader(string publicationId, ReaderWindowState? restored = null)
+    /// <summary>
+    /// Opens files from a drop, the command line, Explorer, the Jump List or a picker. Each supported
+    /// file opens in its own reader window up to the window limit; a folder is offered as a library;
+    /// everything else is refused by name in the library's What couldn't be opened list.
+    /// </summary>
+    public void OpenPaths(IEnumerable<string> paths, OpenOrigin origin)
     {
-        if (_readers.ReaderFor(publicationId) is { } existing)
+        var plan = OpenRequest.Plan(paths, File.Exists, Directory.Exists);
+        if (plan.IsEmpty)
         {
-            existing.Activate();
-            return existing;
+            return;
         }
 
-        var window = new ReaderWindow(this, publicationId, restored);
-        _windows.Add(window);
-        _readers.ReaderOpened(publicationId, window);
-        window.Closed += (sender, args) => ReaderClosed(window);
-        Repaint();
-        window.Activate();
-        _session.ReaderChanged(window.State());
-        return window;
+        foreach (var refusal in plan.Refused)
+        {
+            Library?.Refuse(new Refusal(refusal.Name, ReasonFor(refusal)));
+        }
+
+        foreach (var path in plan.Overflow)
+        {
+            Library?.Refuse(new Refusal(
+                Path.GetFileName(path),
+                Format("open_overflow___", "Not opened: StoryArc opens {0} files at once. Open it from your library.", OpenRequest.WindowLimit)));
+        }
+
+        foreach (var path in plan.Open)
+        {
+            _ = OpenReaderAsync(path, restored: null);
+        }
+
+        if (plan.Folders.Count > 0 || (plan.Open.Count == 0 && (plan.Refused.Count > 0 || plan.Overflow.Count > 0)))
+        {
+            var library = OpenLibrary();
+            foreach (var folder in plan.Folders)
+            {
+                _ = library.OfferFolderAsync(folder);
+            }
+        }
+
+        EnsureAWindow();
+    }
+
+    /// <summary>
+    /// Opens a publication in its reader window through the core, off the interface thread. A second
+    /// open of a publication brings its window to the front. A refusal is named in the library.
+    /// </summary>
+    public async Task OpenReaderAsync(string path, ReaderWindowState? restored)
+    {
+        if (_readers.ReaderFor(path) is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+
+        if (!_opening.Add(path))
+        {
+            return;
+        }
+
+        try
+        {
+            var opened = await OpenedPublication.OpenAsync(path);
+            var start = restored is { Page: > 0 } ? restored.Page - 1 : _savedPages?.SavedPage(opened.Record.Identity) ?? 0;
+            _targets[path] = new ProgressTarget(opened.Record.Identity, opened.PageCount);
+            var window = new ReaderWindow(this, opened, restored, start);
+            _windows.Add(window);
+            _readers.ReaderOpened(path, window);
+            window.Closed += (sender, args) => ReaderClosed(window);
+            Repaint();
+            window.Activate();
+            _session.ReaderChanged(window.State());
+            Library?.Opened(path, opened.Record.DisplayTitle);
+        }
+        catch (StoryArcException error)
+        {
+            Library?.Refuse(new Refusal(Path.GetFileName(path), ReasonFor(path, error)));
+            OpenLibrary();
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // A record the core wrote and this build cannot read: a defect, named rather than a crash.
+            Library?.Refuse(new Refusal(Path.GetFileName(path), Strings.Get("library_skipped_reason_unknown", "it could not be read")));
+            OpenLibrary();
+        }
+        finally
+        {
+            _opening.Remove(path);
+        }
     }
 
     public void LibraryMoved(LibraryWindowState state) => _session.LibraryChanged(state);
 
     public void ReaderMoved(ReaderWindowState state) => _session.ReaderChanged(state);
+
+    /// <summary>A page turn: written within the cadence, never once per frame.</summary>
+    public void PageTurned(string publicationId, int page) => _progress.Turned(publicationId, page, _clock.Elapsed);
 
     /// <summary>The command of the menu or the shortcut, asked from <paramref name="window"/>.</summary>
     public void Invoke(string commandId, Window window)
@@ -119,6 +255,26 @@ internal sealed class AppHost
                 break;
             case "fullScreen" when window is ReaderWindow reader:
                 reader.ToggleFullScreen();
+                break;
+            case "openFile":
+                _ = PickFileAsync(window);
+                break;
+            case "addSource":
+                _ = OpenLibrary().PickFolderAsync(sourceToReplace: null);
+                break;
+            case "refreshSources":
+                Library?.RefreshAll();
+                break;
+            default:
+                if (window is ReaderWindow pages)
+                {
+                    pages.Run(commandId);
+                }
+                else if (window is MainWindow library)
+                {
+                    library.Run(commandId);
+                }
+
                 break;
         }
     }
@@ -158,6 +314,54 @@ internal sealed class AppHost
         AccentApplier.Apply(ChromeAccent.Resolve(settings.Accent, SystemWatcher.SystemAccent()), _windows);
     }
 
+    /// <summary>The sentence of a refusal the plan made before asking the core.</summary>
+    internal static string ReasonFor(OpenRefusal refusal) => refusal.Reason switch
+    {
+        RefusalReason.Cb7 => Strings.Get("library_cell_cannotOpen_cb7", "This is a CB7 file, which StoryArc does not read."),
+        RefusalReason.NotAFormat => Format("library_skipped_reason_unsupported___", "{0} is not a format StoryArc reads", refusal.Name),
+        _ => Format("library_folderUnavailable___", "“{0}” can no longer be read", refusal.Name),
+    };
+
+    /// <summary>The sentence of a refusal the core made: its own words for a format or a codec, the catalogue's for the rest.</summary>
+    internal static string ReasonFor(string path, StoryArcException error)
+    {
+        var name = Path.GetFileName(path);
+        return error.Status switch
+        {
+            StoryArcStatus.NotFound => Format("library_folderUnavailable___", "“{0}” can no longer be read", name),
+            StoryArcStatus.Unreadable => Format("open_in_damaged___", "{0} could not be read. It may be damaged.", name),
+            _ => error.CoreMessage ?? Strings.Get("library_skipped_reason_unknown", "it could not be read"),
+        };
+    }
+
+    private static string Format(string key, string fallback, object argument) =>
+        string.Format(CultureInfo.CurrentCulture, Strings.Get(key, fallback), argument);
+
+    private ProgressTarget? Target(string publicationId) => _targets.GetValueOrDefault(publicationId);
+
+    private async Task PickFileAsync(Window owner)
+    {
+        var picker = new Microsoft.Windows.Storage.Pickers.FileOpenPicker(owner.AppWindow.Id);
+        foreach (var extension in OpenRequest.Associated)
+        {
+            picker.FileTypeFilter.Add(extension);
+        }
+
+        var picked = await picker.PickSingleFileAsync();
+        if (picked is not null)
+        {
+            OpenPaths([picked.Path], OpenOrigin.Picker);
+        }
+    }
+
+    private void EnsureAWindow()
+    {
+        if (_windows.Count == 0 && _opening.Count == 0)
+        {
+            OpenLibrary();
+        }
+    }
+
     private void LibraryClosed()
     {
         _windows.Remove(_library!);
@@ -169,8 +373,25 @@ internal sealed class AppHost
     private void ReaderClosed(ReaderWindow window)
     {
         _ = _progress.Flush(window.PublicationId);
+        _targets.Remove(window.PublicationId);
         _windows.Remove(window);
         _session.ReaderClosed(window.PublicationId);
         _readers.ReaderClosed(window.PublicationId);
+    }
+
+    private void Exit()
+    {
+        _ = _progress.FlushAll();
+        _timer.Stop();
+        Library?.Dispose();
+        _coreProgress?.Dispose();
+        Application.Current.Exit();
+    }
+
+    /// <summary>Where positions go when the core's store could not open: every write fails, by name, and stays in memory.</summary>
+    private sealed class UnavailableProgressStore : IProgressStore
+    {
+        public void Write(string publicationId, int page) =>
+            throw new IOException("The progress store could not be opened.");
     }
 }

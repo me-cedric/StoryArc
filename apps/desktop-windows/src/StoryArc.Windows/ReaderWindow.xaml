@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<!-- One reader window per publication (desktop-clients task 2.37). The page itself is drawn by the
-     reader view of task 2.40; until then the window shows where it is: the publication and its page. -->
+<!-- One reader window per publication (desktop-clients tasks 2.37 and 2.40). The page view is a
+     ScrollViewer that zooms and pans, over one page or two facing pages that the core decodes.
+     The artwork is the interface: the chrome is the title bar, the menu and one page label, and
+     nothing tints the page. A page still decoding is an empty quiet frame, never a spinner. -->
 <Window
     x:Class="StoryArc.Windows.ReaderWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -10,11 +12,19 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="Root" PointerMoved="OnPointerMoved" KeyDown="OnKeyDown">
+    <Grid
+        x:Name="Root"
+        AllowDrop="True"
+        DragOver="OnDragOver"
+        Drop="OnDrop"
+        PointerMoved="OnPointerMoved"
+        PointerExited="OnPointerExited"
+        PreviewKeyDown="OnKeyDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <TitleBar x:Name="AppTitleBar">
@@ -25,12 +35,75 @@
 
         <local:AppMenu x:Name="Menu" Grid.Row="1" />
 
-        <TextBlock
-            x:Name="PageText"
+        <!-- Microsoft.UI.Xaml.Controls.ScrollViewer: ZoomMode gives pinch, Control and the wheel, and
+             the zoom keys go through ChangeView. The limits are PageZoom.Floor and PageZoom.Ceiling. -->
+        <ScrollViewer
+            x:Name="PageScroller"
             Grid.Row="2"
+            ZoomMode="Enabled"
+            MinZoomFactor="1"
+            MaxZoomFactor="6"
+            HorizontalScrollMode="Auto"
+            VerticalScrollMode="Auto"
+            HorizontalScrollBarVisibility="Auto"
+            VerticalScrollBarVisibility="Auto"
+            IsTabStop="True"
+            SizeChanged="OnPageAreaSizeChanged"
+            ViewChanged="OnViewChanged"
+            DoubleTapped="OnDoubleTapped"
+            AutomationProperties.AutomationId="ReaderPage">
+            <Grid x:Name="PageFrame" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel x:Name="Spread" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Grid x:Name="FirstSlot">
+                        <Border x:Name="FirstPlaceholder" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            <TextBlock
+                                x:Name="FirstReason"
+                                Margin="24"
+                                MaxWidth="320"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                        <Image x:Name="FirstPage" Stretch="Uniform" />
+                    </Grid>
+                    <Grid x:Name="SecondSlot" Visibility="Collapsed">
+                        <Border x:Name="SecondPlaceholder" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            <TextBlock
+                                x:Name="SecondReason"
+                                Margin="24"
+                                MaxWidth="320"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                TextAlignment="Center"
+                                TextWrapping="Wrap"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </Border>
+                        <Image x:Name="SecondPage" Stretch="Uniform" />
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- The one line of chrome under the page: where the reader is, and in grey what is unavailable. -->
+        <StackPanel
+            x:Name="PageChrome"
+            Grid.Row="3"
+            Orientation="Horizontal"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            Style="{ThemeResource TitleTextBlockStyle}"
-            AutomationProperties.AutomationId="ReaderPage" />
+            Spacing="16"
+            Padding="8">
+            <TextBlock
+                x:Name="PageLabel"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                AutomationProperties.AutomationId="ReaderPageLabel"
+                AutomationProperties.LiveSetting="Polite" />
+            <TextBlock
+                x:Name="UnavailableText"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Visibility="Collapsed" />
+        </StackPanel>
     </Grid>
 </Window>

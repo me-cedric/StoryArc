@@ -14,9 +14,16 @@ public partial class App : Application
         InitializeComponent();
     }
 
+    /// <summary>
+    /// Starts the host with what this process was launched for (<see cref="Program.FirstActivation"/>):
+    /// a file from Explorer or the command line opens its reader without bringing the library in
+    /// front of it. A launch that a later process redirects here arrives through <see cref="Program.Redirected"/>.
+    /// </summary>
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _host = new AppHost(DispatcherQueue.GetForCurrentThread());
-        _host.Start();
+        var host = new AppHost(DispatcherQueue.GetForCurrentThread());
+        _host = host;
+        host.Start(Activations.Read(Program.FirstActivation, Environment.GetCommandLineArgs()));
+        Program.Redirected += redirected => host.Activate(Activations.Read(redirected, commandLine: null));
     }
 }
