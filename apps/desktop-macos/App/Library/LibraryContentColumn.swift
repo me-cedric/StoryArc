@@ -132,6 +132,7 @@ struct LibraryNotices: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
+            SkippedNotice(library: library)
             ForEach(library.sources.filter(\.isGrey)) { source in
                 notice(Self.sentence(for: source)) {
                     if source.state == .needsAccess {
@@ -157,8 +158,13 @@ struct LibraryNotices: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, library.sources.contains(where: \.isGrey) || !library.refused.isEmpty
-                 || !library.couldNotRestore.isEmpty || !library.listedForLater.isEmpty ? 8 : 0)
+        .padding(.top, hasAny ? 8 : 0)
+    }
+
+    private var hasAny: Bool {
+        library.sources.contains(where: \.isGrey) || !library.refused.isEmpty
+            || !library.couldNotRestore.isEmpty || !library.listedForLater.isEmpty
+            || library.model.skipped.notice != .nothing
     }
 
     private static func sentence(for source: FolderSource) -> LocalizedStringKey {

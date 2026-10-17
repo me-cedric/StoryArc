@@ -1,3 +1,4 @@
+import Formats
 import Foundation
 import Testing
 
@@ -26,6 +27,12 @@ struct LocalizationTests {
         "desktop.reader.pageLabel %lld %lld", "desktop.detail.continue %lld %lld",
         "desktop.accent", "desktop.accent.brand", "desktop.accent.system",
         "desktop.reading.clickZones",
+        "desktop.skipped %lld", "desktop.skipped.one %@", "desktop.skipped.show", "desktop.skipped.dismiss",
+        "desktop.skipped.list", "desktop.skipped.done",
+    ] + [
+        SkipReason.unsupportedFormat("CB7"), .notThere, .formatNotRecognised, .archivePasswordProtected,
+        .archiveUnreadable, .pdfUnopenable, .contentProtected, .unknown,
+    ].map(SkippedWords.key(for:)) + [
     ]
 
     @Test("Each key is translated in each language", arguments: languages)
