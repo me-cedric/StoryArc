@@ -3074,6 +3074,10 @@
     <value>Passwörter werden im Schlüsselbund Ihres Desktops aufbewahrt.</value>
     <comment>secrets.service</comment>
   </data>
+  <data name="secrets_unavailable" xml:space="preserve">
+    <value>In dieser Sitzung gibt es keinen Schlüsselbund: Das Passwort bleibt im Speicher, bis StoryArc beendet wird. Installieren Sie gnome-keyring oder KWallet, um es zu behalten.</value>
+    <comment>secrets.unavailable</comment>
+  </data>
   <data name="settings_about" xml:space="preserve">
     <value>Über</value>
     <comment>settings.about</comment>

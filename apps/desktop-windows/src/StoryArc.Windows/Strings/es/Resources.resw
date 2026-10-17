@@ -3074,6 +3074,10 @@
     <value>Las contraseñas se guardan en el llavero de tu escritorio.</value>
     <comment>secrets.service</comment>
   </data>
+  <data name="secrets_unavailable" xml:space="preserve">
+    <value>Esta sesión no tiene un llavero: la contraseña se guarda en memoria hasta que StoryArc se cierra. Instala gnome-keyring o KWallet para conservarla.</value>
+    <comment>secrets.unavailable</comment>
+  </data>
   <data name="settings_about" xml:space="preserve">
     <value>Acerca de</value>
     <comment>settings.about</comment>

@@ -2833,6 +2833,35 @@
         }
       }
     },
+    "secrets.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In dieser Sitzung gibt es keinen Schlüsselbund: Das Passwort bleibt im Speicher, bis StoryArc beendet wird. Installieren Sie gnome-keyring oder KWallet, um es zu behalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Secret Service is running, so passwords are kept until StoryArc quits. Start GNOME Keyring, KWallet, KeePassXC or oo7-daemon to keep them."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta sesión no tiene un llavero: la contraseña se guarda en memoria hasta que StoryArc se cierra. Instala gnome-keyring o KWallet para conservarla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun trousseau n’est disponible dans cette session : le mot de passe est conservé en mémoire jusqu’à la fermeture de StoryArc. Installez gnome-keyring ou KWallet pour le garder."
+          }
+        }
+      }
+    },
     "settings.accent": {
       "extractionState": "manual",
       "localizations": {

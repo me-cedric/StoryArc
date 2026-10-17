@@ -3074,6 +3074,10 @@
     <value>Passwords are kept in your desktop's keyring.</value>
     <comment>secrets.service</comment>
   </data>
+  <data name="secrets_unavailable" xml:space="preserve">
+    <value>No Secret Service is running, so passwords are kept until StoryArc quits. Start GNOME Keyring, KWallet, KeePassXC or oo7-daemon to keep them.</value>
+    <comment>secrets.unavailable</comment>
+  </data>
   <data name="settings_about" xml:space="preserve">
     <value>About</value>
     <comment>settings.about</comment>

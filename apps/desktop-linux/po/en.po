@@ -2439,6 +2439,9 @@ msgstr "Passwords are kept in this app's encrypted keyring, through the desktop'
 msgid "secrets.service"
 msgstr "Passwords are kept in your desktop's keyring."
 
+msgid "secrets.unavailable"
+msgstr "No Secret Service is running, so passwords are kept until StoryArc quits. Start GNOME Keyring, KWallet, KeePassXC or oo7-daemon to keep them."
+
 msgid "settings.about"
 msgstr "About"
 

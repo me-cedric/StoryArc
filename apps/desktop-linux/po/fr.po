@@ -2439,6 +2439,9 @@ msgstr "Les mots de passe sont conservés dans le trousseau chiffré de cette ap
 msgid "secrets.service"
 msgstr "Les mots de passe sont conservés dans le trousseau de votre bureau."
 
+msgid "secrets.unavailable"
+msgstr "Aucun trousseau n’est disponible dans cette session : le mot de passe est conservé en mémoire jusqu’à la fermeture de StoryArc. Installez gnome-keyring ou KWallet pour le garder."
+
 msgid "settings.about"
 msgstr "À propos"
 

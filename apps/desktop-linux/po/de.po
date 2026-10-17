@@ -2439,6 +2439,9 @@ msgstr "Passwörter werden im verschlüsselten Schlüsselbund dieser App aufbewa
 msgid "secrets.service"
 msgstr "Passwörter werden im Schlüsselbund Ihres Desktops aufbewahrt."
 
+msgid "secrets.unavailable"
+msgstr "In dieser Sitzung gibt es keinen Schlüsselbund: Das Passwort bleibt im Speicher, bis StoryArc beendet wird. Installieren Sie gnome-keyring oder KWallet, um es zu behalten."
+
 msgid "settings.about"
 msgstr "Über"
 

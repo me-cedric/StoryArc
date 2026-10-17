@@ -3074,6 +3074,10 @@
     <value>Les mots de passe sont conservés dans le trousseau de votre bureau.</value>
     <comment>secrets.service</comment>
   </data>
+  <data name="secrets_unavailable" xml:space="preserve">
+    <value>Aucun trousseau n’est disponible dans cette session : le mot de passe est conservé en mémoire jusqu’à la fermeture de StoryArc. Installez gnome-keyring ou KWallet pour le garder.</value>
+    <comment>secrets.unavailable</comment>
+  </data>
   <data name="settings_about" xml:space="preserve">
     <value>À propos</value>
     <comment>settings.about</comment>
