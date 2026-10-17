@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using StoryArc.Interop;
+using StoryArc.Interop.Data;
 using StoryArc.Interop.Network;
 using StoryArc.Interop.Tests.Support;
 using Xunit.Abstractions;

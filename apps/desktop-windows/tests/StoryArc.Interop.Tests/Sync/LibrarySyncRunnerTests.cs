@@ -40,7 +40,7 @@ public sealed class LibrarySyncRunnerTests
         var calls = 0;
         var runner = new LibrarySyncRunner(() => true, () => "{}", _ =>
         {
-            _ = Interlocked.Increment(ref calls);
+            Interlocked.Increment(ref calls);
             slow.Wait(TimeSpan.FromSeconds(30));
             return Empty;
         }, _ => { });
@@ -60,7 +60,7 @@ public sealed class LibrarySyncRunnerTests
         var calls = 0;
         var runner = new LibrarySyncRunner(() => true, () => "{}", _ =>
         {
-            _ = Interlocked.Increment(ref calls);
+            Interlocked.Increment(ref calls);
             return Empty;
         }, _ => { });
 
@@ -76,7 +76,7 @@ public sealed class LibrarySyncRunnerTests
         var calls = 0;
         var runner = new LibrarySyncRunner(() => true, () => "{}", _ =>
         {
-            _ = Interlocked.Increment(ref calls);
+            Interlocked.Increment(ref calls);
             return Empty;
         }, _ => { });
         runner.PositionChanged();
