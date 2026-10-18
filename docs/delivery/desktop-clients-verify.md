@@ -46,10 +46,10 @@ today because the feature is not there:
   chapter marks, the headphones pause, the compact bar and the page's chapter list are built. What
   fails: the bundled typefaces, theme following appearance and the presets as swatches, progress in
   words, a way back after an internal link, and parts of read aloud's controls and the full player.
-- **The Mac, wave 3** (`desktop-conformance-macos-wave3.md`, 1 of 190 after 2026-10-18's work, 18
-  before): a source window now hosts the phones' browser for OPDS, Kavita and shares, sources
-  rename and reorder, and an *All Shelves* window lists server collections and lists. What fails:
-  a library search scoped to one server.
+- **The Mac, wave 3** (`desktop-conformance-macos-wave3.md`, none of 190 after 2026-10-18's work,
+  18 before): a source window now hosts the phones' browser for OPDS, Kavita and shares, sources
+  rename and reorder, a search scoped to a Kavita server offers to ask it, and an *All Shelves*
+  window lists server collections and lists.
 - **Linux, wave 2** (`desktop-conformance-linux-wave2.md`, 3 of 484), named in that record.
 - **Windows** has walked no screen: every Windows scenario is *wired, not proved* until a desktop.
 

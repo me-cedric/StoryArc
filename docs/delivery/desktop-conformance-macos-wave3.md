@@ -16,8 +16,9 @@ runs again. For `desktop-experience`, only the requirements the wave 3 tasks nam
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 60, seen 31, fail 1, later 23, n/a 4, not walked 71, of 190 scenarios (2026-10-18: the source
-window, source rename and order, and the *All Shelves* window turned 17 failures; 18 before).
+Totals: pass 60, seen 32, fail 0, later 23, n/a 4, not walked 71, of 190 scenarios (2026-10-18: the source
+window, source rename and order, the scoped server search and the *All Shelves* window turned all 18
+failures).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as
 in wave 2: the fixture comics are copied into the container and scanned as the app's one
@@ -59,7 +60,7 @@ collections and reading lists (`c633edfd9`).
 
 ## The failures, in one list
 
-- `kavita-server` · *Searching from the library, scoped to one server*: The Mac's library search reads the library alone; a server is searched only from its source window.
+None since 2026-10-18. The 18 the walk first found were screens the phone had and the Mac did not.
 
 **The 3.15a gaps that are not failures.** A bulk download states its count but not its size,
 because a catalogue entry gives no size before its download starts; the Downloads page counts
@@ -143,7 +144,7 @@ Source: `docs/openspec/specs/kavita-server/spec.md`.
 | Progress synchronisation | Progress pulled | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Progress synchronisation | Marking read state | not walked | The Mac's bulk mark writes the local store only; the push to Kavita is not wired on the Mac. |
 | Server-side search | Searching a Kavita source | not walked | the source window (`SourceWindow`, from a row's *Browse* in Preferences > Sources) hosts StoryArcKit's `KavitaBrowserView`, whose search asks the server. |
-| Server-side search | Searching from the library, scoped to one server | **fail** | As above. |
+| Server-side search | Searching from the library, scoped to one server | seen | With the library scoped to a Kavita server, the search results carry StoryArcKit's `KavitaServerSearchOffer`, which opens the server's source window on the same term; no walk drives it. |
 | Server-side search | Searching while the server is unreachable | not walked | As above; the browser's unreachable state is StoryArcKit's. |
 
 ## opds-catalog

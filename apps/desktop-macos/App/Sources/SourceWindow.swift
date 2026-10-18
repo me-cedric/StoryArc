@@ -9,19 +9,30 @@ import SwiftUI
 /// publication opened from it reads in a reader window like any other.
 struct SourceWindow: View {
     static let id = "source"
+    /// A library search handed to the next window opened on a source, read once when it opens.
+    static var searches: [UUID: String] = [:]
 
     let library: MacLibrary
     let sourceID: UUID
     @Environment(\.openWindow) private var openWindow
     @State private var isRenaming = false
     @State private var name = ""
+    @State private var searching: String
+
+    init(library: MacLibrary, sourceID: UUID) {
+        self.library = library
+        self.sourceID = sourceID
+        _searching = State(initialValue: Self.searches[sourceID] ?? "")
+    }
 
     private var source: Source? { library.model.registry.sources.first { $0.id == sourceID } }
 
     var body: some View {
         if let source {
             NavigationStack {
-                SourceBrowser(source: source, model: library.model, onOpen: open) {
+                SourceBrowser(
+                    source: source, model: library.model, onOpen: open, searching: searching
+                ) {
                     await library.servers.refresh(sourceID)
                 }
             }
@@ -40,6 +51,7 @@ struct SourceWindow: View {
                 SourceRenameSheet(name: $name) { library.model.rename(source, to: $0) }
             }
             .frame(minWidth: 640, minHeight: 480)
+            .onAppear { Self.searches[sourceID] = nil }
         } else {
             ContentUnavailableView("desktop.source.gone", systemImage: "questionmark.folder")
         }

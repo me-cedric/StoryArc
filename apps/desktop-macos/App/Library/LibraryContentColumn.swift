@@ -7,6 +7,7 @@ import SwiftUI
 /// destination the reader is on.
 struct LibraryContentColumn: View {
     @Environment(\.theme) private var theme
+    @Environment(\.openWindow) private var openWindow
 
     let library: MacLibrary
     let search: SearchState
@@ -54,6 +55,13 @@ struct LibraryContentColumn: View {
 
     @ViewBuilder
     private var results: some View {
+        // `kavita-server`, *Searching from the library, scoped to one server*: the local matches, and one action that
+        // puts the same query to that server in its own window.
+        KavitaServerSearchOffer(registry: library.model.registry, query: library.model.query) { server in
+            SourceWindow.searches[server.id] = search.text
+            openWindow(id: SourceWindow.id, value: server.id)
+        }
+        .padding(.top, StoryArcSpace.sm)
         if library.model.visible.isEmpty {
             ContentUnavailableView.search(text: search.text)
         } else {
