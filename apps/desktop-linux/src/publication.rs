@@ -21,6 +21,15 @@ use crate::reading::chapters::{self, Marker};
 /// a reader uses, and about 36 MB for the tallest page.
 pub const MAX_DECODE_EDGE: u32 = 3072;
 
+/// Device pixels per point a PDF page renders at: the view's scale factor, raised so a
+/// page whose longest edge is `page_longest` points fills a view whose longest edge is
+/// `view_longest` logical pixels. The decode's edge cap still bounds it. Without this the
+/// core's one pixel a point was scaled up and blurred on a large or HiDPI window.
+pub fn pdf_scale(page_longest: f32, view_longest: i32, scale_factor: i32) -> f32 {
+    let fill = view_longest.max(0) as f32 / page_longest.max(1.0);
+    scale_factor.max(1) as f32 * fill.max(1.0)
+}
+
 #[derive(Clone)]
 pub struct Publication {
     /// The identity the window model keys on: the path it was opened from.
@@ -165,12 +174,15 @@ impl Publication {
     }
 
     /// Decodes one page to RGBA, at most `edge` on its longest edge, with the reader's
-    /// adjustments applied. Blocks: call it from a worker. The reason names the codec when
+    /// adjustments applied. `view` is the longest edge of the view in logical pixels and
+    /// its scale factor: a PDF page renders to fill it (`pdf_scale`); a comic page is
+    /// decoded as stored. Blocks: call it from a worker. The reason names the codec when
     /// the bytes say which.
     pub fn decode_adjusted(
         &self,
         index: usize,
         edge: u32,
+        view: (i32, i32),
         adjustments: &ImageAdjustments,
     ) -> Result<DecodedPage, String> {
         let open = self
@@ -181,9 +193,14 @@ impl Publication {
             Container::Comic(open) => open
                 .decode_page(index, Some(edge))
                 .map_err(|error| error.to_string())?,
-            Container::Pdf(document) => document
-                .render_page(u32::try_from(index).unwrap_or(u32::MAX), Some(edge))
-                .map_err(|error| error.to_string())?,
+            Container::Pdf(document) => {
+                let index = u32::try_from(index).unwrap_or(u32::MAX);
+                let (width, height) = document.page_size(index).unwrap_or((1.0, 1.0));
+                let scale = pdf_scale(width.max(height), view.0, view.1);
+                document
+                    .render_page_scaled(index, scale, Some(edge))
+                    .map_err(|error| error.to_string())?
+            }
         };
         Ok(if adjustments.is_neutral() {
             page
@@ -195,7 +212,7 @@ impl Publication {
     /// Decodes one page to RGBA, at most [`MAX_DECODE_EDGE`] on its longest edge.
     #[cfg(test)]
     pub fn decode(&self, index: usize) -> Result<DecodedPage, String> {
-        self.decode_adjusted(index, MAX_DECODE_EDGE, &ImageAdjustments::default())
+        self.decode_adjusted(index, MAX_DECODE_EDGE, (0, 1), &ImageAdjustments::default())
     }
 
     /// Every page's shape from its header, without decoding: what continuous scroll
@@ -322,6 +339,28 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn a_scale_of_two_asks_the_pdf_for_twice_the_pixels() {
+        assert_eq!(pdf_scale(792.0, 0, 1), 1.0);
+        assert_eq!(pdf_scale(792.0, 0, 2), 2.0);
+        assert_eq!(pdf_scale(792.0, 1584, 1), 2.0, "a large window fills");
+        assert_eq!(
+            pdf_scale(792.0, 400, 2),
+            2.0,
+            "never under the scale factor"
+        );
+        let Some(book) = pdf("text-pages.pdf") else {
+            return;
+        };
+        let neutral = ImageAdjustments::default();
+        let at = |edge, view| book.decode_adjusted(0, edge, view, &neutral).unwrap();
+        let one = at(MAX_DECODE_EDGE, (0, 1));
+        let two = at(MAX_DECODE_EDGE, (0, 2));
+        assert_eq!((one.width, one.height), (612, 792));
+        assert_eq!((two.width, two.height), (1224, 1584));
+        assert_eq!(at(1000, (0, 2)).height, 1000, "the edge cap holds");
+    }
+
+    #[test]
     fn the_text_pdf_reads_as_the_phones_read_it_at_the_window() {
         let Some(book) = pdf("text-pages.pdf") else {
             return;
@@ -433,7 +472,9 @@ pub(crate) mod tests {
             is_greyscale: true,
             ..ImageAdjustments::default()
         };
-        let page = publication.decode_adjusted(0, 256, &grey).expect("decodes");
+        let page = publication
+            .decode_adjusted(0, 256, (0, 1), &grey)
+            .expect("decodes");
         assert!(page.width.max(page.height) <= 256);
         assert!(
             page.rgba
