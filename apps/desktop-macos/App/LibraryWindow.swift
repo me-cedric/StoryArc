@@ -271,13 +271,16 @@ private struct NewShelfMenu: View {
     }
 }
 
-/// Opens every shelf, the servers' included, in a window of its own.
+/// Opens every shelf, the servers' included, in a window of its own. The label fills a row's height: a plain button
+/// is as tall as its text, which the CI runner's macOS draws at 16 points, under the audit's 20-point floor.
 private struct AllShelvesButton: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Button { openWindow(id: AllShelvesWindow.id) } label: {
             Label("desktop.shelves.all", systemImage: "square.stack")
+                .frame(maxWidth: .infinity, minHeight: 24, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
