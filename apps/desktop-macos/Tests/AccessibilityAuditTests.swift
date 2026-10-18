@@ -20,7 +20,11 @@ extension WindowWalks {
                 MacSettings.shared.textSize = size
                 try await MacCatalogue.walk(library: library, reading: reading) { screen, window in
                     let name = size == .default ? screen : "\(screen) (largest)"
-                    if AccessibilityAudit.controls(in: window).isEmpty, !MacCatalogue.chromeless.contains(screen) {
+                    // The tree can lag a screen's first draw (CI's first web view of a run did): wait for it.
+                    let read = await Walk.until(.seconds(5)) {
+                        AccessibilityAudit.controls(in: window).isEmpty ? nil : true
+                    }
+                    if read == nil, !MacCatalogue.chromeless.contains(screen) {
                         empty.append(name)
                     }
                     findings += AccessibilityAudit.findings(in: window, screen: name)

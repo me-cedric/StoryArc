@@ -27,7 +27,7 @@ struct StoryArcMacApp: App {
         // (`RestorationPlan`), so a window whose publication is gone is named, not reopened.
         WindowGroup(for: ReaderTarget.self) { $target in
             if let target {
-                ReaderWindow(target: target, library: library)
+                ReaderRoot(target: target, library: library)
                     .macChrome()
             }
         }

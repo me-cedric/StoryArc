@@ -38,6 +38,12 @@ final class ReaderState {
     /// Set when a turn went past the last page: *Reaching the end*.
     var isAtEnd = false
     private(set) var markers: [ChapterMarker] = []
+    /// The text layer of a PDF that has one, or `nil`: a scan and a comic have no text controls.
+    private(set) var pdfText: MacPdfText?
+    /// A press-and-drag on a PDF that has no text: told once that the file is images of pages.
+    var saysThereIsNoText = false
+    /// Words a selection asked to search for; the chrome's search takes them and clears this.
+    var pdfSearchRequest: String?
 
     init(target: ReaderTarget, publication: Publication, progress: ProgressStore?,
          preferences: ReaderPreferences = ReaderPreferences()) {
@@ -180,11 +186,17 @@ final class ReaderState {
 
     // MARK: - Chapters
 
-    /// Reads the archive's chapter markers once, off the main actor. A PDF's outline is read
-    /// by `ReaderFeature` internally and is not reachable from here, so a PDF has none yet.
+    /// Reads the archive's chapter markers once, off the main actor. A PDF's text layer is
+    /// opened here too, and its outline is its markers (task 4.6).
     func loadMarkers() async {
-        guard model.publication.format != .pdf else { return }
         let url = target.url
+        guard model.publication.format != .pdf else {
+            pdfText = MacPdfText.open(url: url, publication: model.publication)
+            await pdfText?.load()
+            let outline = pdfText?.outline ?? []
+            markers = outline.compactMap { item in item.pageIndex.map { ChapterMarker(index: $0, title: item.title) } }
+            return
+        }
         let found = await Task.detached(priority: .utility) { () -> ([Int], [Int: String]) in
             guard let archive = try? await ComicArchiveOpener.open(fileAt: url) else { return ([], [:]) }
             return (archive.chapterStartIndices, archive.chapterTitles)

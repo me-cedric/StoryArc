@@ -11,10 +11,15 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
-- **Desktop clients, wave 4, the core.** The shared Rust core builds the Readium manifest and the positions list
-  the desktop EPUB bundle takes, with the position numbers iOS and Android show, and reads PDF through PDFium on
-  one thread over ranged reads: pages, text, search and the outline, the first page of a large file without the
-  rest of it. Fifteen new seam calls for the Windows app.
+- **Desktop clients, wave 4.** EPUB, PDF, audio and speech reach the desktops. The shared Rust core builds
+  the Readium manifest and positions the EPUB bundle takes, with the position numbers iOS and Android show,
+  and reads PDF through PDFium on one thread over ranged reads. Each desktop hosts the pinned renderer in its
+  own web view on the app's own scheme with zero network arrivals proved by an egress test, reads PDF with
+  selection, search and the outline, plays audiobooks with the system's media keys and Now Playing or MPRIS or
+  the transport controls, and reads aloud with the system voices, absent where none exists. The Mac has 238
+  tests and a machine accessibility audit over 23 screens; Linux 291 crate tests in the Ubuntu container with
+  headless walks; Windows compiles on CI with 458 interop tests on the Linux and macOS runners. The licence
+  notices now cover the Rust crates, the .NET packages, PDFium and libarchive, and SECURITY.md names PDF parsing.
 - **Desktop clients, wave 3.** Sources, secrets, sync and downloads reach the desktops. The Mac adds
   shares, catalogues and Kavita servers with Bonjour discovery and the login keychain, holds downloads on
   metered links and pauses them at quit, syncs at start and quit within five seconds, exports a diagnostic

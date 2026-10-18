@@ -148,7 +148,7 @@ compile the Windows one. `paths::StorageLocations::current()` gives the store fi
 
 ## The C seam (`storyarc-ffi`)
 
-Sixty-three exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
+Sixty-five exports, declared in `storyarc-ffi/include/storyarc_ffi.h` and written into
 `storyarc-ffi/generated/NativeMethods.g.cs` by `build.rs` with csbindgen, which reads
 `src/lib.rs`, `src/network.rs`, `src/data.rs` and `src/reading.rs`. Opaque tagged handles,
 Rust-owned buffers freed by `storyarc_buffer_free`, records and requests as UTF-8 JSON, integer
@@ -168,6 +168,16 @@ Wave 4 adds fifteen, in `src/reading.rs`. The EPUB (`storyarc_epub_open`, `manif
 resource with its media type for the scheme handler. PDF (`storyarc_pdf_engine_start`, `open`,
 `page_count`, `page_size`, `render_page`, `page_text`, `has_text_layer`, `search`, `outline`,
 `free`): the engine binds once per process to the library in the folder the app names.
+
+The wave 4 follow-up adds two, for the gaps the Linux and Windows lanes reported.
+`storyarc_pdf_render_page_scaled` takes device pixels per point and a longest-edge cap, so a
+page is sharp on a dense or large window where `render_page` stays the one-pixel-a-point
+case. `storyarc_file_identity` writes a file's ADR-0006 identity (content digest and
+normalised path) so an EPUB or PDF files its progress where a comic does; a row an app wrote
+under a `path-` placeholder digest is re-keyed once on its next save. A listening position
+(`{"kind":"listening","part","partCount","offsetMillis","ofMillis"?}`) travels through
+`storyarc_progress_write` and `storyarc_progress_read` as the phones write it, under the
+same merge; it needs no export of its own.
 
 ## Features
 

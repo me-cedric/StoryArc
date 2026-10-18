@@ -1,14 +1,18 @@
 # StoryArc for macOS
 
-**Status: wave 2, open and read a comic.** The library window opens on Home (Keep
+**Status: wave 4, EPUB, PDF text, audio and speech.** The library window opens on Home (Keep
 reading, Up next), lists the chosen folders' publications as a grid or a list over
 `StoryArcKit`'s `LibraryModel`, with search, filters, sorting and a publication page. Each
 publication reads in its own window with keys, the edge click zones, zoom and pan, spreads
 by window shape and a sliding drag; positions are written on every turn and before a
 window closes or the app quits. Files open from Finder, a drop and the Dock menu; folders
 keep their bookmarks and are watched with FSEvents. The preferences have a search, the
-accent choice and the app's own text size. A PDF opens through the same reader model and
-is not walked yet; EPUB, audio, network sources and secrets are later waves. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
+accent choice and the app's own text size. Wave 3 added the server sources, downloads, sync,
+storage and shelves. Wave 4 adds a reflowable EPUB in a `WKWebView` over the pinned Readium
+bundle, with the manifest and positions built in Swift and every way out of the page denied;
+a PDF's text layer over PDFKit (selection, marks, search, the outline); an audiobook player on
+the one `PlayerCentre` with the media keys and the Now Playing panel; and read-aloud over
+`AVSpeechSynthesizer`, absent where the Mac has no voice. [ADR-0018](../../docs/decisions/0018-desktop-clients.md) supersedes the
 timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 
 - Plan: [`docs/openspec/changes/desktop-clients`](../../docs/openspec/changes/desktop-clients)
@@ -26,8 +30,9 @@ timing in [ADR-0004](../../docs/decisions/0004-desktop-strategy.md).
 | Shared code | `apps/ios/Packages/StoryArcKit`, consumed by path. Wave 2 links `DesignSystem`, `StoryArcCore`, `LibraryFeature`, `Persistence`, `Formats` and `ReaderFeature`. Each wave adds the products it needs. |
 | Bundle id | `com.mecedric.storyarc` |
 | Sandbox | App Sandbox on. Entitlements: `app-sandbox`, `files.user-selected.read-write`, `files.bookmarks.app-scope`, `network.client`, and no other — `Tests/EntitlementsTests.swift` pins the set. No keychain access group: an ad-hoc build cannot use the data-protection keychain (`Tests/KeychainSpike.md`), so secrets go to the login keychain until the signed build of task 6.8. |
-| EPUB | `WKWebView` with the pinned Readium ts-toolkit renderer. Readium swift-toolkit is iOS only and cannot serve macOS. |
-| PDF | PDFKit, through `StoryArcKit`. |
+| EPUB | `WKWebView` with the pinned Readium ts-toolkit renderer (`apps/desktop-web/epub/dist`, copied into the app). Readium swift-toolkit is iOS only and cannot serve macOS. The host serves the archive on the `storyarc-epub` scheme, denies every other load with a content rule list and a Content-Security-Policy header, and builds the manifest and the positions in Swift from `Formats` (design.md Open Question 6). |
+| PDF | PDFKit, through `StoryArcKit`'s `PdfDocumentReader`; the text model, the overlay and the pasteboard are the Mac's own. |
+| Audio and speech | `Playback`'s `PlayerCentre` and `NarratedSource`; Now Playing and the media keys through `MediaPlayer` in the Mac target; read-aloud over `AVSpeechSynthesizer` with the Mac's own sentence source. |
 | Not used | Mac Catalyst. It gives an iPad app in a window. |
 
 `apps/ios/project.yml` and `apps/ios/App` stay untouched. The Mac shell has its
@@ -48,7 +53,17 @@ apps/desktop-macos/
 │   │                           search state, selection, folder source states, toolbar menus
 │   ├── Reader/                 the reader window and its Mac page view, chrome, key mapper,
 │   │                           click zones, zoom model, spreads, drag turn, progress writer,
-│   │                           reader targets and restoration, the window registry
+│   │                           reader targets and restoration, the window registry, and
+│   │                           ReaderRoot, which picks the reader by format
+│   ├── Epub/                   the EPUB host: the scheme handler and the egress rules, the
+│   │                           manifest and positions builder, the archive source and host
+│   │                           page, the model over the web view, the window and its chrome
+│   ├── Pdf/                    the PDF text layer: the Mac text model over PdfDocumentReader,
+│   │                           the page geometry, the overlay, the selection menu and search
+│   ├── Player/                 the player window, the Now Playing and media keys copy, and
+│   │                           the wiring of the one PlayerCentre
+│   ├── Speech/                 read-aloud: the voice catalogue, the sentence splitter, the
+│   │                           spoken chapters and the spoken source over AVSpeech
 │   ├── Settings/               MacSettings (the preferences model), the tabs, the search index,
 │   │                           the Sources and sync sections, storage, the diagnostic export
 │   ├── Sources/                MacSources: share, catalogue and Kavita sheets, Bonjour, the rows
@@ -66,8 +81,9 @@ apps/desktop-macos/
 │   │                           files, search, settings search, Home, detail, accent, localisation
 │   ├── WindowWalk.swift        the serialized parent of every suite that drives windows
 │   ├── ReaderWalkTests.swift, PointerAndFilesWalkTests.swift, ShellTests.swift   the walks
-│   ├── CaptureTests.swift, Wave2CaptureTests.swift, Wave3CaptureTests.swift   the frames, on request
-│   ├── MockServers.swift       where the walks find the OPDS, Kavita and SMB mocks
+│   ├── EpubEgressTests.swift, EpubWalkTests.swift, PdfWalkTests.swift, PlayerWalkTests.swift   wave 4
+│   ├── CaptureTests.swift, Wave2CaptureTests.swift, Wave3CaptureTests.swift, Wave4CaptureTests.swift
+│   ├── MockServers.swift       where the walks find the OPDS, Kavita, SMB and egress mocks
 │   ├── ConformanceLog.swift    what the wave 3 walks measured, for the conformance record
 │   ├── MacCatalogue.swift      the screen catalogue: each screen brought up over the fixtures
 │   ├── AccessibilityAudit.swift, AccessibilityAuditTests.swift   every catalogue control
@@ -106,7 +122,18 @@ The source, download and sync walks need the repository's mock servers (`pnpm op
 `pnpm kavita`, `pnpm smb`, and `scripts/smb-server.sh --encrypted`); a walk whose server is
 not listening is skipped and says so. Ports and the share's user move with
 `TEST_RUNNER_STORYARC_OPDS_PORT`, `_KAVITA_PORT`, `_SMB_PORT`, `_SMB_ENCRYPTED_PORT` and
-`_SMB_USER` in front of the test command (`Tests/MockServers.swift`).
+`_SMB_USER` in front of the test command (`Tests/MockServers.swift`). The EPUB egress test
+needs the egress collector of `apps/desktop-web/epub` (`pnpm egress` there, port 4815,
+`TEST_RUNNER_STORYARC_EGRESS_PORT` to move it): the sandboxed app may not listen on a socket,
+so the eight-vector page's arrivals are counted out of process, and the test reads the count.
+Without it the two egress tests skip and say so; the rule list's compile test runs regardless.
+
+The EPUB, PDF and player walks open corpus fixtures (`packages/test-fixtures/ebooks`,
+`audiobooks` and the two PDFs under `comics`), copied into the test bundle. An EPUB or an
+audiobook opens from a fixed copy in the container under its own id, outside the library, so
+the library screens of the snapshots do not change. A run that stops before a walk closes its
+window leaves that window's session saved, and the next launch restores it: the walks close
+such windows and forget such sessions before they open their own.
 
 The snapshot suite holds each screen of `Tests/MacCatalogue.swift` against
 `Tests/__Snapshots__/`, drawn in-process at one pixel per point, so materials are absent.

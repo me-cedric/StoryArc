@@ -1,4 +1,5 @@
 import DesignSystem
+import Formats
 import ReaderFeature
 import StoryArcCore
 import SwiftUI
@@ -19,6 +20,8 @@ struct ReaderChromeBar: View {
     let onChapter: (Int) -> Void
 
     @State private var scrubbing: Double?
+    @State private var isSearchingText = false
+    @State private var query = ""
 
     private var model: ReaderModel { state.model }
 
@@ -31,6 +34,7 @@ struct ReaderChromeBar: View {
                     // reached across the artwork, which is what chrome must not do.
                     HStack(spacing: 4) {
                         contentsMenu
+                        if state.pdfText != nil { searchButton }
                         adjustButton
                         modeMenu
                         layoutMenu
@@ -95,6 +99,13 @@ struct ReaderChromeBar: View {
             Divider()
             Button { onChapter(-1) } label: { Text("desktop.menu.previousChapter") }
             Button { onChapter(1) } label: { Text("desktop.menu.nextChapter") }
+            if let outline = state.pdfText?.outline, !outline.isEmpty {
+                Divider()
+                // The document's own navigation, to its depth: *Text-based PDF*, the outline works.
+                ForEach(Array(outline.enumerated()), id: \.offset) { _, item in
+                    PdfOutlineItems(item: item, depth: 0) { state.jump(to: $0) }
+                }
+            }
         } label: {
             Label("desktop.reader.contents", systemImage: "list.bullet")
         }
@@ -103,6 +114,31 @@ struct ReaderChromeBar: View {
         .hitTarget(HitTarget.icon)
         .padding(4)
         .help(Text("desktop.reader.contents"))
+    }
+
+    /// Search in the document, for a PDF with a text layer. Task 4.6.
+    private var searchButton: some View {
+        Button { isSearchingText.toggle() } label: {
+            Label("desktop.pdf.search", systemImage: "magnifyingglass").hitTarget(HitTarget.icon)
+        }
+        .buttonStyle(.borderless)
+        .padding(4)
+        .help(Text("desktop.pdf.search"))
+        .popover(isPresented: $isSearchingText, arrowEdge: .bottom) {
+            if let text = state.pdfText {
+                MacPdfSearchPanel(text: text, query: $query) { page in
+                    state.jump(to: page)
+                    isSearchingText = false
+                }
+            }
+        }
+        .onChange(of: state.pdfSearchRequest) { _, words in
+            guard let words, let text = state.pdfText else { return }
+            query = words
+            isSearchingText = true
+            Task { await text.search(words) }
+            state.pdfSearchRequest = nil
+        }
     }
 
     private var adjustButton: some View {
@@ -237,6 +273,22 @@ struct ReaderSlider: View {
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
+        }
+    }
+}
+
+/// One outline entry and its children, indented by depth.
+struct PdfOutlineItems: View {
+    let item: PdfOutlineItem
+    let depth: Int
+    let onGo: (Int) -> Void
+
+    var body: some View {
+        if let page = item.pageIndex {
+            Button { onGo(page) } label: { Text(String(repeating: "    ", count: depth) + item.title) }
+        }
+        ForEach(Array(item.children.enumerated()), id: \.offset) { _, child in
+            PdfOutlineItems(item: child, depth: depth + 1, onGo: onGo)
         }
     }
 }
