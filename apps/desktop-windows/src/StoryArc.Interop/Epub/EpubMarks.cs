@@ -163,13 +163,13 @@ public sealed class EpubMarks
         {
             if (EpubPlace.Parse(mark.Locator) is { } locator)
             {
-                items.Add(new JsonObject { ["id"] = mark.Id, ["locator"] = locator, ["color"] = Tint(mark.Colour) });
+                items.Add((JsonNode)new JsonObject { ["id"] = mark.Id, ["locator"] = locator, ["color"] = Tint(mark.Colour) });
             }
         }
 
         if (spokenLocatorJson is not null && EpubPlace.Parse(spokenLocatorJson) is { } spoken)
         {
-            items.Add(new JsonObject { ["id"] = SpokenId, ["locator"] = spoken, ["color"] = SpokenTint });
+            items.Add((JsonNode)new JsonObject { ["id"] = SpokenId, ["locator"] = spoken, ["color"] = SpokenTint });
         }
 
         return items;
