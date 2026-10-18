@@ -53,6 +53,8 @@ targets:
       # shows the file the repository checks, PDFium and libarchive among it. Task 6.3.
       - path: ../../THIRD_PARTY_NOTICES.md
         buildPhase: resources
+      # The thumbnail's cover rule, also compiled here so the app's tests hold it (task 5.4).
+      - path: Thumbnails/ThumbnailCover.swift
     # Document types and the comic UTIs, carried over from `apps/ios/project.yml` with the
     # `UI` keys dropped (design.md Decision 2). `xcodegen generate` writes `App/Info.plist`
     # from this block on every `pnpm build:macos`; the file is gitignored and never edited.
@@ -109,6 +111,9 @@ targets:
             UTTypeConformsTo: [public.tar-archive]
             UTTypeTagSpecification: { public.filename-extension: [cbt] }
     dependencies:
+      # Finder's and Quick Look's covers, embedded in Contents/PlugIns. Task 5.4.
+      - target: StoryArcThumbnails
+        embed: true
       - package: StoryArcKit
         product: DesignSystem
       - package: StoryArcKit
@@ -151,6 +156,45 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+  # The Quick Look thumbnail extension (task 5.4): a comic's or an ebook's cover as its icon
+  # in Finder. Sandboxed with nothing else: Quick Look hands it read access to the one file.
+  StoryArcThumbnails:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Thumbnails
+        excludes:
+          - "*.entitlements"
+          - "Info.plist"
+    info:
+      path: Thumbnails/Info.plist
+      properties:
+        CFBundleDisplayName: StoryArc Thumbnails
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.thumbnail
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ThumbnailProvider
+          NSExtensionAttributes:
+            QLSupportedContentTypes:
+              - app.storyarc.cbz
+              - app.storyarc.cbr
+              - app.storyarc.cbt
+              - org.idpf.epub-container
+            QLThumbnailMinimumDimension: 0
+    dependencies:
+      - package: StoryArcKit
+        product: Formats
+      - package: StoryArcKit
+        product: StoryArcCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc.thumbnails
+        PRODUCT_NAME: StoryArcThumbnails
+        CODE_SIGN_ENTITLEMENTS: Thumbnails/StoryArcThumbnails.entitlements
+        ENABLE_APP_SANDBOX: YES
+        ENABLE_HARDENED_RUNTIME: YES
+        GENERATE_INFOPLIST_FILE: YES
+        SKIP_INSTALL: YES
+
   # Hosted in the app on purpose. The process the tests run in is the ad-hoc signed,
   # sandboxed StoryArc.app, so the entitlement, bookmark and keychain tests measure what
   # a local run measures and not what an unsandboxed xctest runner would. XcodeGen sets

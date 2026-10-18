@@ -212,7 +212,11 @@ Accepted in the parity audit and specified in `desktop-experience`:
 - The `storyarc://` link (`storyarc://publication/<title or id>`, `storyarc://source/<name>`) and
   paths or links on the command line, read by `App/System/StoryArcLink.swift`. Wave 5.
 
-Later: Quick Look thumbnails for covers, Handoff from iPhone, Spotlight titles.
+- Covers in Finder and Quick Look: the `StoryArcThumbnails` Quick Look thumbnail extension,
+  embedded in `Contents/PlugIns`, for the comic types and EPUB (`Thumbnails/`). A damaged file
+  gives no thumbnail, so Finder keeps its generic icon. Wave 5.
+
+Later: Handoff from iPhone, Spotlight titles.
 Rejected: tabs, tray icon, command palette, desktop widgets.
 
 Liquid Glass is for chrome only. The artwork stays the interface.
