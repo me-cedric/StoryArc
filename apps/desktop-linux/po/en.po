@@ -613,8 +613,23 @@ msgstr "Sync folder: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No sync folder chosen"
 
+msgid "desktop.w4.epub.back"
+msgstr "Back"
+
+msgid "desktop.w4.epub.copyMarkdown"
+msgstr "Copy as Markdown"
+
+msgid "desktop.w4.epub.copyText"
+msgstr "Copy as Text"
+
 msgid "desktop.w4.epub.followsAppearance"
 msgstr "Follow the system's appearance"
+
+msgid "desktop.w4.epub.highlight"
+msgstr "Highlight"
+
+msgid "desktop.w4.epub.highlights"
+msgstr "Highlights"
 
 msgid "desktop.w4.epub.leave.open"
 msgstr "Open in Browser"
@@ -626,6 +641,9 @@ msgstr "Stay in the Book"
 msgid "desktop.w4.epub.leave.title___"
 msgstr "Open a page on %s?"
 
+msgid "desktop.w4.epub.marks"
+msgstr "Bookmarks and Highlights"
+
 msgid "desktop.w4.epub.noWebView"
 msgstr "This book needs the WebView2 runtime, which this PC does not have"
 
@@ -633,8 +651,15 @@ msgstr "This book needs the WebView2 runtime, which this PC does not have"
 msgid "desktop.w4.epub.progress"
 msgstr "%1$s%% read · %2$s%% of this chapter left"
 
+#, c-format
+msgid "desktop.w4.epub.progress %d %d"
+msgstr "%1$d%% read · %2$d%% of this chapter left"
+
 msgid "desktop.w4.epub.scroll"
 msgstr "Scroll instead of turning pages"
+
+msgid "desktop.w4.epub.selected"
+msgstr "Selected"
 
 msgid "desktop.w4.epub.specimen"
 msgstr "Aa"

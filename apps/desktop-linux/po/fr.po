@@ -613,8 +613,23 @@ msgstr "Dossier de synchronisation : %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Aucun dossier de synchronisation choisi"
 
+msgid "desktop.w4.epub.back"
+msgstr "Retour"
+
+msgid "desktop.w4.epub.copyMarkdown"
+msgstr "Copier en Markdown"
+
+msgid "desktop.w4.epub.copyText"
+msgstr "Copier en texte"
+
 msgid "desktop.w4.epub.followsAppearance"
 msgstr "Suivre l'apparence du système"
+
+msgid "desktop.w4.epub.highlight"
+msgstr "Surligner"
+
+msgid "desktop.w4.epub.highlights"
+msgstr "Surlignages"
 
 msgid "desktop.w4.epub.leave.open"
 msgstr "Ouvrir dans le navigateur"
@@ -626,6 +641,9 @@ msgstr "Rester dans le livre"
 msgid "desktop.w4.epub.leave.title___"
 msgstr "Ouvrir une page sur %s ?"
 
+msgid "desktop.w4.epub.marks"
+msgstr "Signets et surlignages"
+
 msgid "desktop.w4.epub.noWebView"
 msgstr "Ce livre a besoin du runtime WebView2, absent de ce PC"
 
@@ -633,8 +651,15 @@ msgstr "Ce livre a besoin du runtime WebView2, absent de ce PC"
 msgid "desktop.w4.epub.progress"
 msgstr "%1$s %% lu · il reste %2$s %% du chapitre"
 
+#, c-format
+msgid "desktop.w4.epub.progress %d %d"
+msgstr "%1$d %% lu · il reste %2$d %% du chapitre"
+
 msgid "desktop.w4.epub.scroll"
 msgstr "Défiler au lieu de tourner les pages"
+
+msgid "desktop.w4.epub.selected"
+msgstr "Sélectionné"
 
 msgid "desktop.w4.epub.specimen"
 msgstr "Aa"

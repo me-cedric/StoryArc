@@ -613,8 +613,23 @@ msgstr "Carpeta de sincronización: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No se eligió carpeta de sincronización"
 
+msgid "desktop.w4.epub.back"
+msgstr "Atrás"
+
+msgid "desktop.w4.epub.copyMarkdown"
+msgstr "Copiar como Markdown"
+
+msgid "desktop.w4.epub.copyText"
+msgstr "Copiar como texto"
+
 msgid "desktop.w4.epub.followsAppearance"
 msgstr "Seguir la apariencia del sistema"
+
+msgid "desktop.w4.epub.highlight"
+msgstr "Resaltar"
+
+msgid "desktop.w4.epub.highlights"
+msgstr "Resaltados"
 
 msgid "desktop.w4.epub.leave.open"
 msgstr "Abrir en el navegador"
@@ -626,6 +641,9 @@ msgstr "Quedarse en el libro"
 msgid "desktop.w4.epub.leave.title___"
 msgstr "¿Abrir una página en %s?"
 
+msgid "desktop.w4.epub.marks"
+msgstr "Marcadores y resaltados"
+
 msgid "desktop.w4.epub.noWebView"
 msgstr "Este libro necesita el entorno WebView2, que este PC no tiene"
 
@@ -633,8 +651,15 @@ msgstr "Este libro necesita el entorno WebView2, que este PC no tiene"
 msgid "desktop.w4.epub.progress"
 msgstr "%1$s %% leído · queda el %2$s %% del capítulo"
 
+#, c-format
+msgid "desktop.w4.epub.progress %d %d"
+msgstr "%1$d %% leído · queda el %2$d %% del capítulo"
+
 msgid "desktop.w4.epub.scroll"
 msgstr "Desplazar en lugar de pasar páginas"
+
+msgid "desktop.w4.epub.selected"
+msgstr "Seleccionado"
 
 msgid "desktop.w4.epub.specimen"
 msgstr "Aa"

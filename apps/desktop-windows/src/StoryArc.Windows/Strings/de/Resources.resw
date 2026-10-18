@@ -774,9 +774,29 @@
     <value>Kein Sync-Ordner gewählt</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_epub_back" xml:space="preserve">
+    <value>Zurück</value>
+    <comment>desktop.w4.epub.back</comment>
+  </data>
+  <data name="desktop_w4_epub_copyMarkdown" xml:space="preserve">
+    <value>Als Markdown kopieren</value>
+    <comment>desktop.w4.epub.copyMarkdown</comment>
+  </data>
+  <data name="desktop_w4_epub_copyText" xml:space="preserve">
+    <value>Als Text kopieren</value>
+    <comment>desktop.w4.epub.copyText</comment>
+  </data>
   <data name="desktop_w4_epub_followsAppearance" xml:space="preserve">
     <value>Dem Erscheinungsbild des Systems folgen</value>
     <comment>desktop.w4.epub.followsAppearance</comment>
+  </data>
+  <data name="desktop_w4_epub_highlight" xml:space="preserve">
+    <value>Markieren</value>
+    <comment>desktop.w4.epub.highlight</comment>
+  </data>
+  <data name="desktop_w4_epub_highlights" xml:space="preserve">
+    <value>Markierungen</value>
+    <comment>desktop.w4.epub.highlights</comment>
   </data>
   <data name="desktop_w4_epub_leave_open" xml:space="preserve">
     <value>Im Browser öffnen</value>
@@ -790,6 +810,10 @@
     <value>Eine Seite auf {0} öffnen?</value>
     <comment>desktop.w4.epub.leave.title___</comment>
   </data>
+  <data name="desktop_w4_epub_marks" xml:space="preserve">
+    <value>Lesezeichen und Markierungen</value>
+    <comment>desktop.w4.epub.marks</comment>
+  </data>
   <data name="desktop_w4_epub_noWebView" xml:space="preserve">
     <value>Dieses Buch braucht die WebView2-Laufzeit, die auf diesem PC fehlt</value>
     <comment>desktop.w4.epub.noWebView</comment>
@@ -798,9 +822,17 @@
     <value>{0} % gelesen · noch {1} % des Kapitels</value>
     <comment>desktop.w4.epub.progress</comment>
   </data>
+  <data name="desktop_w4_epub_progress__lld__lld" xml:space="preserve">
+    <value>{0} % gelesen · noch {1} % des Kapitels</value>
+    <comment>desktop.w4.epub.progress %lld %lld</comment>
+  </data>
   <data name="desktop_w4_epub_scroll" xml:space="preserve">
     <value>Scrollen statt umblättern</value>
     <comment>desktop.w4.epub.scroll</comment>
+  </data>
+  <data name="desktop_w4_epub_selected" xml:space="preserve">
+    <value>Ausgewählt</value>
+    <comment>desktop.w4.epub.selected</comment>
   </data>
   <data name="desktop_w4_epub_specimen" xml:space="preserve">
     <value>Aa</value>

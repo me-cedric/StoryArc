@@ -28,10 +28,14 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
     private readonly OpenedEpub _opened;
     private readonly HostCommands _commands = new();
     private readonly int _startPage;
+    private readonly EpubJumps _jumps = new();
+    private readonly EpubMarks _marks;
     private CoreWebView2Environment? _environment;
     private ReaderWindowState _lastWindowed;
+    private EpubLook _look;
     private int _position;
     private long _lastLocatorSeq = -1;
+    private string? _spoken;
 
     internal EpubReaderWindow(AppHost host, OpenedEpub opened, ReaderWindowState? restored, int startPage)
     {
@@ -39,6 +43,9 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         _opened = opened;
         _startPage = startPage;
         _position = startPage + 1;
+        _look = EpubLook.Restore(ReadText(StateFiles.EpubLookPath));
+        var marksPath = Path.Combine(StateFiles.EpubMarksFolder, (opened.Identity.ContentDigest ?? EpubHost.IdFor(opened.Id)) + ".json");
+        _marks = new EpubMarks(() => ReadText(marksPath), text => WriteText(marksPath, text), OrderOf);
         InitializeComponent();
 
         Title = opened.Title;
@@ -62,6 +69,15 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         Menu.Initialize(WindowKind.Reader, IsAvailable, Invoke);
         MenuBuilder.AttachAccelerators(Root, WindowKind.Reader, IsAvailable, Invoke);
         AppWindow.Changed += OnAppWindowChanged;
+        Root.ActualThemeChanged += (sender, args) =>
+        {
+            // The reader linked the reading theme to the app's appearance: the page switches then and there.
+            if (_look.FollowsAppearance)
+            {
+                ApplyTheme();
+            }
+        };
+        LabelTools();
         Closed += (sender, args) =>
         {
             Web.Close();
@@ -83,9 +99,11 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         switch (commandId)
         {
             case "nextPage":
+                _jumps.Turning();
                 Post(_commands.Next());
                 break;
             case "previousPage":
+                _jumps.Turning();
                 Post(_commands.Previous());
                 break;
             case "firstPage":
@@ -96,6 +114,24 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
                 break;
             case "readAloud":
                 StartReadAloud();
+                break;
+            case "showContents":
+                ContentsFlyout.ShowAt(ContentsButton);
+                break;
+            case "find":
+                SearchFlyout.ShowAt(SearchButton);
+                break;
+            case "bookmarkPage":
+                ToggleBookmark();
+                break;
+            case "appearance":
+                ThemeFlyout.ShowAt(ThemeButton);
+                break;
+            case "zoomIn":
+                ChangeTypography(values => values with { FontSize = ReadingThemes.LargerSize(values.FontSize) });
+                break;
+            case "zoomOut":
+                ChangeTypography(values => values with { FontSize = ReadingThemes.SmallerSize(values.FontSize) });
                 break;
         }
     }
@@ -113,18 +149,18 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
 
         var queue = new ReadAloudModel(1, _opened.ReadingOrder.Count, _opened.SentencesOf);
         var chapter = ChapterOfPosition();
-        var lastChapter = -1;
         playback.ReadAloud(PublicationId, _opened.Title, _opened.Author, queue, chapter, _opened.Chapters(), sentence =>
         {
-            if (sentence is null || sentence.ChapterIndex == lastChapter)
+            // The sentence being spoken is drawn as one more decoration, and the page follows it to the column that holds
+            // it; no way back is kept, because the reader did not jump. The end of the voice withdraws the highlight.
+            _spoken = sentence is not null && sentence.ChapterIndex < _opened.ReadingOrder.Count
+                ? EpubMarks.SpokenLocator(sentence.Text, _opened.ReadingOrder[sentence.ChapterIndex].Href)
+                : null;
+            SyncHighlights();
+            if (_spoken is not null)
             {
-                return;
-            }
-
-            lastChapter = sentence.ChapterIndex;
-            if (sentence.LocatorJson is { } locator)
-            {
-                Post(_commands.Go(locator));
+                _jumps.Turning();
+                Post(_commands.Go(_spoken));
             }
         });
     }
@@ -187,6 +223,8 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
             _ = await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__storyarcLocator = " + locator + ";");
         }
 
+        _ = await core.AddScriptToExecuteOnDocumentCreatedAsync("window.__storyarcPreferences = " + CurrentAxes().ToJsonString() + ";");
+
         core.Navigate(_opened.Host.ReaderPageUrl);
     }
 
@@ -243,9 +281,17 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
 
         switch (message.Type)
         {
+            case "ready":
+                SyncHighlights();
+                break;
             case "locator" when message.Seq > _lastLocatorSeq && message.Position() is { } at:
                 _lastLocatorSeq = message.Seq;
                 _position = Math.Clamp(at.Position, 1, _opened.PositionCount);
+                if (message.LocatorJson() is { } moved)
+                {
+                    _jumps.Moved(moved);
+                }
+
                 ShowPosition();
                 _host.PageTurned(PublicationId, EpubProgress.PageIndex(_position, _opened.PositionCount));
                 _host.ReaderMoved(State());
@@ -253,6 +299,18 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
             case "link" when message.OutboundLink() is { } outbound:
                 // A link out of the publication opens in the system browser, never inside the web view, and only once the reader confirmed its host (ebook-reader, "Following a link out of the publication").
                 _ = ConfirmLeavingAsync(outbound);
+                break;
+            case "selection":
+                ShowSelection(message.Selection());
+                break;
+            case "footnote" when message.Footnote() is { } note:
+                ShowFootnote(note);
+                break;
+            case "highlight-activated" when message.ActivatedId() is { } id && _marks.Highlight(id) is { } highlight:
+                _ = EditHighlightAsync(highlight);
+                break;
+            case "search-results":
+                ReceiveSearch(message);
                 break;
             case "host-error":
                 ShowUnavailable(Strings.Get("reader_pageUnavailable", "This page could not be read"));
@@ -281,16 +339,51 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
     {
         if (EpubProgress.LocatorAt(_opened.PositionsJson, pageIndex) is { } locator)
         {
-            Post(_commands.Go(locator));
+            Jump(locator);
         }
     }
 
+    /// <summary>A move the reader asked for that leaves where they were: the place left becomes the way back.</summary>
+    private void Jump(string locator)
+    {
+        _jumps.Jumping();
+        Post(_commands.Go(locator));
+        ShowBack();
+    }
+
+    private void OnBack(object sender, RoutedEventArgs args)
+    {
+        if (_jumps.Back() is { } back)
+        {
+            Post(_commands.Go(back));
+        }
+
+        ShowBack();
+    }
+
+    private void ShowBack() => BackButton.Visibility = _jumps.Return is null ? Visibility.Collapsed : Visibility.Visible;
+
+    private void SyncHighlights() => Post(_commands.Highlights(_marks.HighlightItems(_spoken)));
+
     private void Post(string json) => Web.CoreWebView2?.PostWebMessageAsJson(json);
 
+    /// <summary>
+    /// The one progress line (ebook-reader, "Progress display"): how far through the book and how much of the chapter is left,
+    /// in words, never a page number; the book alone when it declares no chapters. Also the bookmark of this page and the way back.
+    /// </summary>
     private void ShowPosition()
     {
-        PositionLabel.Text = EpubProgress.Label(Strings.Get("reader_pageLabel__lld__lld", "Page {0} of {1}"), _position, _opened.PositionCount);
+        var place = EpubPlace.Of(_jumps.Current);
+        var total = _jumps.Current is null ? (_position - 1) / (double)Math.Max(1, _opened.PositionCount) : place.TotalProgression;
+        PositionLabel.Text = EpubProgressLine.Text(
+            Strings.Get("desktop_w4_epub_progress__lld__lld", "{0}% read · {1}% of this chapter left"),
+            Strings.Get("epub_progress__lld", "{0}% read"),
+            total,
+            place.Progression,
+            _opened.Contents.Count > 0 && _jumps.Current is not null);
         FrameworkElementAutomationPeer.FromElement(PositionLabel)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        ShowBookmark();
+        ShowBack();
     }
 
     internal void ShowUnavailable(string sentence)
@@ -299,12 +392,43 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
         UnavailableText.Visibility = Visibility.Visible;
     }
 
-    /// <summary>The page commands, and Read Aloud where the system has a voice and the app a player; never zoom or spreads, which a reflowable book has not.</summary>
-    private bool IsAvailable(string commandId) =>
-        commandId == "readAloud"
-            ? _host.Playback is not null && PlaybackService.HasVoice
-            : commandId != "fullScreen" && commandId is not ("zoomIn" or "zoomOut" or "fitPage" or "singlePage" or "twoPages" or "showContents")
-                && CommandRouting.IsHandled(commandId, WindowKind.Reader);
+    /// <summary>
+    /// The page commands, the reading tools (contents, search, the bookmark, themes, larger and smaller text), and Read Aloud where
+    /// the system has a voice and the app a player; never page zoom or spreads, which a reflowable book has not.
+    /// </summary>
+    private bool IsAvailable(string commandId) => commandId switch
+    {
+        "readAloud" => _host.Playback is not null && PlaybackService.HasVoice,
+        "showContents" or "find" or "bookmarkPage" or "appearance" or "zoomIn" or "zoomOut" => true,
+        "fullScreen" or "fitPage" or "singlePage" or "twoPages" => false,
+        _ => CommandRouting.IsHandled(commandId, WindowKind.Reader),
+    };
+
+    /// <summary>The reading-order index of a resource, so the marks list in reading order.</summary>
+    private int OrderOf(string href)
+    {
+        var index = _opened.ReadingOrder.ToList().FindIndex(entry => entry.Href.Split('#')[0] == href);
+        return index < 0 ? int.MaxValue : index;
+    }
+
+    private static string? ReadText(string path)
+    {
+        try
+        {
+            return File.Exists(path) ? File.ReadAllText(path) : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Writes a state file; a failure is thrown as <see cref="IOException"/> for the store that asked to keep its change for the session.</summary>
+    private static void WriteText(string path, string text)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, text);
+    }
 
     private void Invoke(string commandId) => _host.Invoke(commandId, this);
 

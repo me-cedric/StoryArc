@@ -81,13 +81,15 @@ public sealed class EpubHost
     private readonly Func<string> _positions;
     private readonly Func<string, EpubResource?> _resource;
     private readonly Func<byte[]> _bundle;
+    private readonly Func<string, byte[]?> _face;
 
     /// <param name="publicationId">The origin's host: letters, digits and dashes only, lower case.</param>
     /// <param name="manifest">The core's manifest JSON, built with <see cref="SelfUrl"/> as its self link.</param>
     /// <param name="positions">The core's positions JSON.</param>
     /// <param name="resource">The container's resource at a path, or <c>null</c>.</param>
     /// <param name="bundle">The pinned <c>storyarc-epub.js</c>.</param>
-    public EpubHost(string publicationId, Func<string> manifest, Func<string> positions, Func<string, EpubResource?> resource, Func<byte[]> bundle)
+    /// <param name="face">A bundled face file by its name without the suffix (<see cref="EpubFonts"/>), or <c>null</c> when the app lacks it.</param>
+    public EpubHost(string publicationId, Func<string> manifest, Func<string> positions, Func<string, EpubResource?> resource, Func<byte[]> bundle, Func<string, byte[]?>? face = null)
     {
         if (publicationId.Length == 0 || !publicationId.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-'))
         {
@@ -99,14 +101,15 @@ public sealed class EpubHost
         _positions = positions;
         _resource = resource;
         _bundle = bundle;
+        _face = face ?? (_ => null);
     }
 
     /// <summary>An origin host for a publication path: a digest of it, so the id names no file and is the same across launches.</summary>
     public static string IdFor(string publicationPath) =>
         Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(publicationPath)))[..32];
 
-    public EpubHost(string publicationId, EpubPublication epub, Func<byte[]> bundle)
-        : this(publicationId, epub.ManifestJson, epub.PositionsJson, epub.Resource, bundle)
+    public EpubHost(string publicationId, EpubPublication epub, Func<byte[]> bundle, Func<string, byte[]?>? face = null)
+        : this(publicationId, epub.ManifestJson, epub.PositionsJson, epub.Resource, bundle, face)
     {
     }
 
@@ -193,8 +196,15 @@ public sealed class EpubHost
             return NotFound();
         }
 
+        if (href.StartsWith(EpubFonts.Folder, StringComparison.Ordinal))
+        {
+            return EpubFonts.Resource(href, _face) is { } font ? Whole(200, "OK", font.MediaType, font.Bytes, rangeHeader) : NotFound();
+        }
+
         var resource = _resource(href);
-        return resource is null ? NotFound() : Whole(200, "OK", resource.MediaType, resource.Bytes, rangeHeader);
+        return resource is null
+            ? NotFound()
+            : Whole(200, "OK", resource.MediaType, EpubFonts.Linking(resource.Bytes, resource.MediaType, Origin + EpubFonts.Sheet), rangeHeader);
     }
 
     /// <summary>The path the container's resource <paramref name="href"/> is served at, absolute on this origin.</summary>
@@ -300,7 +310,9 @@ public sealed class EpubHost
     /// <summary>
     /// The page's script: fetches the manifest and the positions from this origin, opens the renderer in the
     /// container, posts to the host through <c>chrome.webview</c> (the bundle's own door) and hands the host's
-    /// messages to <c>receive</c>. The host's first message may arrive before <c>ready</c>; it is queued.
+    /// messages to <c>receive</c>. The host's first message may arrive before <c>ready</c>; it is queued. The reading
+    /// theme's axes in force at the open are set by the host before the page runs, as the locator is, so the first page
+    /// is laid out once in the reader's typography.
     /// </summary>
     internal const string ReaderScript =
         "(function(){'use strict';\n" +
@@ -308,8 +320,8 @@ public sealed class EpubHost
         "function receive(message){if(reader){reader.receive(message)}else{queue.push(message)}}\n" +
         "window.chrome.webview.addEventListener('message',function(event){receive(event.data)});\n" +
         "Promise.all([fetch('/manifest.json').then(function(r){return r.json()}),fetch('/positions.json').then(function(r){return r.json()})])\n" +
-        ".then(function(parts){var locator=window.__storyarcLocator||null;\n" +
-        "return StoryArcEpub.open({container:document.getElementById('reader'),manifest:parts[0],positions:parts[1],locator:locator})})\n" +
+        ".then(function(parts){var locator=window.__storyarcLocator||null;var preferences=window.__storyarcPreferences||{};\n" +
+        "return StoryArcEpub.open({container:document.getElementById('reader'),manifest:parts[0],positions:parts[1],locator:locator,preferences:preferences})})\n" +
         ".then(function(opened){reader=opened;queue.forEach(function(m){reader.receive(m)});queue=[]})\n" +
         ".catch(function(error){window.chrome.webview.postMessage({type:'host-error',seq:0,message:String(error)})});\n" +
         "})();\n";

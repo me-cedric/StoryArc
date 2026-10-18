@@ -46,6 +46,67 @@ public sealed record RendererMessage(string Type, long Seq, JsonObject Body)
         return position <= 0 ? null : (position, total);
     }
 
+    /// <summary>For a <c>locator</c> message: the locator as JSON, which a bookmark, the way back and the progress line keep.</summary>
+    public string? LocatorJson() => Type == "locator" && Body["locator"] is JsonObject locator ? locator.ToJsonString() : null;
+
+    /// <summary>For a <c>selection</c> message: the text chosen and its locator, or <c>null</c> when the selection was cleared.</summary>
+    public EpubSelection? Selection()
+    {
+        var text = Type == "selection" && Body["text"] is JsonValue value && value.TryGetValue<string>(out var chosen) ? chosen.Trim() : string.Empty;
+        return text.Length > 0 && Body["locator"] is JsonObject locator ? new EpubSelection(text, locator.ToJsonString()) : null;
+    }
+
+    /// <summary>For a <c>footnote</c> message: the note's href and its text.</summary>
+    public EpubFootnote? Footnote() =>
+        Type == "footnote" && Body["href"] is JsonValue href && href.TryGetValue<string>(out var target)
+            ? new EpubFootnote(target, Body["text"] is JsonValue text && text.TryGetValue<string>(out var note) ? note : string.Empty)
+            : null;
+
+    /// <summary>For a <c>highlight-activated</c> message: the id of the decoration the reader clicked.</summary>
+    public string? ActivatedId() =>
+        Type == "highlight-activated" && Body["id"] is JsonValue id && id.TryGetValue<string>(out var text) ? text : null;
+
+    /// <summary>For a <c>search-results</c> message: the id of the search it answers.</summary>
+    public string? SearchId() => Type != "search-results" ? null : Body["id"] switch
+    {
+        JsonValue value when value.TryGetValue<string>(out var text) => text,
+        JsonValue value when value.TryGetValue<long>(out var number) => number.ToString(CultureInfo.InvariantCulture),
+        _ => null,
+    };
+
+    /// <summary>For a <c>search-results</c> message: whether the search has looked through every chapter.</summary>
+    public bool SearchDone() => Type == "search-results" && Body["done"] is JsonValue done && done.TryGetValue<bool>(out var flag) && flag;
+
+    /// <summary>For a <c>search-results</c> message: its hits, each with its chapter, the match in its context and the locator.</summary>
+    public IReadOnlyList<EpubSearchHit> SearchHits()
+    {
+        if (Type != "search-results" || Body["results"] is not JsonArray results)
+        {
+            return [];
+        }
+
+        var hits = new List<EpubSearchHit>();
+        foreach (var result in results)
+        {
+            if (result?["locator"] is not JsonObject locator)
+            {
+                continue;
+            }
+
+            var text = locator["text"] as JsonObject;
+            hits.Add(new EpubSearchHit(
+                Text(locator["title"]),
+                Text(text?["before"]) ?? string.Empty,
+                Text(text?["highlight"]) ?? string.Empty,
+                Text(text?["after"]) ?? string.Empty,
+                locator.ToJsonString()));
+        }
+
+        return hits;
+    }
+
+    private static string? Text(JsonNode? node) => node is JsonValue value && value.TryGetValue<string>(out var text) ? text : null;
+
     /// <summary>For a <c>link</c> message: the http or https address the reader followed out of the publication.</summary>
     public Uri? OutboundLink() =>
         Type == "link" && Body["href"] is JsonValue value && value.TryGetValue<string>(out var href)
@@ -71,17 +132,12 @@ public sealed class HostCommands
 
     public string Search(string id, string query) => Wrap("search", new JsonObject { ["id"] = id, ["query"] = query });
 
-    /// <summary>A theme preset: its name and the axes it sets, the rest cleared.</summary>
-    public string Theme(string name, IReadOnlyDictionary<string, string> axes)
-    {
-        var axesNode = new JsonObject();
-        foreach (var axis in axes)
-        {
-            axesNode[axis.Key] = axis.Value;
-        }
+    /// <summary>A theme preset: its name and the axes it sets, the rest cleared (<see cref="ReadingThemes.Axes"/>).</summary>
+    public string Theme(string name, JsonObject axes) =>
+        Wrap("theme", new JsonObject { ["theme"] = new JsonObject { ["name"] = name, ["axes"] = axes } });
 
-        return Wrap("theme", new JsonObject { ["theme"] = new JsonObject { ["name"] = name, ["axes"] = axesNode } });
-    }
+    /// <summary>Every highlight on the page, replacing what the page had (<see cref="EpubMarks.HighlightItems"/>).</summary>
+    public string Highlights(JsonArray items) => Wrap("highlights", new JsonObject { ["items"] = items });
 
     private string Plain(string type) => Wrap(type, new JsonObject());
 

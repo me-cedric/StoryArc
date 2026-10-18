@@ -240,7 +240,7 @@ public sealed class EpubHostTests
         Assert.Contains("\"seq\":3", search, StringComparison.Ordinal);
         var go = commands.Go("""{"href":"OEBPS/ch1.xhtml","locations":{"position":1}}""");
         Assert.Contains("\"locator\":{\"href\":\"OEBPS/ch1.xhtml\"", go, StringComparison.Ordinal);
-        var theme = commands.Theme("sepia", new Dictionary<string, string> { ["background"] = "#f4ecd8" });
+        var theme = commands.Theme("sepia", new System.Text.Json.Nodes.JsonObject { ["background"] = "#f4ecd8" });
         Assert.Contains("\"name\":\"sepia\"", theme, StringComparison.Ordinal);
     }
 

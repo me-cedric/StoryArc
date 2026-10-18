@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!-- The EPUB reader window (desktop-clients task 4.16): the pinned Readium renderer in a WebView2 over the
      app's own scheme, which StoryArc.Interop.Epub.EpubHost answers; nothing else reaches the network
-     (ADR-0015). The chrome is the title bar, the menu and one position label under the text. -->
+     (ADR-0015). The chrome is the title bar, the menu, one bar of reading tools, and one progress line under
+     the text. The tools' surfaces are flyouts that scroll, so they stay whole at the largest text size. -->
 <Window
     x:Class="StoryArc.Windows.EpubReaderWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -13,6 +14,7 @@
 
     <Grid x:Name="Root" AllowDrop="True" DragOver="OnDragOver" Drop="OnDrop">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -27,31 +29,98 @@
 
         <local:AppMenu x:Name="Menu" Grid.Row="1" />
 
+        <!-- The reading tools: the way back after a jump, the contents, search, the bookmark of this page, the
+             bookmarks and highlights, and the reading themes. -->
+        <CommandBar
+            x:Name="Tools"
+            Grid.Row="2"
+            DefaultLabelPosition="Right"
+            HorizontalAlignment="Left"
+            Background="Transparent"
+            IsDynamicOverflowEnabled="True">
+            <AppBarButton x:Name="BackButton" Icon="Back" Visibility="Collapsed" Click="OnBack" AutomationProperties.AutomationId="EpubBack" />
+            <AppBarButton x:Name="ContentsButton" Icon="List" AutomationProperties.AutomationId="EpubContents">
+                <AppBarButton.Flyout>
+                    <Flyout x:Name="ContentsFlyout" Opening="OnContentsOpening">
+                        <ScrollViewer MaxHeight="520" Width="360">
+                            <StackPanel Spacing="8">
+                                <TextBlock x:Name="ContentsEmpty" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
+                                <ListView x:Name="ContentsList" SelectionMode="Single" IsItemClickEnabled="True" ItemClick="OnContentsItem" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton x:Name="SearchButton" Icon="Find" AutomationProperties.AutomationId="EpubSearch">
+                <AppBarButton.Flyout>
+                    <Flyout x:Name="SearchFlyout" Opened="OnSearchOpened">
+                        <StackPanel Width="380" Spacing="8">
+                            <AutoSuggestBox x:Name="SearchBox" QueryIcon="Find" QuerySubmitted="OnSearchSubmitted" AutomationProperties.AutomationId="EpubSearchBox" />
+                            <TextBlock
+                                x:Name="SearchStatus"
+                                Style="{ThemeResource CaptionTextBlockStyle}"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                TextWrapping="Wrap"
+                                AutomationProperties.LiveSetting="Polite" />
+                            <ListView x:Name="SearchList" MaxHeight="440" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnSearchItem" />
+                        </StackPanel>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarToggleButton x:Name="BookmarkButton" Icon="Bookmarks" Click="OnBookmarkToggled" AutomationProperties.AutomationId="EpubBookmark" />
+            <AppBarButton x:Name="MarksButton" Icon="Library" AutomationProperties.AutomationId="EpubMarks">
+                <AppBarButton.Flyout>
+                    <Flyout x:Name="MarksFlyout" Opening="OnMarksOpening">
+                        <ScrollViewer MaxHeight="560" Width="380">
+                            <StackPanel x:Name="MarksPanel" Spacing="8" />
+                        </ScrollViewer>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+            <AppBarButton x:Name="ThemeButton" Icon="FontSize" AutomationProperties.AutomationId="EpubThemes">
+                <AppBarButton.Flyout>
+                    <Flyout x:Name="ThemeFlyout" Opening="OnThemeOpening">
+                        <ScrollViewer MaxHeight="600" Width="360">
+                            <StackPanel x:Name="ThemePanel" Spacing="12" />
+                        </ScrollViewer>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+        </CommandBar>
+
         <!-- The book's text. Its content is exposed to Narrator by the web engine; Escape and Tab hand focus to the chrome
              through the web view's own key handling (owed to a Windows walk). -->
         <WebView2
             x:Name="Web"
-            Grid.Row="2"
+            Grid.Row="3"
             DefaultBackgroundColor="Transparent"
             AutomationProperties.AutomationId="EpubText" />
 
-        <StackPanel
-            x:Name="PageChrome"
-            Grid.Row="3"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            Spacing="16"
-            Padding="8">
-            <TextBlock
-                x:Name="PositionLabel"
-                Style="{ThemeResource CaptionTextBlockStyle}"
-                AutomationProperties.AutomationId="EpubPositionLabel"
-                AutomationProperties.LiveSetting="Polite" />
-            <TextBlock
-                x:Name="UnavailableText"
-                Style="{ThemeResource CaptionTextBlockStyle}"
-                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                Visibility="Collapsed" />
+        <StackPanel Grid.Row="4" Padding="8" Spacing="6">
+            <!-- What a selection offers: a highlight in five colours, a note, copy and search in the publication. -->
+            <StackPanel
+                x:Name="SelectionBar"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="6"
+                Visibility="Collapsed"
+                AutomationProperties.AutomationId="EpubSelection" />
+            <StackPanel
+                x:Name="PageChrome"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="16">
+                <TextBlock
+                    x:Name="PositionLabel"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    AutomationProperties.AutomationId="EpubPositionLabel"
+                    AutomationProperties.LiveSetting="Polite" />
+                <TextBlock
+                    x:Name="UnavailableText"
+                    Style="{ThemeResource CaptionTextBlockStyle}"
+                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                    Visibility="Collapsed" />
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

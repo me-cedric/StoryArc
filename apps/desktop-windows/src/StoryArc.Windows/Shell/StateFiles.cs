@@ -51,6 +51,12 @@ internal static class StateFiles
     /// <summary>The WebView2 user data of the EPUB windows (task 4.16): cache and storage of a renderer that never reaches the network.</summary>
     public static string WebViewDataFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "webview2");
 
+    /// <summary>The EPUB reader's look: the reading theme, the typography, scroll or pages, the brightness and the appearance pair.</summary>
+    public static string EpubLookPath => Path.Combine(ApplicationData.Current.LocalFolder.Path, "epub-look.json");
+
+    /// <summary>The bookmarks and highlights of each EPUB, one file a publication, named by its content digest.</summary>
+    public static string EpubMarksFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "epub-marks");
+
     /// <summary>Written when the reader clears the library's records: the progress store is open, so its files go at the next start.</summary>
     public static string ClearRecordsMarker => Path.Combine(ApplicationData.Current.LocalFolder.Path, "clear-records.pending");
 

@@ -11,10 +11,17 @@ namespace StoryArc.Windows.Shell;
 /// it under. The window owns it and disposes it when it closes.
 /// </summary>
 /// <param name="Id">The file path: the key of the window registry, the session and the recent list.</param>
-internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Host, string Title, string? Author, string PositionsJson, int PositionCount, CoreIdentity Identity, IReadOnlyList<ReadingOrderEntry> ReadingOrder) : IDisposable
+internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Host, string Title, string? Author, string PositionsJson, int PositionCount, CoreIdentity Identity, IReadOnlyList<ReadingOrderEntry> ReadingOrder, IReadOnlyList<EpubContentsEntry> Contents) : IDisposable
 {
     /// <summary>The pinned renderer, copied beside the app by the project file from <c>apps/desktop-web/epub/dist</c>.</summary>
     private static readonly Lazy<byte[]> Bundle = new(() => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Assets", "storyarc-epub.js")));
+
+    /// <summary>A bundled reading face, copied beside the app by the project file from <c>packages/fonts</c>; <c>null</c> when it is missing.</summary>
+    private static byte[]? Face(string name)
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts", name + ".ttf");
+        return File.Exists(path) ? File.ReadAllBytes(path) : null;
+    }
 
     /// <summary>
     /// Opens <paramref name="path"/> through the core, off the interface thread. A file that is not an EPUB or
@@ -26,9 +33,10 @@ internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Ho
         var handle = EpubPublication.Open(path, EpubHost.Scheme + "://" + id + EpubHost.ManifestPath);
         try
         {
-            var host = new EpubHost(id, handle, () => Bundle.Value);
+            var host = new EpubHost(id, handle, () => Bundle.Value, Face);
             var positions = handle.PositionsJson();
-            using var manifest = JsonDocument.Parse(handle.ManifestJson());
+            var manifestJson = handle.ManifestJson();
+            using var manifest = JsonDocument.Parse(manifestJson);
             var title = manifest.RootElement.TryGetProperty("metadata", out var metadata) && metadata.TryGetProperty("title", out var name) && name.ValueKind == JsonValueKind.String
                 ? name.GetString() ?? Path.GetFileNameWithoutExtension(path)
                 : Path.GetFileNameWithoutExtension(path);
@@ -44,7 +52,7 @@ internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Ho
                 ? orderNode.EnumerateArray().Select(link => link.GetProperty("href").GetString() ?? string.Empty).Where(href => href.Length > 0)
                     .Select((href, index) => new ReadingOrderEntry(index, href, toc.GetValueOrDefault(href) ?? toc.GetValueOrDefault(href.Split('#')[0]) ?? Path.GetFileNameWithoutExtension(href))).ToList()
                 : [];
-            return new OpenedEpub(path, handle, host, title, author, positions, Math.Max(1, EpubProgress.Count(positions)), identity, order);
+            return new OpenedEpub(path, handle, host, title, author, positions, Math.Max(1, EpubProgress.Count(positions)), identity, order, EpubContents.Of(manifestJson));
         }
         catch
         {
