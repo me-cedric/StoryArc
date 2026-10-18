@@ -28,7 +28,9 @@ extension LibraryModel {
     /// What follows is a scan, which now appends to this rather than replacing it, and
     /// removes only what it can prove is gone. So the reader sees their library at once and
     /// watches it correct itself, instead of watching it appear.
-    func restoreCachedLibrary() {
+    /// Public for the Mac, whose folders come from its own bookmarks and which calls this before
+    /// re-adding them, as ``restoreFolders()`` does on a phone (`desktop-clients` task 5.9).
+    public func restoreCachedLibrary() {
         guard publications.isEmpty, let snapshot = libraryCache.read() else { return }
         // **A cached row whose file has moved is dropped, and the reason is a duplicate
         // shelf.** The snapshot records absolute paths, and on iOS an absolute path into the

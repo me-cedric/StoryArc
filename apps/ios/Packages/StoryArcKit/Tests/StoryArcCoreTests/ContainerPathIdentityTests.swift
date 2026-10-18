@@ -26,6 +26,27 @@ struct ContainerPathIdentityTests {
         #expect(PublicationIdentity.containerRelativePath("/Containers/Data/Application/x/Tales") == nil)
     }
 
+    @Test("The matcher gives the answer the identity gives, each way round")
+    func matcherAgreesWithMatches() throws {
+        let source = try #require(UUID(uuidString: "5B0E8C1A-3D2F-4E6A-9B7C-1D2E3F4A5B6C"))
+        let server = PublicationIdentity.ServerIdentifier(sourceID: source, remoteID: "7")
+        let identities = [
+            PublicationIdentity(normalizedPath: before),
+            PublicationIdentity(contentDigest: "folder", normalizedPath: after),
+            PublicationIdentity(normalizedPath: "/books/A/Tales"),
+            PublicationIdentity(normalizedPath: "/books/B/Tales"),
+            PublicationIdentity(contentDigest: "folder"),
+            PublicationIdentity(serverIdentifier: server),
+            PublicationIdentity(serverIdentifier: server, normalizedPath: "/books/A/Tales"),
+        ]
+        for one in identities {
+            for other in identities {
+                let matched = PublicationIdentity.Matcher(one).matches(other)
+                #expect(matched == one.matches(other))
+            }
+        }
+    }
+
     @Test("A document with seven copies of one book merges to one record with the device's identity")
     func sevenCopiesBecomeOne() {
         let copies = (1...7).reversed().map { index in

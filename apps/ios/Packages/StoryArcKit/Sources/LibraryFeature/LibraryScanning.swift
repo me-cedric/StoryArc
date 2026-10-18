@@ -160,7 +160,12 @@ extension LibraryModel {
         // library they had rather than to an empty grid filling up again.
         let resumed = journal?.indexed(inFolder: folder.path) ?? []
         let sourceID = source(of: folder)
-        for publication in resumed { adopt(publication, from: sourceID) }
+        // Met by the walk that wrote them down, and skipped by this one: marked seen, or the
+        // reconcile at the end drops every row the journal put back (`forgetVanished`).
+        for publication in resumed {
+            adopt(publication, from: sourceID)
+            seenInThisScan.insert(publication.id)
+        }
         if !resumed.isEmpty { rebuild() }
 
         scanningFolder = folder

@@ -79,6 +79,43 @@ struct LibraryShelfLifecycleTests {
         #expect(model.scanState == .finished(found: 0, skipped: 0))
     }
 
+    // MARK: - A resumed walk
+
+    @Test("A walk resumed from the journal keeps the rows the journal put back")
+    func resumedWalkKeepsJournaledRows() async throws {
+        // Measured on a Mac on 2026-10-18: a scan interrupted by a quit left a journal; the next
+        // launch put the journaled rows back, skipped their files, and the reconcile, which
+        // drops the rows a walk did not meet, removed them. 4,536 of 5,027 books left the shelf.
+        let documents = try temporary("resume-documents")
+        let cache = try temporary("resume-cache")
+        let defaults = try #require(UserDefaults(suiteName: "resume-\(UUID().uuidString)"))
+        defer {
+            try? FileManager.default.removeItem(at: documents)
+            try? FileManager.default.removeItem(at: cache)
+        }
+        try copy("single-page.cbz", as: "01.cbz", into: documents)
+        try copy("natural-sort.cbz", as: "02.cbz", into: documents)
+        let first = LibraryModel(documents: documents, cache: LibraryCache(directory: cache))
+        first.scan(documents)
+        await first.scanTask?.value
+        #expect(first.publications.count == 2)
+
+        // An interrupted scan of the same folder had indexed the first file.
+        let journal = ScanJournal(defaults: defaults)
+        let indexed = try #require(first.publications.first {
+            $0.identity.normalizedPath?.hasSuffix("01.cbz") == true
+        })
+        journal.record([indexed], inFolder: documents.path)
+
+        let second = LibraryModel(
+            documents: documents, journal: journal, cache: LibraryCache(directory: cache)
+        )
+        second.restoreCachedLibrary()
+        second.scan(documents)
+        await second.scanTask?.value
+        #expect(second.publications.count == 2)
+    }
+
     // MARK: - The cached notice
 
     @Test("A shelf restored from the cache says when it was last refreshed")

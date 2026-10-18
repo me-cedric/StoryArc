@@ -130,6 +130,40 @@ public struct PublicationIdentity: Sendable, Hashable, Codable {
         return sharesContainerPath(with: other)
     }
 
+    /// One identity's side of ``matches(_:)``, worked out once for a search over many.
+    ///
+    /// The same rule, clause by clause: each clause of ``matches(_:)`` is symmetric, so
+    /// `Matcher(a).matches(b) == a.matches(b)`. What it saves is the container path, which
+    /// ``matches(_:)`` parses from both sides on every call: a scan that adopts each found book
+    /// against a shelf of 5,000 parsed 25 million paths on the main actor, 36 seconds on an
+    /// M1 Pro (`desktop-budgets-macos.md`). A found path outside an app container, which every
+    /// path on a Mac is, skips the parse for the whole search.
+    public struct Matcher: Sendable {
+        public let identity: PublicationIdentity
+        private let containerPath: String?
+
+        public init(_ identity: PublicationIdentity) {
+            self.identity = identity
+            containerPath = identity.normalizedPath.flatMap(PublicationIdentity.containerRelativePath)
+        }
+
+        public func matches(_ other: PublicationIdentity) -> Bool {
+            if let mine = identity.serverIdentifier, let theirs = other.serverIdentifier, mine == theirs {
+                return true
+            }
+            if let mine = identity.contentDigest, let theirs = other.contentDigest, mine == theirs {
+                return true
+            }
+            if let mine = identity.normalizedPath, let theirs = other.normalizedPath, mine == theirs {
+                return true
+            }
+            guard let containerPath,
+                  let theirs = other.normalizedPath.flatMap(PublicationIdentity.containerRelativePath)
+            else { return false }
+            return containerPath == theirs
+        }
+    }
+
     /// Whether both paths name one place inside this app's data container.
     ///
     /// A reinstall gives the app a new container, so `…/Application/<old>/Documents/A` and

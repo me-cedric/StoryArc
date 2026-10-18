@@ -78,9 +78,9 @@ extension LibraryModel {
         // A publication already present from another folder is not added twice.
         // Identity is what decides, not the path, so the same file reached two ways
         // is one row (ADR-0006).
-        if let seen = publications.firstIndex(
-            where: { $0.identity.matches(publication.identity) }
-        ) {
+        // The found book's side of the match is worked out once for the whole shelf.
+        let matcher = PublicationIdentity.Matcher(publication.identity)
+        if let seen = publications.firstIndex(where: { matcher.matches($0.identity) }) {
             // Unless this find came through a source the reader put higher. `sources`: the
             // combined view "lists titles from higher sources first when two sources hold
             // the same publication" — so the registry's order decides which copy the row is,
@@ -100,16 +100,22 @@ extension LibraryModel {
                 in: registry.sources
             ) else { return false }
 
-            publications[seen] = LibraryMerge.merged(
+            let merged = LibraryMerge.merged(
                 existing: publications[seen],
                 found: publication,
                 sourceID: attributed.sourceID,
                 hasFile: locations[publications[seen].id] != nil
             )
+            // Written only when the merge changed something. A rescan of an unchanged folder
+            // meets every row again, and an assignment of an equal value still tells every
+            // view observing the shelf to redraw: 5,000 redraws of a grid during a launch's
+            // rescan, measured on a Mac (`desktop-budgets-macos.md`, task 5.10).
+            if merged != publications[seen] { publications[seen] = merged }
             // The file goes with the attribution. A row that says one source and opens the
             // other source's copy is the same bug wearing a different hat.
             if let path = publication.identity.normalizedPath {
-                locations[publications[seen].id] = LibraryMerge.location(forNormalizedPath: path)
+                let location = LibraryMerge.location(forNormalizedPath: path)
+                if locations[publications[seen].id] != location { locations[publications[seen].id] = location }
             }
             return false
         }
