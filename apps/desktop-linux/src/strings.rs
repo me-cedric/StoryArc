@@ -382,6 +382,46 @@ msgstr ""
         }
     }
 
+    /// The keys the app's own code asks for, read from its sources: `tr`, `tr_plural` and `tr_args` calls.
+    fn keys_in(dir: &std::path::Path, keys: &mut std::collections::BTreeSet<String>) {
+        for entry in std::fs::read_dir(dir).expect("the sources are readable").flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                keys_in(&path, keys);
+                continue;
+            }
+            let text = std::fs::read_to_string(&path).unwrap_or_default();
+            for call in ["tr(", "tr_plural(", "tr_args("] {
+                for (at, _) in text.match_indices(call) {
+                    let before = text[..at].chars().last();
+                    // A name that only ends in `tr`, or this test's own list of calls, inside quotes.
+                    if before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '"') {
+                        continue;
+                    }
+                    let rest = text[at + call.len()..].trim_start();
+                    if let Some(key) = rest.strip_prefix('"').and_then(|r| r.split('"').next()) {
+                        keys.insert(key.to_owned());
+                    }
+                }
+            }
+        }
+    }
+
+    /// `localization`, *Completeness*: every key the Linux app draws is in all four catalogues, so no reader meets
+    /// the English fallback. The two `missing` keys are this module's own tests of that fallback.
+    #[test]
+    fn every_key_the_app_asks_for_is_in_every_catalogue() {
+        let mut keys = std::collections::BTreeSet::new();
+        keys_in(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"), &mut keys);
+        keys.retain(|key| !key.starts_with("missing "));
+        assert!(keys.len() > 200, "{} keys found in the sources", keys.len());
+        for (language, text) in CATALOGUES {
+            let catalogue = Catalogue::parse(language, text);
+            let missing: Vec<_> = keys.iter().filter(|key| catalogue.get(key).is_none()).collect();
+            assert!(missing.is_empty(), "{language} lacks {missing:?}");
+        }
+    }
+
     #[test]
     fn a_catalogue_reads_singulars_plurals_continuations_and_escapes() {
         let fr = Catalogue::parse("fr", SAMPLE);

@@ -17,7 +17,7 @@ are read from the specs by name, so a scenario added to a spec later is missing 
 | n/a | Another platform's scenario, or dropped on a desktop. |
 | not proved | Built or partly built, and it needs a Linux desktop session this lane did not have: a real compositor with a pointer, a portal, a Flatpak, X11, Orca, a resize, or a measurement; or built, and no test asserts it and no walk pressed it. |
 
-Totals: pass 136, seen 101, fail 3, later 96, n/a 39, not proved 109, of 484 scenarios.
+Totals: pass 137, seen 102, fail 1, later 96, n/a 39, not proved 109, of 484 scenarios.
 
 **What the walk is.** The debug build ran under cage 0.1.5 (a headless wlroots compositor, `WLR_BACKENDS=headless`,
 1280 by 720) in an Ubuntu 24.04 container with GTK 4.14.5 and libadwaita 1.5.0, `GDK_BACKEND=wayland`, driven by
@@ -52,13 +52,8 @@ ComicInfo declares chapters, a Reset and a Clear pressed, Orca, larger text, hig
 
 ## The failures, in one list
 
-- `localization` · Supported languages: Completeness: the strings this lane added are English only, because the
-  generator that carries them into `po/` is `scripts/strings-desktop.mjs`, outside lane L. They are listed under
-  Deviations.
 - `native-experience` · Visual proof of interface changes: Snapshot tests: Linux has no snapshot tests, and this walk's
   captures are not committed.
-- `native-experience` · Visual proof of interface changes: Guidelines are checked by machine: no accessibility or HIG
-  audit runs on Linux.
 
 What became *later*, so no row is a silent drop: the reading themes, the theme sheet and the preset grid (the EPUB
 reader, wave 4, task 4.2), imported copies (wave 3 with downloads), the diagnostic export (task 3.14), pinned Home
@@ -303,7 +298,7 @@ Source: `docs/openspec/specs/localization/spec.md`.
 | --- | --- | --- | --- |
 | Supported languages | Following the system | pass | `strings::` (the system's language list picks English, French, German or Spanish). |
 | Supported languages | Overriding in the app | n/a | Desktops follow the system language (design, Decision 12). |
-| Supported languages | Completeness | **fail** | The catalogues hold what the iOS strings generate (`strings::tests::the_four_catalogues_parse_and_hold_the_same_keys`); the strings this lane added are English only, listed under Deviations, and the generator that would carry them into `po/` is `scripts/strings-desktop.mjs`, outside lane L. |
+| Supported languages | Completeness | pass | `strings::tests::every_key_the_app_asks_for_is_in_every_catalogue` reads every `tr`, `tr_plural` and `tr_args` key in the sources and finds each in the four catalogues, which `scripts/strings-desktop.mjs` now writes (2026-10-18; two keys were renamed to their catalogue names). |
 | Locale-correct formatting | Dates and times | not proved | No date is shown on Linux yet. |
 | Locale-correct formatting | File sizes and counts | pass | `strings::tests::a_count_is_grouped_as_its_language_writes_it`, `a_plural_count_is_filled_in_grouped` (a comma in English, a point in German, a narrow no-break space in French, a point from five digits in Spanish); sizes go through `glib::format_size`. |
 | Locale-correct formatting | Plurals | pass | `strings::tests::a_catalogue_reads_singulars_plurals_continuations_and_escapes` (French counts 0 as singular), `tr_falls_back_to_english_before_init_and_for_a_desktop_only_key`. |
@@ -357,7 +352,7 @@ Source: `docs/openspec/specs/native-experience/spec.md`.
 | Visual proof of interface changes | Screen change | seen | walk under cage: light and dark captures of Home, the library, the detail page beside the library, search, the offer to add a folder and the reader. The captures were looked at and are not committed: `docs/designs/` belongs to another lane. |
 | Visual proof of interface changes | Snapshot tests hold the screen states | **fail** | Linux has no snapshot tests; the proof is the captures of this walk, which are not committed because `docs/designs/` belongs to another lane. |
 | Visual proof of interface changes | A device screenshot where only a device shows it | seen | walk under cage: light and dark captures of Home, the library, the detail page beside the library, search, the offer to add a folder and the reader. The captures were looked at and are not committed: `docs/designs/` belongs to another lane. |
-| Visual proof of interface changes | Guidelines are checked by machine | **fail** | No accessibility or HIG audit runs on Linux. |
+| Visual proof of interface changes | Guidelines are checked by machine | seen | `apps/desktop-linux/scripts/a11y-tree.py` reads every window through AT-SPI in the wave 4 walk and counts the controls with no name (`desktop-a11y-linux.md`, dumps under `docs/designs/screenshots/desktop/linux/wave4/`). It reports and does not fail a build, and no HIG rule is checked (2026-10-18). |
 | Visual proof of interface changes | Preview is not proof | n/a | Linux has no preview mechanism; the walk ran the built app. |
 | Visual proof of interface changes | Both appearances | seen | walk under cage: light and dark captures of Home, the library, the detail page beside the library, search, the offer to add a folder and the reader. The captures were looked at and are not committed: `docs/designs/` belongs to another lane. |
 | The icon a reader chose | Surviving a reinstall or a restore | n/a | No alternative icons on Linux: the desktop entry names one icon. |

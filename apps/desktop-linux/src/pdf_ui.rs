@@ -80,7 +80,7 @@ impl PdfHits {
                 "%@ of %@",
                 &[&(index + 1), &self.pages.len()],
             ),
-            None => tr_args("desktop.w4.pdf.hits", "%d found", &[&self.pages.len()]),
+            None => tr_args("desktop.w4.pdf.hits___", "%@ found", &[&self.pages.len()]),
         }
     }
 }

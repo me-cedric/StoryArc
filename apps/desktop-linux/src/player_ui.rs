@@ -38,7 +38,7 @@ pub fn bar(shared: &Shared, window: &adw::ApplicationWindow) -> gtk::Revealer {
         .css_classes(["card"])
         .build();
     cover.update_property(&[gtk::accessible::Property::Label(&tr(
-        "detail.cover",
+        "cover.picture",
         "Cover",
     ))]);
     let title = gtk::Label::builder()

@@ -51,7 +51,8 @@ today because the feature is not there:
   18 before): a source window now hosts the phones' browser for OPDS, Kavita and shares, sources
   rename and reorder, a search scoped to a Kavita server offers to ask it, and an *All Shelves*
   window lists server collections and lists.
-- **Linux, wave 2** (`desktop-conformance-linux-wave2.md`, 3 of 484), named in that record.
+- **Linux, wave 2** (`desktop-conformance-linux-wave2.md`, 1 of 484 after 2026-10-18, 3 before): no
+  snapshot tests on Linux; the visual matrix of the host pass (6.2) is the proof owed.
 - **Windows** has walked no screen: every Windows scenario is *wired, not proved* until a desktop.
 
 ## Coherence: the design
