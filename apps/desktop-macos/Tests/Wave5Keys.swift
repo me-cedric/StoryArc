@@ -2,5 +2,6 @@
 enum Wave5Keys {
     static let all: [String] = [
         "desktop.link.notFound %@",
+        "desktop.about.notices",
     ]
 }

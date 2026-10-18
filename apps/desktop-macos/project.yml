@@ -49,6 +49,10 @@ targets:
       # it to the web view; the app never loads a script from anywhere else.
       - path: ../desktop-web/epub/dist/storyarc-epub.js
         buildPhase: resources
+      # The generated licence notices (`pnpm notices`), copied in at build so the About tab
+      # shows the file the repository checks, PDFium and libarchive among it. Task 6.3.
+      - path: ../../THIRD_PARTY_NOTICES.md
+        buildPhase: resources
     # Document types and the comic UTIs, carried over from `apps/ios/project.yml` with the
     # `UI` keys dropped (design.md Decision 2). `xcodegen generate` writes `App/Info.plist`
     # from this block on every `pnpm build:macos`; the file is gitignored and never edited.
