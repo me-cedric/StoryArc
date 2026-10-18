@@ -53,10 +53,14 @@ today because the feature is not there:
   window lists server collections and lists.
 - **Linux, wave 2** (`desktop-conformance-linux-wave2.md`, 1 of 484 after 2026-10-18, 3 before): no
   snapshot tests on Linux; the visual matrix of the host pass (6.2) is the proof owed.
-- **Linux, wave 4** (`desktop-conformance-linux-wave4.md`, 49 of 92, written 2026-10-18 from the
-  headless walk and the code): the EPUB window turns pages, reads one chapter aloud and confirms a
-  link out, and has no typography, themes, contents, bookmarks, highlights or search; the player
-  has no compact bar, full player, sleep timer or chapter list.
+- **Linux, wave 4** (`desktop-conformance-linux-wave4.md`, none of 92 after 2026-10-18's work,
+  49 before): the EPUB window gained the six themes, the reader's typography and the five faces,
+  the contents, bookmarks, highlights, notes, search and a way back; a voice reads the whole book
+  with its sentence drawn and followed; a text PDF selection keeps the EPUB's highlight record;
+  the full player has chapters from the file's marks, the speed and a sleep timer; an
+  audiobook's page lists its chapters. Three host defects had kept every EPUB page blank and are
+  fixed. 48 pass, 14 seen, 23 not proved until a real desktop, 7 n/a; 327 crate tests and clippy
+  green in the Ubuntu 24.04 container, the display and voice tests green under cage.
 - **Windows, wave 4** (`desktop-conformance-windows-wave4.md`, none of 92 after 2026-10-18's work,
   33 before): the EPUB window gained the reading themes, the five faces, the contents, bookmarks,
   highlights, search and a way back; a text PDF selects in its page text and a scanned PDF says
@@ -81,8 +85,8 @@ and the records. Where the build moved off the plan, the design says so:
 **Critical** (block the archive)
 
 1. 74 tasks are open; `/opsx:archive` must wait for the host pass and the owner's decisions.
-2. The Mac's wave 3 and wave 4 records and the Windows wave 4 record list no failure since
-   2026-10-18. Linux still fails some of the 92 wave 4 scenarios; its record holds the count.
+2. Resolved 2026-10-18: the Mac's wave 3 and wave 4 records and the Linux and Windows wave 4
+   records list no failure. Their *not proved* rows wait for the host pass.
 3. *Opening a link or a command* is built and tested on all three desktops (task 5.8) but no
    conformance record walks it; the wave 5 records should.
 
@@ -101,8 +105,8 @@ and the records. Where the build moved off the plan, the design says so:
 
 **Suggestion**
 
-1. Build the Linux and Windows wave 4 reader and player gaps before the host pass, so the host
-   pass proves features instead of finding them missing.
+1. Resolved 2026-10-18: the Linux and Windows wave 4 reader and player gaps are built before the
+   host pass, so the host pass proves features instead of finding them missing.
 2. Resolved 2026-10-18: StoryArcKit's walk hands the shelf to the scanner, so an unchanged file
    is not re-read.
 
