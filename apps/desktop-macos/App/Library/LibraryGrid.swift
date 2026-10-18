@@ -16,6 +16,17 @@ enum LibraryGrid {
     static let cellWidth: CGFloat = 150
     static let spacing: CGFloat = 20
 
+    /// How far the grid's width moves at a time.
+    static let widthStep: CGFloat = 24
+
+    /// The width the grid is laid out at: the room it has, rounded down to ``widthStep``. A live resize proposed a new
+    /// width every frame, and the lazy grid measured its rows again each time (19 frames a second at 5,000
+    /// publications, `desktop-budgets-macos.md`); between two steps the grid is handed the same width and keeps its
+    /// layout.
+    static func snapped(_ width: CGFloat) -> CGFloat {
+        max(0, (width / widthStep).rounded(.down) * widthStep)
+    }
+
     /// Columns for a width: as many cells as fit, never fewer than two.
     static func columns(for width: CGFloat) -> [GridItem] {
         guard width > 0 else { return [] }
@@ -58,10 +69,13 @@ struct CoverGridView: View {
         let shelf = memo.shelf(publications, sort: sort, divides: divides)
         GeometryReader { geometry in
             let rail = shelf.index.isEmpty ? 0 : ShelfIndexRail.width
-            let columns = LibraryGrid.columns(for: geometry.size.width - rail)
+            let width = LibraryGrid.snapped(geometry.size.width - rail)
+            let columns = LibraryGrid.columns(for: width)
             ScrollViewReader { proxy in
                 ScrollView {
                     content(columns: columns, order: shelf.ids, sort: sort)
+                        .frame(width: width)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.trailing, shelf.index.isEmpty ? 0 : ShelfIndexRail.width)
                 }
                 .overlay(alignment: .trailing) {

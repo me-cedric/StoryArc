@@ -84,5 +84,9 @@ struct LibraryViewModelTests {
         #expect(LibraryGrid.columns(for: 400).count == 2)
         #expect(LibraryGrid.columns(for: 1100).count >= 5)
         #expect(LibraryGrid.columns(for: 1800).count > LibraryGrid.columns(for: 1100).count)
+        // The grid keeps its width between steps of a live resize.
+        #expect(LibraryGrid.snapped(1105) == LibraryGrid.snapped(1120))
+        #expect(LibraryGrid.snapped(1110).truncatingRemainder(dividingBy: LibraryGrid.widthStep) == 0)
+        #expect(LibraryGrid.snapped(-5) == 0)
     }
 }

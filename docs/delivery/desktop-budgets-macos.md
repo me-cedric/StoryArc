@@ -147,12 +147,20 @@ than a grid per section inside a stack, which laid a whole section out when it c
 | Cold launch, shelf on screen (Release, 3 launches) | 126 to 168 s for all rows | 0.75 to 0.78 s, all 5,027 rows with the window (1.23 s on the first launch after a build) |
 | Cold launch, quit mid-scan, next launch | — | all 5,027 rows kept |
 | Grid scroll at 5,027 (Debug) | 45 to 46 fps, 95th 95 ms | 93 fps, median 8.3 ms, 95th 20 ms, during the launch's rescan |
-| Grid resize at 5,027 (Debug) | 4 to 11 fps | 19 fps, median 42 ms |
+| Grid resize at 5,027 (Debug) | 4 to 11 fps | 19 fps, median 42 ms; 31 to 32 fps, median 24 to 25 ms, with the width snapped (2026-10-18) |
 
 **Result.** Task 5.9 holds on this Mac: the library is interactive within one second of a cold
 launch. Task 5.10 scrolls near the display's rate and still resizes at 19 frames a second: each
 width step relays out the visible cells of flexible columns, which is SwiftUI's own layout and
 the next thing to trace. The 10,000-publication library was not measured again.
+
+**The resize (2026-10-18).** A Time Profiler trace of the budget walk's resize put about three
+quarters of the main thread in window layout, most of it SwiftUI's lazy grid measuring its rows
+again (`HVGrid.lengthAndSpacing`, `LazySubviewPlacements.placeSubviews`) for each new width. The
+grid is now laid out at its width rounded down to 24 points (`LibraryGrid.snapped`), so a live
+resize hands it a new width once every 24 points: 31 to 32 fps over two runs at 5,000, against 17
+to 25 before. The cost is up to 23 points of margin at the trailing edge. 60 fps is not reached;
+the next step would be a grid that measures no row it does not show.
 
 **The rescan (2026-10-18).** A launch rescanned the whole folder, about eight minutes for 5,027
 archives (58 to 95 ms each). The walk now hands the scanner the shelf, and a file whose size and

@@ -90,7 +90,8 @@ and the records. Where the build moved off the plan, the design says so:
 1. Resolved 2026-10-18: `desktop-conformance-linux-wave4.md` and
    `desktop-conformance-windows-wave4.md` exist (task 4.22), written from evidence before the
    host pass. They show the wave 4 reader and player gaps above.
-2. The Mac grid resizes at 17 to 21 fps at 5,000 publications (`desktop-budgets-macos.md`). The
+2. The Mac grid resizes at 31 to 32 fps at 5,000 publications (`desktop-budgets-macos.md`), up from
+   17 to 25, and under the display's rate. The
    launch rescan no longer reopens unchanged files: 12 to 22 s for 5,000, was about eight minutes.
 3. Resolved 2026-10-18: the Windows app files EPUB and PDF progress by the core's file identity,
    records narrated listening positions, and renders PDF pages to the view (run 39110775472).

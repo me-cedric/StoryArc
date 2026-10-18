@@ -792,6 +792,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   an Instruments trace is next. `docs/delivery/desktop-budgets-macos.md`.
   **Mac improved 2026-10-18:** scroll 93 fps with a 95th of 20 ms during the launch's rescan, resize 19 fps (was 4 to
   11); the 10,000 library was not measured again. Resize stays the open part.
+  **Mac 2026-10-18, later:** the grid's width snaps to 24 points during a resize: 31 to 32 fps at 5,000 (was 17 to 25).
+  A launch's walk no longer reopens unchanged files (12 to 22 s for 5,000, was about eight minutes). Still under 60 fps.
 - [ ] 5.11 **[M, L, W] Chrome accent and click zone captures.** Capture both accent choices in light and dark on each desktop,
   the absent choice on a Linux session below libadwaita 1.6, and a reader with the edge click zones on. Verify: the captures
   exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
