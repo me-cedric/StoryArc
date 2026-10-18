@@ -28,6 +28,7 @@ struct EpubReaderWindow: View {
     @State private var isSearchOpen = false
     @State private var query = ""
     @State private var window: NSWindow?
+    @State private var isTextOpen = false
 
     init(target: ReaderTarget, library: MacLibrary) {
         self.target = target
@@ -76,7 +77,9 @@ struct EpubReaderWindow: View {
                 Spacer()
                 GlassEffectContainer {
                     HStack(spacing: 4) {
+                        EpubContentsMenu(model: model).hitTarget(HitTarget.icon).padding(4)
                         themeMenu
+                        textButton
                         searchButton
                         if model.offersReadAloud { readAloudButton }
                     }
@@ -158,6 +161,18 @@ struct EpubReaderWindow: View {
         .hitTarget(HitTarget.icon)
         .padding(4)
         .help(Text("desktop.epub.theme"))
+    }
+
+    private var textButton: some View {
+        Button { isTextOpen.toggle() } label: {
+            Label("desktop.epub.text", systemImage: "textformat.size")
+        }
+        .buttonStyle(.borderless)
+        .labelStyle(.iconOnly)
+        .hitTarget(HitTarget.icon)
+        .padding(4)
+        .help(Text("desktop.epub.text"))
+        .popover(isPresented: $isTextOpen) { EpubTextPanel(model: model) }
     }
 
     private var searchButton: some View {

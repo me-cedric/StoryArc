@@ -70,9 +70,34 @@ extension WindowWalks {
             model.goBack()
             #expect(model.returnLocator == nil)
 
+            try await Self.textAndContents(model)
+
             model.apply(.paper)
             await Walk.close([window])
             try await Self.expectReflowablePosition(for: target, in: store)
+        }
+
+        /// The second depth of the theme surface and the contents, on the page (`ebook-reader`, *Typography
+        /// controls*, *Table of contents*): a larger size reaches the renderer's CSS, and a chapter from the
+        /// contents moves the reader with a way back.
+        static func textAndContents(_ model: EpubReaderModel) async throws {
+            let saved = (EpubTypography.values, EpubTypography.scrolls)
+            defer { EpubTypography.values = saved.0; EpubTypography.scrolls = saved.1 }
+            model.apply(ThemeValues(fontSize: .larger), scroll: false)
+            let size = await Walk.until { model.appliedProperties["--USER__fontSize"] == "130%" ? "130%" : nil }
+                ?? model.appliedProperties["--USER__fontSize"]
+            #expect(size == "130%", "the renderer reports \(size ?? "no size")")
+            ConformanceLog.note("EPUB text size", "--USER__fontSize \(size ?? "absent")", wave: 4)
+
+            let contents = model.contents
+            #expect(!contents.isEmpty, "the fixture's contents are empty")
+            let last = try #require(contents.last)
+            model.go(to: EpubReaderModel.locator(for: last))
+            #expect(model.returnLocator != nil)
+            let landed = await Walk.until { model.position == model.positionCount ? true : nil }
+            #expect(landed == true, "the last chapter did not move the reader")
+            model.goBack()
+            _ = await Walk.until { model.position == 1 ? true : nil }
         }
 
         static let publicationID = "walk-epub"
@@ -85,10 +110,10 @@ extension WindowWalks {
         private static func freshTarget() async throws -> ReaderTarget {
             let folder = URL.temporaryDirectory.appending(path: "walk-ebooks", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            let file = folder.appending(path: "walk-fixture.epub")
-            if !FileManager.default.fileExists(atPath: file.path(percentEncoded: false)) {
-                try FileManager.default.copyItem(at: TestFixtures.ebooks.appending(path: "fixture.epub"), to: file)
-            }
+            // A copy of its own each run: a position saved under one path by a run that stopped early would open
+            // the next run somewhere other than the first page.
+            let file = folder.appending(path: "walk-fixture-\(UUID().uuidString).epub")
+            try FileManager.default.copyItem(at: TestFixtures.ebooks.appending(path: "fixture.epub"), to: file)
             let target = ReaderTarget(
                 publicationID: publicationID, path: file.path(percentEncoded: false), title: "Fixture Publication"
             )

@@ -42,6 +42,9 @@ final class EpubReaderModel: NSObject {
     private(set) var hits: [EpubSearchHit] = []
     private(set) var isSearching = false
     private(set) var theme: ThemePreset
+    /// The manifest's table of contents, and the CSS properties the renderer last said are in force.
+    private(set) var contents: [EpubWebLink] = []
+    private(set) var appliedProperties: [String: String] = [:]
     /// Where a jump came from, so the reader can go back: *Returning from any jump*.
     private(set) var returnLocator: String?
     /// Every message the renderer posted, by type, for the walks.
@@ -102,6 +105,7 @@ final class EpubReaderModel: NSObject {
         // What the Mac built itself, so the chrome does not wait on the renderer for it.
         title = source.publication.manifest.metadata.title
         positionCount = source.publication.positions.count
+        contents = source.publication.manifest.toc
         chapters = try? await SpokenChapters.read(url: target.url)
         await EpubEgress.prepare()
         guard EpubEgress.isPrepared else {
@@ -149,7 +153,7 @@ final class EpubReaderModel: NSObject {
            case let .reflowable(_, json, _) = saved.position, !json.isEmpty {
             lines.append("window.__storyarcLocator = \(json);")
         }
-        if let axes = try? JSONSerialization.data(withJSONObject: Self.axes(of: theme)),
+        if let axes = try? JSONSerialization.data(withJSONObject: Self.readerAxes(theme)),
            let text = String(data: axes, encoding: .utf8) {
             lines.append("window.__storyarcPreferences = \(text);")
         }
@@ -213,7 +217,7 @@ final class EpubReaderModel: NSObject {
     func apply(_ preset: ThemePreset) {
         theme = preset
         UserDefaults.standard.set(preset.rawValue, forKey: Self.themeKey)
-        let theme: [String: AnyHashable] = ["name": preset.rawValue, "axes": Self.axes(of: preset)]
+        let theme: [String: AnyHashable] = ["name": preset.rawValue, "axes": Self.readerAxes(preset)]
         send(["type": "theme", "theme": theme])
     }
 
@@ -265,15 +269,15 @@ final class EpubReaderModel: NSObject {
         guard let type = body["type"] as? String else { return }
         received.append(type)
         switch type {
-        case "ready":
-            isReady = true
-        case "locator":
+        case "ready", "locator":
             // The renderer reports its first position before its own `load()` settles, and
             // on a Mac that settlement was seen to come late or not at all: the first
             // locator is the book on screen, which is what ready means here.
             isReady = true
             guard let locator = body["locator"] as? [String: Any] else { return }
             moved(to: locator)
+        case "theme", "preferences":
+            appliedProperties = body["properties"] as? [String: String] ?? appliedProperties
         case "search-results":
             guard body["id"] as? Int == searchID else { return }
             let base = hits.count
