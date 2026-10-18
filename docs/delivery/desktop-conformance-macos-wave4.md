@@ -19,7 +19,7 @@ by name, so a scenario added to a spec later is missing here until the walk runs
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 49, seen 22, fail 5, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
+Totals: pass 53, seen 23, fail 0, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as in
 waves 2 and 3. Wave 4 adds four: the EPUB walk over the corpus `fixture.epub` in the Mac's web
@@ -64,11 +64,7 @@ record lists the four bar rows as failures, which is the honest reading until th
 
 ## The failures, in one list
 
-- ebook-reader · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
-- ebook-reader · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
-- ebook-reader · *Leaving the publication while it speaks*: The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken.
-- ebook-reader · *The same controls as a narrated book*: Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice.
-- ebook-reader · *Opening a different publication*: A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped.
+None since 2026-10-18. The 42 the walk first found were reader and player features the phones had.
 
 ## ebook-reader
 
@@ -78,7 +74,7 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 | --- | --- | --- | --- |
 | Reflowable rendering | Typography controls | pass | `EpubTextPanel` sets size, typeface, bold, margins, line and paragraph spacing, alignment and hyphenation; `EpubTypographyTests` holds the mapping and `EpubWalkTests` reads `--USER__fontSize` 130 % back from the renderer (2026-10-18). |
 | Reflowable rendering | One sheet, two depths | seen | The theme menu holds the presets; the Text panel beside it is the second depth (frame `epub-reader-light.png`, 2026-10-18). |
-| Reflowable rendering | Bundled typefaces | **fail** | No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`). |
+| Reflowable rendering | Bundled typefaces | pass | The text panel offers the publisher's own, the system serif and sans, Literata, Source Serif 4, EB Garamond, Bitter and Atkinson Hyperlegible, labelled as designed for low vision. The faces come from the shared `packages/fonts`, served on the book's scheme with a linked `@font-face` sheet (`EpubFontsTests`); `EpubWalkTests` sees `--USER__fontFamily` become Literata. Their OFL licences are in About (`MacAbout.linked`) (2026-10-18). |
 | Reflowable rendering | Publisher styles | pass | Under *Original* the axes the publisher governs are not sent and their rows are disabled with the reason (`EpubTypographyTests`, 2026-10-18). |
 | Reflowable rendering | An axis is inert while publisher styles are on | pass | The spacing, alignment and hyphenation rows are disabled under *Original* with the sentence that says why; `EpubTypographyTests` *Original keeps the publisher's spacing* (2026-10-18). |
 | Reflowable rendering | Fixed-layout EPUB | seen | `EpubWebPublicationTests` *a fixed-layout book says so*: the manifest the renderer reads carries `layout: fixed`; how the bundle paginates it is the renderer's, and the Mac adds no zoom or spread over the web view. |
@@ -116,9 +112,9 @@ Source: `docs/openspec/changes/read-aloud-beyond-the-reader/specs/ebook-reader/s
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Reading aloud | Starting playback | **fail** | The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar. |
-| Reading aloud | Leaving the publication while it speaks | **fail** | The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken. |
-| Reading aloud | The same controls as a narrated book | **fail** | Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice. |
+| Reading aloud | Starting playback | pass | The voice starts at the chapter of the current position on the one player; each sentence is drawn over the page as its own decoration and the page goes to the column that holds it (`EpubWalkTests` *spokenSentence*: the renderer draws the `spoken` decoration; `EpubJumpTests` *The sentence being spoken joins the highlights message*). The compact bar shows the session (2026-10-18). |
+| Reading aloud | Leaving the publication while it speaks | seen | The voice runs on `PlayerCentre.shared`, which outlives its window; the compact bar goes back to the book, and a window reopened on it takes the voice's sentences again and goes to the sentence being spoken (`EpubReaderModel.adoptVoice`). No walk closes and reopens a speaking book (2026-10-18). |
+| Reading aloud | The same controls as a narrated book | pass | `SessionPlayerWalkTests` *A voice's full player offers the chapters, the sleep timer and the speed*: *Show Player* in a book being read aloud opens the full player on the same session; skip is by sentence. The publication page names the voice (`ReadAloudVoiceLineView`) (2026-10-18). |
 | Reading aloud | Background and lock screen | pass | `NowPlayingTests` *Playback starting puts the title, the chapter and the position on the panel* and *A voice gets sentence skip in the track buttons and no scrubber*; hidden windows keep playing (`PlayerWalkTests`) |
 | Reading aloud | Reaching the end of a chapter | pass | `ReadAloudTests` *The voice walks the sentences across the chapter boundary, skips by one, and ends with the book* (the last sentence reported is none, so the highlight is withdrawn); `NowPlayingTests` *The entry leaves when playback ends, and when the book runs out* |
 | Reading aloud | Where the listening got to | seen | The page follows the voice from chapter to chapter (`EpubReaderModel.follow(part:)`), so closing the book writes the chapter the voice reached (2026-10-18). |
@@ -128,7 +124,7 @@ Source: `docs/openspec/changes/read-aloud-beyond-the-reader/specs/ebook-reader/s
 | The transport outside the reader | Controlling it without going back | seen | Pause, resume and sentence skip through the panel and the media keys (`NowPlayingTests` *The keys drive the one session*); ending the session needs the book's window (the Read Aloud button). |
 | The transport outside the reader | What it says | pass | `NowPlayingTests`: the panel carries the title and the chapter being spoken |
 | The transport outside the reader | It is absent when nothing is playing | pass | `NowPlayingTests` *The entry leaves when playback ends, and when the book runs out* |
-| The transport outside the reader | Opening a different publication | **fail** | A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped. |
+| The transport outside the reader | Opening a different publication | pass | `VoiceDisplacementTests` *Its own book keeps the voice; another ends it with one word naming the book*: a reader window opening another book ends the voice, which records where it got to, and shows the phones' notice once (`ReaderRoot.displaceVoice`, `VoiceStoppedCapsule`) (2026-10-18). |
 | The transport outside the reader | The transport on iOS | n/a | iOS. |
 | The transport outside the reader | The transport on Android | n/a | Android. |
 | The transport outside the reader | The session cannot continue | not walked | The entry leaves when the source ends (`NowPlayingTests`); a voice that becomes unavailable mid-session was not driven. |

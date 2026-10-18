@@ -17,6 +17,8 @@ struct EpubArchiveSource: EpubResourceSource {
     let manifest: Data
     let positions: Data
     let bundle: URL
+    /// The faces' stylesheet, by its full URL on this book's scheme.
+    let fontSheet: String
 
     /// Opens the EPUB at `url` and builds what the renderer is owed, served under `token`.
     init(url: URL, token: String, bundle: URL) async throws {
@@ -31,6 +33,7 @@ struct EpubArchiveSource: EpubResourceSource {
         manifest = try publication.manifestData()
         positions = try publication.positionsData()
         self.bundle = bundle
+        fontSheet = EpubSchemeHandler.base(for: token) + EpubFonts.sheet
     }
 
     /// Where the app keeps the bundle.
@@ -50,8 +53,10 @@ struct EpubArchiveSource: EpubResourceSource {
         case Self.positionsPath:
             return EpubResource(data: positions, mimeType: "application/json")
         default:
+            if let font = EpubFonts.resource(at: path) { return font }
             guard let data = try? await reader.data(at: path) else { return nil }
-            return EpubResource(data: data, mimeType: EpubMediaTypes.type(of: path))
+            let type = EpubMediaTypes.type(of: path)
+            return EpubResource(data: EpubFonts.linking(data, mimeType: type, sheet: fontSheet), mimeType: type)
         }
     }
 }

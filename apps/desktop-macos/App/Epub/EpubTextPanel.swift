@@ -91,9 +91,14 @@ struct EpubTextPanel: View {
 
     static func titleKey(of typeface: ReaderTypeface) -> LocalizedStringKey {
         switch typeface {
+        case .publisher: "desktop.epub.text.typeface.publisher"
         case .serif: "desktop.epub.text.typeface.serif"
         case .sans: "desktop.epub.text.typeface.sans"
-        default: "desktop.epub.text.typeface.publisher"
+        case .literata: "desktop.epub.text.typeface.literata"
+        case .sourceSerif: "desktop.epub.text.typeface.sourceSerif"
+        case .ebGaramond: "desktop.epub.text.typeface.ebGaramond"
+        case .bitter: "desktop.epub.text.typeface.bitter"
+        case .atkinsonHyperlegible: "desktop.epub.text.typeface.atkinson"
         }
     }
 }

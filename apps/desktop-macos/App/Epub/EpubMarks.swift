@@ -33,6 +33,9 @@ final class EpubMarks {
     private let bookmarkStore: BookmarkStore
     private let annotationStore: AnnotationStore
 
+    /// The decorations the renderer last said it drew, by id.
+    private(set) var drawn: [String] = []
+
     init(publicationID: String, defaults: UserDefaults = .standard) {
         self.publicationID = publicationID
         bookmarkStore = BookmarkStore(defaults: defaults)
@@ -53,6 +56,8 @@ final class EpubMarks {
         case "highlight-activated":
             let id = (body["id"] as? String).flatMap(UUID.init(uuidString:))
             activated = annotations.first { $0.id == id }
+        case "highlights":
+            drawn = body["ids"] as? [String] ?? []
         default:
             break
         }
@@ -114,12 +119,28 @@ final class EpubMarks {
     func dismissSelection() { selection = nil }
 
     /// The message that draws every highlight on the page; it replaces what the page had.
-    var highlightsJSON: String {
-        let items = annotations.map { annotation in
+    var highlightsJSON: String { highlightsJSON(spoken: nil) }
+
+    /// The highlights message, with the sentence the voice speaks as one more decoration in its own tint.
+    func highlightsJSON(spoken: String?) -> String {
+        var items = annotations.map { annotation in
             let id = annotation.id.uuidString
             return "{\"id\":\"\(id)\",\"locator\":\(annotation.locator),\"color\":\"\(annotation.colour.rawValue)\"}"
         }
+        if let spoken {
+            items.append("{\"id\":\"\(Self.spokenID)\",\"locator\":\(spoken),\"color\":\"\(Self.spokenTint)\"}")
+        }
         return "{\"type\":\"highlights\",\"items\":[\(items.joined(separator: ","))]}"
+    }
+
+    /// The decoration of the sentence being spoken; never a reader's highlight, so activating it opens nothing.
+    static let spokenID = "spoken"
+    static let spokenTint = "lightskyblue"
+
+    /// A sentence of a chapter, as a locator the renderer finds again by its text.
+    static func spokenLocator(_ sentence: String, href: String) -> String? {
+        let place: [String: Any] = ["href": href, "type": "application/xhtml+xml", "locations": [String: Any]()]
+        return json(place.merging(["text": ["highlight": sentence]]) { first, _ in first })
     }
 
     static func json(_ object: Any?) -> String? {

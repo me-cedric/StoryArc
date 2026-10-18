@@ -27,7 +27,9 @@ enum MacAbout {
     /// web toolkit joins with the EPUB reader of wave 4. The fonts the iOS app bundles are not
     /// in the Mac build. `AboutTests` holds every name to an entry and a licence text in
     /// `packages/licences`, the inventory both phone apps read.
-    static let linked = ["libarchive", "SMBClient"]
+    static let linked = [
+        "libarchive", "SMBClient", "Literata", "Source Serif 4", "EB Garamond", "Bitter", "Atkinson Hyperlegible",
+    ]
 
     /// The Mac's entries from the shared inventory.
     static func notices() throws -> [Notice] {

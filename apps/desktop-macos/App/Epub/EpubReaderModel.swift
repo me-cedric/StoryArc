@@ -57,7 +57,8 @@ final class EpubReaderModel: NSObject {
     /// What the book says, read once at open, or `nil` while it is being read.
     private(set) var chapters: SpokenChapters?
     /// The sentence the voice is on, for the window, or `nil` when it is quiet.
-    private(set) var spokenSentence: String?
+    /// The sentence the voice is speaking; drawn over the page, which follows it.
+    var spokenSentence: String? { didSet { syncHighlights(); followSentence() } }
     var writer: ProgressWriter?
 
     /// The keys over the web view, installed once with it; `close()` removes them.

@@ -11,6 +11,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, the Mac's open conformance gaps.** Each source opens in a window of its own with the
+  phones' browser for OPDS feeds, Kavita and shares, and renames and reorders; a library search scoped to a
+  Kavita server offers to ask it; an All Shelves window lists server collections and reading lists. The EPUB
+  reader offers the five bundled reading faces, asks before a link leaves the book, draws the spoken sentence
+  and follows it, takes the voice again when a speaking book reopens, and says once when opening another book
+  stopped it. The voice has the full player, and a book with no cover shows the shared coverless artwork in
+  the player and on Now Playing. The Mac's wave 3 and wave 4 conformance records list no failure.
 - **Desktop clients, waves 5 and 6 in part.** The three desktops open `storyarc://` links and command-line
   paths, refusing a link that carries a command; their About windows show the generated licence notices, which
   now cover the Rust crates, the .NET packages, PDFium and libarchive. The Mac turns pages with the phone's

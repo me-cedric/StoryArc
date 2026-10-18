@@ -96,4 +96,14 @@ struct EpubJumpTests {
         #expect(EpubReaderModel.outward(nil) == nil)
         #expect(opened.isEmpty, "nothing opens before the reader says yes")
     }
+
+    @Test("The sentence being spoken joins the highlights message as its own decoration, found by its text")
+    func spokenDecoration() throws {
+        let locator = try #require(EpubMarks.spokenLocator("It began.", href: "OEBPS/ch1.xhtml"))
+        #expect(locator.contains("\"highlight\":\"It began.\""))
+        let defaults = try #require(UserDefaults(suiteName: "spoken-\(UUID())"))
+        let marks = EpubMarks(publicationID: "spoken", defaults: defaults)
+        #expect(marks.highlightsJSON(spoken: locator).contains("\"id\":\"spoken\""))
+        #expect(!marks.highlightsJSON.contains("spoken"))
+    }
 }

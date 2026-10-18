@@ -1,4 +1,5 @@
 import DesignSystem
+import Playback
 import StoryArcCore
 import SwiftUI
 
@@ -12,8 +13,31 @@ extension EpubReaderModel {
         return EpubPlace(locator: locator, chapter: chapter?.title ?? title ?? "")
     }
 
-    /// Draws every highlight on the page; the message replaces what the page had.
-    func syncHighlights() { send(json: marks.highlightsJSON) }
+    /// Draws every highlight on the page, and the sentence being spoken; the message replaces what the page had.
+    func syncHighlights() { send(json: marks.highlightsJSON(spoken: spokenLocator)) }
+
+    /// The sentence being spoken as a locator the renderer finds by its text (`ebook-reader`, *Starting playback*).
+    var spokenLocator: String? {
+        let part = PlayerCentre.shared.place.partIndex
+        guard isBeingReadAloud, let sentence = spokenSentence, let all = chapters?.chapters, all.indices.contains(part)
+        else { return nil }
+        return EpubMarks.spokenLocator(sentence, href: all[part].href)
+    }
+
+    /// The page follows the voice to the column that holds its sentence. No way back is kept: the reader did not jump.
+    func followSentence() {
+        guard let spoken = spokenLocator else { return }
+        isMovingItself = true
+        send(json: "{\"type\":\"go\",\"locator\":\(spoken)}")
+    }
+
+    /// A window reopened on the book its voice is speaking takes the voice again at the sentence it has reached
+    /// (`ebook-reader`, *Leaving the publication while it speaks*): the voice did not wait.
+    func adoptVoice() {
+        guard isBeingReadAloud, let source = MacSpokenSource.current else { return }
+        source.onSentence = { [weak self] in self?.spokenSentence = $0 }
+        spokenSentence = source.currentSentence
+    }
 
     /// The page follows the voice from chapter to chapter, so closing the book while it speaks writes the
     /// chapter the voice reached (`ebook-reader`, *Where the listening got to*). No way back is kept: the reader

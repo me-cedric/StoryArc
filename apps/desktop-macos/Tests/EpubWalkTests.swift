@@ -88,6 +88,12 @@ extension WindowWalks {
                 ?? model.appliedProperties["--USER__fontSize"]
             #expect(size == "130%", "the renderer reports \(size ?? "no size")")
             ConformanceLog.note("EPUB text size", "--USER__fontSize \(size ?? "absent")", wave: 4)
+            model.apply(ThemeValues(typeface: .literata), scroll: false)
+            let key = "--USER__fontFamily"
+            let family = await Walk.until { model.appliedProperties[key]?.contains("Literata") == true ? true : nil }
+            let reported = model.appliedProperties[key] ?? "absent"
+            #expect(family == true, "the renderer reports \(reported)")
+            ConformanceLog.note("EPUB typeface", "\(key) \(reported)", wave: 4)
 
             let contents = model.contents
             #expect(!contents.isEmpty, "the fixture's contents are empty")
@@ -112,6 +118,19 @@ extension WindowWalks {
             model.marks.toggleBookmark(at: place)
             for annotation in model.marks.annotations { model.marks.removeHighlight(annotation.id) }
             model.syncHighlights()
+            try await Self.spokenSentence(model)
+        }
+
+        /// The voice's sentence is drawn over the page (`ebook-reader`, *Starting playback*), on a fake speaker.
+        static func spokenSentence(_ model: EpubReaderModel) async throws {
+            guard model.offersReadAloud else { return ConformanceLog.note("EPUB voice", "no system voice", wave: 4) }
+            let speaker = FakeSpeaker()
+            model.toggleReadAloud(speaker: speaker)
+            defer { if model.isBeingReadAloud { model.toggleReadAloud() } }
+            let sentence = try #require(model.spokenSentence, "the voice named no sentence")
+            let drawn = await Walk.until { model.marks.drawn.contains(EpubMarks.spokenID) ? true : nil }
+            #expect(drawn == true, "the renderer did not draw the spoken sentence")
+            ConformanceLog.note("EPUB voice", "the page draws the spoken sentence: \(sentence.prefix(40))", wave: 4)
         }
 
         static let publicationID = "walk-epub"

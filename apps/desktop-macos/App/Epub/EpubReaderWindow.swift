@@ -14,6 +14,7 @@ import WebKit
 /// chrome is glass and only here; it hides after the pointer rests, as the comic reader's
 /// does. Task 4.5.
 struct EpubReaderWindow: View {
+    @Environment(\.openWindow) private var openWindow
     @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -76,6 +77,7 @@ struct EpubReaderWindow: View {
         // book that takes longer than that to load would otherwise open with its chrome gone.
         .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide(); model.syncHighlights() } }
         .onChange(of: PlayerCentre.shared.place.partIndex) { _, part in model.follow(part: part) }
+        .onChange(of: model.isReady) { _, ready in if ready { model.adoptVoice() } }
         .onChange(of: colorScheme, initial: true) { _, scheme in
             if let preset = EpubLook.preset(for: scheme), preset != model.theme { model.apply(preset) }
         }
@@ -97,6 +99,7 @@ struct EpubReaderWindow: View {
                         themeButton
                         searchButton
                         if model.offersReadAloud { readAloudButton }
+                        if model.isBeingReadAloud { sessionPlayerButton }
                         if model.isBeingReadAloud { SleepMenu(centre: .shared).hitTarget(HitTarget.icon).padding(4) }
                     }
                     .labelStyle(.iconOnly)
@@ -154,6 +157,16 @@ struct EpubReaderWindow: View {
         .buttonStyle(.borderless)
         .padding(4)
         .help(Text(model.isBeingReadAloud ? "desktop.epub.readAloud.stop" : "desktop.epub.readAloud"))
+    }
+
+    /// The voice's full player: speed, skip, the sleep timer and the chapters.
+    private var sessionPlayerButton: some View {
+        Button { openWindow(id: SessionPlayerWindow.id) } label: {
+            Label("desktop.epub.readAloud.player", systemImage: "headphones").hitTarget(HitTarget.icon)
+        }
+        .buttonStyle(.borderless)
+        .padding(4)
+        .help(Text("desktop.epub.readAloud.player"))
     }
 
     private var positionText: String {

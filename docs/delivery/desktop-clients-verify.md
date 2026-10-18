@@ -41,13 +41,12 @@ conformance, accessibility, budget or spike record names it or one of its scenar
 **Failures a host cannot explain.** The records list scenarios that do not hold on a desktop
 today because the feature is not there:
 
-- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, 5 of 92 after 2026-10-18's work,
-  42 before): typography, scroll mode, contents, bookmarks, highlights, footnotes, theme swatches,
-  a way back after an internal link, a confirmed link out, the sleep timer, chapter marks, the
-  headphones pause, the compact bar, the coverless artwork and the page's chapter list are built.
-  What fails: the bundled typefaces, and four read-aloud scenarios (the spoken sentence in the
-  page, returning at the sentence spoken, the voice in the full player, and the notice when
-  another book stops the voice).
+- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, none of 92 after 2026-10-18's
+  work, 42 before): the bundled typefaces, typography, scroll mode, contents, bookmarks,
+  highlights, footnotes, theme swatches, a way back after an internal link, a confirmed link out,
+  the spoken sentence drawn and followed, the voice's full player, the voice-stopped notice, the
+  sleep timer, chapter marks, the headphones pause, the compact bar, the coverless artwork and
+  the page's chapter list are built.
 - **The Mac, wave 3** (`desktop-conformance-macos-wave3.md`, none of 190 after 2026-10-18's work,
   18 before): a source window now hosts the phones' browser for OPDS, Kavita and shares, sources
   rename and reorder, a search scoped to a Kavita server offers to ask it, and an *All Shelves*
@@ -72,8 +71,8 @@ and the records. Where the build moved off the plan, the design says so:
 **Critical** (block the archive)
 
 1. 74 tasks are open; `/opsx:archive` must wait for the host pass and the owner's decisions.
-2. The Mac lacks the ebook-reader and audio-playback features listed above, which the main specs
-   require; the change claims those capabilities on every desktop.
+2. Resolved 2026-10-18: the Mac's wave 3 and wave 4 records list no failure. Linux and Windows
+   still owe their wave 4 records (Warning 1).
 3. *Opening a link or a command* is built and tested on all three desktops (task 5.8) but no
    conformance record walks it; the wave 5 records should.
 

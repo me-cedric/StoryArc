@@ -35,6 +35,12 @@ struct StoryArcMacApp: App {
         .windowResizability(.contentMinSize)
         .defaultSize(width: 980, height: 820)
 
+        // The full player over the session running, for a voice reading a book.
+        Window(Text("desktop.player.session"), id: SessionPlayerWindow.id) {
+            SessionPlayerWindow(library: library).macChrome()
+        }
+        .defaultSize(width: 420, height: 640)
+
         // Every shelf, the servers' with the Mac's own.
         Window(Text("desktop.shelves.all"), id: AllShelvesWindow.id) {
             AllShelvesWindow(library: library).macChrome()

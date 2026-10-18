@@ -735,7 +735,8 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   accessibility walk; Linux walked headless (EPUB, PDF, MPRIS, audio, speech); Windows is owed to a host. The three
   `desktop-conformance-<os>-wave4.md` files are the wave 5 Mac and Linux lanes' first piece and the Windows host pass.
   **Mac file 2026-10-18:** `docs/delivery/desktop-conformance-macos-wave4.md`, 92 scenarios: pass 23, seen 11, fail 42,
-  n/a 10, not walked 6. The Linux and Windows files are the host pass.
+  n/a 10, not walked 6. Later the same day, after the reader and player gaps were built: pass 53, seen 23, fail 0. The
+  Mac's wave 3 file went from 18 failures to none the same day. The Linux and Windows files are the host pass.
 
 ## 5. Wave 5: the curl, polish and the LATER list
 

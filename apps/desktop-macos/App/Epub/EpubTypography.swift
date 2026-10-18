@@ -13,8 +13,8 @@ enum EpubTypography {
     static let valuesKey = "app.storyarc.mac.epubTypography"
     static let scrollKey = "app.storyarc.mac.epubScroll"
 
-    /// The typefaces this build carries. The phones bundle five more; the Mac does not ship their files yet.
-    static let typefaces: [ReaderTypeface] = [.publisher, .serif, .sans]
+    /// The typefaces offered: the publisher's, the system serif and sans, and the five the phones bundle (`EpubFonts`).
+    static let typefaces = ReaderTypeface.allCases
 
     /// The base gutter one margin step stands for, in CSS pixels.
     static let gutterUnit: Double = 24
@@ -64,14 +64,7 @@ enum EpubTypography {
     }
 
     /// The CSS family for a typeface, or nil for the publication's own.
-    static func family(of typeface: ReaderTypeface) -> String? {
-        switch typeface {
-        case .publisher: nil
-        case .serif: "serif"
-        case .sans: "sans-serif"
-        case .literata, .sourceSerif, .ebGaramond, .bitter, .atkinsonHyperlegible: nil
-        }
-    }
+    static func family(of typeface: ReaderTypeface) -> String? { typeface.cssFamily }
 }
 
 extension EpubReaderModel {

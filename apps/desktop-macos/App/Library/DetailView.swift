@@ -56,6 +56,8 @@ struct DetailView: View {
                         Task { await MacPlayer.listen(to: publication, at: url, startingAt: part, progress: progress) }
                     }
                 }
+                // `ebook-reader`, *The same controls as a narrated book*: the voice is named here, not in the player.
+                ReadAloudVoiceLineView(publication: publication).frame(maxWidth: 640, alignment: .leading)
                 if let summary = publication.summary, !summary.isEmpty {
                     Text(summary).foregroundStyle(theme.palette.textPrimary).frame(maxWidth: 640, alignment: .leading)
                 }

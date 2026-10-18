@@ -15,6 +15,9 @@ struct PlayerWindow: View {
 
     let target: ReaderTarget
     let library: MacLibrary
+    /// The voice's full player: it shows the session already running and opens nothing, so it is no reader window
+    /// of the book's and leaves no session to restore.
+    var followsSession = false
     private let centre = PlayerCentre.shared
 
     @State private var scrubbing: Double?
@@ -52,7 +55,7 @@ struct PlayerWindow: View {
         .focusEffectDisabled()
         .onKeyPress(phases: .down) { press in handle(press) }
         .navigationTitle(target.title)
-        .background(WindowAccessor { ReaderWindowRegistry.attach($0, for: target) })
+        .background(WindowAccessor { if !followsSession { ReaderWindowRegistry.attach($0, for: target) } })
         .task { await open() }
         .onDisappear { close() }
     }
@@ -167,6 +170,7 @@ struct PlayerWindow: View {
 
     private func open() async {
         isFocused = true
+        guard !followsSession else { return }
         ReaderWindows.shared.didOpen(target)
         MacPlayer.wire(progress: library.progress, library: library)
         cover = await library.model.cover(for: publication, maxPixelSize: 512)
@@ -175,7 +179,32 @@ struct PlayerWindow: View {
 
     /// The window goes; the session stays. The record is the centre's, written as it moves.
     private func close() {
+        guard !followsSession else { return }
         ReaderWindows.shared.didClose(target)
         ReaderWindowRegistry.detach(target)
+    }
+}
+
+/// The full player for whatever the one player holds, opened from a book being read aloud (`ebook-reader`, *The same
+/// controls as a narrated book*): speed, skip, the sleep timer and the chapters, as for a narrated book.
+struct SessionPlayerWindow: View {
+    static let id = "session-player"
+
+    let library: MacLibrary
+
+    var body: some View {
+        if let book = PlayerCentre.shared.book {
+            PlayerWindow(
+                target: ReaderTarget(
+                    publicationID: book.id, path: book.url.path(percentEncoded: false),
+                    title: book.publication.displayTitle
+                ),
+                library: library, followsSession: true
+            )
+            .id(book.id)
+        } else {
+            ContentUnavailableView("desktop.player.session.none", systemImage: "speaker.slash")
+                .frame(minWidth: 360, minHeight: 300)
+        }
     }
 }

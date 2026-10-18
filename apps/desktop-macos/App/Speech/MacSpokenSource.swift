@@ -31,6 +31,8 @@ final class MacSpokenSource: PlaybackSource {
     let unreadablePartCount = 0
     /// The sentence being spoken, for the window to show.
     var onSentence: (@MainActor (String?) -> Void)?
+    /// The voice last begun, so a window reopened on its book can take its sentences again.
+    static weak var current: MacSpokenSource?
 
     private let chapters: SpokenChapters
     private let speaker: any SentenceSpeaking
@@ -49,6 +51,7 @@ final class MacSpokenSource: PlaybackSource {
         self.voice = voice
         parts = chapters.parts
         self.place = place
+        Self.current = self
     }
 
     var currentSentence: String? {

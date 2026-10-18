@@ -35,6 +35,9 @@ packages:
   # The licence inventory the phone apps read, for the About tab's acknowledgements.
   licences:
     path: ../../packages/licences
+  # The reading faces the phones bundle, for the EPUB reader (`ebook-reader`, *Bundled typefaces*).
+  fonts:
+    path: ../../packages/fonts
 
 targets:
   StoryArc:
@@ -145,6 +148,8 @@ targets:
         product: PlayerFeature
       - package: licences
         product: StoryArcLicences
+      - package: fonts
+        product: StoryArcFonts
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.mecedric.storyarc
