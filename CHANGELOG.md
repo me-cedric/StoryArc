@@ -11,6 +11,13 @@ The two apps version and release independently — `ios-vX.Y.Z` and
 
 ### Added
 
+- **Desktop clients, waves 5 and 6 in part.** The three desktops open `storyarc://` links and command-line
+  paths, refusing a link that carries a command; their About windows show the generated licence notices, which
+  now cover the Rust crates, the .NET packages, PDFium and libarchive. The Mac turns pages with the phone's
+  page curl on Metal and gives Finder covers through a Quick Look extension; Linux ships a thumbnailer for
+  source and AUR builds and an AUR package; Windows builds an unsigned MSIX on CI. The core renders PDF pages
+  at the window's scale, files EPUB and PDF progress under the file's content identity, and keeps listening
+  positions. The Mac's launch and grid budgets were measured and do not yet meet the one-second target.
 - **Desktop clients, wave 4.** EPUB, PDF, audio and speech reach the desktops. The shared Rust core builds
   the Readium manifest and positions the EPUB bundle takes, with the position numbers iOS and Android show,
   and reads PDF through PDFium on one thread over ranged reads. Each desktop hosts the pinned renderer in its
