@@ -115,7 +115,8 @@ open windows run one after another under `WindowWalks`. `TEST_RUNNER_STORYARC_CA
 writes the window frames into the container's `tmp/captures/`; see
 [`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md),
 [`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md) and
-[`wave3/`](../../docs/designs/screenshots/desktop/macos/wave3/README.md)
+[`wave3/`](../../docs/designs/screenshots/desktop/macos/wave3/README.md) and
+[`wave5/`](../../docs/designs/screenshots/desktop/macos/wave5/README.md)
 for how and for what they do and do not show.
 
 The source, download and sync walks need the repository's mock servers (`pnpm opds`,
