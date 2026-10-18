@@ -90,8 +90,8 @@ and the records. Where the build moved off the plan, the design says so:
 1. Resolved 2026-10-18: `desktop-conformance-linux-wave4.md` and
    `desktop-conformance-windows-wave4.md` exist (task 4.22), written from evidence before the
    host pass. They show the wave 4 reader and player gaps above.
-2. The Mac grid resizes at 19 fps at 5,027 publications (`desktop-budgets-macos.md`), and every
-   launch rescans the whole folder, about eight minutes for 5,027 archives.
+2. The Mac grid resizes at 17 to 21 fps at 5,000 publications (`desktop-budgets-macos.md`). The
+   launch rescan no longer reopens unchanged files: 12 to 22 s for 5,000, was about eight minutes.
 3. Resolved 2026-10-18: the Windows app files EPUB and PDF progress by the core's file identity,
    records narrated listening positions, and renders PDF pages to the view (run 39110775472).
 4. Two Mac snapshot references drift by under 1 % in some local runs (`player`,
@@ -101,8 +101,8 @@ and the records. Where the build moved off the plan, the design says so:
 
 1. Build the Linux and Windows wave 4 reader and player gaps before the host pass, so the host
    pass proves features instead of finding them missing.
-2. Cache a file's metadata by modification time and size in StoryArcKit, as the core does, so a
-   launch does not re-read every archive.
+2. Resolved 2026-10-18: StoryArcKit's walk hands the shelf to the scanner, so an unchanged file
+   is not re-read.
 
 ## The host pass
 

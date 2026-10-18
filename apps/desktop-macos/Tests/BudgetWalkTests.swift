@@ -43,6 +43,10 @@ extension WindowWalks {
             #expect(held == true, "the scan did not hold \(count) publications")
             let scanned = clock.now - start
             ConformanceLog.note("budget scan", "\(count) publications in \(scanned)", wave: 5)
+            // `local-library`'s reconcile: a second walk over files that did not change reopens none of them.
+            let again = clock.now
+            await library.model.rescan()
+            ConformanceLog.note("budget rescan", "\(count) unchanged publications walked again in \(clock.now - again)", wave: 5)
 
             let window = try #require(NSApplication.shared.windows.first {
                 $0.isVisible && $0.identifier?.rawValue.hasPrefix(LibraryWindow.id) == true

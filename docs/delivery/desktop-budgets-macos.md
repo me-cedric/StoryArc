@@ -154,9 +154,12 @@ launch. Task 5.10 scrolls near the display's rate and still resizes at 19 frames
 width step relays out the visible cells of flexible columns, which is SwiftUI's own layout and
 the next thing to trace. The 10,000-publication library was not measured again.
 
-**Still slow.** A launch rescans the whole folder, about eight minutes for 5,027 archives (58 to
-95 ms each). The shelf is usable throughout; nothing caches a file's metadata by modification
-time and size, which the core's scanner does on Linux and Windows (task 2.2).
+**The rescan (2026-10-18).** A launch rescanned the whole folder, about eight minutes for 5,027
+archives (58 to 95 ms each). The walk now hands the scanner the shelf, and a file whose size and
+modification time still match its row is not reopened, as the core's scanner does on Linux and
+Windows (task 2.2). `BudgetWalkTests` times a second walk over the 5,000 unchanged files: 11.6
+to 21.6 s, against 213 s for the first walk of the same folder. `LibraryReconcileTests` holds the
+rule in StoryArcKit, so the phones' launches gain it too.
 
 ## Cleaning up
 
