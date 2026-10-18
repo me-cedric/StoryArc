@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using StoryArc.Interop.Library;
+using StoryArc.Interop.Playback;
 using StoryArc.Windows.Library;
 using StoryArc.Windows.Shell;
 
@@ -10,7 +11,14 @@ namespace StoryArc.Windows;
 
 /// <summary>What the library window hands the detail page when it navigates to it.</summary>
 /// <param name="Open">Opens the publication in its reader window.</param>
-internal sealed record DetailRequest(LibraryRecord Record, bool IsSourceAvailable, Action<LibraryRecord> Open);
+/// <param name="SavedListening">Where a narrated book was left, or <c>null</c>.</param>
+/// <param name="ListenFrom">Starts a narrated book at a chapter the listener chose.</param>
+internal sealed record DetailRequest(
+    LibraryRecord Record,
+    bool IsSourceAvailable,
+    Action<LibraryRecord> Open,
+    Func<string, TimeSpan?>? SavedListening = null,
+    Action<LibraryRecord, TimeSpan>? ListenFrom = null);
 
 /// <summary>
 /// The detail page of one publication (desktop-clients task 2.47d). Its content is
@@ -69,11 +77,70 @@ public sealed partial class PublicationDetailPage : Page
         UnavailableText.Text = reason ?? string.Empty;
         UnavailableText.Visibility = reason is null ? Visibility.Collapsed : Visibility.Visible;
 
+        if (request.Record.Format == PublicationFormat.Audiobook && detail.Action != DetailAction.Unavailable && File.Exists(request.Record.Id))
+        {
+            await ShowAudiobookAsync(request);
+        }
+
         if (detail.Cover == DetailCover.Wash && request.IsSourceAvailable)
         {
             var cover = await CoverLoader.LoadAsync(detail.Id);
             Cover.Source = cover;
             Wash.Source = cover;
+        }
+    }
+
+    /// <summary>
+    /// The audiobook's chapters, read from the file before it plays, each with its length and its mark; the primary action
+    /// names the chapter it resumes inside. Looking at the list moves nothing.
+    /// </summary>
+    private async Task ShowAudiobookAsync(DetailRequest request)
+    {
+        var read = await PlaybackService.ReadChaptersAsync(request.Record.Id);
+        if (read is not { } book || _request != request)
+        {
+            return;
+        }
+
+        var audio = AudiobookDetail.Of(book.Chapters, book.Duration, request.SavedListening?.Invoke(request.Record.Id));
+        PrimaryButton.Content = audio.PrimaryLabel(
+            Strings.Get("detail_listen", "Listen"),
+            Strings.Get("detail_continueListening_in___", "Continue {0}"),
+            Strings.Get("detail_continueListening", "Continue listening"));
+        DurationText.Text = string.Format(CultureInfo.CurrentCulture, Strings.Get("detail_duration___", "Duration {0}"), PlayerModel.Clock(audio.Duration));
+        ChaptersTitle.Text = Strings.Get("detail_chapters", "Chapters");
+        ChaptersTitle.Visibility = audio.ListsChapters ? Visibility.Visible : Visibility.Collapsed;
+        ChapterList.Visibility = audio.ListsChapters ? Visibility.Visible : Visibility.Collapsed;
+        ChapterList.Items.Clear();
+        if (audio.ListsChapters)
+        {
+            foreach (var row in audio.Rows)
+            {
+                var mark = row.Mark switch
+                {
+                    ChapterMark.Finished => Strings.Get("detail_chapter_finished", "Finished"),
+                    ChapterMark.InProgress when row.Remaining is { } left => string.Format(CultureInfo.CurrentCulture, Strings.Get("detail_chapter_remaining___", "{0} left"), PlayerModel.Clock(left)),
+                    _ => string.Empty,
+                };
+                var detail = mark.Length == 0 ? PlayerModel.Clock(row.Duration) : PlayerModel.Clock(row.Duration) + " · " + mark;
+                var item = new ListViewItem
+                {
+                    Content = new StackPanel { Children = { new TextBlock { Text = row.Title, TextWrapping = TextWrapping.Wrap }, new TextBlock { Text = detail, Style = (Style)Application.Current.Resources["CaptionTextBlockStyle"] } } },
+                    Tag = book.Chapters[row.Index].Start,
+                };
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(item, row.Title + ", " + detail);
+                ChapterList.Items.Add(item);
+            }
+        }
+
+        AudioSection.Visibility = Visibility.Visible;
+    }
+
+    private void OnChapterClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is ListViewItem { Tag: TimeSpan start } && _request is { ListenFrom: { } listen } request)
+        {
+            listen(request.Record, start);
         }
     }
 

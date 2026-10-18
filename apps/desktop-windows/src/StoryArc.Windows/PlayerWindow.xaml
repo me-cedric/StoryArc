@@ -34,7 +34,19 @@
                     CornerRadius="8"
                     Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                     HorizontalAlignment="Center">
-                    <Image x:Name="Cover" Stretch="UniformToFill" />
+                    <Grid x:Name="CoverWell">
+                        <!-- No cover: the publication's kind as a symbol over the format's name, the well every surface draws
+                             (audio-playback, "A publication with no cover"), never the title, which is stated just below. -->
+                        <StackPanel x:Name="Coverless" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed">
+                            <FontIcon x:Name="CoverlessKind" FontSize="64" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock
+                                x:Name="CoverlessFormat"
+                                Style="{ThemeResource BodyStrongTextBlockStyle}"
+                                HorizontalAlignment="Center"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <Image x:Name="Cover" Stretch="UniformToFill" />
+                    </Grid>
                 </Border>
                 <TextBlock
                     x:Name="TitleText"

@@ -46,7 +46,7 @@ internal sealed record OpenedPublication(string Id, IDisposable Handle, CorePubl
         try
         {
             var pageCount = handle.PageCount;
-            var pane = new PdfPaneModel(handle.HasTextLayer, handle.Outline(), handle.Search);
+            var pane = new PdfPaneModel(handle.HasTextLayer, handle.Outline(), handle.Search, handle.PageText);
 
             // Filed under the file's content digest, as a comic is; the title is the file's name, as the phones show a
             // PDF with no metadata. Pages are drawn to fill the view's pixel budget, enlarged where the page is small.

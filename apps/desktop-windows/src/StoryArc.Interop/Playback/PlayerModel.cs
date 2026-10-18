@@ -56,6 +56,21 @@ public sealed class PlayerModel
     /// <summary>Raised whenever something a surface shows changed.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    /// A moment the listening position must be written (audio-playback, "Where a listening position is written"): a pause,
+    /// a skip, a scrub let go, a chapter chosen, and every fifteen seconds of audio played with none of those. The listener
+    /// reads the position from the engine itself when it writes.
+    /// </summary>
+    public event Action? WriteDue;
+
+    /// <summary>A move the engine must follow: a skip, a chapter, a scrub. The engine's own reports never raise it.</summary>
+    public event Action<TimeSpan>? SoughtTo;
+
+    /// <summary>How much audio may play between two writes when the listener does nothing.</summary>
+    public static readonly TimeSpan WriteCadence = TimeSpan.FromSeconds(15);
+
+    private TimeSpan _playedSinceWrite;
+
     public PlaybackSession Session { get; private set; } = new();
 
     public PlaybackItem? Item { get; private set; }
@@ -93,6 +108,7 @@ public sealed class PlayerModel
 
         Item = item;
         Position = Clamp(at);
+        _playedSinceWrite = TimeSpan.Zero;
         Speed = PlaybackSpeed.Clamp(speed ?? Speed);
         Gain = 1;
         _sleep = null;
@@ -113,7 +129,15 @@ public sealed class PlayerModel
         }
     }
 
-    public void Pause() => Apply(Session.PausedByListener());
+    public void Pause()
+    {
+        var wasPlaying = Session.IsPlaying;
+        Apply(Session.PausedByListener());
+        if (wasPlaying)
+        {
+            Due();
+        }
+    }
 
     public void Resume() => Apply(Session.Resumed());
 
@@ -155,6 +179,15 @@ public sealed class PlayerModel
         }
 
         Position = Clamp(position);
+        if (Session.IsPlaying)
+        {
+            _playedSinceWrite += elapsedSinceLastReport;
+            if (_playedSinceWrite >= WriteCadence)
+            {
+                Due();
+            }
+        }
+
         if (_sleep is { } sleep && Session.IsPlaying)
         {
             _sleep = sleep.Advanced(elapsedSinceLastReport, UntilChapterEnd());
@@ -169,11 +202,25 @@ public sealed class PlayerModel
         Notify();
     }
 
-    public void Seek(TimeSpan to)
+    public void Seek(TimeSpan to) => Seek(to, settled: true);
+
+    /// <summary>
+    /// A move by the listener. <paramref name="settled"/> is false while they still drag the scrub control: the engine follows,
+    /// and the position is written once they let go (<see cref="SeekSettled"/>), never on every frame of the drag.
+    /// </summary>
+    public void Seek(TimeSpan to, bool settled)
     {
         Position = Clamp(to);
+        SoughtTo?.Invoke(Position);
         Notify();
+        if (settled)
+        {
+            Due();
+        }
     }
+
+    /// <summary>The listener let go of the scrub control.</summary>
+    public void SeekSettled() => Due();
 
     public void SkipBack() => Seek(Skips.Apply(Position, -Skips.Back, Item?.Duration ?? TimeSpan.Zero));
 
@@ -324,4 +371,13 @@ public sealed class PlayerModel
     }
 
     private void Notify() => Changed?.Invoke();
+
+    private void Due()
+    {
+        _playedSinceWrite = TimeSpan.Zero;
+        if (Session.IsActive && Item is not null)
+        {
+            WriteDue?.Invoke();
+        }
+    }
 }

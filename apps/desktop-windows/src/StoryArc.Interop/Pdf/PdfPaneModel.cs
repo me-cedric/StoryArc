@@ -17,19 +17,33 @@ public sealed class PdfPaneModel
 {
     private readonly Func<string, IReadOnlyList<PdfSearchHit>> _search;
     private readonly IReadOnlyList<PdfOutlineEntry> _outline;
+    private readonly Func<int, string> _pageText;
 
-    public PdfPaneModel(bool hasTextLayer, IReadOnlyList<PdfOutlineEntry> outline, Func<string, IReadOnlyList<PdfSearchHit>> search)
+    /// <param name="pageText">The text of a page from the engine, for the text pane a selection is made in.</param>
+    public PdfPaneModel(bool hasTextLayer, IReadOnlyList<PdfOutlineEntry> outline, Func<string, IReadOnlyList<PdfSearchHit>> search, Func<int, string>? pageText = null)
     {
         HasTextLayer = hasTextLayer;
         _outline = outline;
         _search = search;
+        _pageText = pageText ?? (_ => string.Empty);
     }
+
+    /// <summary>The text of a page, or nothing for a scanned file, whose engine is then not asked.</summary>
+    public string PageText(int pageIndex) => HasTextLayer ? _pageText(pageIndex) : string.Empty;
 
     /// <summary>Whether the file carries text at all; without it, selection and search are not offered.</summary>
     public bool HasTextLayer { get; }
 
     /// <summary>Whether the file declares an outline; without one, the contents list is not offered either.</summary>
     public bool HasOutline => _outline.Count > 0;
+
+    /// <summary>
+    /// Whether a press on the page is a reader trying to select a word in a file that has none (ebook-reader, "Scanned PDF"):
+    /// a press that travels a little but short of a page turn's drag, or a right-click where Copy would be. They are told once,
+    /// in one sentence, that the file is images of pages, rather than being met with silence.
+    /// </summary>
+    public bool TellsImagesOnly(double travel, bool isSecondaryPress = false) =>
+        !HasTextLayer && (isSecondaryPress || (Math.Abs(travel) >= 4 && Math.Abs(travel) < Reader.DragTurn.Threshold));
 
     /// <summary>Whether the pane has anything to show: an outline, or a search over a text layer.</summary>
     public bool IsAvailable => HasTextLayer || HasOutline;

@@ -1,8 +1,10 @@
 using System.Globalization;
+using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using StoryArc.Interop.Playback;
 using StoryArc.Interop.Shell;
@@ -25,6 +27,8 @@ public sealed partial class PlayerWindow : Window, IPublicationWindow
     private readonly string _publicationId;
     private bool _isDrawing;
     private string? _coverShown;
+    private PlayerArtwork? _artworkShown;
+    private bool _isScrubbing;
     private int _chapterRowsShown = -1;
 
     internal PlayerWindow(AppHost host, PlaybackService playback, string publicationId, ReaderWindowState? restored)
@@ -70,6 +74,11 @@ public sealed partial class PlayerWindow : Window, IPublicationWindow
         }
 
         SleepBox.Items.Add(new ComboBoxItem { Content = Strings.Get("player_sleep_endOfChapter", "End of chapter"), Tag = SleepTimer.EndOfChapter });
+
+        // A drag on the scrub control writes the position once, when it is let go (audio-playback, "Where a listening position is written").
+        Scrubber.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((sender, args) => _isScrubbing = true), handledEventsToo: true);
+        Scrubber.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler((sender, args) => LetGo()), handledEventsToo: true);
+        Scrubber.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler((sender, args) => LetGo()), handledEventsToo: true);
 
         _playback.Changed += Draw;
         Closed += (sender, args) => _playback.Changed -= Draw;
@@ -151,6 +160,8 @@ public sealed partial class PlayerWindow : Window, IPublicationWindow
                 Cover.Source = _coverShown is { } path && File.Exists(path) ? new BitmapImage(new Uri(path)) : null;
             }
 
+            DrawCoverless(item);
+
             DrawChapters(model);
         }
         finally
@@ -224,7 +235,67 @@ public sealed partial class PlayerWindow : Window, IPublicationWindow
     {
         if (!_isDrawing && Scrubber.IsEnabled)
         {
-            _playback.SeekTo(TimeSpan.FromSeconds(args.NewValue));
+            _playback.SeekTo(TimeSpan.FromSeconds(args.NewValue), settled: !_isScrubbing);
+        }
+    }
+
+    private void LetGo()
+    {
+        if (_isScrubbing)
+        {
+            _isScrubbing = false;
+            _playback.SeekSettled();
+        }
+    }
+
+    /// <summary>
+    /// The coverless well when the book has no cover, and the same well handed to the system's media controls as their artwork,
+    /// rendered once per kind and format, so the lock screen shows what the window shows rather than a second treatment.
+    /// </summary>
+    private void DrawCoverless(PlaybackItem? item)
+    {
+        var artwork = item is { CoverPath: null } ? PlayerArtwork.Of(item) : null;
+        Coverless.Visibility = artwork is null ? Visibility.Collapsed : Visibility.Visible;
+        if (artwork is null || artwork == _artworkShown)
+        {
+            return;
+        }
+
+        _artworkShown = artwork;
+        CoverlessKind.Glyph = artwork.Kind == PlaybackKind.Narrated ? "\uE7F6" : "\uE736";
+        CoverlessFormat.Text = artwork.FormatName;
+        AutomationProperties.SetName(CoverWell, artwork.FormatName);
+        _ = DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, async () => await RenderArtworkAsync(artwork));
+    }
+
+    private async Task RenderArtworkAsync(PlayerArtwork artwork)
+    {
+        try
+        {
+            var bitmap = new RenderTargetBitmap();
+            await bitmap.RenderAsync(CoverWell);
+            var pixels = await bitmap.GetPixelsAsync();
+            Directory.CreateDirectory(StateFiles.CoversFolder);
+            var path = Path.Combine(StateFiles.CoversFolder, "player-" + artwork.Kind.ToString().ToLowerInvariant() + "-" + artwork.FormatName.ToLowerInvariant() + ".png");
+            using (var file = File.Create(path))
+            {
+                var encoder = await global::Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(global::Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, file.AsRandomAccessStream());
+                encoder.SetPixelData(
+                    global::Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8,
+                    global::Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied,
+                    (uint)bitmap.PixelWidth,
+                    (uint)bitmap.PixelHeight,
+                    96,
+                    96,
+                    pixels.ToArray());
+                await encoder.FlushAsync();
+            }
+
+            _playback.UseCoverlessArtwork(artwork, path);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or System.Runtime.InteropServices.COMException)
+        {
+            // The system's controls keep no artwork; the window still draws the well.
         }
     }
 

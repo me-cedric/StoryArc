@@ -56,6 +56,20 @@
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 TextWrapping="Wrap" />
             <TextBlock x:Name="SummaryText" Style="{ThemeResource BodyTextBlockStyle}" TextWrapping="Wrap" />
+
+            <!-- An audiobook's chapters before it plays (audio-playback, "Chapters before the first minute"): each with its
+                 length and its mark, and a chapter chosen starts the book there. A book of one part states its length. -->
+            <StackPanel x:Name="AudioSection" Spacing="8" Visibility="Collapsed">
+                <TextBlock x:Name="DurationText" Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="ChaptersTitle" Style="{ThemeResource SubtitleTextBlockStyle}" Visibility="Collapsed" />
+                <ListView
+                    x:Name="ChapterList"
+                    SelectionMode="None"
+                    IsItemClickEnabled="True"
+                    ItemClick="OnChapterClick"
+                    Visibility="Collapsed"
+                    AutomationProperties.AutomationId="DetailChapters" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>

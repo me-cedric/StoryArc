@@ -87,6 +87,13 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
         PageScroller.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnPagePointerPressed), handledEventsToo: true);
         PageScroller.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(OnPagePointerReleased), handledEventsToo: true);
         PageScroller.AddHandler(UIElement.PointerWheelChangedEvent, new PointerEventHandler(OnPageWheel), handledEventsToo: true);
+        PageScroller.RightTapped += (sender, args) =>
+        {
+            if (_opened.Pdf is { } pdf && pdf.TellsImagesOnly(0, isSecondaryPress: true))
+            {
+                TellImagesOnly();
+            }
+        };
 
         AppWindow.Changed += OnAppWindowChanged;
         _timer.Tick += (sender, args) => SettleChrome();
@@ -423,6 +430,11 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
         var travel = x - start;
         _pages.Follow(0);
         var step = DragTurn.ReadingStep(travel, _navigator.IsRightToLeft);
+        if (_opened.Pdf is { } pdf && pdf.TellsImagesOnly(travel))
+        {
+            TellImagesOnly();
+        }
+
         if (step != 0)
         {
             Turn(step > 0 ? PageAction.Next : PageAction.Previous);
@@ -437,6 +449,19 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
             _clickTimer.Stop();
             _clickTimer.Start();
         }
+    }
+
+    /// <summary>The one sentence a scanned PDF answers a selection with (ebook-reader, "Scanned PDF"), said once a window.</summary>
+    private void TellImagesOnly()
+    {
+        if (ImagesOnlyText.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        ImagesOnlyText.Text = Strings.Get("desktop_w4_pdf_imagesOnly", "This file is images of pages, so there is no text to select or search.");
+        ImagesOnlyText.Visibility = Visibility.Visible;
+        FrameworkElementAutomationPeer.FromElement(ImagesOnlyText)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
     }
 
     /// <summary>A plain wheel on a fitted page turns it, one notch one page; with Control held the ScrollViewer zooms instead.</summary>

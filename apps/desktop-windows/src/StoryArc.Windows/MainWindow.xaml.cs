@@ -433,7 +433,7 @@ public sealed partial class MainWindow : Window
     private void ShowDetail(LibraryRecord record)
     {
         ShowContent(DetailFrame);
-        var request = new DetailRequest(record, _host.Library?.IsAvailable(record) ?? true, Read);
+        var request = new DetailRequest(record, _host.Library?.IsAvailable(record) ?? true, Read, _host.SavedListeningOf, (book, at) => _host.ListenFrom(book.Id, at));
         _ = DetailFrame.Navigate(typeof(PublicationDetailPage), request, new DrillInNavigationTransitionInfo());
     }
 

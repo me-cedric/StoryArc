@@ -26,6 +26,10 @@ internal sealed class AppHost
     private readonly WindowRegistry<IPublicationWindow> _readers = new();
     private readonly List<Window> _windows = [];
     private readonly HashSet<string> _opening = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The chapter a listener chose on a book's page, taken by the window that opens it next.</summary>
+    private readonly Dictionary<string, TimeSpan> _listenFrom = new(StringComparer.OrdinalIgnoreCase);
+    private (string Path, CoreIdentity Identity)? _listeningIdentity;
     private readonly Dictionary<string, ProgressTarget> _targets = new(StringComparer.OrdinalIgnoreCase);
     private readonly SessionRecorder _session;
     private readonly ProgressStore? _coreProgress;
@@ -323,7 +327,8 @@ internal sealed class AppHost
             var title = Path.GetFileNameWithoutExtension(path);
             // A restored window's own place first; else where the core store says this book was left, which a phone's
             // listening may have moved on (ADR-0006).
-            var at = restored is { Page: > 0 } ? TimeSpan.FromSeconds(restored.Page - 1) : SavedListening(path) ?? TimeSpan.Zero;
+            var at = _listenFrom.Remove(path, out var chosen) ? chosen
+                : restored is { Page: > 0 } ? TimeSpan.FromSeconds(restored.Page - 1) : SavedListening(path) ?? TimeSpan.Zero;
             playback.PlayNarrated(path, title, author: null, coverPath: null, at);
             return (new PlayerWindow(this, playback, path, restored), title);
         }
@@ -608,13 +613,48 @@ internal sealed class AppHost
 
         try
         {
-            ListeningProgress.Write(_coreProgress, FileIdentity.Of(publicationId), position, item.Duration, DateTimeOffset.Now);
+            // The identity is read once a book: the writes come every fifteen seconds and at each pause or skip.
+            if (_listeningIdentity?.Path != publicationId)
+            {
+                _listeningIdentity = (publicationId, FileIdentity.Of(publicationId));
+            }
+
+            ListeningProgress.Write(_coreProgress, _listeningIdentity.Value.Identity, position, item.Duration, DateTimeOffset.Now);
         }
         catch (StoryArcException)
         {
             // A file gone since it played, or a store refusing the write: the next session starts from the window's own place.
         }
     }
+
+    /// <summary>
+    /// Starts the narrated book at <paramref name="path"/> at a chapter the listener chose on its page (audio-playback, "Starting
+    /// from a chapter"): the book playing already moves there; otherwise it opens there rather than where it was left.
+    /// </summary>
+    public void ListenFrom(string path, TimeSpan at)
+    {
+        if (Playback is { } playback && _readers.ReaderFor(path) is { } open)
+        {
+            if (playback.Model.Item?.PublicationId == path && playback.Model.IsActive)
+            {
+                playback.SeekTo(at);
+                playback.Model.Resume();
+            }
+            else
+            {
+                playback.PlayNarrated(path, Path.GetFileNameWithoutExtension(path), author: null, coverPath: null, at);
+            }
+
+            open.Activate();
+            return;
+        }
+
+        _listenFrom[path] = at;
+        OpenPaths([path], OpenOrigin.Library);
+    }
+
+    /// <summary>Where the core store says the narrated book at <paramref name="path"/> was left, or <c>null</c>; for its page.</summary>
+    internal TimeSpan? SavedListeningOf(string path) => SavedListening(path);
 
     /// <summary>Where the core store says the narrated book at <paramref name="path"/> was left, or <c>null</c>.</summary>
     private TimeSpan? SavedListening(string path)

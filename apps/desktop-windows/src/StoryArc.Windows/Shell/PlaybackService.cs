@@ -32,6 +32,8 @@ internal sealed class PlaybackService : IDisposable
     private SpeechSynthesizer? _speech;
     private ReadAloudModel? _readAloud;
     private Action<Sentence?>? _followVoice;
+    private WindowsTransport? _system;
+    private (PlayerArtwork Artwork, string Path)? _coverlessArtwork;
     private TimeSpan _lastReported;
     private bool _isEnding;
 
@@ -40,6 +42,8 @@ internal sealed class PlaybackService : IDisposable
         _dispatcher = dispatcher;
         _recordPosition = recordPosition;
         _model.Changed += OnModelChanged;
+        _model.SoughtTo += ApplySeek;
+        _model.WriteDue += OnWriteDue;
     }
 
     /// <summary>Raised on the interface thread whenever the player's surfaces should redraw.</summary>
@@ -61,12 +65,7 @@ internal sealed class PlaybackService : IDisposable
         var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(path)));
         _pendingStart = () =>
         {
-            var chapters = item.TimedMetadataTracks
-                .Where(track => track.TimedMetadataKind == TimedMetadataKind.Chapter)
-                .SelectMany(track => track.Cues.OfType<ChapterCue>())
-                .OrderBy(cue => cue.StartTime)
-                .Select(cue => new PlaybackChapter(cue.Title, cue.StartTime, cue.Duration))
-                .ToList();
+            var chapters = ChaptersOf(item);
             var duration = player.PlaybackSession.NaturalDuration;
             _model.Start(new PlaybackItem(path, title, author, coverPath, chapters, duration, PlaybackKind.Narrated), at);
             player.PlaybackSession.Position = _model.Position;
@@ -104,11 +103,75 @@ internal sealed class PlaybackService : IDisposable
 
     public void Stop() => _model.Stop();
 
-    /// <summary>A seek from the scrub control or a chapter row: the model and the engine move together.</summary>
-    public void SeekTo(TimeSpan to)
+    /// <summary>
+    /// A seek from the scrub control or a chapter row: the model and the engine move together. <paramref name="settled"/> is false
+    /// while the scrub control is still dragged, so the position is written once, when it is let go (<see cref="SeekSettled"/>).
+    /// </summary>
+    public void SeekTo(TimeSpan to, bool settled = true) => _model.Seek(to, settled);
+
+    /// <summary>The listener let go of the scrub control.</summary>
+    public void SeekSettled() => _model.SeekSettled();
+
+    /// <summary>
+    /// The coverless well the player window drew, as the artwork of the system's media controls for a book with no cover
+    /// (audio-playback, "A publication with no cover"): the lock screen gets the same artwork, not a second one.
+    /// </summary>
+    public void UseCoverlessArtwork(PlayerArtwork artwork, string path)
     {
-        _model.Seek(to);
-        ApplySeek(_model.Position);
+        _coverlessArtwork = (artwork, path);
+        if (CoverlessPath() is { } shown && _model.IsActive)
+        {
+            _system?.ShowThumbnail(shown);
+        }
+    }
+
+    /// <summary>The rendered well, when it is the one of the book playing now and the book has no cover of its own.</summary>
+    private string? CoverlessPath() =>
+        _model.Item is { CoverPath: null } item && _coverlessArtwork is { } rendered && rendered.Artwork == PlayerArtwork.Of(item) ? rendered.Path : null;
+
+    /// <summary>
+    /// The chapters and the length of the narrated book at <paramref name="path"/>, read before it plays, for its publication's
+    /// page; <c>null</c> when the system cannot open it. A muted engine of its own, kept off the system's media controls.
+    /// </summary>
+    public static async Task<(IReadOnlyList<PlaybackChapter> Chapters, TimeSpan Duration)?> ReadChaptersAsync(string path)
+    {
+        using var player = new MediaPlayer { AutoPlay = false, IsMuted = true };
+        player.CommandManager.IsEnabled = false;
+        var opened = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        player.MediaOpened += (sender, args) => opened.TrySetResult(true);
+        player.MediaFailed += (sender, args) => opened.TrySetResult(false);
+        var item = new MediaPlaybackItem(MediaSource.CreateFromUri(new Uri(path)));
+        player.Source = item;
+        try
+        {
+            if (!await opened.Task.WaitAsync(TimeSpan.FromSeconds(10)))
+            {
+                return null;
+            }
+        }
+        catch (TimeoutException)
+        {
+            return null;
+        }
+
+        return (ChaptersOf(item), player.PlaybackSession.NaturalDuration);
+    }
+
+    /// <summary>The chapter markers of an opened item, in order.</summary>
+    private static List<PlaybackChapter> ChaptersOf(MediaPlaybackItem item) => item.TimedMetadataTracks
+        .Where(track => track.TimedMetadataKind == TimedMetadataKind.Chapter)
+        .SelectMany(track => track.Cues.OfType<ChapterCue>())
+        .OrderBy(cue => cue.StartTime)
+        .Select(cue => new PlaybackChapter(cue.Title, cue.StartTime, cue.Duration))
+        .ToList();
+
+    /// <summary>A moment to write the listening position: read from the engine itself, never from what a surface last drew.</summary>
+    private void OnWriteDue()
+    {
+        if (_model.Item is { Kind: PlaybackKind.Narrated } item && _player is { } player)
+        {
+            _recordPosition(item.PublicationId, player.PlaybackSession.Position);
+        }
     }
 
     /// <summary>Quit: the entry leaves the system's controls whatever the session was doing, and the position is recorded.</summary>
@@ -170,7 +233,8 @@ internal sealed class PlaybackService : IDisposable
                 ApplySeek(to);
             }
         });
-        _transport = new TransportControls(new WindowsTransport(controls));
+        _system = new WindowsTransport(controls, CoverlessPath);
+        _transport = new TransportControls(_system);
 
         // Something else taking the audio, and the headphones going: the two events the spike page names.
         try
@@ -361,11 +425,28 @@ internal sealed class PlaybackService : IDisposable
     private sealed class WindowsTransport : ISystemTransport
     {
         private readonly SystemMediaTransportControls _controls;
+        private readonly Func<string?> _coverless;
 
-        public WindowsTransport(SystemMediaTransportControls controls)
+        public WindowsTransport(SystemMediaTransportControls controls, Func<string?> coverless)
         {
             _controls = controls;
+            _coverless = coverless;
         }
+
+        /// <summary>The artwork alone, for a well rendered after the entry was shown.</summary>
+        public void ShowThumbnail(string path)
+        {
+            if (!_controls.IsEnabled)
+            {
+                return;
+            }
+
+            _controls.DisplayUpdater.Thumbnail = Thumbnail(path);
+            _controls.DisplayUpdater.Update();
+        }
+
+        private static RandomAccessStreamReference? Thumbnail(string? path) =>
+            path is not null && File.Exists(path) ? RandomAccessStreamReference.CreateFromStream(File.OpenRead(path).AsRandomAccessStream()) : null;
 
         public void Show(TransportState state)
         {
@@ -384,9 +465,7 @@ internal sealed class PlaybackService : IDisposable
             updater.Type = MediaPlaybackType.Music;
             updater.MusicProperties.Title = state.Title;
             updater.MusicProperties.Artist = state.Subtitle;
-            updater.Thumbnail = state.CoverPath is { } cover && File.Exists(cover)
-                ? RandomAccessStreamReference.CreateFromStream(File.OpenRead(cover).AsRandomAccessStream())
-                : null;
+            updater.Thumbnail = Thumbnail(state.CoverPath ?? _coverless());
             updater.Update();
 
             _controls.UpdateTimelineProperties(new SystemMediaTransportControlsTimelineProperties

@@ -148,6 +148,15 @@
                 Style="{ThemeResource CaptionTextBlockStyle}"
                 Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                 Visibility="Collapsed" />
+            <!-- A press that tries to select a word in a scanned PDF: told once that the file is images of pages. -->
+            <TextBlock
+                x:Name="ImagesOnlyText"
+                Style="{ThemeResource CaptionTextBlockStyle}"
+                TextWrapping="Wrap"
+                MaxWidth="560"
+                Visibility="Collapsed"
+                AutomationProperties.AutomationId="ReaderImagesOnly"
+                AutomationProperties.LiveSetting="Polite" />
         </StackPanel>
     </Grid>
 </Window>

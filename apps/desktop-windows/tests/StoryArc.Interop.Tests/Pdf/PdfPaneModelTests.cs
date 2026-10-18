@@ -79,4 +79,19 @@ public sealed class PdfPaneModelTests
         Assert.Equal(3, pane.OutlineRowFor(7, "Page {0}"));
         Assert.Null(new PdfPaneModel(true, [new PdfOutlineEntry("Nowhere", null, [])], _ => []).OutlineRowFor(0, "Page {0}"));
     }
+
+    [Fact]
+    public void A_press_that_tries_to_select_in_a_scanned_file_is_told_the_file_is_images_of_pages()
+    {
+        var scanned = new PdfPaneModel(hasTextLayer: false, [], _ => []);
+        var text = new PdfPaneModel(hasTextLayer: true, [], _ => []);
+
+        Assert.True(scanned.TellsImagesOnly(12));
+        Assert.True(scanned.TellsImagesOnly(-20));
+        Assert.True(scanned.TellsImagesOnly(0, isSecondaryPress: true));
+        // A click is a page zone, and a long drag turns the page: neither is a selection.
+        Assert.False(scanned.TellsImagesOnly(2));
+        Assert.False(scanned.TellsImagesOnly(StoryArc.Interop.Reader.DragTurn.Threshold));
+        Assert.False(text.TellsImagesOnly(12, isSecondaryPress: true));
+    }
 }
