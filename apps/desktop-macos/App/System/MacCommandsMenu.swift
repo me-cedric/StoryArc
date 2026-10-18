@@ -30,6 +30,8 @@ enum LibraryNavigation: Equatable {
     case finished
     /// A collection or a reading list, where a shelf on Home leads.
     case shelf(ShelfPin)
+    /// Preferences on the Sources tab, where a `storyarc://source/` link leads.
+    case sources
 }
 
 /// What the key reader window can do.

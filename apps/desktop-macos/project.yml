@@ -63,6 +63,11 @@ targets:
           Raspberry Pi on your own network.
         NSBonjourServices:
           - _smb._tcp
+        # The app's own link, `storyarc://publication/<title>` and `storyarc://source/<name>`
+        # (task 5.8). `application(_:open:)` receives it like a file; `StoryArcLink` reads it.
+        CFBundleURLTypes:
+          - CFBundleURLName: com.mecedric.storyarc.link
+            CFBundleURLSchemes: [storyarc]
         CFBundleDocumentTypes:
           - CFBundleTypeName: Comic archive
             LSHandlerRank: Owner

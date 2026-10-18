@@ -4817,6 +4817,34 @@
         }
       }
     },
+    "desktop.link.notFound %@": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nicht in StoryArc gefunden: %@"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not found in StoryArc: %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se encuentra en StoryArc: %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Introuvable dans StoryArc : %@"
+          }
+        }
+      }
+    },
     "desktop.menu.about": {
       "localizations": {
         "de": {

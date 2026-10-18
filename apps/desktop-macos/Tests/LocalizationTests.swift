@@ -90,7 +90,7 @@ struct LocalizationTests {
         "desktop.library.section.other", "desktop.library.index", "desktop.library.index.jump %@",
         "desktop.library.index.moved %@",
         "desktop.home.recentlyAdded", "desktop.home.finished", "desktop.home.showAll", "desktop.home.showAll.label %@",
-    ] + Wave3Keys.all + Wave4Keys.all
+    ] + Wave3Keys.all + Wave4Keys.all + Wave5Keys.all
 
     @Test("Each key is translated in each language", arguments: languages)
     func translated(language: String) throws {

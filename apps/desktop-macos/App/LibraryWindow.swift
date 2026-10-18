@@ -30,6 +30,7 @@ struct LibraryWindow: View {
     @State private var isSearchFocused = false
     @State private var showingFolderOffer = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView {
@@ -210,6 +211,9 @@ struct LibraryWindow: View {
         case .root: path.wrappedValue = NavigationPath()
         case let .filter(filter): selection = .filter(filter)
         case let .shelf(pin): selection = .shelf(pin)
+        case .sources:
+            MacSettings.shared.settingsTab = .sources
+            openSettings()
         case .finished:
             var query = library.model.query
             query.readStates = [.finished]

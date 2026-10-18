@@ -209,8 +209,10 @@ Accepted in the parity audit and specified in `desktop-experience`:
 - Open from Finder: file associations, drag and drop, Dock icon drop.
 - Pointer reading: trackpad pinch and scroll zoom, hover to reveal chrome, right-click menus.
 - Live folder watching. Media keys. Recent items in the Dock menu.
+- The `storyarc://` link (`storyarc://publication/<title or id>`, `storyarc://source/<name>`) and
+  paths or links on the command line, read by `App/System/StoryArcLink.swift`. Wave 5.
 
-Later: Quick Look thumbnails for covers, Handoff from iPhone, Spotlight titles, `storyarc://` URLs.
+Later: Quick Look thumbnails for covers, Handoff from iPhone, Spotlight titles.
 Rejected: tabs, tray icon, command palette, desktop widgets.
 
 Liquid Glass is for chrome only. The artwork stays the interface.

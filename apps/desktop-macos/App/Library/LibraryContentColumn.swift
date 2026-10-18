@@ -159,6 +159,11 @@ struct LibraryNotices: View {
                     Button { library.dismissRefused() } label: { Text("desktop.notice.dismiss") }
                 }
             }
+            if !library.linksNotFound.isEmpty {
+                notice("desktop.link.notFound \(library.linksNotFound.joined(separator: ", "))") {
+                    Button { library.dismissLinksNotFound() } label: { Text("desktop.notice.dismiss") }
+                }
+            }
             if !library.listedForLater.isEmpty {
                 let listed = library.listedForLater.map(\.title).joined(separator: ", ")
                 notice("desktop.drop.listed \(OpenBatch.windowLimit) \(listed)") {
@@ -172,7 +177,7 @@ struct LibraryNotices: View {
 
     private var hasAny: Bool {
         library.sources.contains(where: \.isGrey) || !library.refused.isEmpty
-            || !library.couldNotRestore.isEmpty || !library.listedForLater.isEmpty
+            || !library.couldNotRestore.isEmpty || !library.listedForLater.isEmpty || !library.linksNotFound.isEmpty
             || library.model.skipped.notice != .nothing
     }
 
