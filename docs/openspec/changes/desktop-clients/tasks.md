@@ -144,10 +144,12 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   application id appears in `hyprctl clients` on a Hyprland session (manual capture). **Built 2026-10-16:**
   `container-build.sh ubuntu-24.04 --clippy` passes (GTK 4.14.5, libadwaita 1.5.0) and the window-state tests pass
   in the container, 12 of 12. The Wayland walk and the `hyprctl` check are owed by a Linux host, so the box stays open.
+  **Reconciled 2026-10-18:** built; the Hyprland capture with `hyprctl clients` is owed by a host.
 - [ ] 1.17 **The curl spike on Wayland.** A `GtkGLArea` that draws the ADR-0009 projection while a pointer drags. Exit: the
   frame time is written down for one Wayland session and for one X11 session. The curl is present on X11 only if it holds
   the spec's frame budget there. Verify: the numbers sit in `docs/delivery/desktop-spike-curl-linux.md`.
   **Not started 2026-10-16:** needs a Wayland session with a GPU and an X11 session; this Mac has neither.
+  **Reconciled 2026-10-18:** not built: the spike needs a Wayland session with a GPU and an X11 session, owed by a host.
 
 **Lane W: the Windows shell**
 
@@ -162,8 +164,10 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 - [ ] 1.19 **The curl spike on D3D11.** The ADR-0009 shader as HLSL in a `SwapChainPanel` with independent input. Exit:
   monitor-rate presents on a 120 Hz screen while a flyout animates. Verify: the result sits in
   `docs/delivery/desktop-spike-curl-windows.md`.
+  **Reconciled 2026-10-18:** not built: the spike needs a Windows desktop with a 120 Hz display, owed by a host.
 - [ ] 1.20 **`dotnet build` without Visual Studio MSBuild**, and the MSIX bundle question. Verify: the answer is written in
   `docs/delivery/desktop-spike-windows-build.md`.
+  **Reconciled 2026-10-18:** not built: CI builds through `build.ps1` on runners that carry Visual Studio, so a build without it is unanswered; owed by a Windows host.
 
 **Lane P: packaging and pins**
 
@@ -204,21 +208,26 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
 
 - [ ] 1.25 **Owner: ask Flathub in writing** about the disclosure policy. Deferral: no Flathub packaging work is scheduled
   until the answer is in `docs/delivery/`. Verify: the reply is filed.
+  **Reconciled 2026-10-18:** waiting on the owner: the question to Flathub.
 - [x] 1.26 **Owner: answer the open questions** on chrome accent, click zones and the cold-launch budget, or accept the
   spec's defaults. Verify: `design.md` Open Questions 1 to 3 carry the answer and the spec's markers on the accent, the
   click zones and the cold launch are replaced by it. **Owner answered 2026-10-07: on by default** for the edge click
   zones. The chrome accent is the brand colour by default, with a settings choice for the system accent. The cold launch
   is interactive within 1 second on a mid-range laptop with 5,000 publications. Tasks 2.23e, 2.35e, 2.47e, 5.9 and 5.11
   build and prove them.
-- [ ] 1.27 **A WebView2 and WebKitGTK feasibility note** for serving archive bytes through a custom scheme with ranges.
+- [x] 1.27 **A WebView2 and WebKitGTK feasibility note** for serving archive bytes through a custom scheme with ranges.
   Verify: spikes 6 of the Windows research and the WebKitGTK range question are answered in
   `docs/delivery/desktop-spike-epub-hosts.md`.
-- [ ] 1.28 **An async runtime decision** for the core and the Linux app (Open Question 5). Verify: ADR addendum or a line in
+  **Reconciled 2026-10-18:** `docs/delivery/desktop-spike-epub-hosts.md` answers both questions; the WebKitGTK range answer was measured in task 4.10 (a media `Range` answered 206).
+- [x] 1.28 **An async runtime decision** for the core and the Linux app (Open Question 5). Verify: ADR addendum or a line in
   `design.md`.
-- [ ] 1.29 **Who builds the EPUB manifest on macOS** (Open Question 6). Verify: a spike note and a line in `design.md`.
+  **Reconciled 2026-10-18:** design Open Question 5 is answered: tokio.
+- [x] 1.29 **Who builds the EPUB manifest on macOS** (Open Question 6). Verify: a spike note and a line in `design.md`.
+  **Reconciled 2026-10-18:** design Open Question 6 is answered: Swift, from the EPUB package StoryArcKit yields.
 - [ ] 1.30 **Parent edit, `apps/ios`:** make `FolderBookmarks` and `CredentialStore` correct under the sandbox and split
   the `Playback` iOS guard from a macOS path. Deferral: the Mac lane carries its own copies (1.12, 1.13, 4.7) until the iOS
   owner agrees. Verify: the same tests pass against the package.
+  **Reconciled 2026-10-18:** deferred: the Mac carries its copies of `FolderBookmarks`, `CredentialStore`, `NowPlaying` and the PDF overlay until the iOS owner agrees.
 - [x] 1.31 **[X] Token emitters.** `packages/design-tokens` gains an emitter for the Windows resource dictionary
   (`StoryArcTokens.cs` and the XAML dictionary) and one for the GTK CSS the Linux design reads, per ADR-0007. Test first:
   a drift check that fails when a generated file is edited by hand. Deferral: until `packages/` accepts the emitters,
@@ -254,17 +263,20 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 
 **Lane C**
 
-- [ ] 2.1 **Library records and the progress store, test first.** `tests/progress.rs` asserts the merge against the mobile
+- [x] 2.1 **Library records and the progress store, test first.** `tests/progress.rs` asserts the merge against the mobile
   fixtures: furthest position wins, finished stays finished, a device with no watermark. Then SQLite storage in
   `src/store/`. Verify: `pnpm test:desktop:core` passes.
-- [ ] 2.2 **Folder source scanning**, reconciliation by modification time and size, the ninety-six-directory ceiling
+  **Reconciled 2026-10-18:** `pnpm test:desktop:core` passes, 510 tests (`progress.rs`, `scan.rs` *a second scan reads no archive*, `watch.rs` *a folder past the limit falls back to a rescan and says so*).
+- [x] 2.2 **Folder source scanning**, reconciliation by modification time and size, the ninety-six-directory ceiling
   recorded as a limit. File `src/sources/local.rs`. Verify: a fixture folder lists every publication and a second scan
   reads no archive.
-- [ ] 2.3 **A watcher abstraction** over the native watchers with the system limit as a named error and a rescan fallback.
+  **Reconciled 2026-10-18:** `pnpm test:desktop:core` passes, 510 tests (`progress.rs`, `scan.rs` *a second scan reads no archive*, `watch.rs` *a folder past the limit falls back to a rescan and says so*).
+- [x] 2.3 **A watcher abstraction** over the native watchers with the system limit as a named error and a rescan fallback.
   File `src/sources/watch.rs`. A folder granted through the Linux document portal passes no native events, so it takes the
   polled path at an interval of 10 seconds or less. Verify: a test adds a file and sees it inside 10 seconds, a test with
   the limit forced to zero falls back and reports "not watched live", and a test with a source marked portal-granted polls
   and sees the file inside 10 seconds.
+  **Reconciled 2026-10-18:** `pnpm test:desktop:core` passes, 510 tests (`progress.rs`, `scan.rs` *a second scan reads no archive*, `watch.rs` *a folder past the limit falls back to a rescan and says so*).
 - [x] 2.4 **Storage locations per system**, including the Flatpak and MSIX redirects. File `src/paths.rs`. Verify: tests per
   platform assert the paths, and none is a roaming folder.
 - [x] 2.5 **Page decoding** for JPEG, PNG, WebP, GIF, HEIC and AVIF, with a named reason for a page it cannot decode. File
@@ -273,9 +285,10 @@ place is kept. Home, search, filters, sorting and publication detail are built i
   contrast, filters). Verify: corpus digests match the mobile output within the tolerance the mobile tests use.
 - [x] 2.7 **Collation and formatting** with ICU4X for sorting, dates and numbers. File `src/locale.rs`. Verify: sorting tests
   in the four supported languages match the iOS expectations.
-- [ ] 2.8 **String generator. [P]** One script turns the four-language source into `.resw` and gettext `.po` (the macOS source
+- [x] 2.8 **String generator. [P]** One script turns the four-language source into `.resw` and gettext `.po` (the macOS source
   stays `.xcstrings`). Files `scripts/strings-desktop.mjs` and a drift check in `pnpm lint`. Verify: a missing key fails the
   check, and the generated files hold every key in four languages.
+  **Reconciled 2026-10-18:** `scripts/strings-desktop.mjs` with `pnpm strings:desktop:check` in `pnpm lint`; its self-test passes (11 checks), 1,181 keys in four languages.
 
 **Lane M**
 
@@ -343,89 +356,124 @@ place is kept. Home, search, filters, sorting and publication detail are built i
 
 - [ ] 2.25 **Window model test first** for restoration, one window per publication, a gone display and a missing publication,
   on the `WindowState` of 1.15. Then reader windows. Verify: `cargo test -p storyarc-linux` passes and a walk opens two readers.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.26 **Menus and commands** in a header-bar menu with the same command list as 2.10, and shortcuts using Control. A
   custom `AdwDialog` lists them. Verify: a unit test of the command table and a walk.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.27 **Key mapping and pointer reading** against the same table as 2.11 and 2.12, with Escape and Tab leaving a book's
   text in wave 4. Verify: `cargo test -p storyarc-linux keys::` passes and a walk shows hover chrome.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.28 **Zoom, pan, spreads and drag to turn** as in 2.13 to 2.15, over the core's decoder. Verify: the same pure tests run
   against a Rust copy of the zoom and pairing rules, and a resize walk passes.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.29 **Full screen** that fills the monitor on GNOME, KDE Plasma and COSMIC, and does nothing alarming on a tiling
   layout that refuses it. Verify: captures on each, and the grey menu note on Hyprland.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.30 **Opening files.** First restore the `MimeType` line and `Exec=storyarc %F` in the `.desktop` file, and build the
   application with `ApplicationFlags::HANDLES_OPEN` (the base declares neither, so it never claims a file it cannot open).
   Then single instance through `GApplication`, drop targets, argv,
   opened files recorded with `GtkRecentManager`, the static actions Continue Reading, Library and Downloads in the desktop
   entry, a CB7 refusal. Verify: `desktop-file-validate` passes and a walk opens a file from the
   file manager, from argv and by drop.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.31 **Folders through the portal** with `GtkFileDialog`, a stored grant that the core watches by polling at 10 seconds
   or less because the portal passes no native events, a revoked grant shown grey, and a missing portal named once. Verify: a Flatpak run and a source-build run, with captures of the revoked state.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.32 **Closing and quitting** with the same write cadence as 2.17, Control and W and Control and Q on a compositor that
   draws no title bar. Verify: tests with a failing store and a Hyprland capture of the header bar.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.33 **Display, appearance and any size.** Wayland first, X11 working with the curl absent and named until spike 1.17 shows it holds the frame budget there, fractional scaling,
   dark mode through the settings portal with a light default when absent, a tiled column down to the minimum size. Verify:
   captures on Wayland and X11 and a resize walk down to 360 px.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.34 **Idle inhibit** through the application's inhibit call, a refusal silent. Verify: a walk on Hyprland and one on KDE.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35 **Preferences dialog** with search through `AdwPreferencesDialog`. Verify: a walk as 2.21.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35a **Library grid and list, test first.** Pure Rust view-model tests (`cargo test -p storyarc-linux library::`) for
   the cases of 2.23a, over the queries of 2.8a. Then `GtkGridView` and `GtkListView` over a `GListModel`, the cover ladder
   and the entry for a file that could not be opened. Verify: the tests pass and a walk scrolls a fixture library of 10,000
   publications on Wayland and X11.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35b **Search, filters and sorting, test first.** The query-state tests of 2.23b. Then a `GtkSearchEntry` in the
   header bar whose results take over the content column, a filter menu and a sort menu. Verify: the tests pass and a walk
   searches, filters and sorts.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35c **Home.** As 2.23c, with `AdwStatusPage` for an empty library. Verify: as 2.23c.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35d **Publication detail.** As 2.23d, as a pushed `AdwNavigationPage`, side by side from 1024 px. Verify: as 2.23d.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
 - [ ] 2.35e **Chrome accent setting, test first.** As 2.23e, in pure Rust tests (`cargo test -p storyarc-linux settings::`)
   over a system that offers an accent colour and one that offers none. Where the system offers none, as on the 1.5 floor,
   the row is absent and the brand colour stays. Then the Appearance row of 2.35, with the System choice guarded at run
   time. Verify: the tests pass, and captures show both choices on a session with libadwaita 1.6 or newer and the absent
   row on a 1.5 session.
-- [ ] 2.36 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-linux-wave2.md`.
+  **Reconciled 2026-10-18:** built over the core; `container-build.sh ubuntu-24.04 --clippy` passes (299 crate tests at head) and the headless walk under cage is in `docs/delivery/desktop-conformance-linux-wave2.md`; the walk and captures on a real session are owed by a host.
+- [x] 2.36 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-linux-wave2.md`.
+  **Reconciled 2026-10-18:** `docs/delivery/desktop-conformance-linux-wave2.md` records every scenario; the rows it marks not proved are the host pass.
 
 **Lane W**
 
 - [ ] 2.37 **Window model test first** in `StoryArc.Interop.Tests` for the window-state record, then a `Window` per reader and
   restoration through the app's own saved state. Verify: `dotnet test` passes and a walk restores two readers.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.38 **Menus and commands** in a `MenuBar` with the command list of 2.10, accelerators using Control. Windows has no
   Quit key of its own: the File menu holds Quit with no accelerator, Alt and F4 closes the window, and Control and W closes
   the window. Verify: a unit test
   of the command table and a walk.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.39 **Key mapping and pointer reading** as 2.11 and 2.12, including focus returning from the book's text. Verify:
   `dotnet test` and a walk with Narrator off.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.40 **Zoom, pan, spreads and drag to turn** as 2.13 to 2.15 over the interop decoder. Verify: the same pure tests in C#
   and a resize walk.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.41 **Full screen** with `AppWindow` presenter, chrome that hides. Verify: a walk enters and leaves and restores size.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.42 **Opening files.** First restore the `windows.fileTypeAssociation` extension in `Package.appxmanifest` (the base
   declares none, so it never claims a file it cannot open) with the activation handler that opens the file. Then the ProgID,
   single instance redirection, drop targets, argv,
   Jump List recent items, a CB7 refusal. Verify: a walk from Explorer, from `pwsh` and by drop, and a Jump List capture.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.43 **Folders** through the folder picker, a stored path, a withdrawn or offline volume shown grey, live watching through
   the core. Verify: tests on the states and a walk with a disconnected volume.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.44 **Closing and quitting** with the cadence of 2.17, and the app exits when the last window closes. Verify: tests with
   a failing store and a walk.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.45 **Appearance, text size, contrast and motion** through the system settings: light and dark live, text scale,
   high contrast, transparency off gives opaque Mica, reduced motion. Verify: a walk at 225 percent text and with transparency off.
-- [ ] 2.46 **Keep the display awake** with `SetThreadExecutionState`, silent on refusal. Verify: a test around the wrapper.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
+- [x] 2.46 **Keep the display awake** with `SetThreadExecutionState`, silent on refusal. Verify: a test around the wrapper.
+  **Reconciled 2026-10-18:** `DisplayKeepAwakeTests`, four tests around the wrapper, green on CI.
 - [ ] 2.47 **Preferences** page with search. Verify: a walk as 2.21.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.47a **Library grid and list, test first.** View-model tests in `StoryArc.Interop.Tests` for the cases of 2.23a, over
   the queries of 2.8a. Then `ItemsView` with a uniform grid layout and a list layout, the cover ladder and the entry for a
   file that could not be opened. Verify: the tests pass and a walk scrolls a fixture library of 10,000 publications.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.47b **Search, filters and sorting, test first.** The query-state tests of 2.23b. Then an `AutoSuggestBox` in the
   title bar whose results take over the content area, a filter flyout and a sort flyout. Verify: the tests pass and a walk
   searches, filters and sorts.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.47c **Home.** As 2.23c. Verify: as 2.23c.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.47d **Publication detail.** As 2.23d, as a page in the navigation frame. Verify: as 2.23d.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
 - [ ] 2.47e **Chrome accent setting, test first.** As 2.23e, in `StoryArc.Interop.Tests` over the settings record. Then the
   Appearance page of 2.47, with the `SystemAccentColor` override and its shades as the brand default and a System choice
   that follows the Windows accent. Verify: the tests pass, a walk changes the Windows accent colour with the choice on
   System, and captures of both choices in light and dark.
-- [ ] 2.48 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-windows-wave2.md`.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk on a Windows desktop is owed by a host.
+- [x] 2.48 **Conformance walk** as 2.24. Verify: `docs/delivery/desktop-conformance-windows-wave2.md`.
+  **Reconciled 2026-10-18:** `docs/delivery/desktop-conformance-windows-wave2.md` records every scenario; the rows it marks not proved are the host pass.
 
 **Lane P and E**
 
-- [ ] 2.49 **Wave 2 CI.** The workflows run the core tests, the Mac tests, the Linux unit tests and the Windows tests on every
+- [x] 2.49 **Wave 2 CI.** The workflows run the core tests, the Mac tests, the Linux unit tests and the Windows tests on every
   desktop push. Verify: the three workflows are green.
   **Written 2026-10-16** with task 1.22; proved by the next push.
+  **Reconciled 2026-10-18:** the desktop workflows are green on main (macOS 39095100380, Linux and Windows on 3e50de377).
 
 ## 3. Wave 3: sources, secrets, sync and downloads
 
@@ -472,6 +520,7 @@ Capabilities walked: `sources`, `network-share`, `kavita-server`, `opds-catalog`
 - [ ] 3.3 **Secrets, test first.** `tests/secrets.rs` runs against an in-memory store and asserts no secret reaches a file, a
   log or a diagnostic in any encoding. Then the `SecretStore` trait and the Windows and Linux backends and the session-only
   fallback. Verify: the test passes and the backends are exercised on their own runners.
+  **Reconciled 2026-10-18:** built; `tests/secrets.rs` passes and the Linux and Windows backends compile in the container and on CI; exercising them against the Secret Service and Credential Manager is owed by a host.
 - [x] 3.4 **OPDS client and parser** with the certificate pin flow. File `src/sources/opds.rs`. Verify: `pnpm opds` fixtures pass.
 - [x] 3.5 **Kavita client** with progress mapping fixed by the shared rule. File `src/sources/kavita.rs`. Verify: `pnpm kavita`
   mock passes.
@@ -483,6 +532,7 @@ Capabilities walked: `sources`, `network-share`, `kavita-server`, `opds-catalog`
   document written on iOS and one on Android decode here and the reverse, as the portability change asserts.
 - [ ] 3.9 **Metered flag provider** trait, with a Windows and a Linux implementation (NetworkCostType, NetworkManager). Verify:
   tests with a fake provider and a manual check on a phone tether.
+  **Reconciled 2026-10-18:** built; the fake-provider tests pass in the core; the check on a phone tether is owed by a host.
 
 **Lane M**
 
@@ -528,22 +578,32 @@ Capabilities walked: `sources`, `network-share`, `kavita-server`, `opds-catalog`
 
 - [ ] 3.17 **Sources UI** over the core's SMB, OPDS and Kavita, discovery through avahi where present (Assumed), manual entry
   always. Verify: a walk adds each source type against the mock servers.
+  **Reconciled 2026-10-18:** built over the core; the crate tests pass in the Ubuntu container and the headless walks against the mock servers are in `docs/delivery/desktop-conformance-linux-wave3.md`; the walk on a real session is owed by a host.
 - [ ] 3.18 **Secret store states.** A grey line when no service runs, the session-only secret, the file keyring in Flatpak.
   Verify: walks on Hyprland without a daemon, on GNOME with `gnome-keyring`, and in a Flatpak.
+  **Reconciled 2026-10-18:** built over the core; the crate tests pass in the Ubuntu container and the headless walks against the mock servers are in `docs/delivery/desktop-conformance-linux-wave3.md`; the walk on a real session is owed by a host.
 - [ ] 3.19 **Metered, downloads, sync, diagnostics and storage** as 3.11 to 3.15, over the core. Verify: a unit test per rule and
   a walk.
+  **Reconciled 2026-10-18:** built over the core; the crate tests pass in the Ubuntu container and the headless walks against the mock servers are in `docs/delivery/desktop-conformance-linux-wave3.md`; the walk on a real session is owed by a host.
 - [ ] 3.19a **Collections and reading lists screens** as 3.15a, over the core of 3.7, with shelves as a section of the
   sidebar. Verify: as 3.15a.
-- [ ] 3.20 **Conformance walk** as 3.16. Verify: `docs/delivery/desktop-conformance-linux-wave3.md`.
+  **Reconciled 2026-10-18:** built over the core; the crate tests pass in the Ubuntu container and the headless walks against the mock servers are in `docs/delivery/desktop-conformance-linux-wave3.md`; the walk on a real session is owed by a host.
+- [x] 3.20 **Conformance walk** as 3.16. Verify: `docs/delivery/desktop-conformance-linux-wave3.md`.
+  **Reconciled 2026-10-18:** `docs/delivery/desktop-conformance-linux-wave3.md` records every scenario; the rows it marks not proved are the host pass.
 
 **Lane W**
 
 - [ ] 3.21 **Sources UI** over the core, discovery stated absent with manual entry as the path. Verify: a walk as 3.17.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk against the mock servers on a Windows desktop is owed by a host.
 - [ ] 3.22 **Secrets** through `StoryArc.Interop` with Credential Manager, the 2560-byte rule, no secret in files. Verify: a test
   with a long token and a search of the data directory.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk against the mock servers on a Windows desktop is owed by a host.
 - [ ] 3.23 **Metered, downloads, sync, diagnostics and storage** as 3.19. Verify: as 3.19.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk against the mock servers on a Windows desktop is owed by a host.
 - [ ] 3.23a **Collections and reading lists screens** as 3.15a, over the core of 3.7. Verify: as 3.15a.
-- [ ] 3.24 **Conformance walk** as 3.16. Verify: `docs/delivery/desktop-conformance-windows-wave3.md`.
+  **Reconciled 2026-10-18:** built; compiles on CI for x64 and ARM64 with the interop tests green on the Linux and macOS runners (run 39089886947); the walk against the mock servers on a Windows desktop is owed by a host.
+- [x] 3.24 **Conformance walk** as 3.16. Verify: `docs/delivery/desktop-conformance-windows-wave3.md`.
+  **Reconciled 2026-10-18:** `docs/delivery/desktop-conformance-windows-wave3.md` records every scenario; the rows it marks not proved are the host pass.
 
 ## 4. Wave 4: EPUB, PDF, audio and speech
 
@@ -631,10 +691,11 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 4.14 **Player and read-aloud UI**, a mini player in a revealer, idle inhibit while playing. Verify: a walk.
   **Built 2026-10-17, owed by a host:** the mini player in a revealer, idle inhibit while playing, read aloud in the EPUB
   and PDF windows and absent without a speech engine; a session granting the inhibit and sound heard are owed.
-- [ ] 4.15 **Screen reader walk** with Orca on GNOME and on Hyprland, and with no accessibility service. Verify:
+- [x] 4.15 **Screen reader walk** with Orca on GNOME and on Hyprland, and with no accessibility service. Verify:
   `docs/delivery/desktop-a11y-linux.md`.
   **Built 2026-10-17, owed by a host:** `docs/delivery/desktop-a11y-linux.md` from the AT-SPI trees, with nameless
   sidebar rows found and named; Orca on GNOME and Hyprland and the EPUB content over WebKitGTK's own connection are owed.
+  **Reconciled 2026-10-18:** the file exists and lists each scenario; Orca on GNOME and Hyprland is the sweep of task 6.1.
 
 **Lane W**
 
@@ -649,10 +710,11 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Built 2026-10-17, owed by a host:** `Pdf/PdfDocument` over the ten `storyarc_pdf_*` exports; `PdfSeamTests` mirrors
   the core's six cases over the corpus PDFs and skips by name without PDFium (the interop CI jobs do not fetch it yet);
   the reader window renders PDF through its page view with a contents pane (`PdfPaneModelTests`). A PDF walk is owed.
-- [ ] 4.18 **Audio and speech spike** for `MediaPlayer` and `SpeechSynthesizer` (Assumed). Verify:
+- [x] 4.18 **Audio and speech spike** for `MediaPlayer` and `SpeechSynthesizer` (Assumed). Verify:
   `docs/delivery/desktop-spike-audio-windows.md`.
   **Built 2026-10-17:** `docs/delivery/desktop-spike-audio-windows.md`, the design and the calls, with eleven
   measurements a Windows host owes.
+  **Reconciled 2026-10-18:** the spike page exists with the eleven measurements a Windows host owes.
 - [ ] 4.19 **Media keys and system media controls** through the transport controls. Verify: the overlay shows title, cover and
   position, and the keys work with another player running.
   **Built 2026-10-17, owed by a host:** `TransportControls` over `ISystemTransport`, six tests; the keys with another
@@ -660,9 +722,10 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 4.20 **Player and read-aloud UI** and the sleep rule for playback. Verify: a walk.
   **Built 2026-10-17, owed by a host:** `PlayerModel`, `ReadAloudModel`, the sleep countdown and `PlaybackKeepAwake`
   (26 tests); `PlaybackService`, `PlayerWindow`, the compact bar and read aloud from the EPUB window. The walk is owed.
-- [ ] 4.21 **Screen reader walk** with Narrator. Verify: `docs/delivery/desktop-a11y-windows.md`.
+- [x] 4.21 **Screen reader walk** with Narrator. Verify: `docs/delivery/desktop-a11y-windows.md`.
   **Built 2026-10-17:** `docs/delivery/desktop-a11y-windows.md`, the automation properties the XAML gives and five gaps
   found by reading; Narrator on a Windows desktop is owed.
+  **Reconciled 2026-10-18:** the file exists; Narrator on a Windows desktop is the sweep of task 6.1.
 
 **Lane X**
 
@@ -682,7 +745,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   menu; three runs held 120 Hz with no refresh missed (MacBook Pro M1 Pro).
 - [ ] 5.2 **[L] The curl on Wayland** from the spike 1.17. On X11 it follows the spike's result: present if it held the frame
   budget, otherwise absent with the grey line. Verify: a frame capture and the X11 walk.
+  **Reconciled 2026-10-18:** not built: waits on spike 1.17, owed by a host.
 - [ ] 5.3 **[W] The curl on D3D11** from the spike 1.19. Verify: a presents-per-second trace on a 120 Hz display.
+  **Reconciled 2026-10-18:** not built: waits on spike 1.19, owed by a host.
 - [ ] 5.4 **[M] Thumbnails in Finder** and Quick Look through a generator. Verify: Finder shows covers for a folder of
   fixtures and a damaged file shows the generic icon.
   **Built 2026-10-18, owed by the owner:** the `StoryArcThumbnails` extension; `ThumbnailTests` pass and a damaged file
@@ -701,6 +766,7 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   needs both apps signed by one Apple team. The Mac opens the book at the position it holds, never one read from the phone.
   Verify: a walk with an iPhone and a
   test that clearing history deletes the entries.
+  **Reconciled 2026-10-18:** waiting on the owner: signing (task 6.8).
 - [ ] 5.8 **[M, L, W] The `storyarc://` link** and command line open, with an unknown title and a link carrying a command.
   Verify: tests for the three scenarios on each desktop.
   **Windows built 2026-10-17, owed by a host:** `storyarc://publication/<title or id>` and `storyarc://source/<name>`,
@@ -746,9 +812,11 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 
 - [ ] 6.1 **[X] Accessibility sweep** on each desktop with its screen reader at the largest text size. Verify: the three
   `desktop-a11y-<os>.md` files list every finding closed or deferred by name.
+  **Reconciled 2026-10-18:** the machine audits stand (23 Mac screens, the AT-SPI trees, the XAML automation properties); the screen-reader sessions at the largest size are owed by a host on each desktop.
 - [ ] 6.2 **[X] Visual proof matrix.** Captures per desktop in light and dark, default and largest size, with controls. Linux
   on GNOME, KDE Plasma, Hyprland and COSMIC with the session type. Verify: `docs/delivery/desktop-captures-<os>.md` lists each
   row, and a missing row is named as unproved.
+  **Reconciled 2026-10-18:** the captures per wave stand under `docs/designs/screenshots/desktop/`; the matrix on GNOME, KDE Plasma, Hyprland, COSMIC and Windows 11 is owed by a host.
 - [x] 6.3 **[P] Licence notices** for the Rust crates, the .NET packages, PDFium and libarchive, in the About windows. Verify:
   `pnpm notices:check` covers the desktop manifests and fails on an unlisted component.
   **Built 2026-10-17:** `pnpm notices:check` reads the Cargo.lock crates, the NuGet packages, PDFium and libarchive
@@ -761,6 +829,7 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Done 2026-10-17:** the *PDF parsing* row sits under the RAR rows, naming PDFKit, `PdfRenderer` and the pinned PDFium.
 - [ ] 6.5 **[P] Flatpak for release**, human-written Flathub copy, after Flathub's answer (task 1.25). Verify: the submission is
   filed or the fallback recorded.
+  **Reconciled 2026-10-18:** waiting on the owner: Flathub's answer (task 1.25).
 - [x] 6.6 **[P] AUR `PKGBUILD`** and a documented source build per distro. Verify: `container-build.sh` passes for Arch and
   Manjaro with the `PKGBUILD`.
   **Done 2026-10-18:** `apps/desktop-linux/packaging/aur/PKGBUILD` and a source build per distro in the README; the arch
