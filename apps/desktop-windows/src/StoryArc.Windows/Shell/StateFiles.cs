@@ -57,6 +57,9 @@ internal static class StateFiles
     /// <summary>The bookmarks and highlights of each EPUB, one file a publication, named by its content digest.</summary>
     public static string EpubMarksFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "epub-marks");
 
+    /// <summary>The highlights and notes of each text PDF, in the EPUB's record, one file a publication, named by its content digest.</summary>
+    public static string PdfMarksFolder => Path.Combine(ApplicationData.Current.LocalFolder.Path, "pdf-marks");
+
     /// <summary>Written when the reader clears the library's records: the progress store is open, so its files go at the next start.</summary>
     public static string ClearRecordsMarker => Path.Combine(ApplicationData.Current.LocalFolder.Path, "clear-records.pending");
 

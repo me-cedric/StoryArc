@@ -96,7 +96,7 @@
             <Grid
                 x:Name="ContentsPane"
                 Grid.Column="1"
-                Width="300"
+                Width="340"
                 Padding="12"
                 RowSpacing="8"
                 Visibility="Collapsed"
@@ -106,6 +106,9 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition x:Name="PageTextRow" Height="0" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="ContentsTitle" Style="{ThemeResource SubtitleTextBlockStyle}" />
                 <AutoSuggestBox
@@ -127,6 +130,24 @@
                     TextWrapping="Wrap"
                     Visibility="Collapsed"
                     Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+
+                <!-- The text of the page shown, for a PDF with a text layer: the page is an image, so a selection is made
+                     here, and what it offers is what a reflowable selection offers (ebook-reader, "Text-based PDF"). -->
+                <TextBlock x:Name="PageTextTitle" Grid.Row="3" Style="{ThemeResource BodyStrongTextBlockStyle}" Visibility="Collapsed" />
+                <ScrollViewer x:Name="PageTextScroller" Grid.Row="4" Visibility="Collapsed">
+                    <RichTextBlock
+                        x:Name="PageTextBlock"
+                        IsTextSelectionEnabled="True"
+                        TextWrapping="Wrap"
+                        SelectionChanged="OnPageTextSelection"
+                        AutomationProperties.AutomationId="PdfPageText" />
+                </ScrollViewer>
+                <StackPanel x:Name="PdfMarksPanel" Grid.Row="5" Spacing="6" Visibility="Collapsed">
+                    <StackPanel x:Name="PdfSelectionBar" Spacing="4" Visibility="Collapsed" AutomationProperties.AutomationId="PdfSelection" />
+                    <ScrollViewer MaxHeight="220">
+                        <StackPanel x:Name="PdfHighlightsList" Spacing="4" />
+                    </ScrollViewer>
+                </StackPanel>
             </Grid>
         </Grid>
 

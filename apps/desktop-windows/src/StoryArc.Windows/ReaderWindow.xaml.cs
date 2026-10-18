@@ -219,6 +219,7 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
         if (pdf.HasTextLayer)
         {
             PdfSearchBox.Focus(FocusState.Programmatic);
+            _ = ShowPageTextAsync();
         }
     }
 
@@ -245,14 +246,16 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
         ContentsList.Visibility = note is null ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    private async void OnPdfSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    private void OnPdfSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) => _ = SearchPdfAsync(args.QueryText);
+
+    /// <summary>Searches the document's text layer and lists the pages with hits; a blank query shows the outline again.</summary>
+    private async Task SearchPdfAsync(string query)
     {
         if (_opened.Pdf is not { HasTextLayer: true } pdf)
         {
             return;
         }
 
-        var query = args.QueryText;
         if (string.IsNullOrWhiteSpace(query))
         {
             ShowContentsRows(pdf.OutlineRows(Strings.Get("desktop_w4_pdf_page__lld", "Page {0}")), pdf.HasOutline ? null : Strings.Get("desktop_w4_pdf_noOutline", "This PDF declares no contents"));
@@ -322,6 +325,7 @@ public sealed partial class ReaderWindow : Window, IPublicationWindow
             current,
             _navigator.PageCount);
         FrameworkElementAutomationPeer.FromElement(PageLabel)?.RaiseAutomationEvent(AutomationEvents.LiveRegionChanged);
+        _ = ShowPageTextAsync();
         if (isTurn)
         {
             _host.PageTurned(PublicationId, _navigator.CurrentPage);
