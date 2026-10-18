@@ -774,6 +774,10 @@
     <value>No sync folder chosen</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_epub_followsAppearance" xml:space="preserve">
+    <value>Follow the system's appearance</value>
+    <comment>desktop.w4.epub.followsAppearance</comment>
+  </data>
   <data name="desktop_w4_epub_leave_open" xml:space="preserve">
     <value>Open in Browser</value>
     <comment>desktop.w4.epub.leave.open</comment>
@@ -789,6 +793,22 @@
   <data name="desktop_w4_epub_noWebView" xml:space="preserve">
     <value>This book needs the WebView2 runtime, which this PC does not have</value>
     <comment>desktop.w4.epub.noWebView</comment>
+  </data>
+  <data name="desktop_w4_epub_progress" xml:space="preserve">
+    <value>{0}% read · {1}% of this chapter left</value>
+    <comment>desktop.w4.epub.progress</comment>
+  </data>
+  <data name="desktop_w4_epub_scroll" xml:space="preserve">
+    <value>Scroll instead of turning pages</value>
+    <comment>desktop.w4.epub.scroll</comment>
+  </data>
+  <data name="desktop_w4_epub_specimen" xml:space="preserve">
+    <value>Aa</value>
+    <comment>desktop.w4.epub.specimen</comment>
+  </data>
+  <data name="desktop_w4_epub_theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>desktop.w4.epub.theme</comment>
   </data>
   <data name="desktop_w4_pdf_contents" xml:space="preserve">
     <value>Contents</value>

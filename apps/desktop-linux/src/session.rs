@@ -44,6 +44,7 @@ const LOOKED_FILE: &str = "last-looked";
 const SEEN_FILE: &str = "seen-version";
 const MODES_FILE: &str = "page-turns";
 const ADJUSTMENTS_FILE: &str = "image-adjustments";
+const EPUB_LOOK_FILE: &str = "epub-look";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -121,6 +122,15 @@ pub fn load_preferences() -> Preferences {
 
 pub fn save_preferences(preferences: &Preferences) {
     write_file(&data_path(PREFERENCES_FILE), &preferences.save());
+}
+
+/// The look of a reflowable book: the theme and the reader's typography (`epub_look.rs`).
+pub fn load_epub_look() -> crate::epub_look::Look {
+    crate::epub_look::Look::restore(&std::fs::read_to_string(data_path(EPUB_LOOK_FILE)).unwrap_or_default())
+}
+
+pub fn save_epub_look(look: &crate::epub_look::Look) {
+    write_file(&data_path(EPUB_LOOK_FILE), &look.save());
 }
 
 /// The recent searches and the search scope (`library/search.rs`).

@@ -10,7 +10,7 @@ Task 4.22 of `desktop-clients`. This record lists every scenario of the capabili
 | **fail** | It is not built on Linux today. The evidence column says what is missing. |
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario, or the reason does not apply on Linux. |
 
-Totals: pass 10, seen 8, fail 49, not proved 18, n/a 7, of 92 scenarios (written 2026-10-18).
+Totals: pass 22, seen 8, fail 34, not proved 21, n/a 7, of 92 scenarios (written 2026-10-18).
 
 **What the evidence is.**
 
@@ -23,10 +23,10 @@ Totals: pass 10, seen 8, fail 49, not proved 18, n/a 7, of 92 scenarios (written
 
 ## The failures, in one list
 
-49 rows fail. Each one is a missing piece.
+34 rows fail. Each one is a missing piece.
 
-- **EPUB look and typography (14):** Typography controls, One sheet two depths, Bundled typefaces, Publisher styles, An axis is inert, Theme choice, The theme surface opens on the presets, Themes are named, The axes over the reader's own text, Getting back to the preset, Theme follows appearance, Both levels at the largest text size, Changing type size mid-chapter, Scroll mode.
-- **EPUB position and navigation (10):** Progress display, Moving somewhere else, A publication that declares no chapters, Table of contents, Bookmarks, Highlights and notes, Search within a publication, Following an internal link, Returning from any jump, A link inside the book.
+- **EPUB look and typography:** built 2026-10-18 (`epub_look.rs`, `epub_theme_ui.rs`). Eleven rows pass; three are not proved until a painted page or a larger text size exists.
+- **EPUB position and navigation (9):** Moving somewhere else, A publication that declares no chapters, Table of contents, Bookmarks, Highlights and notes, Search within a publication, Following an internal link, Returning from any jump, A link inside the book.
 - **PDF (1):** Text-based PDF has no highlight colours, no note and no search for the selection.
 - **Read aloud and its transport (9):** Starting playback (no sentence highlight, starts at the chapter), Leaving the publication while it speaks, The same controls as a narrated book, Reaching the end of a chapter, Where the listening got to, Getting back to the book, Controlling it without going back, What it says, Opening a different publication.
 - **Player (15):** The compact bar, The full player, A publication with no cover, Both sources look the same, Playback outlives the publication, Where a listening position is written, Speed, Skipping, Sleep timer, Chapters, Headphones removed, and the four *Chapters before the first minute* rows.
@@ -44,24 +44,24 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Reflowable rendering | Typography controls | fail | The EPUB window sends `next` and `previous` only (`epub_window.rs`). It has no theme sheet and no axis control. The renderer already answers those messages (`apps/desktop-web/epub/README.md`). |
-| Reflowable rendering | One sheet, two depths | fail | No theme sheet exists, so there are no two depths. |
-| Reflowable rendering | Bundled typefaces | fail | The window offers no typeface choice. The reading faces of `packages/fonts` are not served on the book scheme. |
-| Reflowable rendering | Publisher styles | fail | The window has no publisher styles setting. |
-| Reflowable rendering | An axis is inert while publisher styles are on | fail | The window has no axes to disable. |
+| Reflowable rendering | Typography controls | pass | The theme surface's second depth (`epub_theme_ui.rs`) sets size, typeface, bold, margins, line and paragraph spacing, alignment and hyphenation, and each change goes to the page as one `theme` message. `epub_look::tests::the_axes_follow_the_values_and_original_drops_the_dependent_ones` holds the mapping; `epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original` drives the controls under cage (2026-10-18). The painted page is owed to a session with a GPU. |
+| Reflowable rendering | One sheet, two depths | pass | One popover: the presets first, then *Customise* to the reader's typography (`epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original`, under cage, 2026-10-18). |
+| Reflowable rendering | Bundled typefaces | pass | The panel offers the publisher's own, serif, sans and the five faces of `packages/fonts`, embedded and served on the book's scheme with a `@font-face` sheet every chapter links (`epub_look::tests::the_five_faces_are_served_and_linked_from_every_chapter`, 2026-10-18). A face drawn on the page needs a session with a GPU. |
+| Reflowable rendering | Publisher styles | pass | *Original* sends `publisherStyles` and no colour, spacing, alignment or hyphens (`epub_look::tests::every_preset_has_its_token_colours_and_original_keeps_the_book`, `the_axes_follow_the_values_and_original_drops_the_dependent_ones`, 2026-10-18). |
+| Reflowable rendering | An axis is inert while publisher styles are on | pass | Under *Original* the spacing, alignment and hyphenation group is insensitive with the sentence that says why (`epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original`, under cage), and those axes are not sent (`the_axes_follow_the_values_and_original_drops_the_dependent_ones`, 2026-10-18). |
 | Reflowable rendering | Fixed-layout EPUB | not proved | The core test `epub_positions` reads `ebooks/fixed-layout.epub`. How WebKitGTK paginates it needs a painted view. The walk view paints white because the container has no GPU. A session with a GPU would prove it. |
-| Reader themes | Theme choice | fail | No presets and no brightness control exist in the EPUB window. |
-| Reader themes | The theme surface opens on the presets | fail | No theme surface exists. |
-| Reader themes | Themes are named, not numbered | fail | No theme surface exists, so no swatches. |
-| Reader themes | The axes, over the reader's own text | fail | No axes surface exists. |
-| Reader themes | Getting back to the preset | fail | No axes and no preset exist to reset. |
-| Reader themes | Theme follows appearance | fail | No reading theme exists to follow the system appearance. |
-| Reader themes | Both levels at the largest text size | fail | Neither level exists. |
-| Pagination and progress | Changing type size mid-chapter | fail | No size control exists. |
-| Pagination and progress | Progress display | fail | The foot shows the position as *N of M* (`reader.pageOfCount`, dump `a11y-epub-reader.txt` reads *1 of 2*). No line says how far through the book the reader is or how much of the chapter is left. |
+| Reader themes | Theme choice | pass | The six presets as swatches in their token colours, and a brightness slider that dims the page (`darkenFilter`): `epub_look::tests::every_preset_has_its_token_colours_and_original_keeps_the_book`, `the_axes_follow_the_values_and_original_drops_the_dependent_ones` (2026-10-18). |
+| Reader themes | The theme surface opens on the presets | pass | The surface is built each time it opens, on the six swatches; *Customise* below them opens the axes; a swatch applies its preset and closes the surface (`epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original`, under cage, 2026-10-18). |
+| Reader themes | Themes are named, not numbered | pass | Each swatch carries its name and an *Aa* specimen in its own colours, the active one is checked and outlined, and it reads *Modified* when the typography moved (`epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original`, `epub_look::tests::the_size_ladder_holds_its_ends_and_the_reset_clears_modified`, 2026-10-18). |
+| Reader themes | The axes, over the reader's own text | not proved | The axes sit in a popover over the page and each change sends a `theme` message at once (`EpubReader::change_look`). The page paints white in the container; a session with a GPU, watching the text change under the popover, proves it. |
+| Reader themes | Getting back to the preset | pass | *Restore {preset}* puts every axis back and is insensitive when nothing moved (`epub_theme_ui::tests::the_surface_opens_on_named_presets_and_its_second_depth_obeys_original`, under cage, 2026-10-18). |
+| Reader themes | Theme follows appearance | pass | *Follow the system's appearance* with a light and a dark preset; the window applies the pair on the style manager's dark change and at open (`epub_look::tests::the_look_follows_the_appearance_only_when_asked_and_round_trips`, 2026-10-18). A real appearance switch is owed to the host pass. |
+| Reader themes | Both levels at the largest text size | not proved | Both depths are `AdwPreferencesGroup` rows and a scrolled popover, so they wrap and scroll. The walk has no settings portal, so GTK draws no larger text; a capture at the largest text size on a real desktop proves it. |
+| Pagination and progress | Changing type size mid-chapter | not proved | The size steps the phones' ladder (`epub_look::tests::the_size_ladder_holds_its_ends_and_the_reset_clears_modified`) and a theme message does not move the locator. A walk that changes the size mid-chapter and reads the renderer's locator back proves the place is kept. |
+| Pagination and progress | Progress display | pass | The foot states the share of the book read and what is left of the chapter, never a page number (`epub_look::tests::the_progress_line_names_the_book_share_and_the_chapter_left`, 2026-10-18). |
 | Pagination and progress | Moving somewhere else in a reflowable publication | fail | No table of contents exists. |
 | Pagination and progress | A publication that declares no chapters | fail | No progress line and no contents menu exist. |
-| Pagination and progress | Scroll mode | fail | The window has no scroll mode flag. |
+| Pagination and progress | Scroll mode | pass | One switch in the second depth sends `scroll` to the renderer (`epub_look::tests::the_axes_follow_the_values_and_original_drops_the_dependent_ones`, 2026-10-18). |
 | Navigation and annotation | Table of contents | fail | Not built. The header of `epub_window.rs` lists it as a later task of the lane. |
 | Navigation and annotation | Bookmarks | fail | Not built for the EPUB. `win.bookmark` in `commands.rs` belongs to the image reader. |
 | Navigation and annotation | Highlights and notes | fail | Not built. The window draws no selection bar, no highlight and no note. |

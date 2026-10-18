@@ -209,9 +209,15 @@ fn parse_range(header: &str, total: u64) -> Option<(u64, u64)> {
 
 /// The reader page: the bundle, the host door, and `StoryArcEpub.open` over the manifest
 /// and positions the core built. The locator, when the reader has one, is where it opens.
+/// The preferences, when given, are the axes the first page is laid out with.
 /// Everything inline except the bundle, so the page needs the scheme and nothing else.
-pub fn reader_page(positions_json: &str, locator_json: Option<&str>) -> String {
+pub fn reader_page(
+    positions_json: &str,
+    locator_json: Option<&str>,
+    preferences_json: Option<&str>,
+) -> String {
     let locator = locator_json.unwrap_or("null");
+    let preferences = preferences_json.unwrap_or("{}");
     format!(
         r#"<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -234,6 +240,7 @@ pub fn reader_page(positions_json: &str, locator_json: Option<&str>) -> String {
       manifest: manifest,
       positions: {positions_json},
       locator: {locator},
+      preferences: {preferences},
       post: post
     }});
     window.__storyarc = reader;
@@ -370,12 +377,13 @@ mod tests {
 
     #[test]
     fn the_reader_page_needs_the_scheme_and_nothing_else() {
-        let page = reader_page("[]", Some(r#"{"href":"a"}"#));
+        let page = reader_page("[]", Some(r#"{"href":"a"}"#), None);
         assert!(page.contains(&format!(r#"src="{BUNDLE_PATH}""#)));
         assert!(page.contains(&format!(r#"fetch("{MANIFEST_PATH}")"#)));
         assert!(page.contains(r#"locator: {"href":"a"}"#));
         assert!(!page.contains("http://") && !page.contains("https://"));
-        assert!(reader_page("[]", None).contains("locator: null"));
+        assert!(reader_page("[]", None, None).contains("locator: null"));
+        assert!(reader_page("[]", None, Some(r#"{"scroll":true}"#)).contains(r#"preferences: {"scroll":true}"#));
         assert_eq!(
             receive_script(r#"{"type":"next"}"#),
             r#"window.__storyarc && window.__storyarc.receive({"type":"next"});"#

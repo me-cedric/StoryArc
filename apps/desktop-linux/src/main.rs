@@ -14,6 +14,8 @@ mod diagnostic_export;
 mod download_rules;
 mod downloads_ui;
 mod epub_host;
+mod epub_look;
+mod epub_theme_ui;
 mod epub_view;
 mod epub_window;
 mod folders;

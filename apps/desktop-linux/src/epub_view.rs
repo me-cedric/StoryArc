@@ -27,6 +27,10 @@ pub trait Served {
     fn positions_json(&self) -> String;
     /// Where the reader opens, as a locator, when the reader has been here before.
     fn locator_json(&self) -> Option<String>;
+    /// The axes the first page is laid out with, as the renderer's preferences.
+    fn preferences_json(&self) -> Option<String> {
+        None
+    }
 }
 
 /// One request the scheme handler answered, kept for the record the design asks for:
@@ -167,7 +171,11 @@ fn answer(
         .map(|value| value.to_string());
     let found = match Route::of(&uri) {
         Some(Route::Reader) => Some((
-            epub_host::reader_page(&served.positions_json(), served.locator_json().as_deref())
+            epub_host::reader_page(
+                &served.positions_json(),
+                served.locator_json().as_deref(),
+                served.preferences_json().as_deref(),
+            )
                 .into_bytes(),
             "text/html".to_owned(),
         )),

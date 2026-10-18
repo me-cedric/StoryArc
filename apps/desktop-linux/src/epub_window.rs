@@ -3,8 +3,9 @@
 //! header bar, a position line, the arrow and page keys, and the reader's place written
 //! to the progress store as the position number both phones would show.
 //!
-//! Themes, search, highlights and the table of contents are later tasks of the lane; the
-//! renderer already answers their messages (`apps/desktop-web/epub/README.md`).
+//! The theme surface and the reader's typography are `epub_theme_ui.rs` over `epub_look.rs`.
+//! Search, highlights and the table of contents are later tasks of the lane; the renderer
+//! already answers their messages (`apps/desktop-web/epub/README.md`).
 
 use std::cell::{Cell, RefCell};
 use std::path::Path;
@@ -20,13 +21,15 @@ use storyarc_core::sources::PublicationIndexer;
 
 use crate::app::Shared;
 use crate::epub_host;
+use crate::epub_look::{self, Look};
+use crate::epub_theme_ui;
 use crate::epub_view::{EpubView, Guards, Served};
 use crate::epub_view::{confirm_leaving, outward};
 use crate::opening;
 use crate::player;
 use crate::progress::ProgressWriter;
 use crate::session::{CoreProgress, LOG_DOMAIN};
-use crate::strings::{tr, tr_args};
+use crate::strings::tr;
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH};
 
 /// How often the window looks at the progress clock.
@@ -36,6 +39,8 @@ const TICK: Duration = Duration::from_millis(500);
 pub(crate) struct Book {
     publication: WebPublication,
     locator: Option<String>,
+    /// The look the first page is laid out with (`epub_look.rs`).
+    preferences: Option<String>,
 }
 
 impl Book {
@@ -43,19 +48,23 @@ impl Book {
         Self {
             publication,
             locator,
+            preferences: None,
         }
     }
 }
 
 impl Served for Book {
     fn resource(&self, path: &str) -> Option<(Vec<u8>, String)> {
+        if let Some(face) = epub_look::font_resource(path) {
+            return Some(face);
+        }
         let bytes = self.publication.resource(path).ok()?;
         let media_type = self
             .publication
             .media_type(path)
             .map(str::to_owned)
             .unwrap_or_else(|| epub_host::media_type_for(path).to_owned());
-        Some((bytes, media_type))
+        Some((epub_look::linking(bytes, &media_type), media_type))
     }
     fn manifest_json(&self) -> String {
         self.publication.manifest_json()
@@ -65,6 +74,9 @@ impl Served for Book {
     }
     fn locator_json(&self) -> Option<String> {
         self.locator.clone()
+    }
+    fn preferences_json(&self) -> Option<String> {
+        self.preferences.clone()
     }
 }
 
@@ -82,16 +94,48 @@ struct EpubReader {
     view: RefCell<Option<Rc<EpubView>>>,
     position: gtk::Label,
     progress: RefCell<ProgressWriter<CoreProgress>>,
-    count: u32,
     seq: Cell<u64>,
+    /// The theme and the typography in force, kept per device.
+    look: Rc<RefCell<Look>>,
 }
 
 impl EpubReader {
-    fn send(&self, kind: &str) {
+    fn next_seq(&self) -> u64 {
         let seq = self.seq.get() + 1;
         self.seq.set(seq);
+        seq
+    }
+
+    fn send_json(&self, json: &str) {
         if let Some(view) = self.view.borrow().as_ref() {
-            view.send(&format!(r#"{{"type":"{kind}","seq":{seq}}}"#));
+            view.send(json);
+        }
+    }
+
+    fn send(&self, kind: &str) {
+        let seq = self.next_seq();
+        self.send_json(&format!(r#"{{"type":"{kind}","seq":{seq}}}"#));
+    }
+
+    /// Changes the look, keeps it, and sends the page the preset with the typography over it:
+    /// a `theme` message replaces every axis.
+    fn change_look(&self, edit: &dyn Fn(&mut Look)) {
+        let look = {
+            let mut look = self.look.borrow_mut();
+            edit(&mut look);
+            *look
+        };
+        crate::session::save_epub_look(&look);
+        let seq = self.next_seq();
+        self.send_json(&look.theme_message(seq));
+    }
+
+    /// The preset the system appearance asks for, when the reader chose to follow it.
+    fn follow_appearance(&self) {
+        let dark = adw::StyleManager::default().is_dark();
+        let wanted = self.look.borrow().preset_for(dark);
+        if let Some(preset) = wanted.filter(|preset| *preset != self.look.borrow().preset) {
+            self.change_look(&|look| look.preset = preset);
         }
     }
 
@@ -109,10 +153,10 @@ impl EpubReader {
                     *self.href.borrow_mut() = Some(href.to_owned());
                 }
                 let position = u32::try_from(position).unwrap_or(u32::MAX).max(1);
-                self.position.set_text(&tr_args(
-                    "reader.pageOfCount",
-                    "%d of %d",
-                    &[&position, &self.count],
+                let locations = &message["locator"]["locations"];
+                self.position.set_text(&epub_look::progress_line(
+                    locations["totalProgression"].as_f64().unwrap_or(0.0),
+                    locations["progression"].as_f64().unwrap_or(0.0),
                 ));
                 self.progress
                     .borrow_mut()
@@ -192,7 +236,13 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         "" => record.display_title.clone(),
         title => title.to_owned(),
     };
-    let book = Rc::new(Book::new(publication, locator));
+    let mut look = crate::session::load_epub_look();
+    if let Some(preset) = look.preset_for(adw::StyleManager::default().is_dark()) {
+        look.preset = preset;
+    }
+    let mut book = Book::new(publication, locator);
+    book.preferences = Some(look.preferences_json());
+    let book = Rc::new(book);
     let served: Rc<dyn Served> = book.clone();
 
     let app = shared.application();
@@ -200,11 +250,7 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
     let position = gtk::Label::builder()
         .css_classes(["dim-label", "numeric"])
         .build();
-    position.update_property(&[gtk::accessible::Property::Label(&tr_args(
-        "reader.pageOfCount",
-        "%d of %d",
-        &[&1, &count],
-    ))]);
+    position.set_text(&epub_look::progress_line(0.0, 0.0));
     let bottom = gtk::CenterBox::builder()
         .center_widget(&position)
         .margin_top(6)
@@ -231,8 +277,8 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         view: RefCell::new(None),
         position,
         progress: RefCell::new(ProgressWriter::new(progress, id.clone())),
-        count,
         seq: Cell::new(0),
+        look: Rc::new(RefCell::new(look)),
     });
 
     let filter_dir = glib::user_data_dir()
@@ -272,6 +318,19 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
     });
 
     install_keys(&reader);
+    let weak = Rc::downgrade(&reader);
+    let change: epub_theme_ui::Change = Rc::new(move |edit| {
+        if let Some(reader) = weak.upgrade() {
+            reader.change_look(edit);
+        }
+    });
+    header.pack_end(&epub_theme_ui::button(&reader.look, &change));
+    let weak = Rc::downgrade(&reader);
+    let appearance = adw::StyleManager::default().connect_dark_notify(move |_| {
+        if let Some(reader) = weak.upgrade() {
+            reader.follow_appearance();
+        }
+    });
     if player::speech_available() {
         let read = gtk::Button::builder()
             .icon_name("audio-speakers-symbolic")
@@ -306,7 +365,11 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
     let weak_shared = Rc::downgrade(shared);
     let close_id = id.clone();
     let on_close = reader.clone();
+    let appearance = RefCell::new(Some(appearance));
     window.connect_close_request(move |_| {
+        if let Some(handler) = appearance.borrow_mut().take() {
+            adw::StyleManager::default().disconnect(handler);
+        }
         on_close.flush();
         if let Some(shared) = weak_shared.upgrade() {
             shared
