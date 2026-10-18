@@ -164,6 +164,50 @@ mod merge {
     }
 
     #[test]
+    fn a_listening_position_follows_the_same_table() {
+        let listening = |part: i64, offset: i64, synced: Option<(i64, i64)>| ReadingProgress {
+            identity: identity(),
+            position: ReadingPosition::Listening {
+                part,
+                part_count: 10,
+                offset_millis: offset,
+                of_millis: Some(600_000),
+            },
+            is_finished: false,
+            finished_at: None,
+            updated_at: EPOCH,
+            synced_position: synced.map(|(part, offset)| ReadingPosition::Listening {
+                part,
+                part_count: 10,
+                offset_millis: offset,
+                of_millis: Some(600_000),
+            }),
+        };
+        // Remote ahead, local untouched: adopted silently.
+        let remote = listening(4, 0, None);
+        assert_eq!(
+            ProgressMerge::merge(&listening(2, 30_000, Some((2, 30_000))), &remote),
+            ProgressMergeOutcome::AdoptRemote(remote.clone())
+        );
+        // Both moved: further in time wins, inside one part too.
+        let local = listening(3, 300_000, Some((1, 0)));
+        let remote = listening(3, 120_000, None);
+        assert_eq!(
+            ProgressMerge::merge(&local, &remote),
+            ProgressMergeOutcome::Conflict {
+                resolved: local.clone(),
+                discarded: remote.position.clone(),
+            }
+        );
+        // Remote behind: keep local and push it.
+        let local = listening(5, 0, Some((5, 0)));
+        assert_eq!(
+            ProgressMerge::merge(&local, &listening(1, 0, None)),
+            ProgressMergeOutcome::KeepLocalAndPush(local.clone())
+        );
+    }
+
+    #[test]
     fn a_synced_position_kept_as_a_bare_fraction_still_counts() {
         // What Android's Room row hands back: the fraction survived, the page did not.
         let mut local = progress(10, false, None);
@@ -533,6 +577,45 @@ mod store {
                 .map(|r| r.position.fraction()),
             Some(0.75)
         );
+    }
+
+    #[test]
+    fn a_listening_position_is_saved_and_read_back_whole() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("library.sqlite");
+        let book = PublicationIdentity::path("/audio/Dune").recording_digest(Some("d-une"));
+        let at = |part, offset, of: Option<i64>| ReadingPosition::Listening {
+            part,
+            part_count: 12,
+            offset_millis: offset,
+            of_millis: of,
+        };
+        {
+            let store = Store::open(&path).unwrap();
+            store
+                .save_progress(&ReadingProgress::new(
+                    book.clone(),
+                    at(3, 61_500, Some(1_800_000)),
+                    Timestamp(1_000),
+                ))
+                .unwrap();
+            // A read-aloud session knows no duration; the position keeps none.
+            store
+                .save_progress(&ReadingProgress::new(
+                    book.clone(),
+                    at(4, 2_000, None),
+                    Timestamp(2_000),
+                ))
+                .unwrap();
+        }
+        let store = Store::open(&path).unwrap();
+        let back = store
+            .progress(&PublicationIdentity::digest("d-une"))
+            .unwrap()
+            .expect("found by its digest");
+        assert_eq!(back.position, at(4, 2_000, None));
+        assert_eq!(back.updated_at, Timestamp(2_000));
+        assert_eq!(store.recent_progress(10).unwrap().len(), 1);
     }
 
     #[test]
