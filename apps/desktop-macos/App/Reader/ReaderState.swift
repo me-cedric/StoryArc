@@ -29,6 +29,8 @@ final class ReaderState {
     private(set) var pendingIndex: Int?
     /// How the last change is drawn, read by the canvas as the page arrives.
     private(set) var change: PageChange = .cut
+    /// The last turn the curl draws from start to end, read by the canvas. Task 5.1.
+    private(set) var curlRequest: MacCurlRequest?
     /// The series' adjustments, and the pages the reader excused from the border trim.
     private(set) var adjustments: ImageAdjustments
     private(set) var uncropped: Set<Int> = []
@@ -51,7 +53,7 @@ final class ReaderState {
         self.preferences = preferences
         model = ReaderModel(
             publication: publication, url: target.url, progress: progress,
-            preferences: preferences, canCurl: false
+            preferences: preferences, canCurl: MacCurlShader.isPresent
         )
         adjustments = preferences.themes().theme(for: .fixedLayout, shelf: Self.shelf(of: publication)).adjustments
     }
@@ -83,7 +85,10 @@ final class ReaderState {
     // MARK: - Turning
 
     /// Moves by whole slots, so a pair turns as one. Past the last slot it shows the end.
-    func turn(by step: Int) {
+    ///
+    /// In Curl a turn of one page is drawn by the curl, from the page in view to the next one;
+    /// `curled` says the pointer already drew it, so the page changes with nothing more.
+    func turn(by step: Int, curled: Bool = false) {
         let layout = layout
         let slot = layout.slot(containing: shownIndex)
         if isAtEnd {
@@ -96,7 +101,19 @@ final class ReaderState {
             return
         }
         guard let spread = layout[slot + step] else { return }
+        let request = curled ? nil : curl(from: layout[slot], to: spread, step: step)
         go(to: spread.leading, step: step)
+        if curled || request != nil { change = .cut }
+        if let request { curlRequest = request }
+    }
+
+    /// The curl for a turn, or `nil` where it is a slide: a pair, a page not decoded yet, or
+    /// another mode. A pair turns as one sheet in the phone's book, which the shader does not draw.
+    private func curl(from: Spread?, to: Spread, step: Int) -> MacCurlRequest? {
+        guard choices.effective == .pageCurl, abs(step) == 1, let from, !from.isPair, !to.isPair,
+              let leaving = model.displayImage(at: from.leading), let coming = model.displayImage(at: to.leading)
+        else { return nil }
+        return MacCurlRequest(from: leaving, to: coming, isForward: step > 0, serial: (curlRequest?.serial ?? 0) + 1)
     }
 
     /// A move the reader asked for by place rather than by turn: the slider, the page

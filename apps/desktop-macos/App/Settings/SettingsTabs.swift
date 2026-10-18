@@ -64,7 +64,9 @@ private struct ReadingSettingsTab: View {
     }
 
     private var choices: TransitionChoices {
-        TransitionChoices(chosen: defaultTransition, axis: .vertical, reduceMotion: false, canCurl: false)
+        TransitionChoices(
+            chosen: defaultTransition, axis: .vertical, reduceMotion: false, canCurl: MacCurlShader.isPresent
+        )
     }
 
     var body: some View {
@@ -97,8 +99,11 @@ private struct ReadingSettingsTab: View {
         } footer: {
             // *The curl where it is not available* and *Reduce Motion is on*: said in grey.
             Text("desktop.reading.transition.default").foregroundStyle(.secondary)
-            Text(reduceMotion ? "desktop.reading.transition.reduceMotion" : "desktop.reading.transition.curlLater")
-                .foregroundStyle(.secondary)
+            if reduceMotion {
+                Text("desktop.reading.transition.reduceMotion").foregroundStyle(.secondary)
+            } else if !MacCurlShader.isPresent {
+                Text("desktop.reading.transition.curlLater").foregroundStyle(.secondary)
+            }
         }
     }
 }

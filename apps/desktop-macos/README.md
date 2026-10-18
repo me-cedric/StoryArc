@@ -225,4 +225,6 @@ default with a Reading setting to turn them off (task 1.26).
 
 1. The page curl on a desktop: default transition, or a different default for a Mac reader? Wave 5.
 5. Which path serves a user who mounted SMB in Finder? The `Smb` package covers it. Low priority.
-6. Is `PageCurl.metal` valid on macOS? The app builds it (`ReaderFeature` is linked); the curl is wave 5.
+6. Is `PageCurl.metal` valid on macOS? Yes: the app draws the phone's shader from
+   `ReaderFeature`'s bundle (`App/Reader/MacCurl.swift`), at 120 Hz with no refresh missed
+   ([`desktop-budgets-macos.md`](../../docs/delivery/desktop-budgets-macos.md)). Wave 5.

@@ -26,6 +26,10 @@ struct ReaderCanvas: View {
     @State private var baseZoom: ZoomModel?
     @State private var dragTranslation: CGFloat = 0
     @State private var wheelMonitor: WheelMonitor?
+    /// The curl standing over the page while a turn runs, or `nil`. Task 5.1.
+    @State private var curl: MacCurlTurn?
+    /// Which settle is in flight, so one a newer turn took over does not end that turn.
+    @State private var curlTicket = 0
 
     private var model: ReaderModel { state.model }
     private var isRightToLeft: Bool { state.isRightToLeft }
@@ -41,6 +45,9 @@ struct ReaderCanvas: View {
                 .animation(state.reduceMotion ? nil : .easeOut(duration: 0.18), value: zoom.scale)
                 .id(spread.leading)
                 .transition(transition)
+            if let curl {
+                MacCurlLayer(turn: curl, isRightToLeft: isRightToLeft, matte: theme.palette.surfaceReader)
+            }
         }
         .animation(animation, value: spread.leading)
         .frame(width: viewport.width, height: viewport.height)
@@ -52,6 +59,7 @@ struct ReaderCanvas: View {
         .onContinuousHover { phase in if case .active = phase { onPointerMoved() } }
         .contextMenu { ReaderPageMenu(state: state, spread: spread) }
         .onChange(of: model.currentIndex) { refitAfterTurn() }
+        .onChange(of: state.curlRequest) { _, request in if let request { run(request) } }
         .onChange(of: state.fitSerial) { state.zoom = fitted(state.model.settings.fit) }
         .onChange(of: model.displayImage(at: model.currentIndex) != nil) { _, ready in
             // The fit needs the page's size, which is known once it is decoded.
@@ -63,8 +71,65 @@ struct ReaderCanvas: View {
         .accessibilityLabel(Text("desktop.reader.pageLabel \(spread.leading + 1) \(model.pages.count)"))
     }
 
-    /// The slide while a fitted page is dragged. The curl is wave 5.
+    /// The slide while a fitted page is dragged in any mode but Curl.
     private var slideOffset: CGFloat { zoom.isZoomed ? 0 : dragTranslation }
+
+    // MARK: - The curl
+
+    /// Whether a drag on this page curls it: Curl runs and one page is in view.
+    private var curls: Bool {
+        guard state.choices.effective == .pageCurl, !zoom.isZoomed else { return false }
+        return !(state.layout[state.layout.slot(containing: model.currentIndex)]?.isPair ?? false)
+    }
+
+    /// A turn by key, click or wheel, drawn from a flat page to a turned one.
+    private func run(_ request: MacCurlRequest) {
+        curl = MacCurlTurn(
+            page: request.from, beneath: request.isForward ? request.to : nil,
+            previous: request.isForward ? nil : request.to
+        )
+        // The layer appears flat first, then turns: one update would draw only the end.
+        Task { @MainActor in settle(to: request.isForward ? 1 : -1) }
+    }
+
+    /// The pointer turns the page as far as it has travelled, as the phone's finger does.
+    private func follow(_ translation: CGFloat) {
+        let index = model.currentIndex
+        guard let page = curl?.page ?? model.displayImage(at: index) else { return }
+        var turn = curl ?? MacCurlTurn(
+            page: page, beneath: model.displayImage(at: index + 1),
+            previous: index > 0 ? model.displayImage(at: index - 1) : nil
+        )
+        turn.progress = CurlTurn.progress(
+            base: 0, travel: translation, width: viewport.width, isRightToLeft: isRightToLeft,
+            canTurnBack: turn.previous != nil, canTurnForward: turn.beneath != nil
+        )
+        curlTicket &+= 1
+        curl = turn
+    }
+
+    /// The pointer let go: past halfway or on a flick the turn completes, else the page springs back.
+    private func release(velocity: CGFloat) {
+        guard let reached = curl?.progress else { return }
+        let flick = CurlTurn.forward(travel: CurlTurn.predictedTravel(velocity: velocity), isRightToLeft: isRightToLeft)
+        let settles = CurlTurn.settles(progress: reached, isFlick: CurlTurn.flicks(velocity: flick, progress: reached))
+        // The page changes under the sheet at once; the sheet covers it until it lands.
+        if settles { state.turn(by: reached < 0 ? -1 : 1, curled: true) }
+        settle(to: settles ? (reached < 0 ? -1 : 1) : 0)
+    }
+
+    private func settle(to target: Double) {
+        curlTicket &+= 1
+        let ticket = curlTicket
+        MacCurlProbe.shared.begin()
+        withAnimation(state.reduceMotion ? nil : .easeInOut(duration: CurlTurn.settleDuration)) {
+            curl?.progress = target
+        } completion: {
+            guard ticket == curlTicket else { return }
+            MacCurlProbe.shared.end()
+            curl = nil
+        }
+    }
 
     // MARK: - The turn
 
@@ -202,6 +267,8 @@ struct ReaderCanvas: View {
                         by: CGSize(width: value.velocity.width / 60, height: value.velocity.height / 60),
                         fittedSize: fittedSize, viewport: viewport
                     )
+                } else if curls || curl != nil {
+                    follow(value.translation.width)
                 } else {
                     dragTranslation = value.translation.width
                 }
@@ -212,6 +279,7 @@ struct ReaderCanvas: View {
                 if state.pdfText != nil { return }
                 // *Scanned PDF*: a reader who drags expecting to select is told, once, in a sentence.
                 if model.publication.format == .pdf { state.saysThereIsNoText = true; return }
+                if curl != nil { return release(velocity: value.velocity.width) }
                 let step = DragTurn.step(
                     translation: value.translation.width, width: viewport.width, isRightToLeft: isRightToLeft
                 )
