@@ -98,6 +98,20 @@ extension WindowWalks {
             #expect(landed == true, "the last chapter did not move the reader")
             model.goBack()
             _ = await Walk.until { model.position == 1 ? true : nil }
+
+            // A bookmark at the place, and a highlight the renderer draws (`ebook-reader`, *Bookmarks*,
+            // *Highlights and notes*).
+            let place = try #require(model.place)
+            model.marks.toggleBookmark(at: place)
+            #expect(model.marks.bookmark(at: place) != nil)
+            model.marks.receive("selection", ["text": "Chapter", "locator": ["href": place.resource]])
+            model.highlightSelection(.yellow)
+            let drawn = await Walk.until { model.received.contains("highlights") ? true : nil }
+            #expect(drawn == true, "the renderer did not answer the highlights")
+            ConformanceLog.note("EPUB marks", "a bookmark at \(place.resource); the renderer drew a highlight", wave: 4)
+            model.marks.toggleBookmark(at: place)
+            for annotation in model.marks.annotations { model.marks.removeHighlight(annotation.id) }
+            model.syncHighlights()
         }
 
         static let publicationID = "walk-epub"

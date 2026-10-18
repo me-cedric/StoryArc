@@ -45,6 +45,7 @@ final class EpubReaderModel: NSObject {
     /// The manifest's table of contents, and the CSS properties the renderer last said are in force.
     private(set) var contents: [EpubWebLink] = []
     private(set) var appliedProperties: [String: String] = [:]
+    let marks: EpubMarks
     /// Where a jump came from, so the reader can go back: *Returning from any jump*.
     private(set) var returnLocator: String?
     /// Every message the renderer posted, by type, for the walks.
@@ -78,6 +79,7 @@ final class EpubReaderModel: NSObject {
         self.progress = progress
         token = Self.token(for: target.publicationID)
         theme = UserDefaults.standard.string(forKey: Self.themeKey).flatMap(ThemePreset.init) ?? .paper
+        marks = EpubMarks(publicationID: publication.id)
     }
 
     /// A host name for the scheme URL: the publication's id, reduced to what a URL host takes.
@@ -257,7 +259,7 @@ final class EpubReaderModel: NSObject {
         send(json: json)
     }
 
-    private func send(json: String) {
+    func send(json: String) {
         guard let webView, isReady else { return }
         webView.evaluateJavaScript("window.__storyarcReader && window.__storyarcReader.receive(\(json)); 0") { _, _ in }
     }
@@ -288,7 +290,7 @@ final class EpubReaderModel: NSObject {
         case "host-log", "host-error":
             noted(type, body["message"] as? String ?? "")
         default:
-            break
+            marks.receive(type, body)
         }
     }
 

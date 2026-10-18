@@ -56,7 +56,14 @@ struct EpubReaderWindow: View {
             if isChromeVisible, model.failure == nil {
                 chrome.transition(.opacity)
             }
+            if model.marks.selection != nil {
+                VStack { Spacer(); EpubSelectionBar(model: model).padding(.bottom, 56) }
+            }
         }
+        .popover(item: Bindable(model.marks).footnote) { note in
+            Text(note.text).scaledFont(.body).padding(16).frame(maxWidth: 360)
+        }
+        .sheet(item: Bindable(model.marks).activated) { EpubNoteSheet(model: model, annotation: $0) }
         .navigationTitle(target.title)
         .focusedSceneValue(\.readerActions, actions)
         .background(WindowAccessor { attach($0) })
@@ -64,7 +71,7 @@ struct EpubReaderWindow: View {
         .onChange(of: isSearchOpen) { _, now in if now { revealChrome() } else { scheduleChromeHide() } }
         // The chrome stays up until the book is on screen, then hides after the idle time: a
         // book that takes longer than that to load would otherwise open with its chrome gone.
-        .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide() } }
+        .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide(); model.syncHighlights() } }
         .task { await openReader() }
         .onDisappear { close() }
     }
@@ -78,6 +85,8 @@ struct EpubReaderWindow: View {
                 GlassEffectContainer {
                     HStack(spacing: 4) {
                         EpubContentsMenu(model: model).hitTarget(HitTarget.icon).padding(4)
+                        EpubMarksMenu(model: model).hitTarget(HitTarget.icon).padding(4)
+                        EpubBookmarkButton(model: model).hitTarget(HitTarget.icon).padding(4)
                         themeMenu
                         textButton
                         searchButton
