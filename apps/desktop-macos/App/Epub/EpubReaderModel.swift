@@ -45,9 +45,11 @@ final class EpubReaderModel: NSObject {
     /// The manifest's table of contents, and the CSS properties the renderer last said are in force.
     private(set) var contents: [EpubWebLink] = []
     private(set) var appliedProperties: [String: String] = [:]
+    /// Set by a move the app asked for, so a chapter change the renderer made on its own is known as a link.
+    var isMovingItself = false
     let marks: EpubMarks
     /// Where a jump came from, so the reader can go back: *Returning from any jump*.
-    private(set) var returnLocator: String?
+    var returnLocator: String?
     /// Every message the renderer posted, by type, for the walks.
     private(set) var received: [String] = []
     /// What the book says, read once at open, or `nil` while it is being read.
@@ -199,13 +201,14 @@ final class EpubReaderModel: NSObject {
 
     // MARK: - Commands
 
-    func next() { send(["type": "next"]) }
+    func next() { isMovingItself = true; send(["type": "next"]) }
 
-    func previous() { send(["type": "previous"]) }
+    func previous() { isMovingItself = true; send(["type": "previous"]) }
 
     /// Goes to a locator, remembering where the reader was so they can come back.
     func go(to locator: String) {
         returnLocator = self.locator
+        isMovingItself = true
         send(json: "{\"type\":\"go\",\"locator\":\(locator)}")
     }
 
@@ -213,6 +216,7 @@ final class EpubReaderModel: NSObject {
     func goBack() {
         guard let returnLocator else { return }
         self.returnLocator = nil
+        isMovingItself = true
         send(json: "{\"type\":\"go\",\"locator\":\(returnLocator)}")
     }
 
@@ -283,7 +287,8 @@ final class EpubReaderModel: NSObject {
         case "search-results":
             guard body["id"] as? Int == searchID else { return }
             let base = hits.count
-            hits += (body["results"] as? [[String: Any]] ?? []).enumerated().compactMap { Self.hit($1, id: base + $0) }
+            let results = body["results"] as? [[String: Any]] ?? []
+            hits += results.enumerated().compactMap { EpubSearchHit.of($1, id: base + $0) }
             if body["done"] as? Bool == true { isSearching = false }
         case "link":
             Self.follow(body["href"] as? String)
@@ -307,6 +312,7 @@ final class EpubReaderModel: NSObject {
     }
 
     private func moved(to raw: [String: Any]) {
+        noteJump(from: locator, to: raw)
         let locations = raw["locations"] as? [String: Any]
         position = locations?["position"] as? Int
         totalProgression = locations?["totalProgression"] as? Double ?? totalProgression
@@ -320,22 +326,6 @@ final class EpubReaderModel: NSObject {
             isFinished: totalProgression >= 0.98,
             updatedAt: Date()
         ))
-    }
-
-    private static func hit(_ raw: [String: Any], id: Int) -> EpubSearchHit? {
-        guard let locator = raw["locator"] as? [String: Any],
-              let data = try? JSONSerialization.data(withJSONObject: locator),
-              let json = String(data: data, encoding: .utf8)
-        else { return nil }
-        let text = locator["text"] as? [String: Any]
-        return EpubSearchHit(
-            id: id,
-            chapter: locator["title"] as? String,
-            before: text?["before"] as? String ?? "",
-            match: text?["highlight"] as? String ?? "",
-            after: text?["after"] as? String ?? "",
-            locator: json
-        )
     }
 }
 

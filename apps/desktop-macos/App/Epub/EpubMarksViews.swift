@@ -25,6 +25,7 @@ extension EpubReaderModel {
               let target = EpubMarks.json(["href": href, "type": "application/xhtml+xml", "locations": [String: Any]()])
         else { return }
         let locator = target
+        isMovingItself = true
         send(json: "{\"type\":\"go\",\"locator\":\(locator)}")
     }
 

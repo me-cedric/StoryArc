@@ -57,3 +57,28 @@ struct EpubMarksTests {
         #expect(marks.footnote == EpubFootnote(href: "#n1", text: "A note."))
     }
 }
+
+/// A link the reader followed inside the book leaves a way back (`ebook-reader`, *Following an internal link*).
+@MainActor
+@Suite("EPUB jumps")
+struct EpubJumpTests {
+    @Test("A chapter change the app did not ask for keeps the place it left; one it asked for does not")
+    func linkLeavesAWayBack() {
+        let model = EpubReaderModel(
+            target: ReaderTarget(publicationID: "jump", path: "/tmp/jump.epub", title: "Jump"),
+            publication: Publication(
+                identity: .init(normalizedPath: "/tmp/jump.epub"), format: .epub,
+                displayTitle: "Jump", origin: .inferred
+            ),
+            progress: nil
+        )
+        model.receive(["type": "locator", "locator": ["href": "OEBPS/ch1.xhtml", "locations": ["position": 1]]])
+        model.receive(["type": "locator", "locator": ["href": "OEBPS/ch2.xhtml", "locations": ["position": 2]]])
+        #expect(model.returnLocator?.contains("ch1.xhtml") == true)
+
+        model.returnLocator = nil
+        model.next()
+        model.receive(["type": "locator", "locator": ["href": "OEBPS/ch3.xhtml", "locations": ["position": 3]]])
+        #expect(model.returnLocator == nil)
+    }
+}

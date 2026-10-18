@@ -147,3 +147,35 @@ struct EpubPlace: Equatable {
         progression = locations?["progression"] as? Double ?? 0
     }
 }
+
+extension EpubSearchHit {
+    /// One search result as the renderer posts it.
+    static func of(_ raw: [String: Any], id: Int) -> EpubSearchHit? {
+        guard let locator = raw["locator"] as? [String: Any],
+              let data = try? JSONSerialization.data(withJSONObject: locator),
+              let json = String(data: data, encoding: .utf8)
+        else { return nil }
+        let text = locator["text"] as? [String: Any]
+        return EpubSearchHit(
+            id: id,
+            chapter: locator["title"] as? String,
+            before: text?["before"] as? String ?? "",
+            match: text?["highlight"] as? String ?? "",
+            after: text?["after"] as? String ?? "",
+            locator: json
+        )
+    }
+}
+
+extension EpubReaderModel {
+    /// A move to another chapter that the app did not ask for is a link the reader followed in the book: the
+    /// place it left becomes the way back (`ebook-reader`, *Following an internal link*, *Returning from any jump*).
+    func noteJump(from previous: String?, to raw: [String: Any]) {
+        defer { isMovingItself = false }
+        guard !isMovingItself, let previous, isReady else { return }
+        let before = EpubPlace(locator: previous, chapter: "").resource.split(separator: "#").first
+        let after = (raw["href"] as? String)?.split(separator: "#").first
+        guard let after, after != before else { return }
+        returnLocator = previous
+    }
+}

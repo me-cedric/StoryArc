@@ -19,7 +19,7 @@ by name, so a scenario added to a spec later is missing here until the walk runs
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 44, seen 22, fail 10, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
+Totals: pass 46, seen 22, fail 8, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as in
 waves 2 and 3. Wave 4 adds four: the EPUB walk over the corpus `fixture.epub` in the Mac's web
@@ -65,7 +65,6 @@ record lists the four bar rows as failures, which is the honest reading until th
 ## The failures, in one list
 
 - ebook-reader · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
-- ebook-reader · *Returning from any jump*: After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by.
 - ebook-reader · *Following a link out of the publication*: `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first.
 - ebook-reader · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
 - ebook-reader · *Leaving the publication while it speaks*: The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken.
@@ -73,7 +72,6 @@ record lists the four bar rows as failures, which is the honest reading until th
 - ebook-reader · *Opening a different publication*: A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped.
 - audio-playback · *The full player*: `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer.
 - audio-playback · *A publication with no cover*: A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it.
-- desktop-experience · *A link inside the book*: The reader moves there; no way back is offered after a link.
 
 ## ebook-reader
 
@@ -104,7 +102,7 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 | Navigation and annotation | Highlights and notes | pass | A selection raises a bar to highlight in five colours; a clicked highlight opens its note; the renderer draws them (`EpubMarksTests`, `EpubWalkTests` reads the renderer's `highlights` reply, 2026-10-18). |
 | Navigation and annotation | Search within a publication | pass | `EpubWalkTests` *The fixture opens, turns, themes, searches and writes where it got to*: `chapter` lists its hits with the text before and after and the chapter, and the first hit moves the reader |
 | Navigation and annotation | Following an internal link | seen | A footnote opens in a popover beside the text (`EpubMarksTests`); an internal link still moves the reader with no way back (2026-10-18). |
-| Navigation and annotation | Returning from any jump | **fail** | After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by. |
+| Navigation and annotation | Returning from any jump | pass | A way back is offered after a search hit, a chapter from the contents and a link followed in the book; using it is not itself a place to return from (`EpubJumpTests`, `EpubWalkTests`, 2026-10-18). |
 | Navigation and annotation | Following a link out of the publication | **fail** | `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first. |
 | Navigation and annotation | A publication reaching the network on its own | pass | `EpubEgressTests`: the eight-vector page, control 8 of 8 arrivals unguarded, 0 of 8 through the rule list, the header and the scheme; *The rules are rules WebKit accepts* |
 | PDF rendering | Text-based PDF | pass | `PdfWalkTests` *The text PDF searches, jumps, selects and marks*; `PdfTextTests` for selection, copy, the five colours, the note, search for the selection and the outline; frame `pdf-selection-*.png` |
@@ -192,5 +190,5 @@ Source: `docs/openspec/changes/desktop-clients/specs/desktop-experience/spec.md`
 | Screen readers on each system | Orca without an accessibility bus | n/a | Linux. |
 | A book stays off the network on every desktop | A book that tries to load a remote resource | pass | `EpubEgressTests`: 0 of 8 arrivals guarded; the book renders |
 | A book stays off the network on every desktop | A link to the web | seen | `EpubReaderModel.follow` hands `http` and `https` to `NSWorkspace` through `EpubLinkOpener` and drops the rest; the navigation delegate allows only the app's scheme, `blob:` and `about:` (`EpubReaderModel.navigates`); no walk clicks a link. |
-| A book stays off the network on every desktop | A link inside the book | **fail** | The reader moves there; no way back is offered after a link. |
+| A book stays off the network on every desktop | A link inside the book | pass | A chapter change the app did not ask for leaves a way back to the place the link was in (`EpubJumpTests`, 2026-10-18). |
 | A book stays off the network on every desktop | Proof on each desktop | pass | `EpubEgressTests` *the eight-vector page*: none of the eight arrives through the guarded view; the collector counts out of process (`pnpm egress`) |
