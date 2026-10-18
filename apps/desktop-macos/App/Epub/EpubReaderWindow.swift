@@ -66,6 +66,7 @@ struct EpubReaderWindow: View {
             Text(note.text).scaledFont(.body).padding(16).frame(maxWidth: 360)
         }
         .sheet(item: Bindable(model.marks).activated) { EpubNoteSheet(model: model, annotation: $0) }
+        .leavingConfirmation(model)
         .navigationTitle(target.title)
         .focusedSceneValue(\.readerActions, actions)
         .background(WindowAccessor { attach($0) })

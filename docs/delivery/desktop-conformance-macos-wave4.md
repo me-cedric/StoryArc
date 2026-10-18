@@ -19,7 +19,7 @@ by name, so a scenario added to a spec later is missing here until the walk runs
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 46, seen 22, fail 8, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
+Totals: pass 49, seen 22, fail 5, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as in
 waves 2 and 3. Wave 4 adds four: the EPUB walk over the corpus `fixture.epub` in the Mac's web
@@ -65,13 +65,10 @@ record lists the four bar rows as failures, which is the honest reading until th
 ## The failures, in one list
 
 - ebook-reader · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
-- ebook-reader · *Following a link out of the publication*: `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first.
 - ebook-reader · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
 - ebook-reader · *Leaving the publication while it speaks*: The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken.
 - ebook-reader · *The same controls as a narrated book*: Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice.
 - ebook-reader · *Opening a different publication*: A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped.
-- audio-playback · *The full player*: `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer.
-- audio-playback · *A publication with no cover*: A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it.
 
 ## ebook-reader
 
@@ -103,7 +100,7 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 | Navigation and annotation | Search within a publication | pass | `EpubWalkTests` *The fixture opens, turns, themes, searches and writes where it got to*: `chapter` lists its hits with the text before and after and the chapter, and the first hit moves the reader |
 | Navigation and annotation | Following an internal link | seen | A footnote opens in a popover beside the text (`EpubMarksTests`); an internal link still moves the reader with no way back (2026-10-18). |
 | Navigation and annotation | Returning from any jump | pass | A way back is offered after a search hit, a chapter from the contents and a link followed in the book; using it is not itself a place to return from (`EpubJumpTests`, `EpubWalkTests`, 2026-10-18). |
-| Navigation and annotation | Following a link out of the publication | **fail** | `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first. |
+| Navigation and annotation | Following a link out of the publication | pass | `EpubJumpTests` *A link out of the book waits for its host to be confirmed…*: only `http` and `https` with a host are kept; the reader window asks *Open a page on {host}?* and opens the default browser only on a yes (`EpubLeaving`). Nothing is fetched before (2026-10-18). |
 | Navigation and annotation | A publication reaching the network on its own | pass | `EpubEgressTests`: the eight-vector page, control 8 of 8 arrivals unguarded, 0 of 8 through the rule list, the header and the scheme; *The rules are rules WebKit accepts* |
 | PDF rendering | Text-based PDF | pass | `PdfWalkTests` *The text PDF searches, jumps, selects and marks*; `PdfTextTests` for selection, copy, the five colours, the note, search for the selection and the outline; frame `pdf-selection-*.png` |
 | PDF rendering | Scanned PDF | pass | `PdfWalkTests`: `image-pages.pdf` gets no text model and no markers; a press on it shows the one-sentence alert (`desktop.pdf.noText.*`, `ReaderWindow`) |
@@ -145,8 +142,8 @@ Source: `docs/openspec/changes/audiobooks-and-playback/specs/audio-playback/spec
 | --- | --- | --- | --- |
 | One player for everything that speaks | The compact bar | pass | `CompactPlayerBar` under the library's detail column while a session runs; `PlayerWalkTests` checks its way back (2026-10-18). |
 | One player for everything that speaks | Nothing is playing | seen | No bar exists, so nothing is drawn and nothing is reserved. |
-| One player for everything that speaks | The full player | **fail** | `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer. |
-| One player for everything that speaks | A publication with no cover | **fail** | A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it. |
+| One player for everything that speaks | The full player | pass | `PlayerWindow` has the cover, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters, the speed and the sleep timer, on the same session (`PlayerWalkTests` reopens it without a restart; snapshot `player`) (2026-10-18). |
+| One player for everything that speaks | A publication with no cover | pass | The phones' `PlayerArtwork`: the kind over the format's name in the window (snapshot `player`), and the same well as the Now Playing artwork (`PlayerMenusTests` *A book with no cover gives the Now Playing panel the coverless well*) (2026-10-18). |
 | One player for everything that speaks | Both sources look the same | seen | One compact bar for a narrated book and a voice (2026-10-18). |
 | One player for everything that speaks | Playback outlives the publication | pass | `PlayerWalkTests` *keeps playing with its window closed*: the window goes, the session stays, and a second open fronts a window on the same session |
 | One player for everything that speaks | Starting a second thing | not walked | The one-session rule is `PlayerCentre`'s, tested in StoryArcKit; `MacPlayer.listen` does not restart a book that is already playing; no Mac walk starts two. |

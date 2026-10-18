@@ -41,11 +41,13 @@ conformance, accessibility, budget or spike record names it or one of its scenar
 **Failures a host cannot explain.** The records list scenarios that do not hold on a desktop
 today because the feature is not there:
 
-- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, 15 of 92 after 2026-10-18's work,
-  42 before): typography, scroll mode, contents, bookmarks, highlights, footnotes, the sleep timer,
-  chapter marks, the headphones pause, the compact bar and the page's chapter list are built. What
-  fails: the bundled typefaces, theme following appearance and the presets as swatches, progress in
-  words, a way back after an internal link, and parts of read aloud's controls and the full player.
+- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, 5 of 92 after 2026-10-18's work,
+  42 before): typography, scroll mode, contents, bookmarks, highlights, footnotes, theme swatches,
+  a way back after an internal link, a confirmed link out, the sleep timer, chapter marks, the
+  headphones pause, the compact bar, the coverless artwork and the page's chapter list are built.
+  What fails: the bundled typefaces, and four read-aloud scenarios (the spoken sentence in the
+  page, returning at the sentence spoken, the voice in the full player, and the notice when
+  another book stops the voice).
 - **The Mac, wave 3** (`desktop-conformance-macos-wave3.md`, none of 190 after 2026-10-18's work,
   18 before): a source window now hosts the phones' browser for OPDS, Kavita and shares, sources
   rename and reorder, a search scoped to a Kavita server offers to ask it, and an *All Shelves*

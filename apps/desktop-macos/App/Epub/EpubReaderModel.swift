@@ -50,6 +50,8 @@ final class EpubReaderModel: NSObject {
     let marks: EpubMarks
     /// Where a jump came from, so the reader can go back: *Returning from any jump*.
     var returnLocator: String?
+    /// A link out of the book that waits for the reader to confirm its host; nothing is fetched before.
+    var leaving: URL?
     /// Every message the renderer posted, by type, for the walks.
     private(set) var received: [String] = []
     /// What the book says, read once at open, or `nil` while it is being read.
@@ -291,7 +293,7 @@ final class EpubReaderModel: NSObject {
             hits += results.enumerated().compactMap { EpubSearchHit.of($1, id: base + $0) }
             if body["done"] as? Bool == true { isSearching = false }
         case "link":
-            Self.follow(body["href"] as? String)
+            leaving = Self.outward(body["href"] as? String)
         case "host-log", "host-error":
             noted(type, body["message"] as? String ?? "")
         default:
@@ -303,12 +305,13 @@ final class EpubReaderModel: NSObject {
         if type == "host-error" { failure = message } else { logs.append(message) }
     }
 
-    /// A link out of the book goes to the default browser, `http` and `https` only.
-    private static func follow(_ href: String?) {
-        guard let href, let url = URL(string: href),
+    /// A link out of the book, `http` and `https` only; any other scheme is dropped. It waits in ``leaving`` for
+    /// the reader to confirm its host (`ebook-reader`, *Following a link out of the publication*).
+    static func outward(_ href: String?) -> URL? {
+        guard let href, let url = URL(string: href), url.host() != nil,
               ["http", "https"].contains(url.scheme?.lowercased())
-        else { return }
-        EpubLinkOpener.open(url)
+        else { return nil }
+        return url
     }
 
     private func moved(to raw: [String: Any]) {

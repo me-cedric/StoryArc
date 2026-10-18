@@ -81,4 +81,19 @@ struct EpubJumpTests {
         model.receive(["type": "locator", "locator": ["href": "OEBPS/ch3.xhtml", "locations": ["position": 3]]])
         #expect(model.returnLocator == nil)
     }
+
+    @Test("A link out of the book waits for its host to be confirmed; any scheme but http and https is dropped")
+    func linkOutWaits() {
+        var opened: [URL] = []
+        let saved = EpubLinkOpener.open
+        EpubLinkOpener.open = { opened.append($0) }
+        defer { EpubLinkOpener.open = saved }
+        #expect(EpubReaderModel.outward("https://example.org/a")?.host() == "example.org")
+        #expect(EpubReaderModel.outward("HTTP://example.org") != nil)
+        #expect(EpubReaderModel.outward("mailto:someone@example.org") == nil)
+        #expect(EpubReaderModel.outward("javascript:alert(1)") == nil)
+        #expect(EpubReaderModel.outward("file:///etc/hosts") == nil)
+        #expect(EpubReaderModel.outward(nil) == nil)
+        #expect(opened.isEmpty, "nothing opens before the reader says yes")
+    }
 }
