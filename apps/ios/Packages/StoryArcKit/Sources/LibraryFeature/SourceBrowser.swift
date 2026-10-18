@@ -12,7 +12,7 @@ public import StoryArcCore
 ///
 /// Three kinds of server, three browsers, one door out: whatever is opened goes to the
 /// same reader a local publication does.
-struct SourceBrowser: View {
+public struct SourceBrowser: View {
     let source: Source
     /// `library-browsing`'s *A publication's actions wherever it is drawn* names "a server's
     /// own browser" among the places — carried down to the OPDS and Kavita browsers so a row
@@ -40,7 +40,7 @@ struct SourceBrowser: View {
     /// browser has no business holding one.
     var onRetry: () async -> Void = {}
 
-    var body: some View {
+    public var body: some View {
         // A source that is not answering is not opened into a browser that will fail: it
         // would fetch, wait, and land on an empty list with nothing to say why. `sources`
         // promises "cached contents remain browsable", and for a server there are none —
@@ -95,6 +95,22 @@ struct SourceBrowser: View {
             // or the app was broken.
             UnreachableSource(name: source.displayName)
         }
+    }
+}
+
+public extension SourceBrowser {
+    /// Public for the Mac, which opens a source's browser in a window of its own (`desktop-clients`, the wave 3
+    /// sources tasks): the stores and the source's rows as the phone's pane passes them.
+    init(
+        source: Source, model: LibraryModel, onOpen: @escaping (Publication, URL) -> Void,
+        searching: String = "", onRetry: @escaping () async -> Void = {}
+    ) {
+        self.init(
+            source: source, model: model, pins: .app, credentials: CredentialStore(),
+            kavitaProgress: KavitaProgressStore(), lists: model.serverLists,
+            publications: model.publications.filter { $0.sourceID == source.id },
+            onOpen: onOpen, searching: searching, onRetry: onRetry
+        )
     }
 }
 
