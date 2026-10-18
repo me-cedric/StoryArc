@@ -5,6 +5,9 @@ import SwiftUI
 /// is built on, and where to report a problem. `MacAbout` holds the facts.
 struct AboutSettingsTab: View {
     @State private var shown: Notice?
+    /// Whether the generated notices file is shown whole.
+    @State private var showsNotices = false
+    private let allNotices = MacAbout.thirdPartyNotices()
     private let notices = Result { try MacAbout.notices() }
 
     var body: some View {
@@ -48,10 +51,19 @@ struct AboutSettingsTab: View {
                 // A packaging bug, said rather than drawn as an empty list.
                 Text("desktop.about.acknowledgements.unreadable").foregroundStyle(.secondary)
             }
+            if allNotices != nil {
+                Button { showsNotices = true } label: { Text("desktop.about.notices").hitTarget() }
+                    .accessibilityHint(Text("desktop.about.acknowledgements.hint"))
+            } else {
+                Text("desktop.about.acknowledgements.unreadable").foregroundStyle(.secondary)
+            }
         } header: {
             Text("desktop.about.acknowledgements")
         }
-        .sheet(item: $shown) { notice in LicenceSheet(notice: notice) }
+        .sheet(item: $shown) { notice in LicenceSheet(title: notice.name, text: MacAbout.licenceText(for: notice)) }
+        .sheet(isPresented: $showsNotices) {
+            LicenceSheet(title: String(localized: "desktop.about.notices"), text: allNotices)
+        }
     }
 
     @ViewBuilder
@@ -60,16 +72,17 @@ struct AboutSettingsTab: View {
     }
 }
 
-/// One licence in full, because a summary of a licence is not a licence.
+/// One licence, or the whole notices file, in full: a summary of a licence is not a licence.
 private struct LicenceSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let notice: Notice
+    let title: String
+    let text: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(verbatim: notice.name).scaledFont(.title3, weight: .semibold)
+            Text(verbatim: title).scaledFont(.title3, weight: .semibold)
             ScrollView {
-                Text(MacAbout.licenceText(for: notice) ?? String(localized: "desktop.about.licenceMissing"))
+                Text(text ?? String(localized: "desktop.about.licenceMissing"))
                     .font(.system(size: 11, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)

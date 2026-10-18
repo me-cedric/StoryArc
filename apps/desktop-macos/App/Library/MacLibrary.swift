@@ -32,6 +32,8 @@ final class MacLibrary {
     private(set) var sources: [FolderSource] = []
     /// Files the system handed over that would not open, named with the reason.
     private(set) var refused: [RefusedFile] = []
+    /// What a `storyarc://` link named that the app does not hold, said in grey. Task 5.8.
+    private(set) var linksNotFound: [String] = []
     /// Dropped files past the window limit, listed so the reader can open them from here.
     private(set) var listedForLater: [ReaderTarget] = []
     /// Reader windows the last run had open that could not come back.
@@ -274,7 +276,10 @@ final class MacLibrary {
     /// Any window may call this: the inbox empties on the first take, so a drop on a reader
     /// while the library window is closed still opens, and two windows never open it twice.
     func openHandedOver(using openReader: (ReaderTarget) -> Void) async {
-        let urls = FileInbox.shared.take()
+        let handed = FileInbox.shared.take()
+        let links = handed.filter { StoryArcLink.isLink($0.absoluteString) }
+        for link in links { follow(link, using: openReader) }
+        let urls = handed.filter { !StoryArcLink.isLink($0.absoluteString) }
         guard !urls.isEmpty else { return }
         for target in await open(urls) {
             recents.note(target)
@@ -329,6 +334,25 @@ final class MacLibrary {
     }
 
     func dismissRefused() { refused = [] }
+
+    func dismissLinksNotFound() { linksNotFound = [] }
+
+    /// Acts on one `storyarc://` link: a publication opens, a source shows its tab in
+    /// Preferences, an unknown name is said in grey, and anything else changes nothing.
+    func follow(_ link: URL, using openReader: (ReaderTarget) -> Void) {
+        switch StoryArcLink.resolve(link, publications: model.publications, sources: model.registry.sources) {
+        case let .open(publication):
+            guard let target = target(for: publication) else { return linksNotFound.append(publication.displayTitle) }
+            recents.note(target)
+            openReader(target)
+        case .showSource:
+            navigationRequest = .sources
+        case let .notFound(name):
+            if !linksNotFound.contains(name) { linksNotFound.append(name) }
+        case .refused:
+            break
+        }
+    }
 
     func dismissListed() { listedForLater = [] }
 

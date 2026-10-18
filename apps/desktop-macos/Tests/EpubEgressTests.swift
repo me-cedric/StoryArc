@@ -42,6 +42,7 @@ extension WindowWalks {
             let run = try await render(deny: false)
             #expect(run.served.contains { $0.hasPrefix("egress.html") }, "the page never loaded")
             let missing = Self.vectors.filter { !run.arrived.contains($0) }
+            ConformanceLog.note("egress control", "\(run.arrived.count) of \(Self.vectors.count) arrived", wave: 4)
             #expect(missing.isEmpty, "unblocked, these should have arrived: \(missing)")
         }
 
@@ -54,6 +55,7 @@ extension WindowWalks {
             #expect(run.served.contains { $0.hasPrefix("egress.html") }, "the page must still be served")
             #expect(run.attempts == Self.vectors.count, "the collector counts \(run.attempts) vectors")
             #expect(run.arrived.isEmpty, "these reached the network: \(run.arrived)")
+            ConformanceLog.note("egress guarded", "\(run.arrived.count) of \(run.attempts) arrived", wave: 4)
         }
 
         @Test("The rules are rules WebKit accepts")

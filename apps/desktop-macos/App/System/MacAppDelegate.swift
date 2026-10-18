@@ -95,6 +95,11 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         // The View menu carries the app's own Enter Full Screen (`StoryArcMacCommands`).
         UserDefaults.standard.set(false, forKey: "NSFullScreenMenuItemEverywhere")
+        // `desktop-experience`, *The command line*: paths and links after the program's name.
+        let (files, links) = MacCommandLine.split(
+            CommandLine.arguments, directory: URL(filePath: FileManager.default.currentDirectoryPath)
+        )
+        if !files.isEmpty || !links.isEmpty { FileInbox.shared.receive(files + links) }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

@@ -38,6 +38,27 @@ enum MacAbout {
         StoryArcLicences.text(for: notice)
     }
 
+    /// The generated `THIRD_PARTY_NOTICES.md` the build copies into the app, or `nil` when it is
+    /// missing or empty: a packaging bug the tab says rather than hides. Task 6.3.
+    static func thirdPartyNotices(in bundle: Bundle = .main) -> String? {
+        guard let url = bundle.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "md"),
+              let text = try? String(contentsOf: url, encoding: .utf8),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return nil }
+        return text
+    }
+
+    /// What a notices text lists: the name in the brackets of each table row the generator
+    /// writes, `| [Name](address) | …`, as the Windows `Acknowledgements` reads it.
+    static func components(of text: String) -> [String] {
+        text.split(separator: "\n").compactMap { line in
+            let row = line.drop { $0 == " " }
+            guard row.hasPrefix("| ["), let end = row.firstIndex(of: "]") else { return nil }
+            let name = row[row.index(row.startIndex, offsetBy: 3)..<end]
+            return name.isEmpty ? nil : String(name)
+        }
+    }
+
     /// The tracker, pre-filled with three facts and nothing else.
     static func issue(
         version: String = version, build: String = build, system: String = systemName

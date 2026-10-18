@@ -30,6 +30,7 @@ struct LibraryWindow: View {
     @State private var isSearchFocused = false
     @State private var showingFolderOffer = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         NavigationSplitView {
@@ -76,6 +77,17 @@ struct LibraryWindow: View {
             if case let .filter(filter) = row { libraryFilter = filter; search = search.moved(to: .library) }
         }
         .onChange(of: FileInbox.shared.serial) { Task { await library.openHandedOver { openWindow.reader($0) } } }
+        // Task 5.9: the first rows on screen, each thousand after, then the scan done.
+        .onChange(of: library.model.publications.count) { _, count in
+            guard LaunchClock.isArmed, count > 0 else { return }
+            DispatchQueue.main.async {
+                LaunchClock.note("shelf", count: count)
+                LaunchClock.note("shelf-\(count / 1000 * 1000)", count: count)
+            }
+        }
+        .onChange(of: library.model.scanState) { _, state in
+            if case .finished = state { LaunchClock.note("scanned", count: library.model.publications.count) }
+        }
         .onChange(of: library.navigationRequest) { _, request in
             guard let request else { return }
             library.navigationRequest = nil
@@ -103,6 +115,7 @@ struct LibraryWindow: View {
             Text("desktop.drop.folder.body")
         }
         .task {
+            LaunchClock.note("window", count: library.model.publications.count)
             WindowOpener.shared.openReader = { openWindow.reader($0) }
             WindowOpener.shared.openLibrary = { openWindow(id: Self.id) }
             await library.restore()
@@ -210,6 +223,9 @@ struct LibraryWindow: View {
         case .root: path.wrappedValue = NavigationPath()
         case let .filter(filter): selection = .filter(filter)
         case let .shelf(pin): selection = .shelf(pin)
+        case .sources:
+            MacSettings.shared.settingsTab = .sources
+            openSettings()
         case .finished:
             var query = library.model.query
             query.readStates = [.finished]

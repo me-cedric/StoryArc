@@ -40,6 +40,18 @@ struct AboutTests {
         }
     }
 
+    @Test("The app carries the generated notices, and they list PDFium and libarchive")
+    func thirdPartyNotices() throws {
+        let text = try #require(MacAbout.thirdPartyNotices(), "THIRD_PARTY_NOTICES.md is not in the app")
+        let components = MacAbout.components(of: text)
+        #expect(components.contains { $0.hasPrefix("PDFium") })
+        #expect(components.contains { $0.hasPrefix("libarchive") })
+        #expect(components.contains { $0.hasPrefix("Rust ") })
+        let table = "| Component |\n| --- |\n| [Foo 1.0](https://x) | `MIT` |\n  | [Bar](y) |"
+        #expect(MacAbout.components(of: table) == ["Foo 1.0", "Bar"])
+        #expect(MacAbout.thirdPartyNotices(in: Bundle(for: BundleMarker.self)) == nil)
+    }
+
     @Test("The version and build are read from the app, not written down")
     func version() {
         #expect(MacAbout.version == Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String)
@@ -86,3 +98,6 @@ struct SettingsResetTests {
         #expect(SettingsTab.allCases.last == .about)
     }
 }
+
+/// A class in the test bundle, which carries no notices file, for the missing-file case.
+private final class BundleMarker {}

@@ -115,7 +115,8 @@ open windows run one after another under `WindowWalks`. `TEST_RUNNER_STORYARC_CA
 writes the window frames into the container's `tmp/captures/`; see
 [`wave1/`](../../docs/designs/screenshots/desktop/macos/wave1/README.md),
 [`wave2/`](../../docs/designs/screenshots/desktop/macos/wave2/README.md) and
-[`wave3/`](../../docs/designs/screenshots/desktop/macos/wave3/README.md)
+[`wave3/`](../../docs/designs/screenshots/desktop/macos/wave3/README.md) and
+[`wave5/`](../../docs/designs/screenshots/desktop/macos/wave5/README.md)
 for how and for what they do and do not show.
 
 The source, download and sync walks need the repository's mock servers (`pnpm opds`,
@@ -209,8 +210,14 @@ Accepted in the parity audit and specified in `desktop-experience`:
 - Open from Finder: file associations, drag and drop, Dock icon drop.
 - Pointer reading: trackpad pinch and scroll zoom, hover to reveal chrome, right-click menus.
 - Live folder watching. Media keys. Recent items in the Dock menu.
+- The `storyarc://` link (`storyarc://publication/<title or id>`, `storyarc://source/<name>`) and
+  paths or links on the command line, read by `App/System/StoryArcLink.swift`. Wave 5.
 
-Later: Quick Look thumbnails for covers, Handoff from iPhone, Spotlight titles, `storyarc://` URLs.
+- Covers in Finder and Quick Look: the `StoryArcThumbnails` Quick Look thumbnail extension,
+  embedded in `Contents/PlugIns`, for the comic types and EPUB (`Thumbnails/`). A damaged file
+  gives no thumbnail, so Finder keeps its generic icon. Wave 5.
+
+Later: Handoff from iPhone, Spotlight titles.
 Rejected: tabs, tray icon, command palette, desktop widgets.
 
 Liquid Glass is for chrome only. The artwork stays the interface.
@@ -223,4 +230,6 @@ default with a Reading setting to turn them off (task 1.26).
 
 1. The page curl on a desktop: default transition, or a different default for a Mac reader? Wave 5.
 5. Which path serves a user who mounted SMB in Finder? The `Smb` package covers it. Low priority.
-6. Is `PageCurl.metal` valid on macOS? The app builds it (`ReaderFeature` is linked); the curl is wave 5.
+6. Is `PageCurl.metal` valid on macOS? Yes: the app draws the phone's shader from
+   `ReaderFeature`'s bundle (`App/Reader/MacCurl.swift`), at 120 Hz with no refresh missed
+   ([`desktop-budgets-macos.md`](../../docs/delivery/desktop-budgets-macos.md)). Wave 5.
