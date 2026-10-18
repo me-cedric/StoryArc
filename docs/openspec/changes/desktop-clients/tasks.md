@@ -684,6 +684,10 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 5.5 **[L] Thumbnailer CLI** and its `.thumbnailer` file, for source and AUR builds only. A Flatpak does not export a
   thumbnailer to the host file manager (Inferred): research that first, and state in the task result that the Flatpak build
   shows no covers. Verify: a file manager shows covers for a source build and nothing is written to history.
+  **Linux built 2026-10-18, owed by a host:** `storyarc-thumbnailer` with its `.thumbnailer` file for source and AUR
+  builds; a damaged file yields no thumbnail and nothing is written. The Flatpak build shows no covers: `flatpak
+  build-finish` exports desktop files, icons, D-Bus services and metainfo, never `share/thumbnailers`. A file manager
+  showing covers is the host's check.
 - [x] 5.6 **[W] Thumbnails in Explorer.** Decide the native shim (Open Question 15). Deferral: left out of the first release if
   the shim is not accepted. Verify: the decision is recorded in `design.md`.
   **Decided 2026-10-17:** left out of the first release; the decision is under design Open Question 15.
@@ -696,6 +700,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Windows built 2026-10-17, owed by a host:** `storyarc://publication/<title or id>` and `storyarc://source/<name>`,
   registered as `windows.protocol` and handled for protocol, launch and command-line activations (`Activations.cs`,
   `AppHost`); `StoryArcLinkTests` holds ten cases for the three scenarios. The Mac and Linux halves are open.
+  **Linux built 2026-10-18, owed by a host:** `link.rs` holds the three scenarios in tests and the desktop entry declares
+  `x-scheme-handler/storyarc` with `%U`; the headless walk handed four links to the running app. A browser or file
+  manager handing one over is the host's check.
 - [ ] 5.9 **[M, L, W] The cold-launch budget.** Measure a cold launch on each desktop, on a mid-range laptop with a fixture
   library of 5,000 publications, against the owner's 1 second. Verify: a launch trace per desktop shows the library
   interactive within 1 second.
@@ -703,12 +710,17 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 5.11 **[M, L, W] Chrome accent and click zone captures.** Capture both accent choices in light and dark on each desktop,
   the absent choice on a Linux session below libadwaita 1.6, and a reader with the edge click zones on. Verify: the captures
   exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
+  **Linux half 2026-10-18:** both accents in light and dark, the absent choice on libadwaita 1.5.0 and a reader with the
+  click zones on, under `docs/designs/screenshots/desktop/linux/wave5/`; the 2.35e tests pass.
 - [ ] 5.12 **[X] Parent edit, `apps/ios`:** an `AppSupport` package that holds the iOS shell code the Mac duplicates. Deferral:
   the Mac keeps its copy until the iOS owner schedules it. Verify: the Mac target builds against the package.
   **Deferred 2026-10-17:** the Mac keeps its copy (about 3.4k lines, design Risks); the move is the iOS owner's to
   schedule, and this change ships without it.
 - [ ] 5.13 **[L, W] The pseudo-locale walk** on each desktop for the longest language at the largest size. Verify: each walk's
   findings sit in `docs/delivery/desktop-pseudo-<os>.md`.
+  **Linux half done 2026-10-18:** `docs/delivery/desktop-pseudo-linux.md`, padded German at a text scale of 2.0; at that
+  scale the library header pushes Close off screen (task 2.35b), and 38 command labels, the Layout and Fit choices and
+  the Open File title have no catalogue key yet.
 
 ## 6. Wave 6: release readiness
 
@@ -722,12 +734,16 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Built 2026-10-17:** `pnpm notices:check` reads the Cargo.lock crates, the NuGet packages, PDFium and libarchive
   (549 crates, 7 packages) and fails by name on an unlisted one; the Windows About page shows the generated file
   (`AcknowledgementsTests`). The Mac and Linux About windows are open.
+  **Linux half 2026-10-18:** the About dialog's legal section embeds the generated file, tested for PDFium and libarchive.
 - [x] 6.4 **[P] `SECURITY.md`** lists PDF parsing next to archive parsing. Verify: the file names both.
   **Done 2026-10-17:** the *PDF parsing* row sits under the RAR rows, naming PDFKit, `PdfRenderer` and the pinned PDFium.
 - [ ] 6.5 **[P] Flatpak for release**, human-written Flathub copy, after Flathub's answer (task 1.25). Verify: the submission is
   filed or the fallback recorded.
-- [ ] 6.6 **[P] AUR `PKGBUILD`** and a documented source build per distro. Verify: `container-build.sh` passes for Arch and
+- [x] 6.6 **[P] AUR `PKGBUILD`** and a documented source build per distro. Verify: `container-build.sh` passes for Arch and
   Manjaro with the `PKGBUILD`.
+  **Done 2026-10-18:** `apps/desktop-linux/packaging/aur/PKGBUILD` and a source build per distro in the README; the arch
+  and manjaro rows of `container-build.sh` build, install and check the package. The tarball checksum is `SKIP` until a
+  tag exists.
 - [ ] 6.7 **[P] Windows MSIX**, a Store dry run with the `runFullTrust` friction written down. Decide the publish
   settings here: trimming and ReadyToRun need a self-contained app (NETSDK1102), so the base sets neither. Verify:
   `docs/delivery/desktop-spike-store.md`.
