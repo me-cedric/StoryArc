@@ -128,7 +128,9 @@ pub fn save_preferences(preferences: &Preferences) {
 
 /// The look of a reflowable book: the theme and the reader's typography (`epub_look.rs`).
 pub fn load_epub_look() -> crate::epub_look::Look {
-    crate::epub_look::Look::restore(&std::fs::read_to_string(data_path(EPUB_LOOK_FILE)).unwrap_or_default())
+    crate::epub_look::Look::restore(
+        &std::fs::read_to_string(data_path(EPUB_LOOK_FILE)).unwrap_or_default(),
+    )
 }
 
 pub fn save_epub_look(look: &crate::epub_look::Look) {
@@ -137,8 +139,12 @@ pub fn save_epub_look(look: &crate::epub_look::Look) {
 
 /// The bookmarks and highlights of one EPUB, by its key (`epub_marks.rs`).
 pub fn load_epub_marks(key: &str) -> crate::epub_marks::Marks {
-    let all = crate::epub_marks::read_all(&std::fs::read_to_string(data_path(EPUB_MARKS_FILE)).unwrap_or_default());
-    all.get(key).map(crate::epub_marks::Marks::from_json).unwrap_or_default()
+    let all = crate::epub_marks::read_all(
+        &std::fs::read_to_string(data_path(EPUB_MARKS_FILE)).unwrap_or_default(),
+    );
+    all.get(key)
+        .map(crate::epub_marks::Marks::from_json)
+        .unwrap_or_default()
 }
 
 pub fn save_epub_marks(key: &str, marks: &crate::epub_marks::Marks) {
@@ -150,7 +156,9 @@ pub fn save_epub_marks(key: &str, marks: &crate::epub_marks::Marks) {
 
 /// The speed each book was last heard at (`playback.rs`).
 pub fn load_speeds() -> crate::playback::Speeds {
-    crate::playback::Speeds::restore(&std::fs::read_to_string(data_path(SPEEDS_FILE)).unwrap_or_default())
+    crate::playback::Speeds::restore(
+        &std::fs::read_to_string(data_path(SPEEDS_FILE)).unwrap_or_default(),
+    )
 }
 
 pub fn save_speeds(speeds: &crate::playback::Speeds) {

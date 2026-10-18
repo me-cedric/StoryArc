@@ -396,7 +396,10 @@ mod tests {
         assert!(!page.contains("http://") && !page.contains("https://"));
         assert!(reader_page("[]", None, None).contains("locator: null"));
         assert!(reader_page("[]", None, None).contains("var reader = await StoryArcEpub.open("));
-        assert!(reader_page("[]", None, Some(r#"{"scroll":true}"#)).contains(r#"preferences: {"scroll":true}"#));
+        assert!(
+            reader_page("[]", None, Some(r#"{"scroll":true}"#))
+                .contains(r#"preferences: {"scroll":true}"#)
+        );
         assert_eq!(
             receive_script(r#"{"type":"next"}"#),
             r#"window.__storyarc && window.__storyarc.receive({"type":"next"});"#

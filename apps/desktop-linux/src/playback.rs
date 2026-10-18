@@ -36,9 +36,9 @@ pub enum Mark {
 
 /// The chapter a place is inside: the last one starting at or before it.
 pub fn chapter_at(chapters: &[Chapter], part: usize, position: Duration) -> Option<usize> {
-    chapters
-        .iter()
-        .rposition(|chapter| chapter.part < part || (chapter.part == part && chapter.start <= position))
+    chapters.iter().rposition(|chapter| {
+        chapter.part < part || (chapter.part == part && chapter.start <= position)
+    })
 }
 
 /// The phones' `ChapterProgress` rule: before the current one finished, the current one in
@@ -76,7 +76,11 @@ pub fn chapter_row(chapter: &Chapter, index: usize, mark: Mark) -> String {
     match mark {
         Mark::InProgress(left) => {
             if let Some(left) = left {
-                parts.push(tr_args("player.chapter.remaining %s", "%s left", &[&clock(left)]));
+                parts.push(tr_args(
+                    "player.chapter.remaining %s",
+                    "%s left",
+                    &[&clock(left)],
+                ));
             }
             parts.push(tr("player.chapter.inProgress", "In progress"));
         }
@@ -108,7 +112,8 @@ pub fn listing(chapters: &[Chapter], stopped: Option<(usize, Duration)>) -> List
     if chapters.len() < 2 {
         return Listing::Length(chapters.first().and_then(|chapter| chapter.end));
     }
-    let current = stopped.and_then(|(part, offset)| Some((chapter_at(chapters, part, offset)?, offset)));
+    let current =
+        stopped.and_then(|(part, offset)| Some((chapter_at(chapters, part, offset)?, offset)));
     Listing::Chapters(
         chapters
             .iter()
@@ -144,7 +149,11 @@ pub fn resume_label(chapters: &[Chapter], stopped: Option<(usize, Duration)>) ->
 pub const SPEEDS: [f64; 9] = [0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0];
 
 pub fn clamp_speed(rate: f64) -> f64 {
-    if rate.is_finite() { rate.clamp(0.5, 3.0) } else { 1.0 }
+    if rate.is_finite() {
+        rate.clamp(0.5, 3.0)
+    } else {
+        1.0
+    }
 }
 
 /// The speed stated as a number: `1×`, `1.5×`.
@@ -163,18 +172,26 @@ pub struct Speeds {
 
 impl Speeds {
     pub fn speed(&self, publication: &str, series: Option<&str>) -> f64 {
-        let own = self.entries.iter().rev().find(|(id, _, _)| id == publication);
+        let own = self
+            .entries
+            .iter()
+            .rev()
+            .find(|(id, _, _)| id == publication);
         let shared = || {
-            series.filter(|s| !s.is_empty()).and_then(|series| {
-                self.entries.iter().rev().find(|(_, of, _)| of == series)
-            })
+            series
+                .filter(|s| !s.is_empty())
+                .and_then(|series| self.entries.iter().rev().find(|(_, of, _)| of == series))
         };
         own.or_else(shared).map_or(1.0, |(_, _, rate)| *rate)
     }
 
     pub fn remember(&mut self, publication: &str, series: Option<&str>, rate: f64) {
         self.entries.retain(|(id, _, _)| id != publication);
-        self.entries.push((publication.to_owned(), series.unwrap_or("").to_owned(), clamp_speed(rate)));
+        self.entries.push((
+            publication.to_owned(),
+            series.unwrap_or("").to_owned(),
+            clamp_speed(rate),
+        ));
     }
 
     pub fn save(&self) -> String {
@@ -206,7 +223,12 @@ pub const SKIP_FORWARD: Duration = Duration::from_secs(30);
 /// Where a skip lands across the parts of a book: past the start or the end of one it goes on
 /// into the neighbour, held at the book's two ends (`audio-playback`, *Skipping*). `lengths` are
 /// the parts' lengths as far as they are known; an unknown length stops a skip at that part.
-pub fn skip(lengths: &[Option<Duration>], part: usize, offset: Duration, forward: bool) -> (usize, Duration) {
+pub fn skip(
+    lengths: &[Option<Duration>],
+    part: usize,
+    offset: Duration,
+    forward: bool,
+) -> (usize, Duration) {
     let (mut part, mut offset) = (part, offset);
     if forward {
         let mut left = SKIP_FORWARD;
@@ -345,9 +367,24 @@ mod tests {
 
     fn chapters() -> Vec<Chapter> {
         vec![
-            Chapter { title: Some("One".into()), part: 0, start: secs(0), end: Some(secs(60)) },
-            Chapter { title: None, part: 0, start: secs(60), end: Some(secs(200)) },
-            Chapter { title: Some("Three".into()), part: 1, start: secs(0), end: Some(secs(60)) },
+            Chapter {
+                title: Some("One".into()),
+                part: 0,
+                start: secs(0),
+                end: Some(secs(60)),
+            },
+            Chapter {
+                title: None,
+                part: 0,
+                start: secs(60),
+                end: Some(secs(200)),
+            },
+            Chapter {
+                title: Some("Three".into()),
+                part: 1,
+                start: secs(0),
+                end: Some(secs(60)),
+            },
         ]
     }
 
@@ -361,11 +398,20 @@ mod tests {
         assert_eq!(current, 1);
         assert_eq!(chapter_at(&all, 1, secs(5)), Some(2));
         assert_eq!(mark(&all, 0, current, at, false), Mark::Finished);
-        assert_eq!(mark(&all, 1, current, at, false), Mark::InProgress(Some(secs(110))));
+        assert_eq!(
+            mark(&all, 1, current, at, false),
+            Mark::InProgress(Some(secs(110)))
+        );
         assert_eq!(mark(&all, 2, current, at, false), Mark::Ahead);
         assert_eq!(mark(&all, 2, current, at, true), Mark::Finished);
-        assert_eq!(chapter_row(&all[0], 0, Mark::Finished), "One · 1:00 · Finished");
-        assert_eq!(chapter_row(&all[1], 1, Mark::InProgress(Some(secs(110)))), "Part 2 · 1:50 left · In progress");
+        assert_eq!(
+            chapter_row(&all[0], 0, Mark::Finished),
+            "One · 1:00 · Finished"
+        );
+        assert_eq!(
+            chapter_row(&all[1], 1, Mark::InProgress(Some(secs(110)))),
+            "Part 2 · 1:50 left · In progress"
+        );
         assert_eq!(chapter_row(&all[2], 2, Mark::Ahead), "Three · 1:00");
     }
 
@@ -432,13 +478,23 @@ mod tests {
         );
         assert_eq!(
             listing(&all, None),
-            Listing::Chapters(vec!["One · 1:00".into(), "Part 2 · 2:20".into(), "Three · 1:00".into()])
+            Listing::Chapters(vec![
+                "One · 1:00".into(),
+                "Part 2 · 2:20".into(),
+                "Three · 1:00".into()
+            ])
         );
-        let single = [Chapter { end: Some(secs(3600)), ..Chapter::default() }];
+        let single = [Chapter {
+            end: Some(secs(3600)),
+            ..Chapter::default()
+        }];
         assert_eq!(listing(&single, None), Listing::Length(Some(secs(3600))));
         assert_eq!(resume_label(&all, None), "Listen");
         assert_eq!(resume_label(&all, Some((1, secs(5)))), "Continue Three");
-        assert_eq!(resume_label(&single, Some((0, secs(5)))), "Continue listening");
+        assert_eq!(
+            resume_label(&single, Some((0, secs(5)))),
+            "Continue listening"
+        );
     }
 
     /// *Headphones removed*: an output going away pauses a playing book; nothing resumes it.

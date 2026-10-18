@@ -35,7 +35,11 @@ pub fn place(page: u32, count: u32, text: &str, start: usize) -> Place {
         .to_string(),
         resource,
         progression,
-        chapter: tr_args("reader.pageLabel %d %d", "Page %1$d of %2$d", &[&(page + 1), &count]),
+        chapter: tr_args(
+            "reader.pageLabel %d %d",
+            "Page %1$d of %2$d",
+            &[&(page + 1), &count],
+        ),
     }
 }
 
@@ -59,12 +63,15 @@ pub fn ranges(marks: &Marks, page: u32, text: &str) -> Vec<(usize, usize, String
                 .map(|start| start as usize);
             let at = kept
                 .filter(|start| chars.get(*start..*start + wanted.len()) == Some(&wanted[..]))
-                .or_else(|| chars.windows(wanted.len()).position(|window| window == &wanted[..]))?;
+                .or_else(|| {
+                    chars
+                        .windows(wanted.len())
+                        .position(|window| window == &wanted[..])
+                })?;
             Some((at, at + wanted.len(), highlight.colour.clone()))
         })
         .collect()
 }
-
 
 /// One action of the selection bar.
 type Action = fn(&Rc<PdfMarking>);
@@ -95,13 +102,25 @@ impl PdfMarking {
             if buffer.tag_table().lookup(colour).is_none() {
                 let tag = gtk::TextTag::builder()
                     .name(colour)
-                    .background_rgba(&gdk::RGBA::parse(colour).unwrap_or(gdk::RGBA::BLACK).with_alpha(0.45))
+                    .background_rgba(
+                        &gdk::RGBA::parse(colour)
+                            .unwrap_or(gdk::RGBA::BLACK)
+                            .with_alpha(0.45),
+                    )
                     .build();
                 buffer.tag_table().add(&tag);
             }
         }
-        let bar = gtk::Box::builder().spacing(6).halign(gtk::Align::Center).margin_top(6).margin_bottom(6).build();
-        let revealer = gtk::Revealer::builder().child(&bar).reveal_child(false).build();
+        let bar = gtk::Box::builder()
+            .spacing(6)
+            .halign(gtk::Align::Center)
+            .margin_top(6)
+            .margin_bottom(6)
+            .build();
+        let revealer = gtk::Revealer::builder()
+            .child(&bar)
+            .reveal_child(false)
+            .build();
         let marking = Rc::new(Self {
             text: text.clone(),
             bar: revealer,
@@ -111,11 +130,18 @@ impl PdfMarking {
             save: Box::new(save),
             search: Box::new(search),
         });
-        bar.append(&gtk::Label::new(Some(&tr("desktop.w4.epub.highlight", "Highlight"))));
+        bar.append(&gtk::Label::new(Some(&tr(
+            "desktop.w4.epub.highlight",
+            "Highlight",
+        ))));
         for colour in COLOURS {
             let name = colour_name(colour);
             let swatch = gtk::Button::builder()
-                .child(&gtk::Box::builder().css_classes([colour_class(colour)]).build())
+                .child(
+                    &gtk::Box::builder()
+                        .css_classes([colour_class(colour)])
+                        .build(),
+                )
                 .tooltip_text(&name)
                 .css_classes(["flat", "circular"])
                 .build();
@@ -131,10 +157,16 @@ impl PdfMarking {
         let actions: [(String, Action); 3] = [
             (tr("reader.pdf.note", "Note"), |marking| marking.note()),
             (tr("annotations.copy", "Copy"), |marking| marking.copy()),
-            (tr("reader.pdf.searchSelection", "Search for this"), |marking| marking.search_selection()),
+            (
+                tr("reader.pdf.searchSelection", "Search for this"),
+                |marking| marking.search_selection(),
+            ),
         ];
         for (label, run) in actions {
-            let button = gtk::Button::builder().label(label).css_classes(["flat"]).build();
+            let button = gtk::Button::builder()
+                .label(label)
+                .css_classes(["flat"])
+                .build();
             let weak = Rc::downgrade(&marking);
             button.connect_clicked(move |_| {
                 if let Some(marking) = weak.upgrade() {
@@ -162,7 +194,10 @@ impl PdfMarking {
         }
         let text = buffer.text(&start, &end, false);
         for (from, to, colour) in ranges(&self.marks.borrow(), page, &text) {
-            let (from, to) = (buffer.iter_at_offset(from as i32), buffer.iter_at_offset(to as i32));
+            let (from, to) = (
+                buffer.iter_at_offset(from as i32),
+                buffer.iter_at_offset(to as i32),
+            );
             buffer.apply_tag_by_name(&colour, &from, &to);
         }
     }
@@ -172,7 +207,11 @@ impl PdfMarking {
         let (from, to) = buffer.selection_bounds()?;
         let text = buffer.text(&from, &to, false).trim().to_owned();
         (!text.is_empty()).then(|| {
-            let lead = buffer.text(&from, &to, false).chars().take_while(|c| c.is_whitespace()).count();
+            let lead = buffer
+                .text(&from, &to, false)
+                .chars()
+                .take_while(|c| c.is_whitespace())
+                .count();
             (text, from.offset() as usize + lead)
         })
     }
@@ -200,9 +239,18 @@ impl PdfMarking {
         let Some(id) = self.highlight(COLOURS[0]) else {
             return;
         };
-        let dialog = adw::AlertDialog::builder().heading(tr("reader.pdf.note", "Note")).build();
-        let field = gtk::TextView::builder().wrap_mode(gtk::WrapMode::WordChar).height_request(96).css_classes(["card"]).build();
-        field.update_property(&[gtk::accessible::Property::Label(&tr("reader.pdf.note", "Note"))]);
+        let dialog = adw::AlertDialog::builder()
+            .heading(tr("reader.pdf.note", "Note"))
+            .build();
+        let field = gtk::TextView::builder()
+            .wrap_mode(gtk::WrapMode::WordChar)
+            .height_request(96)
+            .css_classes(["card"])
+            .build();
+        field.update_property(&[gtk::accessible::Property::Label(&tr(
+            "reader.pdf.note",
+            "Note",
+        ))]);
         dialog.set_extra_child(Some(&field));
         dialog.add_response("cancel", &tr("reader.pdf.note.cancel", "Cancel"));
         dialog.add_response("save", &tr("reader.pdf.note.save", "Save"));
@@ -280,7 +328,8 @@ mod tests {
 
     fn selection_on_a_display() {
         let view = gtk::TextView::new();
-        view.buffer().set_text("Chapter two begins here. It goes on.");
+        view.buffer()
+            .set_text("Chapter two begins here. It goes on.");
         let searched: Rc<RefCell<Vec<String>>> = Rc::default();
         let saved = Rc::new(Cell::new(0));
         let (on_search, on_save) = (searched.clone(), saved.clone());
@@ -302,8 +351,18 @@ mod tests {
         assert!(!marking.bar.reveals_child());
         let marks = marking.marks();
         assert_eq!(marks.highlights.len(), 1);
-        assert_eq!((marks.highlights[0].text.as_str(), marks.highlights[0].colour.as_str()), ("two begins", "green"));
-        assert!(buffer.iter_at_offset(10).has_tag(&buffer.tag_table().lookup("green").unwrap()));
+        assert_eq!(
+            (
+                marks.highlights[0].text.as_str(),
+                marks.highlights[0].colour.as_str()
+            ),
+            ("two begins", "green")
+        );
+        assert!(
+            buffer
+                .iter_at_offset(10)
+                .has_tag(&buffer.tag_table().lookup("green").unwrap())
+        );
         marking.set_note(&id, "a note");
         assert_eq!(marking.marks().highlights[0].note, "a note");
         assert_eq!(saved.get(), 2);

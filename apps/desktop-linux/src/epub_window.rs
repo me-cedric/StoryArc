@@ -173,7 +173,10 @@ impl EpubReader {
 
     /// The page, once the view is built.
     pub(crate) fn web_view(&self) -> Option<gtk::Widget> {
-        self.view.borrow().as_ref().map(|view| view.web_view.clone().upcast())
+        self.view
+            .borrow()
+            .as_ref()
+            .map(|view| view.web_view.clone().upcast())
     }
 
     /// Turns the page; not a jump to come back from.
@@ -185,7 +188,8 @@ impl EpubReader {
     /// Goes to a locator, keeping where the reader was so they can come back.
     pub(crate) fn go(&self, locator: &str) {
         *self.return_locator.borrow_mut() = self.locator.borrow().clone();
-        self.back.set_visible(self.return_locator.borrow().is_some());
+        self.back
+            .set_visible(self.return_locator.borrow().is_some());
         self.moving_itself.set(Some(Instant::now()));
         self.send_go(locator);
     }
@@ -213,7 +217,13 @@ impl EpubReader {
             .manifest()
             .toc
             .iter()
-            .map(|link| (link.title.clone(), link.href.clone(), link.media_type.clone()))
+            .map(|link| {
+                (
+                    link.title.clone(),
+                    link.href.clone(),
+                    link.media_type.clone(),
+                )
+            })
             .collect()
     }
 
@@ -400,7 +410,10 @@ impl EpubReader {
                 }
             }
             "highlight-activated" => {
-                if let Some(id) = message["id"].as_str().filter(|id| *id != epub_marks::SPOKEN_ID) {
+                if let Some(id) = message["id"]
+                    .as_str()
+                    .filter(|id| *id != epub_marks::SPOKEN_ID)
+                {
                     epub_marks_ui::note_dialog(self, id);
                 }
             }
@@ -481,7 +494,11 @@ impl EpubReader {
             } else {
                 tr("desktop.w4.player.readAloud", "Read aloud")
             };
-            button.set_icon_name(if mine { "media-playback-stop-symbolic" } else { "audio-speakers-symbolic" });
+            button.set_icon_name(if mine {
+                "media-playback-stop-symbolic"
+            } else {
+                "audio-speakers-symbolic"
+            });
             button.set_tooltip_text(Some(&label));
             button.update_property(&[gtk::accessible::Property::Label(&label)]);
         }
@@ -688,7 +705,12 @@ pub fn open(shared: &Shared, path: &Path, notice: Option<String>) -> Result<(), 
     header.pack_end(&theme);
     // The surfaces as window actions: `win.find`, `win.bookmark` and `win.back` take the
     // app's own keys (Control F, Control D, Alt Left), and the walks reach every one.
-    for (name, menu) in [("find", &search), ("contents", &contents), ("marks", &marks), ("theme", &theme)] {
+    for (name, menu) in [
+        ("find", &search),
+        ("contents", &contents),
+        ("marks", &marks),
+        ("theme", &theme),
+    ] {
         let action = gio::SimpleAction::new(name, None);
         let menu = menu.clone();
         action.connect_activate(move |_, _| menu.popup());
@@ -851,7 +873,12 @@ mod tests {
         let source = Arc::new(FileSource::open(&path).expect("the fixture"));
         let publication =
             WebPublication::open(source, &epub_host::manifest_uri()).expect("the manifest");
-        let toc: Vec<String> = publication.manifest().toc.iter().map(|l| l.href.clone()).collect();
+        let toc: Vec<String> = publication
+            .manifest()
+            .toc
+            .iter()
+            .map(|l| l.href.clone())
+            .collect();
         let mut look = Look::default();
         look.values.typeface = epub_look::Typeface::Literata;
         let mut book = Book::new(publication, None);
@@ -877,7 +904,11 @@ mod tests {
             let kind = kind.to_owned();
             move || heard.borrow().iter().any(|m| m["type"] == kind.as_str())
         };
-        assert!(pump_until(15.0, has("ready")), "never ready: {:?}", heard.borrow());
+        assert!(
+            pump_until(15.0, has("ready")),
+            "never ready: {:?}",
+            heard.borrow()
+        );
 
         // The table of contents is the manifest's, and both chapters are in it.
         assert_eq!(toc, ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"]);
@@ -890,7 +921,11 @@ mod tests {
                 .iter()
                 .any(|m| m["type"] == "search-results" && m["done"] == true)
         };
-        assert!(pump_until(10.0, done), "no search end: {:?}", heard.borrow());
+        assert!(
+            pump_until(10.0, done),
+            "no search end: {:?}",
+            heard.borrow()
+        );
         let hits: Vec<Hit> = heard
             .borrow()
             .iter()
@@ -898,16 +933,23 @@ mod tests {
             .flat_map(Hit::all_of)
             .collect();
         assert!(hits.len() >= 2, "{hits:?} {:?}", view.requests.borrow());
-        assert!(hits.iter().all(|hit| hit.matched.eq_ignore_ascii_case("paragraph 3")));
+        assert!(
+            hits.iter()
+                .all(|hit| hit.matched.eq_ignore_ascii_case("paragraph 3"))
+        );
         assert!(hits.iter().any(|hit| hit.locator.contains("ch2.xhtml")));
 
         // A move to the second chapter, a theme with the reader's face, and the highlights.
-        view.send(&epub_marks::go_message(2, &epub_marks::start_of("OEBPS/ch2.xhtml", None)).unwrap());
+        view.send(
+            &epub_marks::go_message(2, &epub_marks::start_of("OEBPS/ch2.xhtml", None)).unwrap(),
+        );
         let moved = pump_until(5.0, || {
-            heard
-                .borrow()
-                .iter()
-                .any(|m| m["type"] == "locator" && m["locator"]["href"].as_str().is_some_and(|h| h.contains("ch2")))
+            heard.borrow().iter().any(|m| {
+                m["type"] == "locator"
+                    && m["locator"]["href"]
+                        .as_str()
+                        .is_some_and(|h| h.contains("ch2"))
+            })
         });
         view.send(&look.theme_message(3));
         let themed = pump_until(5.0, has("theme"));
@@ -915,12 +957,18 @@ mod tests {
         let id = marks.highlight("paragraph 3", Place::of(&hits[0].locator, "One"), "yellow");
         view.send(&marks.highlights_message(None, 4));
         let drawn = pump_until(5.0, || {
-            heard
-                .borrow()
-                .iter()
-                .any(|m| m["type"] == "highlights" && m["ids"].as_array().is_some_and(|ids| ids.iter().any(|i| *i == id.as_str())))
+            heard.borrow().iter().any(|m| {
+                m["type"] == "highlights"
+                    && m["ids"]
+                        .as_array()
+                        .is_some_and(|ids| ids.iter().any(|i| *i == id.as_str()))
+            })
         });
-        assert!(moved && themed && drawn, "moved {moved}, themed {themed}, drawn {drawn}: {:?}", heard.borrow());
+        assert!(
+            moved && themed && drawn,
+            "moved {moved}, themed {themed}, drawn {drawn}: {:?}",
+            heard.borrow()
+        );
 
         // The voice's sentence: drawn in its own tint and brought into view, as `follow_voice`
         // sends it (`ebook-reader`, *Starting playback*).
@@ -929,10 +977,26 @@ mod tests {
         view.send(&epub_marks::go_message(6, &spoken).unwrap());
         let followed = pump_until(5.0, || {
             let heard = heard.borrow();
-            heard.iter().any(|m| m["type"] == "highlights" && m["ids"].as_array().is_some_and(|ids| ids.iter().any(|i| *i == epub_marks::SPOKEN_ID)))
-                && heard.iter().rev().find(|m| m["type"] == "locator").is_some_and(|m| m["locator"]["href"].as_str().is_some_and(|h| h.contains("ch1")))
+            heard.iter().any(|m| {
+                m["type"] == "highlights"
+                    && m["ids"]
+                        .as_array()
+                        .is_some_and(|ids| ids.iter().any(|i| *i == epub_marks::SPOKEN_ID))
+            }) && heard
+                .iter()
+                .rev()
+                .find(|m| m["type"] == "locator")
+                .is_some_and(|m| {
+                    m["locator"]["href"]
+                        .as_str()
+                        .is_some_and(|h| h.contains("ch1"))
+                })
         });
-        assert!(followed, "the spoken sentence was not drawn and followed: {:?}", heard.borrow());
+        assert!(
+            followed,
+            "the spoken sentence was not drawn and followed: {:?}",
+            heard.borrow()
+        );
         let properties = heard
             .borrow()
             .iter()
@@ -942,9 +1006,23 @@ mod tests {
         eprintln!("renderer: theme properties {properties}");
         assert!(properties.contains("Literata"), "{properties}");
         pump_until(3.0, || false);
-        let served: Vec<String> = view.requests.borrow().iter().map(|n| format!("{} {}", n.path, n.status)).collect();
+        let served: Vec<String> = view
+            .requests
+            .borrow()
+            .iter()
+            .map(|n| format!("{} {}", n.path, n.status))
+            .collect();
         eprintln!("book: served {served:?}");
-        assert!(served.iter().any(|s| s == "/.storyarc/storyarc-fonts/faces.css 200"), "{served:?}");
-        assert!(!heard.borrow().iter().any(|m| m["type"] == "host-error"), "{:?}", heard.borrow());
+        assert!(
+            served
+                .iter()
+                .any(|s| s == "/.storyarc/storyarc-fonts/faces.css 200"),
+            "{served:?}"
+        );
+        assert!(
+            !heard.borrow().iter().any(|m| m["type"] == "host-error"),
+            "{:?}",
+            heard.borrow()
+        );
     }
 }

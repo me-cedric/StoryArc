@@ -184,7 +184,11 @@ fn detail_column(
     {
         column.append(
             &gtk::Label::builder()
-                .label(tr_args("detail.readAloud.voice %s", "Read aloud by %s", &[&voice]))
+                .label(tr_args(
+                    "detail.readAloud.voice %s",
+                    "Read aloud by %s",
+                    &[&voice],
+                ))
                 .css_classes(["dimmed", "caption"])
                 .build(),
         );
@@ -235,20 +239,35 @@ fn actions(detail: &Detail, publication: &Publication, hooks: &DetailHooks) -> g
 /// An audiobook's chapters before the first minute (`audio-playback`, *Chapters before the
 /// first minute*): read from the files on a worker, each a way to start there, or the book's
 /// length when it is one part with no marks. The primary action names where it resumes.
-fn audiobook_section(publication: &Publication, actions: &gtk::Box, hooks: &DetailHooks) -> gtk::Box {
+fn audiobook_section(
+    publication: &Publication,
+    actions: &gtk::Box,
+    hooks: &DetailHooks,
+) -> gtk::Box {
     let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
     section.set_margin_top(12);
-    let Some(path) = publication.identity.normalized_path.clone().map(PathBuf::from) else {
+    let Some(path) = publication
+        .identity
+        .normalized_path
+        .clone()
+        .map(PathBuf::from)
+    else {
         return section;
     };
     let primary = actions
         .first_child()
         .and_then(|child| child.downcast::<gtk::Button>().ok());
-    let (target, stopped, listen_from) = (publication.clone(), hooks.stopped, hooks.listen_from.clone());
+    let (target, stopped, listen_from) = (
+        publication.clone(),
+        hooks.stopped,
+        hooks.listen_from.clone(),
+    );
     let on_section = section.clone();
     gtk::glib::spawn_future_local(async move {
         let parts = crate::player::audiobook_parts(&path);
-        let Ok((chapters, _)) = gio::spawn_blocking(move || crate::player::book_chapters(&parts)).await else {
+        let Ok((chapters, _)) =
+            gio::spawn_blocking(move || crate::player::book_chapters(&parts)).await
+        else {
             return;
         };
         if let Some(primary) = primary.filter(|p| p.is_sensitive()) {
@@ -259,7 +278,11 @@ fn audiobook_section(publication: &Publication, actions: &gtk::Box, hooks: &Deta
                 if let Some(length) = length {
                     on_section.append(
                         &gtk::Label::builder()
-                            .label(tr_args("detail.duration %s", "Duration %s", &[&crate::player::clock(length)]))
+                            .label(tr_args(
+                                "detail.duration %s",
+                                "Duration %s",
+                                &[&crate::player::clock(length)],
+                            ))
                             .css_classes(["dimmed"])
                             .build(),
                     );
@@ -284,7 +307,9 @@ fn audiobook_section(publication: &Publication, actions: &gtk::Box, hooks: &Deta
                         .activatable(true)
                         .build();
                     let (target, listen_from) = (target.clone(), listen_from.clone());
-                    item.connect_activated(move |_| listen_from(&target, chapter.part, chapter.start));
+                    item.connect_activated(move |_| {
+                        listen_from(&target, chapter.part, chapter.start)
+                    });
                     list.append(&item);
                 }
                 on_section.append(&list);

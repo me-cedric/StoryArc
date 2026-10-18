@@ -26,8 +26,8 @@ use crate::app::Shared;
 use crate::audio::{AudioPlayer, PlayState, PlayerEvent, Sink};
 use crate::idle::IdleHold;
 use crate::mpris::{Command, Mpris, NowPlaying, Shown};
-use crate::speech::{Speech, SpeechEvent};
 use crate::playback::{self, Chapter, Countdown, SleepTimer, Speeds};
+use crate::speech::{Speech, SpeechEvent};
 use crate::strings::{tr, tr_args};
 /// How often the listening position is written while playing.
 const WRITE_EVERY: Duration = Duration::from_secs(15);
@@ -96,7 +96,6 @@ pub struct Showing {
     pub speed: f64,
     pub sleep: Option<Countdown>,
 }
-
 
 /// Whether a path may be an audiobook: an audio file, or a folder (which the indexer
 /// then calls an audiobook folder or not).
@@ -499,7 +498,10 @@ impl Player {
         };
         self.stop_quietly();
         let line = self.speech_line()?;
-        let speed = self.speeds.borrow().speed(&book.key, book.series.as_deref());
+        let speed = self
+            .speeds
+            .borrow()
+            .speed(&book.key, book.series.as_deref());
         let _ = line.orders.send(SpeechOrder::Rate(speech_rate(speed)));
         *self.speech.borrow_mut() = Some(line);
         *self.identity.borrow_mut() = None;
@@ -539,9 +541,16 @@ impl Player {
     /// Speaks the sentence the source is on and tells every surface which it is.
     fn speak_current(self: &Rc<Self>) {
         let current = match &*self.source.borrow() {
-            Some(Source::Speech { chapters, part, at }) => chapters.get(*part).and_then(|chapter| {
-                Some((*part, chapter.href.clone(), chapter.title.clone(), chapter.sentences.get(*at)?.clone()))
-            }),
+            Some(Source::Speech { chapters, part, at }) => {
+                chapters.get(*part).and_then(|chapter| {
+                    Some((
+                        *part,
+                        chapter.href.clone(),
+                        chapter.title.clone(),
+                        chapter.sentences.get(*at)?.clone(),
+                    ))
+                })
+            }
             _ => None,
         };
         let Some((part, href, title, sentence)) = current else {
@@ -709,7 +718,9 @@ impl Player {
             let _ = line.orders.send(SpeechOrder::Rate(speech_rate(rate)));
         }
         if let Some((key, series)) = self.key.borrow().clone() {
-            self.speeds.borrow_mut().remember(&key, series.as_deref(), rate);
+            self.speeds
+                .borrow_mut()
+                .remember(&key, series.as_deref(), rate);
             crate::session::save_speeds(&self.speeds.borrow());
         }
         self.showing.borrow_mut().speed = rate;
@@ -935,7 +946,10 @@ impl Player {
         match (watch, monitor.start()) {
             (Ok(watch), Ok(())) => *self.outputs.borrow_mut() = Some((monitor, watch)),
             (_, Err(error)) => {
-                glib::g_message!(crate::session::LOG_DOMAIN, "player: no device monitor: {error}");
+                glib::g_message!(
+                    crate::session::LOG_DOMAIN,
+                    "player: no device monitor: {error}"
+                );
             }
             (Err(error), _) => {
                 glib::g_message!(crate::session::LOG_DOMAIN, "player: no device bus: {error}");
@@ -1174,7 +1188,13 @@ impl Player {
         let Some(shared) = self.shared.upgrade() else {
             return;
         };
-        let length = self.lengths.borrow().get(part).copied().flatten().or(self.showing.borrow().duration);
+        let length = self
+            .lengths
+            .borrow()
+            .get(part)
+            .copied()
+            .flatten()
+            .or(self.showing.borrow().duration);
         let position = ReadingPosition::Listening {
             part: part as i64,
             part_count: parts.len() as i64,
@@ -1250,7 +1270,9 @@ impl Player {
             }
         }
         let track = match &*self.source.borrow() {
-            Some(Source::Audio { part, .. }) => (*part as u64) << 16 | showing.chapter.unwrap_or(0) as u64,
+            Some(Source::Audio { part, .. }) => {
+                (*part as u64) << 16 | showing.chapter.unwrap_or(0) as u64
+            }
             Some(Source::Speech { part, at, .. }) => (*part as u64) << 16 | *at as u64,
             None => 0,
         };
@@ -1307,7 +1329,11 @@ pub fn audiobook_parts(path: &Path) -> Vec<PathBuf> {
         return vec![path.to_path_buf()];
     }
     let files = std::fs::read_dir(path)
-        .map(|entries| entries.filter_map(|entry| entry.ok().map(|entry| entry.path())).collect())
+        .map(|entries| {
+            entries
+                .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+                .collect()
+        })
         .unwrap_or_default();
     parts_in_order(files)
 }
@@ -1337,8 +1363,18 @@ pub fn book_chapters(parts: &[PathBuf]) -> (Vec<Chapter>, Vec<Option<Duration>>)
 
 /// Where a listener stopped in a book, from the store.
 pub fn stopped_at(shared: &Shared, identity: &PublicationIdentity) -> Option<(usize, Duration)> {
-    match shared.progress_store().read(identity).ok().flatten()?.position {
-        ReadingPosition::Listening { part, offset_millis, .. } => Some((
+    match shared
+        .progress_store()
+        .read(identity)
+        .ok()
+        .flatten()?
+        .position
+    {
+        ReadingPosition::Listening {
+            part,
+            offset_millis,
+            ..
+        } => Some((
             usize::try_from(part).unwrap_or(0),
             Duration::from_millis(u64::try_from(offset_millis).unwrap_or(0)),
         )),
@@ -1379,9 +1415,10 @@ fn speech_rate(speed: f64) -> i32 {
 /// The coverless artwork written once to the cache, for the desktop's media controls.
 fn coverless_file(audio: bool, format: &str) -> Option<PathBuf> {
     let name: String = format.chars().filter(char::is_ascii_alphanumeric).collect();
-    let path = glib::user_cache_dir()
-        .join(crate::APP_ID)
-        .join(format!("coverless-{}-{name}.svg", if audio { "audio" } else { "text" }));
+    let path = glib::user_cache_dir().join(crate::APP_ID).join(format!(
+        "coverless-{}-{name}.svg",
+        if audio { "audio" } else { "text" }
+    ));
     if !path.is_file() {
         std::fs::create_dir_all(path.parent()?).ok()?;
         std::fs::write(&path, playback::coverless_svg(audio, format)).ok()?;
@@ -1413,8 +1450,18 @@ mod tests {
     }
 
     fn listened(shared: &Shared, identity: &PublicationIdentity) -> Option<(i64, i64)> {
-        match shared.progress_store().read(identity).ok().flatten()?.position {
-            ReadingPosition::Listening { part, offset_millis, .. } => Some((part, offset_millis)),
+        match shared
+            .progress_store()
+            .read(identity)
+            .ok()
+            .flatten()?
+            .position
+        {
+            ReadingPosition::Listening {
+                part,
+                offset_millis,
+                ..
+            } => Some((part, offset_millis)),
             _ => None,
         }
     }
@@ -1439,7 +1486,8 @@ mod tests {
         let shared = crate::app::App::for_tests();
         let player = Player::new(&shared);
         let path = fixture("chaptered.m4b");
-        let record = storyarc_core::sources::PublicationIndexer::index_path(&path, None).expect("the fixture");
+        let record = storyarc_core::sources::PublicationIndexer::index_path(&path, None)
+            .expect("the fixture");
         // *Starting from a chapter*: the book starts there, and nothing is written by looking.
         player
             .play_audiobook(&record, &path, Some((0, Duration::from_millis(2100))))
@@ -1452,7 +1500,10 @@ mod tests {
         );
         assert_eq!(listened(&shared, &record.identity), None);
         let showing = player.showing();
-        assert_eq!(showing.subtitle, playback::chapter_name(&showing.chapters[1], 1));
+        assert_eq!(
+            showing.subtitle,
+            playback::chapter_name(&showing.chapters[1], 1)
+        );
         assert!(showing.book.as_deref() == Some(path.as_path()) && !showing.voice);
         assert_eq!(showing.format, record.format.display_name());
 
@@ -1465,15 +1516,22 @@ mod tests {
         pump_until(0.5, || false);
         player.toggle();
         assert!(pump_until(3.0, || player.showing().state == PlayState::Paused));
-        let paused = listened(&shared, &record.identity).expect("a pause is written").1;
+        let paused = listened(&shared, &record.identity)
+            .expect("a pause is written")
+            .1;
         assert!(paused >= second.as_millis() as i64, "{paused}");
 
         player.skip_by(false);
-        let back = listened(&shared, &record.identity).expect("a skip is written").1;
+        let back = listened(&shared, &record.identity)
+            .expect("a skip is written")
+            .1;
         assert_eq!(back, (paused - 15_000).max(0), "{back}");
 
         player.set_sleep(Some(SleepTimer::After(Duration::from_secs(300))));
-        assert_eq!(player.showing().sleep.map(|s| s.remaining), Some(Duration::from_secs(300)));
+        assert_eq!(
+            player.showing().sleep.map(|s| s.remaining),
+            Some(Duration::from_secs(300))
+        );
         assert!(player.can_sleep_at_end_of_chapter());
         player.set_sleep(None);
         assert!(player.showing().sleep.is_none());
@@ -1523,18 +1581,38 @@ mod tests {
         let showing = player.showing();
         assert!(showing.voice && showing.can_skip);
         assert_eq!(showing.subtitle, "One");
-        assert_eq!(showing.spoken, Some(("one.xhtml".to_owned(), "First.".to_owned())));
+        assert_eq!(
+            showing.spoken,
+            Some(("one.xhtml".to_owned(), "First.".to_owned()))
+        );
         player.skip_by(true);
-        assert_eq!(player.showing().spoken.map(|s| s.1).as_deref(), Some("Second."));
+        assert_eq!(
+            player.showing().spoken.map(|s| s.1).as_deref(),
+            Some("Second.")
+        );
         player.skip_by(true);
         let showing = player.showing();
-        assert_eq!(showing.spoken, Some(("two.xhtml".to_owned(), "Third.".to_owned())));
+        assert_eq!(
+            showing.spoken,
+            Some(("two.xhtml".to_owned(), "Third.".to_owned()))
+        );
         assert_eq!(showing.subtitle, "Two");
         player.skip_by(false);
-        assert_eq!(player.showing().spoken.map(|s| s.1).as_deref(), Some("Second."));
-        assert_eq!(player.voice_book(), Some(PathBuf::from("/books/fixture.epub")));
-        assert_eq!(player.displace_voice(Path::new("/books/fixture.epub")), None);
-        let notice = player.displace_voice(Path::new("/books/other.epub")).expect("a notice");
+        assert_eq!(
+            player.showing().spoken.map(|s| s.1).as_deref(),
+            Some("Second.")
+        );
+        assert_eq!(
+            player.voice_book(),
+            Some(PathBuf::from("/books/fixture.epub"))
+        );
+        assert_eq!(
+            player.displace_voice(Path::new("/books/fixture.epub")),
+            None
+        );
+        let notice = player
+            .displace_voice(Path::new("/books/other.epub"))
+            .expect("a notice");
         assert!(notice.contains("Fixture"), "{notice}");
         assert_eq!(player.voice_book(), None);
     }

@@ -208,10 +208,11 @@ impl Bar {
             tr("player.open", "Open the player")
         };
         self.open.set_tooltip_text(Some(&way_back));
-        self.open.update_property(&[gtk::accessible::Property::Label(&format!(
-            "{way_back}: {}",
-            showing.title
-        ))]);
+        self.open
+            .update_property(&[gtk::accessible::Property::Label(&format!(
+                "{way_back}: {}",
+                showing.title
+            ))]);
         let (back, forward) = crate::player_window::skip_labels(showing.voice);
         for (button, label) in [(&self.back, back), (&self.forward, forward)] {
             button.set_tooltip_text(Some(&label));
@@ -232,7 +233,11 @@ impl Bar {
             Some(path) => self.cover.set_file(Some(&gio::File::for_path(path))),
             // `audio-playback`, *A publication with no cover*: the kind's symbol.
             None => {
-                let icon = if showing.voice { "x-office-document-symbolic" } else { "audio-headphones-symbolic" };
+                let icon = if showing.voice {
+                    "x-office-document-symbolic"
+                } else {
+                    "audio-headphones-symbolic"
+                };
                 let paintable = gtk::IconTheme::for_display(&self.cover.display()).lookup_icon(
                     icon,
                     &[],

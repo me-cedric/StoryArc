@@ -22,7 +22,9 @@ use gtk::glib;
 /// (`audio-playback`, *Chapters*): the marks `audio_chapters` reads from the file, else the table
 /// of contents a demuxer sends down. No chapter is an empty list, never an error. Blocks for at
 /// most ten seconds: call it from a worker.
-pub fn read_chapters(path: &Path) -> Result<(Vec<crate::playback::Chapter>, Option<Duration>), String> {
+pub fn read_chapters(
+    path: &Path,
+) -> Result<(Vec<crate::playback::Chapter>, Option<Duration>), String> {
     gst::init().map_err(|error| format!("GStreamer is not available: {error}"))?;
     let uri = glib::filename_to_uri(path, None).map_err(|error| error.to_string())?;
     let silent = || {
@@ -63,7 +65,9 @@ pub fn read_chapters(path: &Path) -> Result<(Vec<crate::playback::Chapter>, Opti
         match message.view() {
             gst::MessageView::Toc(found) => toc = Some(found.toc().0),
             gst::MessageView::AsyncDone(_) => break Ok(()),
-            gst::MessageView::Error(error) => break Err(format!("{}: {}", path.display(), error.error())),
+            gst::MessageView::Error(error) => {
+                break Err(format!("{}: {}", path.display(), error.error()));
+            }
             _ => {}
         }
     };
@@ -85,9 +89,10 @@ pub fn read_chapters(path: &Path) -> Result<(Vec<crate::playback::Chapter>, Opti
                 let Some((start, stop)) = entry.start_stop_times() else {
                     continue;
                 };
-                let title = entry
-                    .tags()
-                    .and_then(|tags| tags.get::<gst::tags::Title>().map(|title| title.get().to_owned()));
+                let title = entry.tags().and_then(|tags| {
+                    tags.get::<gst::tags::Title>()
+                        .map(|title| title.get().to_owned())
+                });
                 let nanos = |at: i64| Duration::from_nanos(u64::try_from(at).unwrap_or(0));
                 chapters.push(crate::playback::Chapter {
                     title,
@@ -377,7 +382,12 @@ mod tests {
             eprintln!("{name}: {chapters:?} {length:?}");
             assert!(chapters.len() >= 2, "{name}: {chapters:?}");
             assert_eq!(chapters[0].start, Duration::ZERO, "{name}");
-            assert!(chapters.windows(2).all(|pair| pair[0].start < pair[1].start), "{name}");
+            assert!(
+                chapters
+                    .windows(2)
+                    .all(|pair| pair[0].start < pair[1].start),
+                "{name}"
+            );
             assert!(length.is_some(), "{name}");
         }
         let (none, length) = read_chapters(&fixture("unchaptered.m4a")).expect("the fixture reads");

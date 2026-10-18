@@ -87,7 +87,11 @@ pub fn present(shared: &Shared) {
     });
     window.add_controller(keys);
     // The lists as window actions, for the keyboard and the walks.
-    for (name, menu) in [("chapters", &full.chapters), ("sleep", &full.sleep), ("speed", &full.speed)] {
+    for (name, menu) in [
+        ("chapters", &full.chapters),
+        ("sleep", &full.sleep),
+        ("speed", &full.speed),
+    ] {
         let action = gio::SimpleAction::new(name, None);
         let menu = menu.clone();
         action.connect_activate(move |_, _| menu.popup());
@@ -144,7 +148,10 @@ fn build() -> Full {
     let slider = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 1.0, 1.0);
     slider.set_draw_value(false);
     slider.set_hexpand(true);
-    slider.update_property(&[gtk::accessible::Property::Label(&tr("player.position", "Position"))]);
+    slider.update_property(&[gtk::accessible::Property::Label(&tr(
+        "player.position",
+        "Position",
+    ))]);
     let menu = |icon: &str, label: &str| {
         let button = gtk::MenuButton::builder()
             .icon_name(icon)
@@ -174,29 +181,57 @@ fn build() -> Full {
             .css_classes(["dim-label"])
             .build(),
         slider,
-        elapsed: gtk::Label::builder().css_classes(["numeric", "caption", "dim-label"]).xalign(0.0).hexpand(true).build(),
-        total: gtk::Label::builder().css_classes(["numeric", "caption", "dim-label"]).xalign(1.0).build(),
-        back: round_button("media-seek-backward-symbolic", &tr_args("player.skip.back %s", "%s back", &[&"15 s"])),
+        elapsed: gtk::Label::builder()
+            .css_classes(["numeric", "caption", "dim-label"])
+            .xalign(0.0)
+            .hexpand(true)
+            .build(),
+        total: gtk::Label::builder()
+            .css_classes(["numeric", "caption", "dim-label"])
+            .xalign(1.0)
+            .build(),
+        back: round_button(
+            "media-seek-backward-symbolic",
+            &tr_args("player.skip.back %s", "%s back", &[&"15 s"]),
+        ),
         play,
-        forward: round_button("media-seek-forward-symbolic", &tr_args("player.skip.forward %s", "%s forward", &[&"30 s"])),
+        forward: round_button(
+            "media-seek-forward-symbolic",
+            &tr_args("player.skip.forward %s", "%s forward", &[&"30 s"]),
+        ),
         chapters: menu("view-list-symbolic", &tr("player.chapters", "Chapters")),
-        sleep: menu("weather-clear-night-symbolic", &tr("player.sleep", "Sleep timer")),
-        speed: menu("power-profile-performance-symbolic", &tr("player.speed", "Speed")),
+        sleep: menu(
+            "weather-clear-night-symbolic",
+            &tr("player.sleep", "Sleep timer"),
+        ),
+        speed: menu(
+            "power-profile-performance-symbolic",
+            &tr("player.speed", "Speed"),
+        ),
         moving: Cell::new(false),
     }
 }
 
 fn content(full: &Full) -> adw::ToolbarView {
-    let artwork = gtk::Overlay::builder().halign(gtk::Align::Center).child(&full.cover).build();
+    let artwork = gtk::Overlay::builder()
+        .halign(gtk::Align::Center)
+        .child(&full.cover)
+        .build();
     artwork.add_overlay(&full.coverless);
     let clocks = gtk::Box::new(gtk::Orientation::Horizontal, 6);
     clocks.append(&full.elapsed);
     clocks.append(&full.total);
-    let transport = gtk::Box::builder().spacing(28).halign(gtk::Align::Center).build();
+    let transport = gtk::Box::builder()
+        .spacing(28)
+        .halign(gtk::Align::Center)
+        .build();
     transport.append(&full.back);
     transport.append(&full.play);
     transport.append(&full.forward);
-    let settings = gtk::Box::builder().spacing(16).halign(gtk::Align::Center).build();
+    let settings = gtk::Box::builder()
+        .spacing(16)
+        .halign(gtk::Align::Center)
+        .build();
     settings.append(&full.chapters);
     settings.append(&full.sleep);
     settings.append(&full.speed);
@@ -335,7 +370,10 @@ fn chapter_list(player: &Rc<Player>, popover: &gtk::Popover) -> gtk::Widget {
 fn choice_list(choices: Vec<(String, Rc<dyn Fn()>)>, popover: &gtk::Popover) -> gtk::Widget {
     let column = gtk::Box::new(gtk::Orientation::Vertical, 2);
     for (label, run) in choices {
-        let button = gtk::Button::builder().label(label).css_classes(["flat"]).build();
+        let button = gtk::Button::builder()
+            .label(label)
+            .css_classes(["flat"])
+            .build();
         let popover = popover.clone();
         button.connect_clicked(move |_| {
             run();
@@ -395,7 +433,11 @@ pub fn sleep_label(showing: &Showing) -> String {
         Some(sleep) if sleep.timer == SleepTimer::EndOfChapter => {
             tr("player.sleep.endOfChapter", "End of chapter")
         }
-        Some(sleep) => tr_args("player.sleep.remaining %s", "%s left", &[&player::clock(sleep.remaining)]),
+        Some(sleep) => tr_args(
+            "player.sleep.remaining %s",
+            "%s left",
+            &[&player::clock(sleep.remaining)],
+        ),
     }
 }
 
@@ -436,14 +478,19 @@ impl Full {
         }));
         self.format.set_text(&showing.format);
         let playing = showing.state == PlayState::Playing;
-        let word = if playing { tr("player.pause", "Pause") } else { tr("player.play", "Play") };
+        let word = if playing {
+            tr("player.pause", "Pause")
+        } else {
+            tr("player.play", "Play")
+        };
         self.play.set_icon_name(if playing {
             "media-playback-pause-symbolic"
         } else {
             "media-playback-start-symbolic"
         });
         self.play.set_tooltip_text(Some(&word));
-        self.play.update_property(&[gtk::accessible::Property::Label(&word)]);
+        self.play
+            .update_property(&[gtk::accessible::Property::Label(&word)]);
         let (back, forward) = skip_labels(showing.voice);
         for (button, label) in [(&self.back, back), (&self.forward, forward)] {
             button.set_tooltip_text(Some(&label));
@@ -463,17 +510,21 @@ impl Full {
         self.moving.set(false);
         self.elapsed.set_text(&player::clock(showing.position));
         self.slider
-            .update_property(&[gtk::accessible::Property::ValueText(&player::clock(showing.position))]);
+            .update_property(&[gtk::accessible::Property::ValueText(&player::clock(
+                showing.position,
+            ))]);
         self.chapters.set_visible(!showing.chapters.is_empty());
         let sleep = sleep_label(showing);
         self.sleep.set_label(&sleep);
-        self.sleep.update_property(&[gtk::accessible::Property::Label(&sleep)]);
+        self.sleep
+            .update_property(&[gtk::accessible::Property::Label(&sleep)]);
         let speed = playback::speed_text(showing.speed);
         self.speed.set_label(&speed);
-        self.speed.update_property(&[gtk::accessible::Property::Label(&format!(
-            "{}, {speed}",
-            tr("player.speed", "Speed")
-        ))]);
+        self.speed
+            .update_property(&[gtk::accessible::Property::Label(&format!(
+                "{}, {speed}",
+                tr("player.speed", "Speed")
+            ))]);
     }
 }
 
@@ -488,15 +539,28 @@ mod tests {
     fn the_full_player_states_its_chapters_timer_and_skips() {
         let showing = Showing {
             chapters: vec![
-                Chapter { title: Some("One".into()), part: 0, start: Duration::ZERO, end: Some(Duration::from_secs(60)) },
-                Chapter { title: Some("Two".into()), part: 0, start: Duration::from_secs(60), end: Some(Duration::from_secs(150)) },
+                Chapter {
+                    title: Some("One".into()),
+                    part: 0,
+                    start: Duration::ZERO,
+                    end: Some(Duration::from_secs(60)),
+                },
+                Chapter {
+                    title: Some("Two".into()),
+                    part: 0,
+                    start: Duration::from_secs(60),
+                    end: Some(Duration::from_secs(150)),
+                },
             ],
             chapter: Some(1),
             position: Duration::from_secs(90),
             sleep: Countdown::of(SleepTimer::After(Duration::from_secs(300)), None),
             ..Showing::default()
         };
-        assert_eq!(chapter_rows(&showing), ["One · 1:00 · Finished", "Two · 1:00 left · In progress"]);
+        assert_eq!(
+            chapter_rows(&showing),
+            ["One · 1:00 · Finished", "Two · 1:00 left · In progress"]
+        );
         assert_eq!(sleep_label(&showing), "5:00 left");
         assert_eq!(sleep_label(&Showing::default()), "Sleep timer");
         assert_eq!(skip_labels(true).1, "Next sentence");

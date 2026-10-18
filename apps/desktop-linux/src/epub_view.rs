@@ -176,7 +176,7 @@ fn answer(
                 served.locator_json().as_deref(),
                 served.preferences_json().as_deref(),
             )
-                .into_bytes(),
+            .into_bytes(),
             "text/html".to_owned(),
         )),
         Some(Route::Bundle) => Some((epub_host::BUNDLE.to_vec(), "text/javascript".to_owned())),

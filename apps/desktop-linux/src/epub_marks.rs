@@ -143,12 +143,18 @@ impl Marks {
         });
         let at = |place: &Place| {
             (
-                order.iter().position(|href| *href == place.resource).unwrap_or(usize::MAX),
+                order
+                    .iter()
+                    .position(|href| *href == place.resource)
+                    .unwrap_or(usize::MAX),
                 place.progression,
             )
         };
-        self.bookmarks
-            .sort_by(|a, b| at(&a.place).partial_cmp(&at(&b.place)).unwrap_or(std::cmp::Ordering::Equal));
+        self.bookmarks.sort_by(|a, b| {
+            at(&a.place)
+                .partial_cmp(&at(&b.place))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         true
     }
 
@@ -356,16 +362,18 @@ mod tests {
         let id = marks.highlight("the quiet sea", at("a.xhtml", 0.1), "green");
         marks.set_note(&id, "  remember  ");
         assert_eq!(marks.highlights[0].note, "remember");
-        let message: Value = serde_json::from_str(&marks.highlights_message(
-            Some(&spoken_locator("A sentence.", "a.xhtml")),
-            3,
-        ))
+        let message: Value = serde_json::from_str(
+            &marks.highlights_message(Some(&spoken_locator("A sentence.", "a.xhtml")), 3),
+        )
         .unwrap();
         assert_eq!(message["type"], "highlights");
         assert_eq!(message["items"][0]["color"], "green");
         assert_eq!(message["items"][0]["locator"]["href"], "a.xhtml");
         assert_eq!(message["items"][1]["id"], SPOKEN_ID);
-        assert_eq!(message["items"][1]["locator"]["text"]["highlight"], "A sentence.");
+        assert_eq!(
+            message["items"][1]["locator"]["text"]["highlight"],
+            "A sentence."
+        );
         assert_eq!(Marks::from_json(&marks.to_json()), marks);
         marks.set_note(&id, "");
         assert!(marks.highlights[0].note.is_empty());
@@ -387,7 +395,10 @@ mod tests {
         let hits = Hit::all_of(&message);
         assert_eq!(hits.len(), 1);
         assert_eq!(hits[0].chapter.as_deref(), Some("One"));
-        assert_eq!((hits[0].before.as_str(), hits[0].matched.as_str()), ("the ", "whale"));
+        assert_eq!(
+            (hits[0].before.as_str(), hits[0].matched.as_str()),
+            ("the ", "whale")
+        );
         assert!(hits[0].locator.contains("a.xhtml"));
     }
 

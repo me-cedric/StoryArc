@@ -70,7 +70,10 @@ impl Preset {
     /// The background and the text colour, `#RRGGBB`, from the generated tokens.
     pub fn colours(self) -> (String, String) {
         let token = |part: &str| {
-            let name = format!("@define-color storyarc_reading_themes_{}_{part} ", self.key());
+            let name = format!(
+                "@define-color storyarc_reading_themes_{}_{part} ",
+                self.key()
+            );
             crate::style::TOKENS_CSS
                 .lines()
                 .find_map(|line| line.strip_prefix(&name))
@@ -83,7 +86,10 @@ impl Preset {
     /// The axes the preset itself sets, in the renderer's names.
     fn axes(self) -> Map<String, Value> {
         let mut axes = Map::new();
-        axes.insert("publisherStyles".into(), self.keeps_publisher_styles().into());
+        axes.insert(
+            "publisherStyles".into(),
+            self.keeps_publisher_styles().into(),
+        );
         if self.keeps_publisher_styles() {
             return axes;
         }
@@ -293,7 +299,10 @@ impl Look {
     pub fn axes(&self) -> Map<String, Value> {
         let mut axes = self.preset.axes();
         let values = &self.values;
-        axes.insert("fontSize".into(), (f64::from(values.font_size) / 100.0).into());
+        axes.insert(
+            "fontSize".into(),
+            (f64::from(values.font_size) / 100.0).into(),
+        );
         axes.insert(
             "pageGutter".into(),
             (values.margins * GUTTER_UNIT).round().into(),
@@ -313,10 +322,7 @@ impl Look {
             return axes;
         }
         axes.insert("lineHeight".into(), values.line_height.into());
-        axes.insert(
-            "paragraphSpacing".into(),
-            values.paragraph_spacing.into(),
-        );
+        axes.insert("paragraphSpacing".into(), values.paragraph_spacing.into());
         if values.hyphens {
             axes.insert("hyphens".into(), true.into());
         }
@@ -446,18 +452,54 @@ const FONT_SHEET: &str = "storyarc-fonts/faces.css";
 
 /// The five faces of `packages/fonts`, embedded because the app ships no data folder for them.
 const FACES: [(&str, &[u8]); 12] = [
-    ("Literata", include_bytes!("../../../packages/fonts/Literata.ttf")),
-    ("Literata-Italic", include_bytes!("../../../packages/fonts/Literata-Italic.ttf")),
-    ("SourceSerif4", include_bytes!("../../../packages/fonts/SourceSerif4.ttf")),
-    ("SourceSerif4-Italic", include_bytes!("../../../packages/fonts/SourceSerif4-Italic.ttf")),
-    ("EBGaramond", include_bytes!("../../../packages/fonts/EBGaramond.ttf")),
-    ("EBGaramond-Italic", include_bytes!("../../../packages/fonts/EBGaramond-Italic.ttf")),
-    ("Bitter", include_bytes!("../../../packages/fonts/Bitter.ttf")),
-    ("Bitter-Italic", include_bytes!("../../../packages/fonts/Bitter-Italic.ttf")),
-    ("AtkinsonHyperlegible-Regular", include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Regular.ttf")),
-    ("AtkinsonHyperlegible-Italic", include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Italic.ttf")),
-    ("AtkinsonHyperlegible-Bold", include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Bold.ttf")),
-    ("AtkinsonHyperlegible-BoldItalic", include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-BoldItalic.ttf")),
+    (
+        "Literata",
+        include_bytes!("../../../packages/fonts/Literata.ttf"),
+    ),
+    (
+        "Literata-Italic",
+        include_bytes!("../../../packages/fonts/Literata-Italic.ttf"),
+    ),
+    (
+        "SourceSerif4",
+        include_bytes!("../../../packages/fonts/SourceSerif4.ttf"),
+    ),
+    (
+        "SourceSerif4-Italic",
+        include_bytes!("../../../packages/fonts/SourceSerif4-Italic.ttf"),
+    ),
+    (
+        "EBGaramond",
+        include_bytes!("../../../packages/fonts/EBGaramond.ttf"),
+    ),
+    (
+        "EBGaramond-Italic",
+        include_bytes!("../../../packages/fonts/EBGaramond-Italic.ttf"),
+    ),
+    (
+        "Bitter",
+        include_bytes!("../../../packages/fonts/Bitter.ttf"),
+    ),
+    (
+        "Bitter-Italic",
+        include_bytes!("../../../packages/fonts/Bitter-Italic.ttf"),
+    ),
+    (
+        "AtkinsonHyperlegible-Regular",
+        include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Regular.ttf"),
+    ),
+    (
+        "AtkinsonHyperlegible-Italic",
+        include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Italic.ttf"),
+    ),
+    (
+        "AtkinsonHyperlegible-Bold",
+        include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-Bold.ttf"),
+    ),
+    (
+        "AtkinsonHyperlegible-BoldItalic",
+        include_bytes!("../../../packages/fonts/AtkinsonHyperlegible-BoldItalic.ttf"),
+    ),
 ];
 
 /// The `@font-face` rules: an upright and an italic file over the weight range the phones
@@ -644,7 +686,10 @@ mod tests {
         look.brightness = 0.7;
         look.scroll = true;
         assert_eq!(Look::restore(&look.save()), look);
-        assert_eq!(Look::restore("size=12\nmargins=9\nbrightness=0.1\n"), Look::default());
+        assert_eq!(
+            Look::restore("size=12\nmargins=9\nbrightness=0.1\n"),
+            Look::default()
+        );
     }
 
     /// *Bundled typefaces*: the five faces are served on the book's scheme and every chapter
@@ -660,16 +705,25 @@ mod tests {
             Typeface::Atkinson,
         ] {
             let family = typeface.css_family().unwrap();
-            assert!(css.contains(&format!("\"{family}\"")), "{family} has no face");
+            assert!(
+                css.contains(&format!("\"{family}\"")),
+                "{family} has no face"
+            );
         }
         for (stem, _) in FACES {
             let (bytes, media_type) = font_resource(&format!("storyarc-fonts/{stem}.ttf")).unwrap();
             assert!(bytes.len() > 10_000 && media_type == "font/ttf", "{stem}");
-            assert!(css.contains(&format!("\"{stem}.ttf\"")), "{stem} is not in the sheet");
+            assert!(
+                css.contains(&format!("\"{stem}.ttf\"")),
+                "{stem} is not in the sheet"
+            );
         }
         assert!(font_resource("storyarc-fonts/../OEBPS/a.ttf").is_none());
         assert_eq!(font_resource(FONT_SHEET).unwrap().1, "text/css");
-        let chapter = linking(b"<html><HEAD><title>x</title></HEAD><body/></html>".to_vec(), "application/xhtml+xml");
+        let chapter = linking(
+            b"<html><HEAD><title>x</title></HEAD><body/></html>".to_vec(),
+            "application/xhtml+xml",
+        );
         let chapter = String::from_utf8(chapter).unwrap();
         assert!(chapter.contains("rel=\"stylesheet storyarc-fonts\""));
         assert!(chapter.contains("storyarc-epub://book/.storyarc/storyarc-fonts/faces.css"));

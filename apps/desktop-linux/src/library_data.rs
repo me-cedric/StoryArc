@@ -107,10 +107,18 @@ fn listen_from(shared: &Shared) -> crate::detail_view::ListenFrom {
         let Some(shared) = weak.upgrade() else {
             return;
         };
-        let Some(path) = publication.identity.normalized_path.clone().map(PathBuf::from) else {
+        let Some(path) = publication
+            .identity
+            .normalized_path
+            .clone()
+            .map(PathBuf::from)
+        else {
             return;
         };
-        match shared.player().play_audiobook(publication, &path, Some((part, start))) {
+        match shared
+            .player()
+            .play_audiobook(publication, &path, Some((part, start)))
+        {
             Ok(()) => crate::player_window::present(&shared),
             Err(reason) => shared.toast(&reason),
         }

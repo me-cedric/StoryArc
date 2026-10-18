@@ -12,10 +12,10 @@ mod covers;
 mod detail_panes;
 mod detail_view;
 mod diagnostic_export;
-mod download_rules;
-mod downloads_ui;
 #[cfg(test)]
 mod display_test;
+mod download_rules;
+mod downloads_ui;
 mod epub_host;
 mod epub_look;
 mod epub_marks;
@@ -309,7 +309,11 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
                 return;
             };
             // A name with a group, such as `window.close`, is taken as it is.
-            let name = if name.contains('.') { name } else { format!("win.{name}") };
+            let name = if name.contains('.') {
+                name
+            } else {
+                format!("win.{name}")
+            };
             let _ = gtk::prelude::WidgetExt::activate_action(&window, &name, None);
         })
         .build();
@@ -320,11 +324,9 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             let Some(path) = parameter.and_then(|value| value.get::<String>()) else {
                 return;
             };
-            let found = on
-                .sources
-                .publications()
-                .into_iter()
-                .find(|publication| publication.identity.normalized_path.as_deref() == Some(path.as_str()));
+            let found = on.sources.publications().into_iter().find(|publication| {
+                publication.identity.normalized_path.as_deref() == Some(path.as_str())
+            });
             if let (Some(publication), Some(window)) = (found, on.library.borrow().clone()) {
                 window.present();
                 library_data::show_detail(&on, &publication);

@@ -12,8 +12,7 @@ use adw::prelude::*;
 use gtk::gdk;
 
 use crate::epub_look::{
-    Alignment, LINE_HEIGHT, Look, MARGINS, PARAGRAPH_SPACING, Preset, SIZE_STEPS, Typeface,
-    Values,
+    Alignment, LINE_HEIGHT, Look, MARGINS, PARAGRAPH_SPACING, Preset, SIZE_STEPS, Typeface, Values,
 };
 use crate::strings::{tr, tr_args};
 
@@ -123,9 +122,18 @@ fn presets(
             .spacing(2)
             .build();
         let specimen = gtk::Label::new(Some(&tr("desktop.w4.epub.specimen", "Aa")));
-        specimen.add_css_class(if preset == Preset::Bold { "title-1" } else { "title-2" });
+        specimen.add_css_class(if preset == Preset::Bold {
+            "title-1"
+        } else {
+            "title-2"
+        });
         inner.append(&specimen);
-        inner.append(&gtk::Label::builder().label(preset.title()).css_classes(["caption"]).build());
+        inner.append(
+            &gtk::Label::builder()
+                .label(preset.title())
+                .css_classes(["caption"])
+                .build(),
+        );
         if preset == current.preset && current.is_modified() {
             inner.append(
                 &gtk::Label::builder()
@@ -164,18 +172,28 @@ fn presets(
     column.append(&customise);
 
     let group = adw::PreferencesGroup::new();
-    let brightness = scale((0.5, 1.0), 0.05, current.brightness, &tr("theme.brightness", "Brightness"));
+    let brightness = scale(
+        (0.5, 1.0),
+        0.05,
+        current.brightness,
+        &tr("theme.brightness", "Brightness"),
+    );
     let on_change = change.clone();
     brightness.connect_value_changed(move |scale| {
         let value = scale.value();
         on_change(&|look| look.brightness = value);
     });
-    let row = adw::ActionRow::builder().title(tr("theme.brightness", "Brightness")).build();
+    let row = adw::ActionRow::builder()
+        .title(tr("theme.brightness", "Brightness"))
+        .build();
     row.add_suffix(&brightness);
     group.add(&row);
 
     let follows = adw::SwitchRow::builder()
-        .title(tr("desktop.w4.epub.followsAppearance", "Follow the system's appearance"))
+        .title(tr(
+            "desktop.w4.epub.followsAppearance",
+            "Follow the system's appearance",
+        ))
         .active(current.follows)
         .build();
     let titles: Vec<String> = Preset::ALL.into_iter().map(Preset::title).collect();
@@ -188,7 +206,10 @@ fn presets(
             .visible(current.follows)
             .build()
     };
-    let light = pair(tr("appearance.linkTheme.light", "Light theme"), current.light);
+    let light = pair(
+        tr("appearance.linkTheme.light", "Light theme"),
+        current.light,
+    );
     let dark = pair(tr("appearance.linkTheme.dark", "Dark theme"), current.dark);
     let (on_change, on_light, on_dark) = (change.clone(), light.clone(), dark.clone());
     follows.connect_active_notify(move |row| {
@@ -258,7 +279,11 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
     let current = *look.borrow();
     let values = current.values;
     let reset = gtk::Button::builder()
-        .label(tr_args("theme.restore.named %s", "Restore %s", &[&current.preset.title()]))
+        .label(tr_args(
+            "theme.restore.named %s",
+            "Restore %s",
+            &[&current.preset.title()],
+        ))
         .halign(gtk::Align::Center)
         .sensitive(current.is_modified())
         .build();
@@ -280,7 +305,13 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
         .build();
 
     let always = adw::PreferencesGroup::new();
-    let percent = |size: u32| tr_args("theme.fontSize.percent %d", "%d%% of the publisher’s size", &[&size]);
+    let percent = |size: u32| {
+        tr_args(
+            "theme.fontSize.percent %d",
+            "%d%% of the publisher’s size",
+            &[&size],
+        )
+    };
     let size = adw::ActionRow::builder()
         .title(tr("theme.axis.fontSize", "Text size"))
         .subtitle(percent(values.font_size))
@@ -322,7 +353,12 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
     let typeface = adw::ComboRow::builder()
         .title(tr("theme.axis.fontFamily", "Typeface"))
         .model(&gtk::StringList::new(&faces))
-        .selected(Typeface::ALL.iter().position(|f| *f == values.typeface).unwrap_or(0) as u32)
+        .selected(
+            Typeface::ALL
+                .iter()
+                .position(|f| *f == values.typeface)
+                .unwrap_or(0) as u32,
+        )
         .build();
     let on_change = change.clone();
     typeface.connect_selected_notify(move |row| {
@@ -350,7 +386,9 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
     column.append(&always);
 
     let publisher = current.preset.keeps_publisher_styles();
-    let dependent = adw::PreferencesGroup::builder().sensitive(!publisher).build();
+    let dependent = adw::PreferencesGroup::builder()
+        .sensitive(!publisher)
+        .build();
     if publisher {
         dependent.set_description(Some(&tr(
             "theme.publisherStyles.reason",
@@ -376,7 +414,12 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
     let alignment = adw::ComboRow::builder()
         .title(tr("theme.axis.textAlignment", "Text alignment"))
         .model(&gtk::StringList::new(&alignments))
-        .selected(Alignment::ALL.iter().position(|a| *a == values.alignment).unwrap_or(0) as u32)
+        .selected(
+            Alignment::ALL
+                .iter()
+                .position(|a| *a == values.alignment)
+                .unwrap_or(0) as u32,
+        )
         .build();
     let on_change = change.clone();
     alignment.connect_selected_notify(move |row| {
@@ -398,7 +441,10 @@ fn text_panel(popover: &gtk::Popover, look: &Rc<RefCell<Look>>, outer: &Change) 
 
     let layout = adw::PreferencesGroup::new();
     let scroll = adw::SwitchRow::builder()
-        .title(tr("desktop.w4.epub.scroll", "Scroll instead of turning pages"))
+        .title(tr(
+            "desktop.w4.epub.scroll",
+            "Scroll instead of turning pages",
+        ))
         .active(current.scroll)
         .build();
     let on_change = change.clone();
@@ -434,7 +480,10 @@ mod tests {
     }
 
     fn of<T: IsA<gtk::Widget>>(widget: &gtk::Widget) -> Vec<T> {
-        all(widget).into_iter().filter_map(|w| w.downcast::<T>().ok()).collect()
+        all(widget)
+            .into_iter()
+            .filter_map(|w| w.downcast::<T>().ok())
+            .collect()
     }
 
     /// `ebook-reader`, *One sheet, two depths*, *The theme surface opens on the presets*, *Themes
@@ -506,7 +555,10 @@ mod tests {
         assert!(look.borrow().is_modified());
         let reset = of::<gtk::Button>(&text.child_by_name("text").unwrap())
             .into_iter()
-            .find(|b| b.label().is_some_and(|l| l.contains(&Preset::Paper.title())))
+            .find(|b| {
+                b.label()
+                    .is_some_and(|l| l.contains(&Preset::Paper.title()))
+            })
             .unwrap();
         assert!(reset.is_sensitive());
         reset.emit_clicked();

@@ -77,7 +77,10 @@ fn be32(bytes: &[u8], at: usize) -> Option<u32> {
 
 fn syncsafe(bytes: &[u8], at: usize) -> Option<u32> {
     let b = bytes.get(at..at + 4)?;
-    Some(b.iter().fold(0u32, |acc, byte| (acc << 7) | u32::from(byte & 0x7f)))
+    Some(
+        b.iter()
+            .fold(0u32, |acc, byte| (acc << 7) | u32::from(byte & 0x7f)),
+    )
 }
 
 /// An ID3v2 text frame's body: an encoding byte, then the text.
@@ -117,7 +120,11 @@ fn id3_frames(bytes: &[u8], major: u8) -> Vec<(&[u8], &[u8])> {
     let mut at = 0;
     while at + 10 <= bytes.len() && bytes[at] != 0 {
         let id = &bytes[at..at + 4];
-        let size = if major >= 4 { syncsafe(bytes, at + 4) } else { be32(bytes, at + 4) };
+        let size = if major >= 4 {
+            syncsafe(bytes, at + 4)
+        } else {
+            be32(bytes, at + 4)
+        };
         let Some(size) = size.map(|size| size as usize) else {
             break;
         };
@@ -131,7 +138,8 @@ fn id3_frames(bytes: &[u8], major: u8) -> Vec<(&[u8], &[u8])> {
 }
 
 fn id3(bytes: &[u8]) -> Vec<Chapter> {
-    let (Some(&major), Some(&flags), Some(size)) = (bytes.get(3), bytes.get(5), syncsafe(bytes, 6)) else {
+    let (Some(&major), Some(&flags), Some(size)) = (bytes.get(3), bytes.get(5), syncsafe(bytes, 6))
+    else {
         return Vec::new();
     };
     if !(3..=4).contains(&major) {
@@ -142,7 +150,11 @@ fn id3(bytes: &[u8]) -> Vec<Chapter> {
     };
     // An extended header comes first when the flag says so.
     if flags & 0x40 != 0 {
-        let extended = if major >= 4 { syncsafe(tag, 0) } else { be32(tag, 0).map(|n| n + 4) };
+        let extended = if major >= 4 {
+            syncsafe(tag, 0)
+        } else {
+            be32(tag, 0).map(|n| n + 4)
+        };
         tag = extended.and_then(|n| tag.get(n as usize..)).unwrap_or(&[]);
     }
     id3_frames(tag, major)
@@ -260,12 +272,23 @@ mod tests {
                 .join("../../packages/test-fixtures/audiobooks")
                 .join(name);
             let marks = read_marks(&path).expect("the fixture");
-            assert!(marks.len() < fixture(name).len(), "{name}: the audio was read too");
+            assert!(
+                marks.len() < fixture(name).len(),
+                "{name}: the audio was read too"
+            );
             let chapters = of(&marks, Some(Duration::from_secs(6)));
             assert!(chapters.len() >= 2, "{name}: {chapters:?}");
             assert_eq!(chapters[0].start, Duration::ZERO, "{name}");
-            assert!(chapters.iter().all(|c| c.title.is_some() && c.end.is_some()), "{name}: {chapters:?}");
-            assert!(chapters.windows(2).all(|p| p[0].end == Some(p[1].start)), "{name}: {chapters:?}");
+            assert!(
+                chapters
+                    .iter()
+                    .all(|c| c.title.is_some() && c.end.is_some()),
+                "{name}: {chapters:?}"
+            );
+            assert!(
+                chapters.windows(2).all(|p| p[0].end == Some(p[1].start)),
+                "{name}: {chapters:?}"
+            );
         }
         assert!(of(&fixture("unchaptered.m4a"), None).is_empty());
         assert!(of(b"ID3\x04\x00\x00\x00\x00\x00\x05abc", None).is_empty());

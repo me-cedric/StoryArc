@@ -152,9 +152,15 @@ pub fn bookmark_button(reader: &Rc<EpubReader>) -> gtk::Button {
 /// The bookmark button as it reads at the page: filled and *Remove bookmark* when one is there.
 pub fn show_bookmark(button: &gtk::Button, marked: bool) {
     let (icon, title) = if marked {
-        ("user-bookmarks-symbolic", tr("bookmarks.remove", "Remove bookmark"))
+        (
+            "user-bookmarks-symbolic",
+            tr("bookmarks.remove", "Remove bookmark"),
+        )
     } else {
-        ("bookmark-new-symbolic", tr("bookmarks.add", "Bookmark this page"))
+        (
+            "bookmark-new-symbolic",
+            tr("bookmarks.add", "Bookmark this page"),
+        )
     };
     button.set_icon_name(icon);
     button.set_tooltip_text(Some(&title));
@@ -164,7 +170,10 @@ pub fn show_bookmark(button: &gtk::Button, marked: bool) {
 /// The bookmarks and the highlights, each a way to its place. Built when it opens, so it shows
 /// what is kept now.
 pub fn marks_button(reader: &Rc<EpubReader>) -> gtk::MenuButton {
-    let (menu, popover) = labelled_menu("emblem-documents-symbolic", &tr("bookmarks.title", "Bookmarks"));
+    let (menu, popover) = labelled_menu(
+        "emblem-documents-symbolic",
+        &tr("bookmarks.title", "Bookmarks"),
+    );
     let weak = Rc::downgrade(reader);
     popover.connect_show(move |popover| {
         let Some(reader) = weak.upgrade() else {
@@ -178,9 +187,18 @@ pub fn marks_button(reader: &Rc<EpubReader>) -> gtk::MenuButton {
             .width_request(320)
             .build();
         let marks = reader.marks.borrow().clone();
-        column.append(&gtk::Label::builder().label(tr("bookmarks.title", "Bookmarks")).css_classes(["heading"]).xalign(0.0).build());
+        column.append(
+            &gtk::Label::builder()
+                .label(tr("bookmarks.title", "Bookmarks"))
+                .css_classes(["heading"])
+                .xalign(0.0)
+                .build(),
+        );
         if marks.bookmarks.is_empty() {
-            column.append(&empty(&tr("reader.bookmark.empty", "No pages bookmarked yet.")));
+            column.append(&empty(&tr(
+                "reader.bookmark.empty",
+                "No pages bookmarked yet.",
+            )));
         } else {
             let list = place_list();
             for mark in &marks.bookmarks {
@@ -190,7 +208,11 @@ pub fn marks_button(reader: &Rc<EpubReader>) -> gtk::MenuButton {
                     mark.place.chapter.clone()
                 };
                 let row = place_row(&title, None);
-                let (weak, popover, locator) = (Rc::downgrade(&reader), popover.clone(), mark.place.locator.clone());
+                let (weak, popover, locator) = (
+                    Rc::downgrade(&reader),
+                    popover.clone(),
+                    mark.place.locator.clone(),
+                );
                 row.connect_activated(move |_| {
                     if let Some(reader) = weak.upgrade() {
                         reader.go(&locator);
@@ -201,7 +223,13 @@ pub fn marks_button(reader: &Rc<EpubReader>) -> gtk::MenuButton {
             }
             column.append(&list);
         }
-        column.append(&gtk::Label::builder().label(tr("annotations.title", "Notes")).css_classes(["heading"]).xalign(0.0).build());
+        column.append(
+            &gtk::Label::builder()
+                .label(tr("annotations.title", "Notes"))
+                .css_classes(["heading"])
+                .xalign(0.0)
+                .build(),
+        );
         if marks.highlights.is_empty() {
             column.append(&empty(&tr(
                 "annotations.empty",
@@ -211,10 +239,19 @@ pub fn marks_button(reader: &Rc<EpubReader>) -> gtk::MenuButton {
             let list = place_list();
             for highlight in &marks.highlights {
                 let row = place_row(&highlight.text, Some(&highlight.note));
-                let dot = gtk::Box::builder().valign(gtk::Align::Center).css_classes([colour_class(&highlight.colour)]).build();
-                dot.update_property(&[gtk::accessible::Property::Label(&colour_name(&highlight.colour))]);
+                let dot = gtk::Box::builder()
+                    .valign(gtk::Align::Center)
+                    .css_classes([colour_class(&highlight.colour)])
+                    .build();
+                dot.update_property(&[gtk::accessible::Property::Label(&colour_name(
+                    &highlight.colour,
+                ))]);
                 row.add_prefix(&dot);
-                let (weak, popover, locator) = (Rc::downgrade(&reader), popover.clone(), highlight.place.locator.clone());
+                let (weak, popover, locator) = (
+                    Rc::downgrade(&reader),
+                    popover.clone(),
+                    highlight.place.locator.clone(),
+                );
                 row.connect_activated(move |_| {
                     if let Some(reader) = weak.upgrade() {
                         reader.go(&locator);
@@ -240,12 +277,23 @@ pub struct SearchView {
 /// Search in the book (`ebook-reader`, *Search within a publication*): the hits come chapter by
 /// chapter, each in context, and choosing one goes there with a way back.
 pub fn search_button(reader: &Rc<EpubReader>) -> (gtk::MenuButton, SearchView) {
-    let (menu, popover) = labelled_menu("system-search-symbolic", &tr("search.field", "Search in this book"));
+    let (menu, popover) = labelled_menu(
+        "system-search-symbolic",
+        &tr("search.field", "Search in this book"),
+    );
     let entry = gtk::SearchEntry::builder()
         .placeholder_text(tr("search.field", "Search in this book"))
         .build();
-    entry.update_property(&[gtk::accessible::Property::Label(&tr("search.field", "Search in this book"))]);
-    let status = gtk::Label::builder().wrap(true).xalign(0.0).css_classes(["dim-label"]).visible(false).build();
+    entry.update_property(&[gtk::accessible::Property::Label(&tr(
+        "search.field",
+        "Search in this book",
+    ))]);
+    let status = gtk::Label::builder()
+        .wrap(true)
+        .xalign(0.0)
+        .css_classes(["dim-label"])
+        .visible(false)
+        .build();
     let hits = place_list();
     hits.set_visible(false);
     let column = gtk::Box::builder()
@@ -266,7 +314,14 @@ pub fn search_button(reader: &Rc<EpubReader>) -> (gtk::MenuButton, SearchView) {
             reader.search(entry.text().as_str());
         }
     });
-    (menu, SearchView { status, hits, popover })
+    (
+        menu,
+        SearchView {
+            status,
+            hits,
+            popover,
+        },
+    )
 }
 
 impl SearchView {
@@ -293,7 +348,8 @@ impl SearchView {
             if let Some(chapter) = &hit.chapter {
                 row.set_subtitle(&glib::markup_escape_text(chapter));
             }
-            row.upcast_ref::<gtk::Widget>().update_property(&[gtk::accessible::Property::Label(&text)]);
+            row.upcast_ref::<gtk::Widget>()
+                .update_property(&[gtk::accessible::Property::Label(&text)]);
             let (weak, popover) = (Rc::downgrade(reader), self.popover.clone());
             row.connect_activated(move |_| {
                 if let Some(reader) = weak.upgrade() {
@@ -310,7 +366,11 @@ impl SearchView {
         if self.hits.first_child().is_some() {
             self.status.set_visible(false);
         } else {
-            self.status.set_text(&tr_args("search.none %s", "Nothing found for “%s”.", &[&query]));
+            self.status.set_text(&tr_args(
+                "search.none %s",
+                "Nothing found for “%s”.",
+                &[&query],
+            ));
         }
     }
 }
@@ -323,12 +383,22 @@ pub fn selection_bar(reader: &Rc<EpubReader>) -> gtk::Revealer {
         .margin_top(6)
         .margin_bottom(6)
         .build();
-    bar.append(&gtk::Label::new(Some(&tr("desktop.w4.epub.highlight", "Highlight"))));
-    let revealer = gtk::Revealer::builder().child(&bar).reveal_child(false).build();
+    bar.append(&gtk::Label::new(Some(&tr(
+        "desktop.w4.epub.highlight",
+        "Highlight",
+    ))));
+    let revealer = gtk::Revealer::builder()
+        .child(&bar)
+        .reveal_child(false)
+        .build();
     for colour in COLOURS {
         let name = colour_name(colour);
         let swatch = gtk::Button::builder()
-            .child(&gtk::Box::builder().css_classes([colour_class(colour)]).build())
+            .child(
+                &gtk::Box::builder()
+                    .css_classes([colour_class(colour)])
+                    .build(),
+            )
             .tooltip_text(&name)
             .css_classes(["flat", "circular"])
             .build();
@@ -350,7 +420,14 @@ pub fn selection_bar(reader: &Rc<EpubReader>) -> gtk::Revealer {
 
 /// The note on a highlight the reader clicked: write it, or remove the highlight.
 pub fn note_dialog(reader: &Rc<EpubReader>, id: &str) {
-    let Some(highlight) = reader.marks.borrow().highlights.iter().find(|h| h.id == id).cloned() else {
+    let Some(highlight) = reader
+        .marks
+        .borrow()
+        .highlights
+        .iter()
+        .find(|h| h.id == id)
+        .cloned()
+    else {
         return;
     };
     let dialog = adw::AlertDialog::builder()
@@ -363,7 +440,10 @@ pub fn note_dialog(reader: &Rc<EpubReader>, id: &str) {
         .css_classes(["card"])
         .build();
     text.buffer().set_text(&highlight.note);
-    text.update_property(&[gtk::accessible::Property::Label(&tr("annotations.note", "Note"))]);
+    text.update_property(&[gtk::accessible::Property::Label(&tr(
+        "annotations.note",
+        "Note",
+    ))]);
     dialog.set_extra_child(Some(&text));
     dialog.add_response("remove", &tr("annotations.remove", "Remove"));
     dialog.set_response_appearance("remove", adw::ResponseAppearance::Destructive);
