@@ -1,7 +1,7 @@
-import SwiftUI
+public import SwiftUI
 
 internal import DesignSystem
-internal import StoryArcCore
+public import StoryArcCore
 
 /// The offer to put a running library search to the server it is scoped to.
 ///
@@ -18,7 +18,7 @@ internal import StoryArcCore
 ///
 /// Its own file because `LibraryView` is at the line cap. Android's `LibraryScreen` draws
 /// the same row above its shelf.
-struct KavitaServerSearchOffer: View {
+public struct KavitaServerSearchOffer: View {
     @Environment(\.theme) private var theme
 
     let registry: SourceRegistry
@@ -26,6 +26,13 @@ struct KavitaServerSearchOffer: View {
 
     /// Opens the server's own browser with the term already in it.
     let onAsk: (Source) -> Void
+
+    /// Public for the Mac, whose library search draws the same offer above its results.
+    public init(registry: SourceRegistry, query: LibraryQuery, onAsk: @escaping (Source) -> Void) {
+        self.registry = registry
+        self.query = query
+        self.onAsk = onAsk
+    }
 
     /// The Kavita server this search is scoped to, when it is scoped to one and there is
     /// something to ask.
@@ -38,7 +45,7 @@ struct KavitaServerSearchOffer: View {
         return source
     }
 
-    var body: some View {
+    public var body: some View {
         if let server {
             Button {
                 onAsk(server)
