@@ -4,6 +4,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using StoryArc.Interop;
 using StoryArc.Interop.Opening;
+using StoryArc.Interop.Playback;
 using StoryArc.Interop.Progress;
 using StoryArc.Interop.Settings;
 using StoryArc.Interop.Shell;
@@ -320,8 +321,10 @@ internal sealed class AppHost
             }
 
             var title = Path.GetFileNameWithoutExtension(path);
-            var seconds = restored is { Page: > 0 } ? restored.Page - 1 : 0;
-            playback.PlayNarrated(path, title, author: null, coverPath: null, TimeSpan.FromSeconds(seconds));
+            // A restored window's own place first; else where the core store says this book was left, which a phone's
+            // listening may have moved on (ADR-0006).
+            var at = restored is { Page: > 0 } ? TimeSpan.FromSeconds(restored.Page - 1) : SavedListening(path) ?? TimeSpan.Zero;
+            playback.PlayNarrated(path, title, author: null, coverPath: null, at);
             return (new PlayerWindow(this, playback, path, restored), title);
         }
 
@@ -579,11 +582,54 @@ internal sealed class AppHost
     {
         try
         {
-            return new PlaybackService(dispatcher, (publicationId, position) => Network?.PositionChanged());
+            return new PlaybackService(dispatcher, (publicationId, position) =>
+            {
+                RecordListening(publicationId, position);
+                Network?.PositionChanged();
+            });
         }
         catch (Exception error) when (error is InvalidOperationException or System.Runtime.InteropServices.COMException or TypeLoadException)
         {
             // The media stack is absent (a Windows build with media features removed): the library and the readers still work.
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Records where a narrated book stopped in the core's store, in the phones' listening shape. A read-aloud session is
+    /// not recorded here: its publication is an EPUB, whose reading position belongs to the reader.
+    /// </summary>
+    private void RecordListening(string publicationId, TimeSpan position)
+    {
+        if (_coreProgress is null || Playback?.Model.Item is not { Kind: PlaybackKind.Narrated } item || item.PublicationId != publicationId)
+        {
+            return;
+        }
+
+        try
+        {
+            ListeningProgress.Write(_coreProgress, FileIdentity.Of(publicationId), position, item.Duration, DateTimeOffset.Now);
+        }
+        catch (StoryArcException)
+        {
+            // A file gone since it played, or a store refusing the write: the next session starts from the window's own place.
+        }
+    }
+
+    /// <summary>Where the core store says the narrated book at <paramref name="path"/> was left, or <c>null</c>.</summary>
+    private TimeSpan? SavedListening(string path)
+    {
+        if (_coreProgress is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return ListeningProgress.Saved(_coreProgress, FileIdentity.Of(path));
+        }
+        catch (StoryArcException)
+        {
             return null;
         }
     }

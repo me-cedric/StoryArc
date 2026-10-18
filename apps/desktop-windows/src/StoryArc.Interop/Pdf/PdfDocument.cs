@@ -112,6 +112,30 @@ public sealed unsafe class PdfDocument : CoreHandle
         });
     }
 
+    /// <summary>
+    /// Renders page <paramref name="index"/> to fill <paramref name="maxPixelSize"/> on its longest edge, enlarging a page
+    /// smaller than that, through <c>storyarc_pdf_render_page_scaled</c>. <see cref="RenderPage"/> never enlarges, so a
+    /// 612 by 792 page drew blurred on a large or high-density window. Zero renders at one pixel a point.
+    /// </summary>
+    public DecodedPage RenderPageToFit(int index, int maxPixelSize = 0)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxPixelSize);
+        var size = PageSize(index);
+        var longest = Math.Max(size.Width, size.Height);
+        var scale = maxPixelSize > 0 && longest > 0 ? maxPixelSize / longest : 1f;
+        return Use(pointer =>
+        {
+            StoryArcBuffer pixels = default;
+            uint width = 0;
+            uint height = 0;
+            var status = NativeMethods.storyarc_pdf_render_page_scaled(
+                (void*)pointer, (uint)index, scale, (uint)maxPixelSize, &pixels, &width, &height);
+            NativeCore.Check(status, "storyarc_pdf_render_page_scaled");
+            return new DecodedPage(checked((int)width), checked((int)height), NativeCore.Take(pixels));
+        });
+    }
+
     /// <summary>The page's text in content order; empty for a page with no text layer.</summary>
     public string PageText(int index)
     {

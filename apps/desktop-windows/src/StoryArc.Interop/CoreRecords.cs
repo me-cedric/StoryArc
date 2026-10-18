@@ -67,8 +67,19 @@ public sealed record CorePublication(
         ?? throw new JsonException("the core wrote a null publication record");
 }
 
-/// <summary>Where a reader is in a paged publication: page <see cref="Index"/> (from zero) of <see cref="Of"/>.</summary>
-public sealed record CorePosition(string Kind, int Index, int Of);
+/// <summary>
+/// Where a reader is: in a paged publication page <see cref="Index"/> (from zero) of <see cref="Of"/>; in a listened one
+/// (<c>kind</c> "listening") part <see cref="Part"/> of <see cref="PartCount"/> at <see cref="OffsetMillis"/> into a part of
+/// <see cref="OfMillis"/>, the shape both phones write. A field another kind does not carry reads as zero or null.
+/// </summary>
+public sealed record CorePosition(
+    string Kind,
+    int Index = 0,
+    int Of = 0,
+    int? Part = null,
+    int? PartCount = null,
+    long? OffsetMillis = null,
+    long? OfMillis = null);
 
 /// <summary>
 /// A reading position, the JSON shape <c>storyarc_progress_write</c> takes and
@@ -85,6 +96,21 @@ public sealed record CoreProgress(CoreIdentity Identity, CorePosition Position, 
         identity,
         new CorePosition("page", index, pageCount),
         IsFinished: pageCount > 0 && index >= pageCount - 1,
+        UpdatedAt: at.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// The record of a single-file audiobook heard to <paramref name="offset"/> of <paramref name="duration"/>: part 0 of 1,
+    /// as the phones write a file that is one part. Reaching the end finishes it.
+    /// </summary>
+    public static CoreProgress Listening(CoreIdentity identity, TimeSpan offset, TimeSpan duration, DateTimeOffset at) => new(
+        identity,
+        new CorePosition(
+            "listening",
+            Part: 0,
+            PartCount: 1,
+            OffsetMillis: (long)Math.Max(0, offset.TotalMilliseconds),
+            OfMillis: duration > TimeSpan.Zero ? (long)duration.TotalMilliseconds : null),
+        IsFinished: duration > TimeSpan.Zero && offset >= duration,
         UpdatedAt: at.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture));
 
     public string ToJson() => JsonSerializer.Serialize(this, CoreJsonContext.Default.CoreProgress);

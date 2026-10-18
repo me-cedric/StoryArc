@@ -33,9 +33,9 @@ internal sealed record OpenedEpub(string Id, EpubPublication Handle, EpubHost Ho
                 ? name.GetString() ?? Path.GetFileNameWithoutExtension(path)
                 : Path.GetFileNameWithoutExtension(path);
 
-            // The seam has no identity export for an EPUB yet (a gap for the core owner), so the record is filed under the
-            // file's path, which is what the session and the recent list key on too.
-            var identity = new CoreIdentity(ContentDigest: "path-" + id, NormalizedPath: path);
+            // Filed under the file's content digest, as a comic is, so a moved or renamed book keeps its place; a record
+            // written earlier under the "path-" placeholder takes the real digest on its next save (the core migrates it).
+            var identity = FileIdentity.Of(path);
             var author = metadata.ValueKind == JsonValueKind.Object && metadata.TryGetProperty("author", out var authorNode)
                 ? authorNode.ValueKind == JsonValueKind.String ? authorNode.GetString() : authorNode.ValueKind == JsonValueKind.Array && authorNode.GetArrayLength() > 0 ? authorNode[0].ToString() : null
                 : null;

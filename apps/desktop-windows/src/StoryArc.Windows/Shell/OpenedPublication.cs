@@ -48,11 +48,11 @@ internal sealed record OpenedPublication(string Id, IDisposable Handle, CorePubl
             var pageCount = handle.PageCount;
             var pane = new PdfPaneModel(handle.HasTextLayer, handle.Outline(), handle.Search);
 
-            // The seam has no identity or metadata export for a PDF yet (a gap for the core owner): the record is
-            // filed under the path, and the title is the file's name, as the phones show a PDF with no metadata.
-            var identity = new CoreIdentity(ContentDigest: "path-" + EpubHost.IdFor(path), NormalizedPath: path);
+            // Filed under the file's content digest, as a comic is; the title is the file's name, as the phones show a
+            // PDF with no metadata. Pages are drawn to fill the view's pixel budget, enlarged where the page is small.
+            var identity = FileIdentity.Of(path);
             var record = new CorePublication(identity, "pdf", Path.GetFileNameWithoutExtension(path), PageCount: pageCount);
-            return new OpenedPublication(path, handle, record, pageCount, handle.RenderPage, pane);
+            return new OpenedPublication(path, handle, record, pageCount, handle.RenderPageToFit, pane);
         }
         catch
         {

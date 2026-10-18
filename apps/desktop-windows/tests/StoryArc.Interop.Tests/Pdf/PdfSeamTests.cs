@@ -74,6 +74,24 @@ public sealed class PdfSeamTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void A_page_drawn_to_fit_a_larger_view_is_enlarged_where_the_plain_render_stops_at_one_pixel_a_point()
+    {
+        using var document = Open("comics/text-pages.pdf");
+        if (document is null)
+        {
+            return;
+        }
+
+        var plain = document.RenderPage(0, 1584);
+        var fitted = document.RenderPageToFit(0, 1584);
+
+        Assert.Equal(792, plain.Height);
+        Assert.Equal(1584, fitted.Height);
+        Assert.Equal(plain.Width * 2, fitted.Width);
+        Assert.Equal(fitted.Width * fitted.Height * 4, fitted.Rgba.Length);
+    }
+
+    [Fact]
     public void Search_finds_a_phrase_on_its_page_with_its_rectangles()
     {
         using var document = Open("comics/text-pages.pdf");
