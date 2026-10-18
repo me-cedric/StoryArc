@@ -41,6 +41,10 @@ extension WindowWalks {
             Walk.press("\u{F703}", keyCode: KeyCode.rightArrow, in: window)
             _ = await Walk.until { centre.place != before ? true : nil }
             #expect(centre.place != before, "the right arrow did not skip")
+            ConformanceLog.note(
+                "player keys", "\(centre.parts.count) parts; right arrow moved from \(before) to \(centre.place)",
+                wave: 4
+            )
 
             // *The windows are hidden*: the window goes and the session stays. Paused at the
             // start first, because the fixture is six seconds long and the skip just took it
@@ -50,6 +54,7 @@ extension WindowWalks {
             #expect(centre.isRunning && !centre.isPlaying)
             await Walk.close([window])
             #expect(centre.isRunning, "closing the window ended the session")
+            ConformanceLog.note("player hidden", "window closed, session running \(centre.isRunning)", wave: 4)
             #expect(isMine())
 
             // A second open of the book fronts a window on the same session, not a restart,

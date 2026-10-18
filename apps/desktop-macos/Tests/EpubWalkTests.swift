@@ -46,6 +46,8 @@ extension WindowWalks {
                 _ = await Walk.until(.seconds(3)) { model.position == 2 ? true : nil }
             }
             #expect(model.position == 2, "\(presses) right arrows did not reach position 2")
+            let turned = "\(model.positionCount) positions; \(presses) right arrows reached 2"
+            ConformanceLog.note("EPUB turn", turned, wave: 4)
             #expect(EpubKeyMonitor.key(of: KeyCode.rightArrow) == .next)
             #expect(EpubKeyMonitor.key(of: KeyCode.leftArrow) == .previous)
             #expect(EpubKeyMonitor.key(of: KeyCode.space) == .next)
@@ -60,6 +62,7 @@ extension WindowWalks {
             let hits = try #require(await Walk.until { !model.isSearching && !model.hits.isEmpty ? model.hits : nil })
             #expect(hits.contains { $0.match.lowercased() == "chapter" })
             #expect(hits.allSatisfy { $0.chapter != nil })
+            ConformanceLog.note("EPUB search", "\(hits.count) hits for chapter, each with a chapter name", wave: 4)
             let first = try #require(hits.first)
             model.go(to: first.locator)
             #expect(model.returnLocator != nil)
@@ -110,6 +113,7 @@ extension WindowWalks {
             }
             #expect(!locator.isEmpty)
             #expect(progression >= 0)
+            ConformanceLog.note("EPUB close", "reflowable position written, progression \(progression)", wave: 4)
         }
 
         @Test("Every response the scheme handler sends carries the policy header")
