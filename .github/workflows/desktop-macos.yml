@@ -66,6 +66,7 @@ jobs:
           package-manager-cache: false
       - name: Start the egress collector and the mock servers
         run: |
+          node scripts/corpus.mjs "$HOME/StoryArcCorpus"
           node apps/desktop-web/epub/test/collector.mjs > .build/egress.log 2>&1 &
           node scripts/opds-server.mjs > .build/opds.log 2>&1 &
           node scripts/kavita-server.mjs --port 5001 > .build/kavita.log 2>&1 &
