@@ -671,16 +671,22 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Partly done 2026-10-17:** the Mac's wave 4 scenarios are walked inside `StoryArcMacTests` and recorded with the
   accessibility walk; Linux walked headless (EPUB, PDF, MPRIS, audio, speech); Windows is owed to a host. The three
   `desktop-conformance-<os>-wave4.md` files are the wave 5 Mac and Linux lanes' first piece and the Windows host pass.
+  **Mac file 2026-10-18:** `docs/delivery/desktop-conformance-macos-wave4.md`, 92 scenarios: pass 23, seen 11, fail 42,
+  n/a 10, not walked 6. The Linux and Windows files are the host pass.
 
 ## 5. Wave 5: the curl, polish and the LATER list
 
-- [ ] 5.1 **[M] The curl on Metal**, reusing `PageCurl.metal`, proved by `xcodebuild`. Verify: a build with the shader library
+- [x] 5.1 **[M] The curl on Metal**, reusing `PageCurl.metal`, proved by `xcodebuild`. Verify: a build with the shader library
   present and a frame-time capture.
+  **Done 2026-10-18:** the phone's `PageCurl.metal` is drawn from ReaderFeature's bundle and offered in the transition
+  menu; three runs held 120 Hz with no refresh missed (MacBook Pro M1 Pro).
 - [ ] 5.2 **[L] The curl on Wayland** from the spike 1.17. On X11 it follows the spike's result: present if it held the frame
   budget, otherwise absent with the grey line. Verify: a frame capture and the X11 walk.
 - [ ] 5.3 **[W] The curl on D3D11** from the spike 1.19. Verify: a presents-per-second trace on a 120 Hz display.
 - [ ] 5.4 **[M] Thumbnails in Finder** and Quick Look through a generator. Verify: Finder shows covers for a folder of
   fixtures and a damaged file shows the generic icon.
+  **Built 2026-10-18, owed by the owner:** the `StoryArcThumbnails` extension; `ThumbnailTests` pass and a damaged file
+  gives no thumbnail. The ad-hoc build does not register with `pluginkit`, so Finder showing covers waits on signing (6.8).
 - [ ] 5.5 **[L] Thumbnailer CLI** and its `.thumbnailer` file, for source and AUR builds only. A Flatpak does not export a
   thumbnailer to the host file manager (Inferred): research that first, and state in the task result that the Flatpak build
   shows no covers. Verify: a file manager shows covers for a source build and nothing is written to history.
@@ -703,15 +709,24 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Linux built 2026-10-18, owed by a host:** `link.rs` holds the three scenarios in tests and the desktop entry declares
   `x-scheme-handler/storyarc` with `%U`; the headless walk handed four links to the running app. A browser or file
   manager handing one over is the host's check.
+  **Mac built 2026-10-18:** the app registers `storyarc`; `StoryArcLinkTests` covers the three scenarios and
+  `LinkWalkTests` walks them.
 - [ ] 5.9 **[M, L, W] The cold-launch budget.** Measure a cold launch on each desktop, on a mid-range laptop with a fixture
   library of 5,000 publications, against the owner's 1 second. Verify: a launch trace per desktop shows the library
   interactive within 1 second.
+  **Measured 2026-10-18 on the Mac, fails:** with 5,000 publications the window is up in 0.6 to 1.1 s but the rows arrive
+  after 126 to 168 s, because the Mac cannot show StoryArcKit's cached shelf first (`restoreCachedLibrary()` is internal;
+  a parent change under `apps/ios`). `docs/delivery/desktop-budgets-macos.md`. Linux and Windows are the host pass.
 - [ ] 5.10 **[M, L, W] Scroll, resize and frame rate** for a library of 10,000 publications. Verify: a frame trace per desktop.
+  **Measured 2026-10-18 on the Mac, fails:** the grid of 10,000 scrolls at 30 to 45 fps and resizes at 11 to 12 fps;
+  an Instruments trace is next. `docs/delivery/desktop-budgets-macos.md`.
 - [ ] 5.11 **[M, L, W] Chrome accent and click zone captures.** Capture both accent choices in light and dark on each desktop,
   the absent choice on a Linux session below libadwaita 1.6, and a reader with the edge click zones on. Verify: the captures
   exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
   **Linux half 2026-10-18:** both accents in light and dark, the absent choice on libadwaita 1.5.0 and a reader with the
   click zones on, under `docs/designs/screenshots/desktop/linux/wave5/`; the 2.35e tests pass.
+  **Mac half 2026-10-18:** frames under `docs/designs/screenshots/desktop/macos/wave5/`; the 2.12 tests pass. This Mac
+  uses the Multicolor accent, so a frame with a named system accent is the owner's.
 - [ ] 5.12 **[X] Parent edit, `apps/ios`:** an `AppSupport` package that holds the iOS shell code the Mac duplicates. Deferral:
   the Mac keeps its copy until the iOS owner schedules it. Verify: the Mac target builds against the package.
   **Deferred 2026-10-17:** the Mac keeps its copy (about 3.4k lines, design Risks); the move is the iOS owner's to
@@ -729,12 +744,14 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
 - [ ] 6.2 **[X] Visual proof matrix.** Captures per desktop in light and dark, default and largest size, with controls. Linux
   on GNOME, KDE Plasma, Hyprland and COSMIC with the session type. Verify: `docs/delivery/desktop-captures-<os>.md` lists each
   row, and a missing row is named as unproved.
-- [ ] 6.3 **[P] Licence notices** for the Rust crates, the .NET packages, PDFium and libarchive, in the About windows. Verify:
+- [x] 6.3 **[P] Licence notices** for the Rust crates, the .NET packages, PDFium and libarchive, in the About windows. Verify:
   `pnpm notices:check` covers the desktop manifests and fails on an unlisted component.
   **Built 2026-10-17:** `pnpm notices:check` reads the Cargo.lock crates, the NuGet packages, PDFium and libarchive
   (549 crates, 7 packages) and fails by name on an unlisted one; the Windows About page shows the generated file
   (`AcknowledgementsTests`). The Mac and Linux About windows are open.
   **Linux half 2026-10-18:** the About dialog's legal section embeds the generated file, tested for PDFium and libarchive.
+  **Mac half 2026-10-18:** the app bundles THIRD_PARTY_NOTICES.md and About opens it; `AboutTests` finds PDFium,
+  libarchive and the Rust crates. All three About windows now show the file.
 - [x] 6.4 **[P] `SECURITY.md`** lists PDF parsing next to archive parsing. Verify: the file names both.
   **Done 2026-10-17:** the *PDF parsing* row sits under the RAR rows, naming PDFKit, `PdfRenderer` and the pinned PDFium.
 - [ ] 6.5 **[P] Flatpak for release**, human-written Flathub copy, after Flathub's answer (task 1.25). Verify: the submission is
