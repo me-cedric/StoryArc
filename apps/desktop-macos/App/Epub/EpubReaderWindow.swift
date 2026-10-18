@@ -61,6 +61,9 @@ struct EpubReaderWindow: View {
         .background(WindowAccessor { attach($0) })
         .acceptsDroppedFiles()
         .onChange(of: isSearchOpen) { _, now in if now { revealChrome() } else { scheduleChromeHide() } }
+        // The chrome stays up until the book is on screen, then hides after the idle time: a
+        // book that takes longer than that to load would otherwise open with its chrome gone.
+        .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide() } }
         .task { await openReader() }
         .onDisappear { close() }
     }
@@ -184,7 +187,6 @@ struct EpubReaderWindow: View {
         EpubReaders.shared.register(model)
         model.onEscape = { if isSearchOpen { isSearchOpen = false } else { toggleChrome() } }
         await model.open()
-        scheduleChromeHide()
     }
 
     /// The window closed: the position is written, the session and the keys let go.
