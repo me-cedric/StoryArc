@@ -4,6 +4,9 @@ public import CoreGraphics
 public import StoryArcCore
 
 internal import DesignSystem
+#if !canImport(UIKit) && canImport(AppKit)
+internal import AppKit
+#endif
 
 /// The player's artwork: the library's own cover, or the well every other surface draws when
 /// there is none.
@@ -46,16 +49,17 @@ public enum PlayerArtworkImage {
     public static let side: CGFloat = 512
 
     public static func png(format: PublicationFormat, cover: CGImage? = nil) -> Data? {
-        #if canImport(UIKit)
         let renderer = ImageRenderer(
             content: PlayerArtwork(format: format, cover: cover)
                 .frame(width: side, height: side)
                 .environment(\.theme, Theme(palette: .dark))
         )
         renderer.scale = 1
+        #if canImport(UIKit)
         return renderer.uiImage?.pngData()
         #else
-        nil
+        // The Mac's Now Playing panel (`desktop-clients` wave 4): the same well, as PNG bytes.
+        return renderer.cgImage.flatMap { NSBitmapImageRep(cgImage: $0).representation(using: .png, properties: [:]) }
         #endif
     }
 }
