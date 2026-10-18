@@ -60,14 +60,20 @@ private struct VoiceStoppedNoticeModifier: ViewModifier {
 /// packages cannot share one without a new dependency, and one ``VoiceStoppedNotice`` so the
 /// rule behind them cannot drift. Android says it with a `Snackbar` from each surface's own
 /// scaffold.
-struct VoiceStoppedCapsule: View {
+public struct VoiceStoppedCapsule: View {
     let sentence: String
     let dismiss: () -> Void
+
+    /// Public for the Mac, whose reader windows take the word themselves as they open.
+    public init(sentence: String, dismiss: @escaping () -> Void) {
+        self.sentence = sentence
+        self.dismiss = dismiss
+    }
 
     /// How long the word stays.
     private static let dwell: Duration = .seconds(6)
 
-    var body: some View {
+    public var body: some View {
         Text(sentence)
             .textRole(.footnote)
             .storyArcGlassText()

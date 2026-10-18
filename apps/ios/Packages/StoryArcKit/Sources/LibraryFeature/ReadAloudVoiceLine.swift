@@ -1,9 +1,9 @@
-internal import SwiftUI
+public import SwiftUI
 
 internal import AVFoundation
 
 internal import DesignSystem
-internal import StoryArcCore
+public import StoryArcCore
 
 /// What the publication page says about the device's own read-aloud voice, or nothing.
 ///
@@ -61,12 +61,17 @@ enum ReadAloudVoiceLookup {
 }
 
 /// The line itself, drawn where ``DetailMainColumn`` puts it.
-struct ReadAloudVoiceLineView: View {
+public struct ReadAloudVoiceLineView: View {
     @Environment(\.theme) private var theme
 
     let publication: Publication
 
-    var body: some View {
+    /// Public for the Mac's publication page, which names the voice as the phones' does.
+    public init(publication: Publication) {
+        self.publication = publication
+    }
+
+    public var body: some View {
         if let fact {
             Text(text(for: fact))
                 .textRole(.footnote)
