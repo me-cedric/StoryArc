@@ -69,8 +69,11 @@ jobs:
           node apps/desktop-web/epub/test/collector.mjs > .build/egress.log 2>&1 &
           node scripts/opds-server.mjs > .build/opds.log 2>&1 &
           node scripts/kavita-server.mjs --port 5001 > .build/kavita.log 2>&1 &
-          sleep 2
-          for p in 4815 4444 5001; do nc -z 127.0.0.1 $p && echo "port $p up" || echo "port $p down"; done
+          # The mocks read the corpus before they listen; wait up to 30 s each, then say which is up.
+          for p in 4815 4444 5001; do
+            for i in $(seq 1 30); do nc -z 127.0.0.1 $p && break; sleep 1; done
+            nc -z 127.0.0.1 $p && echo "port $p up" || { echo "port $p down"; cat .build/*.log; }
+          done
       - name: Test
         id: test
         working-directory: apps/desktop-macos
