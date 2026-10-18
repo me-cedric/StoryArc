@@ -15,6 +15,8 @@ mod download_rules;
 mod downloads_ui;
 mod epub_host;
 mod epub_look;
+mod epub_marks;
+mod epub_marks_ui;
 mod epub_theme_ui;
 mod epub_view;
 mod epub_window;
@@ -252,7 +254,8 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
                 on.readers
                     .borrow()
                     .last()
-                    .map(|handle| handle.window.clone()),
+                    .map(|handle| handle.window.clone())
+                    .or_else(|| on.epub_windows.borrow().last().map(|(_, w)| w.clone())),
                 parameter.and_then(|value| value.get::<String>()),
             ) else {
                 return;

@@ -45,6 +45,7 @@ const SEEN_FILE: &str = "seen-version";
 const MODES_FILE: &str = "page-turns";
 const ADJUSTMENTS_FILE: &str = "image-adjustments";
 const EPUB_LOOK_FILE: &str = "epub-look";
+const EPUB_MARKS_FILE: &str = "epub-marks.json";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -131,6 +132,19 @@ pub fn load_epub_look() -> crate::epub_look::Look {
 
 pub fn save_epub_look(look: &crate::epub_look::Look) {
     write_file(&data_path(EPUB_LOOK_FILE), &look.save());
+}
+
+/// The bookmarks and highlights of one EPUB, by its key (`epub_marks.rs`).
+pub fn load_epub_marks(key: &str) -> crate::epub_marks::Marks {
+    let all = crate::epub_marks::read_all(&std::fs::read_to_string(data_path(EPUB_MARKS_FILE)).unwrap_or_default());
+    all.get(key).map(crate::epub_marks::Marks::from_json).unwrap_or_default()
+}
+
+pub fn save_epub_marks(key: &str, marks: &crate::epub_marks::Marks) {
+    let path = data_path(EPUB_MARKS_FILE);
+    let mut all = crate::epub_marks::read_all(&std::fs::read_to_string(&path).unwrap_or_default());
+    all.insert(key.to_owned(), marks.to_json());
+    write_file(&path, &serde_json::Value::Object(all).to_string());
 }
 
 /// The recent searches and the search scope (`library/search.rs`).

@@ -3,11 +3,11 @@
 //! header bar, a position line, the arrow and page keys, and the reader's place written
 //! to the progress store as the position number both phones would show.
 //!
-//! The theme surface and the reader's typography are `epub_theme_ui.rs` over `epub_look.rs`.
-//! Search, highlights and the table of contents are later tasks of the lane; the renderer
-//! already answers their messages (`apps/desktop-web/epub/README.md`).
+//! The theme surface and the reader's typography are `epub_theme_ui.rs` over `epub_look.rs`;
+//! the contents, bookmarks, highlights, notes, search and the way back after a jump are
+//! `epub_marks_ui.rs` over `epub_marks.rs`.
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -22,6 +22,8 @@ use storyarc_core::sources::PublicationIndexer;
 use crate::app::Shared;
 use crate::epub_host;
 use crate::epub_look::{self, Look};
+use crate::epub_marks::{self, Hit, Marks, Place};
+use crate::epub_marks_ui;
 use crate::epub_theme_ui;
 use crate::epub_view::{EpubView, Guards, Served};
 use crate::epub_view::{confirm_leaving, outward};
@@ -31,6 +33,9 @@ use crate::progress::ProgressWriter;
 use crate::session::{CoreProgress, LOG_DOMAIN};
 use crate::strings::tr;
 use crate::window_state::{MIN_HEIGHT, MIN_WIDTH};
+
+/// How long after the app asks for a move the renderer's locators are that move's.
+const OWN_MOVE: Duration = Duration::from_millis(1500);
 
 /// How often the window looks at the progress clock.
 const TICK: Duration = Duration::from_millis(500);
@@ -86,8 +91,8 @@ pub fn is_epub(path: &Path) -> bool {
         .is_some_and(|extension| extension.eq_ignore_ascii_case("epub"))
 }
 
-struct EpubReader {
-    window: adw::ApplicationWindow,
+pub(crate) struct EpubReader {
+    pub(crate) window: adw::ApplicationWindow,
     book: Rc<Book>,
     /// The resource the reader is in, from the last locator.
     href: RefCell<Option<String>>,
@@ -97,6 +102,25 @@ struct EpubReader {
     seq: Cell<u64>,
     /// The theme and the typography in force, kept per device.
     look: Rc<RefCell<Look>>,
+    /// The bookmarks and highlights of this book, kept under `marks_key`.
+    pub(crate) marks: RefCell<Marks>,
+    marks_key: String,
+    /// Where the reader is, as the renderer's locator JSON.
+    locator: RefCell<Option<String>>,
+    /// Where the last jump came from: *Returning from any jump*.
+    return_locator: RefCell<Option<String>>,
+    /// When the app last asked for a move, so a move the renderer made on its own is a link.
+    /// A turn across chapters can post more than one locator, so the mark lasts a moment.
+    moving_itself: Cell<Option<Instant>>,
+    ready: Cell<bool>,
+    back: gtk::Button,
+    bookmark: OnceCell<gtk::Button>,
+    search: OnceCell<epub_marks_ui::SearchView>,
+    search_id: Cell<u64>,
+    search_query: RefCell<String>,
+    /// The text and the locator a selection raised, waiting for a colour.
+    selection: RefCell<Option<(String, String)>>,
+    selection_bar: OnceCell<gtk::Revealer>,
 }
 
 impl EpubReader {
@@ -139,8 +163,170 @@ impl EpubReader {
         }
     }
 
+    /// The page, once the view is built.
+    pub(crate) fn web_view(&self) -> Option<gtk::Widget> {
+        self.view.borrow().as_ref().map(|view| view.web_view.clone().upcast())
+    }
+
+    /// Turns the page; not a jump to come back from.
+    fn turn(&self, next: bool) {
+        self.moving_itself.set(Some(Instant::now()));
+        self.send(if next { "next" } else { "previous" });
+    }
+
+    /// Goes to a locator, keeping where the reader was so they can come back.
+    pub(crate) fn go(&self, locator: &str) {
+        *self.return_locator.borrow_mut() = self.locator.borrow().clone();
+        self.back.set_visible(self.return_locator.borrow().is_some());
+        self.moving_itself.set(Some(Instant::now()));
+        self.send_go(locator);
+    }
+
+    fn send_go(&self, locator: &str) {
+        if let Some(message) = epub_marks::go_message(self.next_seq(), locator) {
+            self.send_json(&message);
+        }
+    }
+
+    /// Back to where the last jump left; using it is not itself a place to return from.
+    fn go_back(&self) {
+        let Some(locator) = self.return_locator.borrow_mut().take() else {
+            return;
+        };
+        self.back.set_visible(false);
+        self.moving_itself.set(Some(Instant::now()));
+        self.send_go(&locator);
+    }
+
+    /// The table of contents: each entry's title, resource and media type.
+    pub(crate) fn contents(&self) -> Vec<(Option<String>, String, Option<String>)> {
+        self.book
+            .publication
+            .manifest()
+            .toc
+            .iter()
+            .map(|link| (link.title.clone(), link.href.clone(), link.media_type.clone()))
+            .collect()
+    }
+
+    /// The chapter a resource belongs to, by the contents, or the book's title.
+    fn chapter_of(&self, resource: &str) -> String {
+        self.book
+            .publication
+            .manifest()
+            .toc
+            .iter()
+            .find(|link| link.href.split('#').next() == Some(resource))
+            .and_then(|link| link.title.clone())
+            .unwrap_or_else(|| self.window.title().unwrap_or_default().to_string())
+    }
+
+    fn place(&self) -> Option<Place> {
+        let locator = self.locator.borrow().clone()?;
+        let place = Place::of(&locator, "");
+        let chapter = self.chapter_of(&place.resource);
+        Some(Place { chapter, ..place })
+    }
+
+    fn reading_order(&self) -> Vec<String> {
+        self.book
+            .publication
+            .manifest()
+            .reading_order
+            .iter()
+            .map(|link| link.href.clone())
+            .collect()
+    }
+
+    pub(crate) fn toggle_bookmark(&self) {
+        let Some(place) = self.place() else {
+            return;
+        };
+        let order = self.reading_order();
+        self.edit_marks(&|marks| {
+            marks.toggle_bookmark(place.clone(), &order);
+        });
+    }
+
+    /// Changes the marks, keeps them, and draws them again.
+    pub(crate) fn edit_marks(&self, edit: &dyn Fn(&mut Marks)) {
+        edit(&mut self.marks.borrow_mut());
+        crate::session::save_epub_marks(&self.marks_key, &self.marks.borrow());
+        self.sync_highlights();
+        self.show_bookmark();
+    }
+
+    fn show_bookmark(&self) {
+        if let Some(button) = self.bookmark.get() {
+            let marked = self
+                .place()
+                .is_some_and(|place| self.marks.borrow().bookmark_at(&place).is_some());
+            button.set_sensitive(self.locator.borrow().is_some());
+            epub_marks_ui::show_bookmark(button, marked);
+        }
+    }
+
+    /// Draws every highlight; the message replaces what the page had.
+    fn sync_highlights(&self) {
+        let seq = self.next_seq();
+        let message = self.marks.borrow().highlights_message(None, seq);
+        self.send_json(&message);
+    }
+
+    /// Searches the book; a newer search silences an older one, as the renderer promises.
+    pub(crate) fn search(&self, query: &str) {
+        let query = query.trim().to_owned();
+        let id = self.search_id.get() + 1;
+        self.search_id.set(id);
+        if let Some(view) = self.search.get() {
+            view.start(&query);
+        }
+        if query.is_empty() {
+            return;
+        }
+        query.clone_into(&mut self.search_query.borrow_mut());
+        let seq = self.next_seq();
+        self.send_json(&epub_marks::search_message(seq, id, &query));
+    }
+
+    /// Keeps the waiting selection as a highlight and draws it.
+    pub(crate) fn highlight_selection(&self, colour: &str) {
+        let Some((text, locator)) = self.selection.borrow_mut().take() else {
+            return;
+        };
+        if let Some(bar) = self.selection_bar.get() {
+            bar.set_reveal_child(false);
+        }
+        let place = Place::of(&locator, "");
+        let place = Place {
+            chapter: self.chapter_of(&place.resource),
+            ..place
+        };
+        self.edit_marks(&|marks| {
+            marks.highlight(&text, place.clone(), colour);
+        });
+    }
+
+    /// The renderer's place: the progress line, the store, and whether it was a jump.
+    fn moved(&self, locator: &serde_json::Value) {
+        let moving_itself = self
+            .moving_itself
+            .get()
+            .is_some_and(|asked| asked.elapsed() < OWN_MOVE);
+        let previous = self.locator.borrow().clone();
+        if !moving_itself
+            && let Some(previous) = previous
+            && epub_marks::is_jump(&previous, locator)
+        {
+            *self.return_locator.borrow_mut() = Some(previous);
+            self.back.set_visible(true);
+        }
+        *self.locator.borrow_mut() = Some(locator.to_string());
+        self.show_bookmark();
+    }
+
     /// One message from the renderer: the place it is at, or a link that leaves.
-    fn received(&self, json: &str) {
+    fn received(self: &Rc<Self>, json: &str) {
         let Ok(message) = serde_json::from_str::<serde_json::Value>(json) else {
             return;
         };
@@ -152,6 +338,10 @@ impl EpubReader {
                 if let Some(href) = message["locator"]["href"].as_str() {
                     *self.href.borrow_mut() = Some(href.to_owned());
                 }
+                if !self.ready.replace(true) {
+                    self.sync_highlights();
+                }
+                self.moved(&message["locator"]);
                 let position = u32::try_from(position).unwrap_or(u32::MAX).max(1);
                 let locations = &message["locator"]["locations"];
                 self.position.set_text(&epub_look::progress_line(
@@ -165,6 +355,41 @@ impl EpubReader {
             "link" => {
                 if let Some((uri, host)) = message["href"].as_str().and_then(outward) {
                     confirm_leaving(self.window.upcast_ref(), uri, &host);
+                }
+            }
+            "ready" => {
+                if !self.ready.replace(true) {
+                    self.sync_highlights();
+                }
+            }
+            "selection" => {
+                let text = message["text"].as_str().unwrap_or("").trim().to_owned();
+                let shown = !text.is_empty() && message["locator"].is_object();
+                *self.selection.borrow_mut() =
+                    shown.then(|| (text, message["locator"].to_string()));
+                if let Some(bar) = self.selection_bar.get() {
+                    bar.set_reveal_child(shown);
+                }
+            }
+            "footnote" => {
+                if let Some(text) = message["text"].as_str().filter(|t| !t.trim().is_empty()) {
+                    epub_marks_ui::footnote(self, text);
+                }
+            }
+            "highlight-activated" => {
+                if let Some(id) = message["id"].as_str().filter(|id| *id != epub_marks::SPOKEN_ID) {
+                    epub_marks_ui::note_dialog(self, id);
+                }
+            }
+            "search-results" => {
+                if message["id"].as_u64() != Some(self.search_id.get()) {
+                    return;
+                }
+                if let Some(view) = self.search.get() {
+                    view.add(self, Hit::all_of(&message));
+                    if message["done"].as_bool() == Some(true) {
+                        view.done(&self.search_query.borrow());
+                    }
                 }
             }
             "host-error" | "navigation-failed" => {
@@ -258,7 +483,9 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         .build();
     let toolbar = adw::ToolbarView::new();
     toolbar.add_top_bar(&header);
-    toolbar.add_bottom_bar(&bottom);
+    let foot = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    foot.append(&bottom);
+    toolbar.add_bottom_bar(&foot);
     toolbar.set_content(Some(&gtk::Spinner::builder().spinning(true).build()));
     let window = adw::ApplicationWindow::builder()
         .application(&app)
@@ -269,6 +496,20 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         .build();
     window.set_size_request(MIN_WIDTH, MIN_HEIGHT);
 
+    let marks_key = record
+        .identity
+        .content_digest
+        .clone()
+        .or_else(|| record.identity.normalized_path.clone())
+        .unwrap_or_else(|| id.clone());
+    let back = gtk::Button::builder()
+        .icon_name("edit-undo-symbolic")
+        .label(tr("desktop.w4.epub.back", "Back"))
+        .tooltip_text(tr("desktop.w4.epub.back", "Back"))
+        .visible(false)
+        .css_classes(["flat"])
+        .build();
+    bottom.set_end_widget(Some(&back));
     let progress = CoreProgress::new(store, record.identity.clone(), count);
     let reader = Rc::new(EpubReader {
         window: window.clone(),
@@ -279,7 +520,39 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         progress: RefCell::new(ProgressWriter::new(progress, id.clone())),
         seq: Cell::new(0),
         look: Rc::new(RefCell::new(look)),
+        marks: RefCell::new(crate::session::load_epub_marks(&marks_key)),
+        marks_key,
+        locator: RefCell::new(None),
+        return_locator: RefCell::new(None),
+        moving_itself: Cell::new(None),
+        ready: Cell::new(false),
+        back: back.clone(),
+        bookmark: OnceCell::new(),
+        search: OnceCell::new(),
+        search_id: Cell::new(0),
+        search_query: RefCell::new(String::new()),
+        selection: RefCell::new(None),
+        selection_bar: OnceCell::new(),
     });
+    let weak = Rc::downgrade(&reader);
+    back.connect_clicked(move |_| {
+        if let Some(reader) = weak.upgrade() {
+            reader.go_back();
+        }
+    });
+    let contents = epub_marks_ui::contents_button(&reader);
+    header.pack_start(&contents);
+    let bookmark = epub_marks_ui::bookmark_button(&reader);
+    header.pack_start(&bookmark);
+    let _ = reader.bookmark.set(bookmark);
+    let marks = epub_marks_ui::marks_button(&reader);
+    header.pack_start(&marks);
+    let (search, search_view) = epub_marks_ui::search_button(&reader);
+    header.pack_end(&search);
+    let _ = reader.search.set(search_view);
+    let selection_bar = epub_marks_ui::selection_bar(&reader);
+    foot.prepend(&selection_bar);
+    let _ = reader.selection_bar.set(selection_bar);
 
     let filter_dir = glib::user_data_dir()
         .join(crate::APP_ID)
@@ -324,7 +597,30 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
             reader.change_look(edit);
         }
     });
-    header.pack_end(&epub_theme_ui::button(&reader.look, &change));
+    let theme = epub_theme_ui::button(&reader.look, &change);
+    header.pack_end(&theme);
+    // The surfaces as window actions: `win.find`, `win.bookmark` and `win.back` take the
+    // app's own keys (Control F, Control D, Alt Left), and the walks reach every one.
+    for (name, menu) in [("find", &search), ("contents", &contents), ("marks", &marks), ("theme", &theme)] {
+        let action = gio::SimpleAction::new(name, None);
+        let menu = menu.clone();
+        action.connect_activate(move |_, _| menu.popup());
+        window.add_action(&action);
+    }
+    for (name, back) in [("bookmark", false), ("back", true)] {
+        let action = gio::SimpleAction::new(name, None);
+        let weak = Rc::downgrade(&reader);
+        action.connect_activate(move |_, _| {
+            if let Some(reader) = weak.upgrade() {
+                if back {
+                    reader.go_back();
+                } else {
+                    reader.toggle_bookmark();
+                }
+            }
+        });
+        window.add_action(&action);
+    }
     let weak = Rc::downgrade(&reader);
     let appearance = adw::StyleManager::default().connect_dark_notify(move |_| {
         if let Some(reader) = weak.upgrade() {
@@ -398,11 +694,133 @@ fn install_keys(reader: &Rc<EpubReader>) {
         };
         use gtk::gdk::Key;
         match key {
-            Key::Right | Key::Page_Down | Key::space => reader.send("next"),
-            Key::Left | Key::Page_Up => reader.send("previous"),
+            Key::Right | Key::Page_Down | Key::space => reader.turn(true),
+            Key::Left | Key::Page_Up => reader.turn(false),
             _ => return glib::Propagation::Proceed,
         }
         glib::Propagation::Stop
     });
     reader.window.add_controller(keys);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::epub_view::Guards;
+    use storyarc_core::io::source::FileSource;
+
+    fn pump_until(seconds: f64, mut done: impl FnMut() -> bool) -> bool {
+        let context = glib::MainContext::default();
+        let end = Instant::now() + Duration::from_secs_f64(seconds);
+        while Instant::now() < end {
+            if done() {
+                return true;
+            }
+            context.iteration(false);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        done()
+    }
+
+    /// The host messages the Mac sends, from this window's builders, through the guarded view
+    /// to the pinned renderer over the corpus book: the opening look, a search with its hits
+    /// in context, a move to a chapter, a theme and the highlights. Needs a display:
+    /// `headless-proof.sh epub_window` runs it under cage.
+    #[test]
+    fn the_renderer_answers_the_windows_look_search_go_and_highlights() {
+        if std::env::var_os("WAYLAND_DISPLAY").is_none() && std::env::var_os("DISPLAY").is_none() {
+            eprintln!("skipped: no display; scripts/headless-proof.sh runs this under cage");
+            return;
+        }
+        gtk::init().expect("GTK on a display");
+        let dir = tempfile::tempdir().expect("a folder for the filter store");
+        let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../packages/test-fixtures/ebooks/fixture.epub");
+        let source = Arc::new(FileSource::open(&path).expect("the fixture"));
+        let publication =
+            WebPublication::open(source, &epub_host::manifest_uri()).expect("the manifest");
+        let toc: Vec<String> = publication.manifest().toc.iter().map(|l| l.href.clone()).collect();
+        let mut look = Look::default();
+        look.values.typeface = epub_look::Typeface::Literata;
+        let mut book = Book::new(publication, None);
+        book.preferences = Some(look.preferences_json());
+        let served: Rc<dyn Served> = Rc::new(book);
+        let view = glib::MainContext::default()
+            .block_on(EpubView::build(served, dir.path(), Guards::ALL))
+            .expect("a view");
+        let heard: Rc<RefCell<Vec<serde_json::Value>>> = Rc::default();
+        let on_heard = heard.clone();
+        view.connect_message(move |json| {
+            if let Ok(value) = serde_json::from_str(&json) {
+                on_heard.borrow_mut().push(value);
+            }
+        });
+        let window = gtk::Window::new();
+        window.set_default_size(800, 600);
+        window.set_child(Some(&view.web_view));
+        window.present();
+        view.open_reader();
+        let has = |kind: &str| {
+            let heard = heard.clone();
+            let kind = kind.to_owned();
+            move || heard.borrow().iter().any(|m| m["type"] == kind.as_str())
+        };
+        assert!(pump_until(15.0, has("ready")), "never ready: {:?}", heard.borrow());
+
+        // The table of contents is the manifest's, and both chapters are in it.
+        assert_eq!(toc, ["OEBPS/ch1.xhtml", "OEBPS/ch2.xhtml"]);
+
+        // Search: hits in both chapters, each a locator with its text in context, then done.
+        view.send(&epub_marks::search_message(1, 7, "paragraph 3"));
+        let done = || {
+            heard
+                .borrow()
+                .iter()
+                .any(|m| m["type"] == "search-results" && m["done"] == true)
+        };
+        assert!(pump_until(10.0, done), "no search end: {:?}", heard.borrow());
+        let hits: Vec<Hit> = heard
+            .borrow()
+            .iter()
+            .filter(|m| m["type"] == "search-results" && m["id"] == 7)
+            .flat_map(Hit::all_of)
+            .collect();
+        assert!(hits.len() >= 2, "{hits:?} {:?}", view.requests.borrow());
+        assert!(hits.iter().all(|hit| hit.matched.eq_ignore_ascii_case("paragraph 3")));
+        assert!(hits.iter().any(|hit| hit.locator.contains("ch2.xhtml")));
+
+        // A move to the second chapter, a theme with the reader's face, and the highlights.
+        view.send(&epub_marks::go_message(2, &epub_marks::start_of("OEBPS/ch2.xhtml", None)).unwrap());
+        let moved = pump_until(5.0, || {
+            heard
+                .borrow()
+                .iter()
+                .any(|m| m["type"] == "locator" && m["locator"]["href"].as_str().is_some_and(|h| h.contains("ch2")))
+        });
+        view.send(&look.theme_message(3));
+        let themed = pump_until(5.0, has("theme"));
+        let mut marks = Marks::default();
+        let id = marks.highlight("paragraph 3", Place::of(&hits[0].locator, "One"), "yellow");
+        view.send(&marks.highlights_message(None, 4));
+        let drawn = pump_until(5.0, || {
+            heard
+                .borrow()
+                .iter()
+                .any(|m| m["type"] == "highlights" && m["ids"].as_array().is_some_and(|ids| ids.iter().any(|i| *i == id.as_str())))
+        });
+        assert!(moved && themed && drawn, "moved {moved}, themed {themed}, drawn {drawn}: {:?}", heard.borrow());
+        let properties = heard
+            .borrow()
+            .iter()
+            .rfind(|m| m["type"] == "theme")
+            .map(|m| m["properties"].to_string())
+            .unwrap_or_default();
+        eprintln!("renderer: theme properties {properties}");
+        assert!(properties.contains("Literata"), "{properties}");
+        pump_until(3.0, || false);
+        let served: Vec<String> = view.requests.borrow().iter().map(|n| format!("{} {}", n.path, n.status)).collect();
+        eprintln!("book: served {served:?}");
+        assert!(served.iter().any(|s| s == "/.storyarc/storyarc-fonts/faces.css 200"), "{served:?}");
+        assert!(!heard.borrow().iter().any(|m| m["type"] == "host-error"), "{:?}", heard.borrow());
+    }
 }
