@@ -642,7 +642,7 @@ mod tests {
                 Some(name.split('(').next()?.to_owned())
             })
             .collect();
-        assert_eq!(exports.len(), 64, "{exports:?}");
+        assert_eq!(exports.len(), 65, "{exports:?}");
         exports
     }
 

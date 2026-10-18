@@ -622,6 +622,23 @@ namespace StoryArc.Interop
         internal static extern int storyarc_secrets_seal(byte* request, nuint request_len, StoryArcBuffer* @out);
 
         /// <summary>
+        ///  Writes the ADR-0006 identity of the file at the UTF-8 path `path` (`path_len` bytes) to
+        ///  `out` as the UTF-8 JSON object `storyarc_progress_read` takes: `contentDigest`, the
+        ///  SHA-256 over the file's length and its first and last 512 KB that the library's own
+        ///  records and both phones carry, and `normalizedPath`. An EPUB, a PDF or an audiobook
+        ///  file files its progress under this, so a move or a second copy finds the same record.
+        ///  A file that is not there is `STORYARC_ERROR_NOT_FOUND`; one that cannot be read is
+        ///  `STORYARC_ERROR_UNREADABLE`. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_file_identity", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_file_identity(byte* path, nuint path_len, StoryArcBuffer* @out);
+
+        /// <summary>
         ///  Opens the EPUB at the UTF-8 path `path` (`path_len` bytes), builds its Readium Web
         ///  Publication Manifest with `self_url` (`self_url_len` bytes) as the manifest's own
         ///  address, and writes an EPUB handle to `out_epub`, freed with `storyarc_epub_free`. A

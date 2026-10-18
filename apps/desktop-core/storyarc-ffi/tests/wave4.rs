@@ -162,6 +162,56 @@ fn an_epub_handle_of_the_wrong_kind_is_refused() {
     unsafe { storyarc_epub_free(ptr::null_mut()) };
 }
 
+#[test]
+fn a_file_has_the_identity_the_store_files_a_comic_under() {
+    let path = fixture("ebooks/fixture.epub");
+    let bytes = path.to_str().unwrap().as_bytes();
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_file_identity(bytes.as_ptr(), bytes.len(), &mut out) },
+        STORYARC_OK,
+        "{}",
+        last_error()
+    );
+    let identity = take_json(out);
+    let digest = identity["contentDigest"].as_str().expect("a digest");
+    assert_eq!(digest.len(), 64);
+    assert!(digest.bytes().all(|b| b.is_ascii_hexdigit()));
+    assert_eq!(identity["normalizedPath"].as_str(), path.to_str());
+    assert!(identity.get("serverIdentifier").is_none());
+
+    // The same digest the library's own record carries for a comic.
+    let comic = fixture("comics/manga-metadata.cbz");
+    let bytes = comic.to_str().unwrap().as_bytes();
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_file_identity(bytes.as_ptr(), bytes.len(), &mut out) },
+        STORYARC_OK
+    );
+    let of_file = take_json(out);
+    let mut handle = ptr::null_mut();
+    assert_eq!(
+        unsafe { storyarc_publication_open(bytes.as_ptr(), bytes.len(), &mut handle) },
+        STORYARC_OK
+    );
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_publication_metadata(handle, &mut out) },
+        STORYARC_OK
+    );
+    let record = take_json(out);
+    assert_eq!(record["identity"], of_file);
+    unsafe { storyarc_publication_free(handle) };
+
+    let missing = b"/nowhere/at/all.epub";
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_file_identity(missing.as_ptr(), missing.len(), &mut out) },
+        STORYARC_ERROR_NOT_FOUND
+    );
+    assert_eq!(out.len, 0);
+}
+
 // ── PDF (task 4.4) ───────────────────────────────────────────────────────────
 
 /// The pinned library, where `pnpm pdfium:fetch` puts it, or wherever `STORYARC_PDFIUM_DIR`

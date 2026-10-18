@@ -97,6 +97,12 @@ void storyarc_folder_free(void *folder);
 int32_t storyarc_publication_open(const uint8_t *path, size_t path_len,
                                   void **out_publication);
 
+/* Writes the ADR-0006 identity of the file at `path` as the UTF-8 JSON object
+ * storyarc_progress_read takes: `contentDigest` (the SHA-256 over the length and the first
+ * and last 512 KB the library's records carry) and `normalizedPath`. An EPUB, a PDF or an
+ * audiobook file files its progress under it. A missing file is STORYARC_ERROR_NOT_FOUND. */
+int32_t storyarc_file_identity(const uint8_t *path, size_t path_len, StoryArcBuffer *out);
+
 /* Writes the number of pages, in reading order, to `out_count`. */
 int32_t storyarc_publication_page_count(const void *publication, uint32_t *out_count);
 

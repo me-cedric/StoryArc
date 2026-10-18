@@ -6,10 +6,13 @@
 use std::ffi::c_void;
 use std::sync::Arc;
 
+use storyarc_core::domain::PublicationIdentity;
 use storyarc_core::epub::WebPublication;
 use storyarc_core::formats::EpubError;
 use storyarc_core::io::{FileSource, RandomAccessSource};
 use storyarc_core::pdf::{PdfDocument, PdfEngine, PdfError};
+use storyarc_core::sources::PublicationIndexer;
+use storyarc_core::sources::index::normalized_path;
 
 use crate::records::{clear, write_bytes, write_json};
 use crate::seam::{borrow, guard, into_handle, release, utf8, write};
@@ -40,6 +43,40 @@ pub(crate) unsafe fn file_source(
     let source =
         FileSource::open(path).map_err(|e| fail(STORYARC_ERROR_UNREADABLE, &e.to_string()))?;
     Ok(Arc::new(source))
+}
+
+/// Writes the ADR-0006 identity of the file at the UTF-8 path `path` (`path_len` bytes) to
+/// `out` as the UTF-8 JSON object `storyarc_progress_read` takes: `contentDigest`, the
+/// SHA-256 over the file's length and its first and last 512 KB that the library's own
+/// records and both phones carry, and `normalizedPath`. An EPUB, a PDF or an audiobook
+/// file files its progress under this, so a move or a second copy finds the same record.
+/// A file that is not there is `STORYARC_ERROR_NOT_FOUND`; one that cannot be read is
+/// `STORYARC_ERROR_UNREADABLE`. Free `out` with `storyarc_buffer_free`.
+///
+/// # Safety
+///
+/// `path` must point to `path_len` readable bytes. `out` must point to one writable
+/// `StoryArcBuffer`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn storyarc_file_identity(
+    path: *const u8,
+    path_len: usize,
+    out: *mut StoryArcBuffer,
+) -> i32 {
+    guard(|| {
+        // SAFETY: the caller's promises, passed on.
+        unsafe { clear(out)? };
+        let source = unsafe { file_source(path, path_len)? };
+        let text = unsafe { utf8(path, path_len, "path")? };
+        let digest = PublicationIndexer::content_digest(source.as_ref())
+            .map_err(|e| fail(STORYARC_ERROR_UNREADABLE, &e.to_string()))?;
+        let identity = PublicationIdentity {
+            server_identifier: None,
+            content_digest: Some(digest),
+            normalized_path: Some(normalized_path(std::path::Path::new(text))),
+        };
+        unsafe { write_json(out, &identity) }
+    })
 }
 
 fn epub_failure(error: &EpubError) -> i32 {
