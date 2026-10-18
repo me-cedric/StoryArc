@@ -72,7 +72,7 @@ public sealed class EpubMarksTests
         var reopened = new EpubMarks(() => file, text => file = text, Order);
         Assert.Equal("A name.", reopened.Highlight(highlight.Id)!.Note);
         var spoken = EpubMarks.SpokenLocator("Spoken.", "OEBPS/ch1.xhtml#start");
-        Assert.Equal("""{"href":"OEBPS/ch1.xhtml","type":"application/xhtml+xml","locations":{},"text":{"highlight":"Spoken."}}""", spoken);
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""{"href":"OEBPS/ch1.xhtml","type":"application/xhtml+xml","locations":{},"text":{"highlight":"Spoken."}}"""), JsonNode.Parse(spoken)), spoken);
         var items = reopened.HighlightItems(spoken);
         Assert.Equal(2, items.Count);
         Assert.Equal("green", items[0]!["color"]!.GetValue<string>());
@@ -115,7 +115,8 @@ public sealed class EpubMarksTests
         Assert.Equal(("One", "Call ", "me", " Ishmael"), (hit.Chapter, hit.Before, hit.Match, hit.After));
         Assert.Equal("OEBPS/ch1.xhtml", EpubPlace.Of(hit.Locator).Href);
         Assert.True(RendererMessage.TryParse("""{"type":"search-results","seq":4,"id":"s2","done":true,"results":[]}""")!.SearchDone());
-        Assert.Equal(One, RendererMessage.TryParse("""{"type":"locator","seq":5,"locator":""" + One + "}")!.LocatorJson());
+        var moved = RendererMessage.TryParse("""{"type":"locator","seq":5,"locator":""" + One + "}")!.LocatorJson();
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(One), JsonNode.Parse(moved!)), moved);
     }
 
     [Fact]
