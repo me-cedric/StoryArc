@@ -65,6 +65,7 @@ struct LibraryWindow: View {
             }
             // A stack per row, so a row's pushed pages are its own.
             .id(selection ?? .destination(.home))
+            .safeAreaInset(edge: .bottom) { CompactPlayerBar(centre: .shared) { openWindow.reader($0) } }
             .toolbar { LibraryToolbarMenus(model: library.model) }
         }
         .searchable(

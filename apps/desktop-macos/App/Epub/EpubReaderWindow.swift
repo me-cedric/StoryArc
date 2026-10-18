@@ -1,6 +1,7 @@
 import AppKit
 import DesignSystem
 import StoryArcCore
+import Playback
 import SwiftUI
 import WebKit
 
@@ -72,6 +73,7 @@ struct EpubReaderWindow: View {
         // The chrome stays up until the book is on screen, then hides after the idle time: a
         // book that takes longer than that to load would otherwise open with its chrome gone.
         .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide(); model.syncHighlights() } }
+        .onChange(of: PlayerCentre.shared.place.partIndex) { _, part in model.follow(part: part) }
         .task { await openReader() }
         .onDisappear { close() }
     }

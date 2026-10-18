@@ -19,7 +19,7 @@ by name, so a scenario added to a spec later is missing here until the walk runs
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 23, seen 11, fail 42, later 0, n/a 10, not walked 6, of 92 scenarios.
+Totals: pass 39, seen 22, fail 15, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as in
 waves 2 and 3. Wave 4 adds four: the EPUB walk over the corpus `fixture.epub` in the Mac's web
@@ -64,48 +64,21 @@ record lists the four bar rows as failures, which is the honest reading until th
 
 ## The failures, in one list
 
-- `ebook-reader` · *Typography controls*: The Mac's theme menu offers the six presets and nothing else: no font size, family, spacing, margin, alignment or brightness axis (`EpubReaderWindow.themeMenu`).
-- `ebook-reader` · *One sheet, two depths*: One level, the presets; there is no second depth because there are no axes.
-- `ebook-reader` · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
-- `ebook-reader` · *Publisher styles*: Publisher styles follow the preset (*Original* keeps them, `EpubReaderModel.axes(of:)`); no control turns them off on their own.
-- `ebook-reader` · *An axis is inert while publisher styles are on*: No axis is shown, so none is marked.
-- `ebook-reader` · *Theme choice*: The six presets apply and the renderer confirms the theme (`EpubWalkTests` applies *Quiet* and *Paper*); no brightness control.
-- `ebook-reader` · *The theme surface opens on the presets*: The menu lists the presets and nothing else; the action that opens the axes is absent with the axes.
-- `ebook-reader` · *Themes are named, not numbered*: Named *Original* to *Focus* (`desktop.epub.theme.*`), as rows of a menu with a check mark; no swatch and no specimen.
-- `ebook-reader` · *The axes, over the reader's own text*: No axes surface.
-- `ebook-reader` · *Getting back to the preset*: Nothing deviates from a preset, so nothing restores one.
-- `ebook-reader` · *Theme follows appearance*: No setting links the appearance to the reading theme; the page keeps its preset in dark mode (wave 4 frame `epub-reader-dark.png`).
-- `ebook-reader` · *Changing type size mid-chapter*: No type size control.
-- `ebook-reader` · *Progress display*: The foot states *Position N of M* (`EpubWalkTests` reads 1 then 2 of 2) and no slider is drawn; the sentence in words with the chapter's remainder is not there, and the position sits in the chrome, which hides.
-- `ebook-reader` · *Moving somewhere else in a reflowable publication*: The manifest carries the table of contents (`EpubWebPublicationTests`); no Mac control shows it.
-- `ebook-reader` · *A publication that declares no chapters*: Follows from the line above: there is no line.
-- `ebook-reader` · *Scroll mode*: Paginated only; no scroll mode is sent to the renderer.
-- `ebook-reader` · *Table of contents*: Built in the manifest, not shown.
-- `ebook-reader` · *Bookmarks*: Not on the Mac in wave 4 (the wave 4 hand-over's owed list).
-- `ebook-reader` · *Highlights and notes*: The renderer posts a selection; the Mac host ignores it. The PDF has the four actions (`PdfTextTests`), the EPUB has none.
-- `ebook-reader` · *Following an internal link*: An internal link moves the reader inside the renderer and posts the new locator; no footnote popover, and no way back is kept for a link (`returnLocator` is set by `go(to:)` alone).
-- `ebook-reader` · *Returning from any jump*: After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by.
-- `ebook-reader` · *Following a link out of the publication*: `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first.
-- `ebook-reader` · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
-- `ebook-reader` · *Leaving the publication while it speaks*: The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken.
-- `ebook-reader` · *The same controls as a narrated book*: Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice.
-- `ebook-reader` · *Where the listening got to*: `MacPlayer.wire` writes the centre's positions for audio formats only; a voice's place is not written, and closing the book writes the reading position.
-- `ebook-reader` · *Getting back to the book*: The Mac draws no compact bar; the voice's transport is the system's Now Playing panel, which offers no way to the book's window.
-- `ebook-reader` · *Opening a different publication*: A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped.
-- `audio-playback` · *The compact bar*: The Mac draws no compact bar: the session outlives the window and the way back is the player window and the Now Playing panel. No design decision dropped the bar on a desktop, so it is listed as missing, where the a11y record called it not applicable.
-- `audio-playback` · *The full player*: `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer.
-- `audio-playback` · *A publication with no cover*: A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it.
-- `audio-playback` · *Both sources look the same*: A voice has no player window on the Mac; it is started and stopped from the EPUB window's Read Aloud button.
-- `audio-playback` · *Sleep timer*: No sleep timer on the Mac in wave 4 (`MacPlaybackPlatform.sleepTimerChanged` is empty).
-- `audio-playback` · *Chapters*: The Chapters menu lists each part by title or number and plays it (`PlayerWindow.settings`); no duration, no finished or in-progress mark, no remaining time.
-- `audio-playback` · *Headphones removed*: No route observer on the Mac (`MacPlayer`); playback goes on through the speaker.
-- `audio-playback` · *The compact bar under a screen reader*: No bar.
-- `audio-playback` · *The compact bar at the largest text size*: No bar.
-- `audio-playback` · *The chapter list on the publication's page*: The Mac's publication page lists no audiobook chapters (`DetailView`).
-- `audio-playback` · *Starting from a chapter*: `MacPlayer.listen(part:)` starts at a chosen part, but no page offers the choice.
-- `audio-playback` · *An audiobook with one part*: No chapter list on the page, so nothing states the duration either.
-- `audio-playback` · *The primary action says where it will resume*: The page's open action names no chapter.
-- `desktop-experience` · *A link inside the book*: The reader moves there; no way back is offered after a link.
+- ebook-reader · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
+- ebook-reader · *Theme choice*: The six presets apply and the renderer confirms the theme (`EpubWalkTests` applies *Quiet* and *Paper*); no brightness control.
+- ebook-reader · *The theme surface opens on the presets*: The menu lists the presets and nothing else; the action that opens the axes is absent with the axes.
+- ebook-reader · *Themes are named, not numbered*: Named *Original* to *Focus* (`desktop.epub.theme.*`), as rows of a menu with a check mark; no swatch and no specimen.
+- ebook-reader · *Theme follows appearance*: No setting links the appearance to the reading theme; the page keeps its preset in dark mode (wave 4 frame `epub-reader-dark.png`).
+- ebook-reader · *Progress display*: The foot states *Position N of M* (`EpubWalkTests` reads 1 then 2 of 2) and no slider is drawn; the sentence in words with the chapter's remainder is not there, and the position sits in the chrome, which hides.
+- ebook-reader · *Returning from any jump*: After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by.
+- ebook-reader · *Following a link out of the publication*: `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first.
+- ebook-reader · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
+- ebook-reader · *Leaving the publication while it speaks*: The voice runs on `PlayerCentre.shared`, which outlives its window (`PlayerWalkTests` shows it for a narrated book); reopening the book shows the saved reading position, not the sentence being spoken.
+- ebook-reader · *The same controls as a narrated book*: Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice.
+- ebook-reader · *Opening a different publication*: A second book replaces the first on the one `PlayerCentre` (StoryArcKit); nothing tells the listener that the voice stopped.
+- audio-playback · *The full player*: `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer.
+- audio-playback · *A publication with no cover*: A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it.
+- desktop-experience · *A link inside the book*: The reader moves there; no way back is offered after a link.
 
 ## ebook-reader
 
@@ -113,29 +86,29 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Reflowable rendering | Typography controls | **fail** | The Mac's theme menu offers the six presets and nothing else: no font size, family, spacing, margin, alignment or brightness axis (`EpubReaderWindow.themeMenu`). |
-| Reflowable rendering | One sheet, two depths | **fail** | One level, the presets; there is no second depth because there are no axes. |
+| Reflowable rendering | Typography controls | pass | `EpubTextPanel` sets size, typeface, bold, margins, line and paragraph spacing, alignment and hyphenation; `EpubTypographyTests` holds the mapping and `EpubWalkTests` reads `--USER__fontSize` 130 % back from the renderer (2026-10-18). |
+| Reflowable rendering | One sheet, two depths | seen | The theme menu holds the presets; the Text panel beside it is the second depth (frame `epub-reader-light.png`, 2026-10-18). |
 | Reflowable rendering | Bundled typefaces | **fail** | No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`). |
-| Reflowable rendering | Publisher styles | **fail** | Publisher styles follow the preset (*Original* keeps them, `EpubReaderModel.axes(of:)`); no control turns them off on their own. |
-| Reflowable rendering | An axis is inert while publisher styles are on | **fail** | No axis is shown, so none is marked. |
+| Reflowable rendering | Publisher styles | pass | Under *Original* the axes the publisher governs are not sent and their rows are disabled with the reason (`EpubTypographyTests`, 2026-10-18). |
+| Reflowable rendering | An axis is inert while publisher styles are on | pass | The spacing, alignment and hyphenation rows are disabled under *Original* with the sentence that says why; `EpubTypographyTests` *Original keeps the publisher's spacing* (2026-10-18). |
 | Reflowable rendering | Fixed-layout EPUB | seen | `EpubWebPublicationTests` *a fixed-layout book says so*: the manifest the renderer reads carries `layout: fixed`; how the bundle paginates it is the renderer's, and the Mac adds no zoom or spread over the web view. |
 | Reader themes | Theme choice | **fail** | The six presets apply and the renderer confirms the theme (`EpubWalkTests` applies *Quiet* and *Paper*); no brightness control. |
 | Reader themes | The theme surface opens on the presets | **fail** | The menu lists the presets and nothing else; the action that opens the axes is absent with the axes. |
 | Reader themes | Themes are named, not numbered | **fail** | Named *Original* to *Focus* (`desktop.epub.theme.*`), as rows of a menu with a check mark; no swatch and no specimen. |
-| Reader themes | The axes, over the reader's own text | **fail** | No axes surface. |
-| Reader themes | Getting back to the preset | **fail** | Nothing deviates from a preset, so nothing restores one. |
+| Reader themes | The axes, over the reader's own text | seen | The Text panel is a popover over the page, so each change is seen on the reader's own text as it is made (2026-10-18). |
+| Reader themes | Getting back to the preset | seen | *Reset text settings* in the Text panel returns every axis to the preset's values (2026-10-18). |
 | Reader themes | Theme follows appearance | **fail** | No setting links the appearance to the reading theme; the page keeps its preset in dark mode (wave 4 frame `epub-reader-dark.png`). |
 | Reader themes | Both levels at the largest text size | seen | Frame `epub-reader-light-largest.png`: the theme menu reads in full at the app's largest size; `AccessibilityAuditTests` at both sizes. One level only. |
-| Pagination and progress | Changing type size mid-chapter | **fail** | No type size control. |
+| Pagination and progress | Changing type size mid-chapter | pass | The size steps keep the locator; the walk changes it mid-book and the renderer reports the new size (2026-10-18). |
 | Pagination and progress | Progress display | **fail** | The foot states *Position N of M* (`EpubWalkTests` reads 1 then 2 of 2) and no slider is drawn; the sentence in words with the chapter's remainder is not there, and the position sits in the chrome, which hides. |
-| Pagination and progress | Moving somewhere else in a reflowable publication | **fail** | The manifest carries the table of contents (`EpubWebPublicationTests`); no Mac control shows it. |
-| Pagination and progress | A publication that declares no chapters | **fail** | Follows from the line above: there is no line. |
-| Pagination and progress | Scroll mode | **fail** | Paginated only; no scroll mode is sent to the renderer. |
-| Navigation and annotation | Table of contents | **fail** | Built in the manifest, not shown. |
-| Navigation and annotation | Bookmarks | **fail** | Not on the Mac in wave 4 (the wave 4 hand-over's owed list). |
-| Navigation and annotation | Highlights and notes | **fail** | The renderer posts a selection; the Mac host ignores it. The PDF has the four actions (`PdfTextTests`), the EPUB has none. |
+| Pagination and progress | Moving somewhere else in a reflowable publication | pass | The Contents menu goes to a chapter with a way back; `EpubWalkTests` goes to the last chapter and back (2026-10-18). |
+| Pagination and progress | A publication that declares no chapters | seen | The Contents menu says the book lists no chapters (`desktop.epub.contents.none`, 2026-10-18). |
+| Pagination and progress | Scroll mode | pass | One flag to the renderer from the Text panel; `EpubTypographyTests` *scroll mode is one flag* (2026-10-18). |
+| Navigation and annotation | Table of contents | pass | The Contents menu from the manifest; `EpubWalkTests` (2026-10-18). |
+| Navigation and annotation | Bookmarks | pass | A bookmark button and a Marks menu over the phones' `BookmarkStore`; `EpubMarksTests` and `EpubWalkTests` (2026-10-18). |
+| Navigation and annotation | Highlights and notes | pass | A selection raises a bar to highlight in five colours; a clicked highlight opens its note; the renderer draws them (`EpubMarksTests`, `EpubWalkTests` reads the renderer's `highlights` reply, 2026-10-18). |
 | Navigation and annotation | Search within a publication | pass | `EpubWalkTests` *The fixture opens, turns, themes, searches and writes where it got to*: `chapter` lists its hits with the text before and after and the chapter, and the first hit moves the reader |
-| Navigation and annotation | Following an internal link | **fail** | An internal link moves the reader inside the renderer and posts the new locator; no footnote popover, and no way back is kept for a link (`returnLocator` is set by `go(to:)` alone). |
+| Navigation and annotation | Following an internal link | seen | A footnote opens in a popover beside the text (`EpubMarksTests`); an internal link still moves the reader with no way back (2026-10-18). |
 | Navigation and annotation | Returning from any jump | **fail** | After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by. |
 | Navigation and annotation | Following a link out of the publication | **fail** | `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first. |
 | Navigation and annotation | A publication reaching the network on its own | pass | `EpubEgressTests`: the eight-vector page, control 8 of 8 arrivals unguarded, 0 of 8 through the rule list, the header and the scheme; *The rules are rules WebKit accepts* |
@@ -158,10 +131,10 @@ Source: `docs/openspec/changes/read-aloud-beyond-the-reader/specs/ebook-reader/s
 | Reading aloud | The same controls as a narrated book | **fail** | Speed and sentence skip work (`ReadAloudTests` *walks the sentences*, `NowPlayingTests` *A voice gets sentence skip*); there is no sleep timer and no full player window for the voice. |
 | Reading aloud | Background and lock screen | pass | `NowPlayingTests` *Playback starting puts the title, the chapter and the position on the panel* and *A voice gets sentence skip in the track buttons and no scrubber*; hidden windows keep playing (`PlayerWalkTests`) |
 | Reading aloud | Reaching the end of a chapter | pass | `ReadAloudTests` *The voice walks the sentences across the chapter boundary, skips by one, and ends with the book* (the last sentence reported is none, so the highlight is withdrawn); `NowPlayingTests` *The entry leaves when playback ends, and when the book runs out* |
-| Reading aloud | Where the listening got to | **fail** | `MacPlayer.wire` writes the centre's positions for audio formats only; a voice's place is not written, and closing the book writes the reading position. |
+| Reading aloud | Where the listening got to | seen | The page follows the voice from chapter to chapter (`EpubReaderModel.follow(part:)`), so closing the book writes the chapter the voice reached (2026-10-18). |
 | Reading aloud | Something else takes the audio | n/a | No audio session on a Mac: nothing takes an app's audio (`MacPlaybackPlatform`); a phone's scenario. |
 | Reading aloud | A publication with nothing to say | pass | `ReadAloudTests` *The EPUB window offers the control only where a voice exists and the book has text*; *With no voice at all the control is absent* |
-| The transport outside the reader | Getting back to the book | **fail** | The Mac draws no compact bar; the voice's transport is the system's Now Playing panel, which offers no way to the book's window. |
+| The transport outside the reader | Getting back to the book | pass | The compact bar at the foot of the library goes back to the book for a voice and to the player for an audiobook; `PlayerWalkTests` (2026-10-18). |
 | The transport outside the reader | Controlling it without going back | seen | Pause, resume and sentence skip through the panel and the media keys (`NowPlayingTests` *The keys drive the one session*); ending the session needs the book's window (the Read Aloud button). |
 | The transport outside the reader | What it says | pass | `NowPlayingTests`: the panel carries the title and the chapter being spoken |
 | The transport outside the reader | It is absent when nothing is playing | pass | `NowPlayingTests` *The entry leaves when playback ends, and when the book runs out* |
@@ -177,29 +150,29 @@ Source: `docs/openspec/changes/audiobooks-and-playback/specs/audio-playback/spec
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| One player for everything that speaks | The compact bar | **fail** | The Mac draws no compact bar: the session outlives the window and the way back is the player window and the Now Playing panel. No design decision dropped the bar on a desktop, so it is listed as missing, where the a11y record called it not applicable. |
+| One player for everything that speaks | The compact bar | pass | `CompactPlayerBar` under the library's detail column while a session runs; `PlayerWalkTests` checks its way back (2026-10-18). |
 | One player for everything that speaks | Nothing is playing | seen | No bar exists, so nothing is drawn and nothing is reserved. |
 | One player for everything that speaks | The full player | **fail** | `PlayerWindow` has the cover slot, the title, the chapter, the position and duration, play and pause, skip back and forward, the scrub slider, the chapters and the speed, on the same session (`PlayerWalkTests` reopens it without a restart); no sleep timer. |
 | One player for everything that speaks | A publication with no cover | **fail** | A headphones glyph in the cover slot (`PlayerWindow.artwork`, frame `player-light.png`); not the kind over the format's name, and the panel is given no artwork for it. |
-| One player for everything that speaks | Both sources look the same | **fail** | A voice has no player window on the Mac; it is started and stopped from the EPUB window's Read Aloud button. |
+| One player for everything that speaks | Both sources look the same | seen | One compact bar for a narrated book and a voice (2026-10-18). |
 | One player for everything that speaks | Playback outlives the publication | pass | `PlayerWalkTests` *keeps playing with its window closed*: the window goes, the session stays, and a second open fronts a window on the same session |
 | One player for everything that speaks | Starting a second thing | not walked | The one-session rule is `PlayerCentre`'s, tested in StoryArcKit; `MacPlayer.listen` does not restart a book that is already playing; no Mac walk starts two. |
 | One player for everything that speaks | Where a listening position is written | seen | `MacPlayer.wire` sends each position the centre reports to the progress store; the moments and the fifteen-second cadence are `PlayerCentre`'s, tested in StoryArcKit. |
 | Playback controls | Speed | pass | `NowPlayingTests` *The speed is stated as a number*; `MacPlayer.wire` recalls and remembers the speed per publication and series; the stops are `PlaybackSpeed.stops` |
 | Playback controls | Skipping | pass | `PlayerWalkTests`: the right arrow skips and the place moves; the controls state 15 and 30 (`gobackward.15`, `goforward.30`); crossing a part is the centre's |
-| Playback controls | Sleep timer | **fail** | No sleep timer on the Mac in wave 4 (`MacPlaybackPlatform.sleepTimerChanged` is empty). |
-| Playback controls | Chapters | **fail** | The Chapters menu lists each part by title or number and plays it (`PlayerWindow.settings`); no duration, no finished or in-progress mark, no remaining time. |
+| Playback controls | Sleep timer | pass | A Sleep menu in the player and in a reader that speaks, on the phones' countdown with a half-second clock; `PlayerWalkTests` counts it down (2026-10-18). |
+| Playback controls | Chapters | pass | The chapters menu states each length, what is left of the one in progress, and its mark (`PlayerMenusTests`, 2026-10-18). |
 | Playback controls | Lock screen and system controls | pass | `NowPlayingTests`: title, chapter, elapsed and duration on the panel, play, pause, skip and seek drive the one session; artwork through `MacCoverPNG` |
 | Playback controls | Something else takes the audio | n/a | No audio session on a Mac. |
-| Playback controls | Headphones removed | **fail** | No route observer on the Mac (`MacPlayer`); playback goes on through the speaker. |
+| Playback controls | Headphones removed | pass | A change of default output while playing pauses (`MacAudioOutput`); `PlayerWalkTests` (2026-10-18). |
 | Reaching the player without sight | Labels and values | pass | `AccessibilityAuditTests` on `player`: every control named, the slider's value in time (`docs/delivery/desktop-a11y-macos.md`) |
-| Reaching the player without sight | The compact bar under a screen reader | **fail** | No bar. |
+| Reaching the player without sight | The compact bar under a screen reader | seen | The bar is one element named *Now Playing* with its open and play controls named (2026-10-18); a VoiceOver session by hand is owed. |
 | Reaching the player without sight | At the largest text size | pass | `AccessibilityAuditTests` at the largest size; frame `player-light-largest.png` |
-| Reaching the player without sight | The compact bar at the largest text size | **fail** | No bar. |
-| Chapters before the first minute | The chapter list on the publication's page | **fail** | The Mac's publication page lists no audiobook chapters (`DetailView`). |
-| Chapters before the first minute | Starting from a chapter | **fail** | `MacPlayer.listen(part:)` starts at a chosen part, but no page offers the choice. |
-| Chapters before the first minute | An audiobook with one part | **fail** | No chapter list on the page, so nothing states the duration either. |
-| Chapters before the first minute | The primary action says where it will resume | **fail** | The page's open action names no chapter. |
+| Reaching the player without sight | The compact bar at the largest text size | seen | The bar's text follows the reader's text size (2026-10-18); not captured. |
+| Chapters before the first minute | The chapter list on the publication's page | pass | `DetailAudioChapters` lists each chapter with its length and mark; `DetailAudioChaptersTests` reads the fixture's three (2026-10-18). |
+| Chapters before the first minute | Starting from a chapter | seen | A chapter on the page starts the book there (`MacPlayer.listen(startingAt:)`, 2026-10-18). |
+| Chapters before the first minute | An audiobook with one part | seen | No list; the page states the book's length (2026-10-18). |
+| Chapters before the first minute | The primary action says where it will resume | pass | *Listen*, *Resume <chapter>* or *Continue Listening*; `DetailAudioChaptersTests` (2026-10-18). |
 | Listening in a car | Continuing in the car | n/a | CarPlay is dropped on a desktop (`design.md` Decision 9). |
 | Listening in a car | Browsing audiobooks in the car | n/a | As above. |
 | Listening in a car | The car's own transport controls | n/a | As above. |

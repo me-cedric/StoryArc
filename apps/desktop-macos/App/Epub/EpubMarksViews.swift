@@ -15,6 +15,19 @@ extension EpubReaderModel {
     /// Draws every highlight on the page; the message replaces what the page had.
     func syncHighlights() { send(json: marks.highlightsJSON) }
 
+    /// The page follows the voice from chapter to chapter, so closing the book while it speaks writes the
+    /// chapter the voice reached (`ebook-reader`, *Where the listening got to*). No way back is kept: the reader
+    /// did not jump.
+    func follow(part: Int) {
+        guard isBeingReadAloud, let all = chapters?.chapters, all.indices.contains(part) else { return }
+        let href = all[part].href
+        guard EpubPlace(locator: locator ?? "{}", chapter: "").resource != href,
+              let target = EpubMarks.json(["href": href, "type": "application/xhtml+xml", "locations": [String: Any]()])
+        else { return }
+        let locator = target
+        send(json: "{\"type\":\"go\",\"locator\":\(locator)}")
+    }
+
     /// Turns the waiting selection into a highlight and draws it.
     func highlightSelection(_ colour: HighlightColour) {
         let chapter = place?.chapter ?? title ?? ""

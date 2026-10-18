@@ -41,11 +41,11 @@ conformance, accessibility, budget or spike record names it or one of its scenar
 **Failures a host cannot explain.** The records list scenarios that do not hold on a desktop
 today because the feature is not there:
 
-- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, 42 of 92): the EPUB reader has the
-  six presets and no typography axes, typefaces or publisher-style control; no table of contents,
-  scroll mode, bookmarks, highlights, footnote popover or way back after a link; read aloud keeps
-  no place and has no sleep timer; the player has no compact bar, no chapter durations or marks,
-  no headphones-removed pause, and the publication page lists no chapters.
+- **The Mac, wave 4** (`desktop-conformance-macos-wave4.md`, 15 of 92 after 2026-10-18's work,
+  42 before): typography, scroll mode, contents, bookmarks, highlights, footnotes, the sleep timer,
+  chapter marks, the headphones pause, the compact bar and the page's chapter list are built. What
+  fails: the bundled typefaces, theme following appearance and the presets as swatches, progress in
+  words, a way back after an internal link, and parts of read aloud's controls and the full player.
 - **The Mac, wave 3** (`desktop-conformance-macos-wave3.md`, 18 of 190): no source renaming or
   reordering, no per-source screen, no OPDS feed browsing (navigation, groups, facets, search), no
   Kavita browsing or server search, no server collections or reading lists.
@@ -80,8 +80,8 @@ and the records. Where the build moved off the plan, the design says so:
    4.22); Linux walked wave 4 headless without writing the record.
 2. The Mac grid resizes at 19 fps at 5,027 publications (`desktop-budgets-macos.md`), and every
    launch rescans the whole folder, about eight minutes for 5,027 archives.
-3. The Windows app has not adopted the core's file identity, listening positions or scaled PDF
-   render; EPUB and PDF progress there is filed under a path until it does.
+3. Resolved 2026-10-18: the Windows app files EPUB and PDF progress by the core's file identity,
+   records narrated listening positions, and renders PDF pages to the view (run 39110775472).
 4. Two Mac snapshot references drift by under 1 % in some local runs (`player`,
    `shelf-collection.dark`).
 

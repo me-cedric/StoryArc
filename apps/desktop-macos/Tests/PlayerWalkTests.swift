@@ -76,6 +76,11 @@ extension WindowWalks {
 
         /// `audio-playback`, *Sleep timer* and *Headphones removed*, on a playing session.
         static func sleepAndOutput(_ centre: PlayerCentre) async throws {
+            // `audio-playback`, *The compact bar*: the running session goes back to its player window.
+            let compact = try #require(centre.compact)
+            #expect(compact.wayBack == .fullPlayer)
+            let back = CompactPlayerBar.target(of: compact.book)
+            #expect(back.url.lastPathComponent == compact.book.url.lastPathComponent)
             // `audio-playback`, *Sleep timer*: a timer set from the menu counts down on the platform's clock.
             centre.setSleepTimer(.after(300))
             let started = try #require(centre.sleep?.remaining)

@@ -2,6 +2,7 @@ import AppKit
 import DesignSystem
 import LibraryFeature
 import StoryArcCore
+import Playback
 import SwiftUI
 
 /// A publication's page, pushed into the content column.
@@ -14,6 +15,8 @@ struct DetailView: View {
 
     let library: MacLibrary
     let publication: Publication
+    /// An audiobook's parts, for the primary action that names the chapter it resumes in.
+    @State private var audioParts: [AudiobookPart] = []
     let onOpen: (Publication) -> Void
     /// Pushes another publication's page: an entry on the series shelf leads to its own page.
     let onShow: (Publication) -> Void
@@ -46,6 +49,13 @@ struct DetailView: View {
                     }
                     Spacer(minLength: 0)
                 }
+                if publication.format.isAudio, let url = library.model.location(of: publication) {
+                    let record = library.record(of: publication)
+                    let progress = library.progress
+                    DetailAudioChapters(publication: publication, url: url, record: record) { part in
+                        Task { await MacPlayer.listen(to: publication, at: url, startingAt: part, progress: progress) }
+                    }
+                }
                 if let summary = publication.summary, !summary.isEmpty {
                     Text(summary).foregroundStyle(theme.palette.textPrimary).frame(maxWidth: 640, alignment: .leading)
                 }
@@ -56,6 +66,10 @@ struct DetailView: View {
         }
         .background(DetailWashBackground(library: library, publication: publication))
         .navigationTitle(publication.displayTitle)
+        .task(id: publication.id) {
+            guard publication.format.isAudio, let url = library.model.location(of: publication) else { return }
+            audioParts = await DetailAudioChapters.parts(of: url)
+        }
     }
 
     private var presentation: DetailPresentation {
@@ -83,8 +97,16 @@ struct DetailView: View {
     private func primary(_ detail: DetailPresentation) -> some View {
         switch detail.primary {
         case .read:
-            Button { onOpen(publication) } label: { Text("desktop.detail.read").onAccentLabel() }
+            Button { onOpen(publication) } label: {
+                Text(publication.format.isAudio ? "desktop.detail.listen" : "desktop.detail.read").onAccentLabel()
+            }
                 .buttonStyle(.borderedProminent).tint(theme.accent)
+        case .continue where publication.format.isAudio:
+            Button { onOpen(publication) } label: {
+                let words = DetailAudioChapters.primary(library.record(of: publication), parts: audioParts)
+                Text(words.key).onAccentLabel()
+            }
+            .buttonStyle(.borderedProminent).tint(theme.accent)
         case let .continue(page, total):
             Button { onOpen(publication) } label: { Text("desktop.detail.continue \(page) \(total)").onAccentLabel() }
                 .buttonStyle(.borderedProminent).tint(theme.accent)
