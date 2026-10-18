@@ -40,12 +40,15 @@ pub const RULE_LIST_ID: &str = "com.mecedric.StoryArc.publication-egress";
 
 /// The Content-Security-Policy every answer carries: nothing but the scheme itself,
 /// inline script and style (the renderer and the book need both), and `data:` and `blob:`
-/// for what the renderer makes. No form, no base, no plugin, no connection elsewhere.
+/// for what the renderer makes. A chapter is a `blob:` document that inherits this policy,
+/// so the stylesheets and scripts the navigator injects as blobs need `blob:` too. No form,
+/// no base, no plugin, no connection elsewhere.
 pub const CSP: &str = "default-src 'none'; \
-script-src storyarc-epub: 'unsafe-inline'; \
-style-src storyarc-epub: 'unsafe-inline'; \
+script-src storyarc-epub: blob: 'unsafe-inline'; \
+style-src storyarc-epub: blob: 'unsafe-inline'; \
 img-src storyarc-epub: data: blob:; \
-font-src storyarc-epub: data:; \
+font-src storyarc-epub: data: blob:; \
+worker-src storyarc-epub: blob:; \
 media-src storyarc-epub: blob:; \
 connect-src storyarc-epub: blob:; \
 frame-src storyarc-epub: blob:; \
@@ -80,7 +83,11 @@ impl Route {
             READER_PATH => Self::Reader,
             BUNDLE_PATH => Self::Bundle,
             MANIFEST_PATH => Self::Manifest,
-            _ => Self::Resource(percent_decode(&path[1..])),
+            // The manifest sits in the host folder, so the renderer resolves the book's
+            // hrefs against it: a container path arrives with that folder in front.
+            _ => Self::Resource(percent_decode(
+                path.strip_prefix("/.storyarc/").unwrap_or(&path[1..]),
+            )),
         })
     }
 }
@@ -235,7 +242,8 @@ pub fn reader_page(
   try {{
     var response = await fetch("{MANIFEST_PATH}");
     var manifest = await response.json();
-    var reader = StoryArcEpub.open({{
+    // `open` is async: the door takes the reader, not the promise of one.
+    var reader = await StoryArcEpub.open({{
       container: document.getElementById("book"),
       manifest: manifest,
       positions: {positions_json},
@@ -339,6 +347,10 @@ mod tests {
             Route::of("storyarc-epub://book/OEBPS/ch%201.xhtml#p2"),
             Some(Route::Resource("OEBPS/ch 1.xhtml".into()))
         );
+        assert_eq!(
+            Route::of("storyarc-epub://book/.storyarc/OEBPS/ch1.xhtml"),
+            Some(Route::Resource("OEBPS/ch1.xhtml".into()))
+        );
         assert_eq!(Route::of("storyarc-epub://other/OEBPS/a.xhtml"), None);
         assert_eq!(Route::of("https://book/OEBPS/a.xhtml"), None);
     }
@@ -383,6 +395,7 @@ mod tests {
         assert!(page.contains(r#"locator: {"href":"a"}"#));
         assert!(!page.contains("http://") && !page.contains("https://"));
         assert!(reader_page("[]", None, None).contains("locator: null"));
+        assert!(reader_page("[]", None, None).contains("var reader = await StoryArcEpub.open("));
         assert!(reader_page("[]", None, Some(r#"{"scroll":true}"#)).contains(r#"preferences: {"scroll":true}"#));
         assert_eq!(
             receive_script(r#"{"type":"next"}"#),

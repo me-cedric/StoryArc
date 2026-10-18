@@ -519,8 +519,10 @@ pub fn linking(bytes: Vec<u8>, media_type: &str) -> Vec<u8> {
     let Some(close) = text.to_ascii_lowercase().find("</head>") else {
         return text.into_bytes();
     };
+    // Under the host folder: the navigator's frame policy allows the manifest's folder only,
+    // and the router takes the folder off again.
     let link = format!(
-        "<link rel=\"stylesheet storyarc-fonts\" type=\"text/css\" href=\"{SCHEME}://{BOOK_HOST}/{FONT_SHEET}\"/>"
+        "<link rel=\"stylesheet storyarc-fonts\" type=\"text/css\" href=\"{SCHEME}://{BOOK_HOST}/.storyarc/{FONT_SHEET}\"/>"
     );
     let mut out = String::with_capacity(text.len() + link.len());
     out.push_str(&text[..close]);
@@ -670,7 +672,7 @@ mod tests {
         let chapter = linking(b"<html><HEAD><title>x</title></HEAD><body/></html>".to_vec(), "application/xhtml+xml");
         let chapter = String::from_utf8(chapter).unwrap();
         assert!(chapter.contains("rel=\"stylesheet storyarc-fonts\""));
-        assert!(chapter.contains("storyarc-epub://"));
+        assert!(chapter.contains("storyarc-epub://book/.storyarc/storyarc-fonts/faces.css"));
         assert!(chapter.find("storyarc-fonts").unwrap() < chapter.find("</HEAD>").unwrap());
         assert_eq!(linking(b"body{}".to_vec(), "text/css"), b"body{}");
     }
