@@ -57,10 +57,12 @@ today because the feature is not there:
   headless walk and the code): the EPUB window turns pages, reads one chapter aloud and confirms a
   link out, and has no typography, themes, contents, bookmarks, highlights or search; the player
   has no compact bar, full player, sleep timer or chapter list.
-- **Windows, wave 4** (`desktop-conformance-windows-wave4.md`, 33 of 92, written the same day):
-  the same EPUB gaps, the scanned-PDF sentence, the spoken-sentence highlight, the coverless
-  player and the page's chapter list. Every other Windows scenario is *wired, not proved* until a
-  desktop.
+- **Windows, wave 4** (`desktop-conformance-windows-wave4.md`, none of 92 after 2026-10-18's work,
+  33 before): the EPUB window gained the reading themes, the five faces, the contents, bookmarks,
+  highlights, search and a way back; a text PDF selects in its page text and a scanned PDF says
+  it is images; the spoken sentence is drawn; the player writes each listening moment and draws
+  the coverless well; an audiobook's page lists its chapters. Interop tests and the Windows build
+  are green on CI. Every Windows scenario is *wired, not proved* until a desktop.
 
 ## Coherence: the design
 
@@ -79,9 +81,8 @@ and the records. Where the build moved off the plan, the design says so:
 **Critical** (block the archive)
 
 1. 74 tasks are open; `/opsx:archive` must wait for the host pass and the owner's decisions.
-2. The Mac's wave 3 and wave 4 records list no failure since 2026-10-18. Linux fails 49 and
-   Windows 33 of the 92 wave 4 scenarios: the ebook-reader and audio-playback features the Mac
-   gained that day are not built there.
+2. The Mac's wave 3 and wave 4 records and the Windows wave 4 record list no failure since
+   2026-10-18. Linux still fails some of the 92 wave 4 scenarios; its record holds the count.
 3. *Opening a link or a command* is built and tested on all three desktops (task 5.8) but no
    conformance record walks it; the wave 5 records should.
 
