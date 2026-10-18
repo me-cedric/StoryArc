@@ -44,7 +44,13 @@ extension WindowWalks {
     @MainActor
     @Suite("Curl walk")
     struct CurlWalkTests {
-        @Test("Each key turn in Curl is drawn by the shader, frame by frame, and lands one page on")
+        @Test(
+            "Each key turn in Curl is drawn by the shader, frame by frame, and lands one page on",
+            // An Xcode without the Metal toolchain (the CI runner's 26.6) builds no shader library,
+            // and then the curl is absent by design; the absence has its own tests.
+            .enabled(if: MacCurlShader.isPresent, "this build carries no compiled shader library"),
+            .enabled(if: !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion, "Reduce Motion is on")
+        )
         func keyTurnsCurl() async throws {
             let library = try await Walk.fixtureLibrary()
             let publication = try #require(Walk.publication(named: "natural-sort", in: library))
