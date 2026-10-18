@@ -182,8 +182,13 @@ extension LibraryModel {
         // know that the walk cannot account for everything it was asked about.
         let unreadable = Mutex(false)
 
+        // `local-library`'s reconcile: a file whose size and date still match its row on the shelf is handed back as
+        // it is instead of reopened, which is where a launch spent its minutes (`desktop-budgets-macos.md`, 5,027
+        // archives in about eight). Only rows with a content digest, as `LibraryScanner.scan`'s `known` requires.
+        let shelf = shelfByPath()
         let walk = LibraryScanner.scan(
             folderAt: folder,
+            known: { shelf[($0.path as NSString).standardizingPath] },
             skipping: done,
             onUnreadableFolder: { _ in unreadable.withLock { $0 = true } }
         )
@@ -215,6 +220,14 @@ extension LibraryModel {
             }
         }
         return unreadable.withLock { $0 }
+    }
+
+    /// The shelf's local publications that carry a content digest, by the standardized path of their file.
+    func shelfByPath() -> [String: Publication] {
+        publications.reduce(into: [:]) { shelf, publication in
+            guard publication.identity.contentDigest != nil, let file = locations[publication.id] else { return }
+            shelf[(file.path as NSString).standardizingPath] = publication
+        }
     }
 
     /// Walks every folder again, without emptying the shelf first.

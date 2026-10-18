@@ -191,7 +191,7 @@ let package = Package(
         .testTarget(
             name: "LibraryFeatureTests",
             dependencies: [
-                "LibraryFeature", "Catalogue", "Kavita", "Persistence",
+                "LibraryFeature", "Catalogue", "Formats", "Kavita", "Persistence",
                 "Playback", "StoryArcCore", "Smb",
             ]
         ),
