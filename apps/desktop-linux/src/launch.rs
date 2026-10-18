@@ -3,7 +3,9 @@
 //! line reach the running instance through `GApplication`; windows take dropped files;
 //! the Open File dialog goes through the portal; each opened file is recorded with
 //! `GtkRecentManager`; and the entry's static actions arrive as command-line options.
-//! What to open is `opening.rs`.
+//! A `storyarc://` link (task 5.8) arrives through the same open signal, as the entry's
+//! `x-scheme-handler/storyarc` and its `%U` hand it over. What to open is `opening.rs`,
+//! what a link means is `link.rs`.
 
 use std::ops::ControlFlow;
 use std::path::{Path, PathBuf};
@@ -12,11 +14,12 @@ use adw::prelude::*;
 use gtk::{gdk, gio, glib};
 
 use crate::app::Shared;
+use crate::link::{self, LinkAction};
 use crate::opening::{Kind, LaunchAction, OpenPlan};
 use crate::publication::Publication;
 use crate::session;
 use crate::windows::Open;
-use crate::{library_window, portal, reader_window, sources};
+use crate::{library_window, portal, reader_window, remote_browse, sources};
 
 /// The types the desktop entry declares; the Open File dialog offers the same.
 const COMIC_TYPES: [&str; 5] = [
@@ -63,12 +66,62 @@ pub fn install(application: &adw::Application, shared: &Shared) {
     });
     let on = shared.clone();
     application.connect_open(move |_, files, _| {
+        let (links, files): (Vec<_>, Vec<_>) =
+            files.iter().partition(|file| link::is_link(&file.uri()));
         let paths: Vec<PathBuf> = files
             .iter()
             .map(|file| file.path().unwrap_or_else(|| PathBuf::from(file.uri())))
             .collect();
-        open_paths(&on, &paths);
+        if !paths.is_empty() {
+            open_paths(&on, &paths);
+        }
+        for link in links {
+            follow_link(&on, &link.uri());
+        }
     });
+}
+
+/// Follows a `storyarc://` link: a publication opens as a dropped file does, a source is
+/// shown, an unknown name is said in grey, and anything else is logged and refused.
+pub fn follow_link(shared: &Shared, link: &str) {
+    let mut sources: Vec<(String, String)> = shared
+        .remote
+        .records()
+        .into_iter()
+        .map(|record| (record.id, record.name))
+        .collect();
+    sources.extend(
+        shared
+            .sources
+            .summary()
+            .into_iter()
+            .map(|(name, _, _)| (name.clone(), name)),
+    );
+    match link::resolve(link, &shared.sources.publications(), &sources) {
+        LinkAction::OpenPublication(path) => open_paths(shared, &[PathBuf::from(path)]),
+        LinkAction::ShowSource(id) => {
+            let remote = shared
+                .remote
+                .records()
+                .iter()
+                .position(|record| record.id == id);
+            show_library(shared, LaunchAction::Library);
+            if let Some(index) = remote {
+                remote_browse::open(shared, index);
+            }
+        }
+        LinkAction::NotFound(name) => notify(
+            shared,
+            &[crate::strings::tr_args(
+                "link.notFound %s",
+                "Nothing named “%s” in your library",
+                &[&name],
+            )],
+        ),
+        LinkAction::Refused => {
+            glib::g_warning!(session::LOG_DOMAIN, "link refused: {link}");
+        }
+    }
 }
 
 /// The application actions the entry's static actions run.

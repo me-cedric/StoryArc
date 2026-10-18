@@ -2,6 +2,8 @@
 # Build and test StoryArc inside a distro container, with that distro's own packages.
 # Usage: container-build.sh <ubuntu-24.04|arch|manjaro|fedora> [--clippy]
 # --clippy also runs cargo clippy on storyarc-linux with warnings denied.
+# The arch and manjaro rows also build the AUR package from the working tree with makepkg and
+# install it (task 6.6): the tree is packed as the release tarball the PKGBUILD names.
 # The repository mounts read-only. The target and cargo caches live in named docker volumes.
 # CARGO_BUILD_JOBS defaults to 3: an 8 GB Docker VM runs out of memory when the linker runs
 # ten test binaries at once (ld terminated with signal 9).
@@ -62,6 +64,24 @@ pdfium='case "$(uname -m)" in x86_64) p=linux-x64 ;; aarch64) p=linux-arm64 ;; *
     export STORYARC_PDFIUM_DIR=/target/pdfium/lib
   fi'
 
+# The AUR package (arch and manjaro): the working tree packed as the tag tarball the PKGBUILD
+# fetches, built by makepkg as an unprivileged user with the cargo cache on the target volume,
+# then installed with pacman and checked for the pieces it must leave.
+aur=""
+case "$distro" in arch|manjaro) aur='ver=$(sed -n "s/^version = \"\(.*\)\"/\1/p" Cargo.toml | head -1)
+  id builder >/dev/null 2>&1 || useradd -m builder
+  work=$(mktemp -d /tmp/aur.XXXXXX); mkdir -p /target/aur-cargo /target/aur-target
+  cp apps/desktop-linux/packaging/aur/PKGBUILD "$work/"
+  tar -czf "$work/storyarc-$ver.tar.gz" --exclude=./.git --exclude=./node_modules --exclude=./.build --exclude=./.claude --transform "s,^\./,StoryArc-$ver/," -C /src .
+  chown -R builder "$work" /target/aur-cargo /target/aur-target
+  su builder -c "cd $work && CARGO_HOME=/target/aur-cargo CARGO_TARGET_DIR=/target/aur-target CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-3} makepkg --skipchecksums --noconfirm && makepkg --printsrcinfo > .SRCINFO"
+  pacman -U --noconfirm "$work"/storyarc-*.pkg.tar.zst
+  test -x /usr/lib/storyarc/storyarc && test -f /usr/lib/storyarc/libpdfium.so && test -L /usr/bin/storyarc
+  test -x /usr/bin/storyarc-thumbnailer && test -f /usr/share/thumbnailers/com.mecedric.StoryArc.thumbnailer
+  desktop-file-validate /usr/share/applications/com.mecedric.StoryArc.desktop
+  /usr/bin/storyarc-thumbnailer -s 64 packages/test-fixtures/comics/single-page.cbz "$work/cover.png" && test -s "$work/cover.png"
+  echo "AUR package installed: $(pacman -Q storyarc)"; echo "--- .SRCINFO"; cat "$work/.SRCINFO"' ;; esac
+
 # The same two commands as pnpm test:desktop:core and pnpm build:linux, plus the data file checks.
 run="set -e
   cargo --version
@@ -71,7 +91,8 @@ run="set -e
   cargo test --locked -p storyarc-linux
   $lint
   desktop-file-validate apps/desktop-linux/data/com.mecedric.StoryArc.desktop
-  appstreamcli validate --no-net apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml"
+  appstreamcli validate --no-net apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml
+  $aur"
 
 # storyarc-ffi's build.rs regenerates generated/NativeMethods.g.cs into the source tree on every
 # build. A tmpfs over that one directory takes the write, so the repository mount stays read-only.

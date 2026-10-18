@@ -1,0 +1,4 @@
+[Thumbnailer Entry]
+TryExec=storyarc-thumbnailer
+Exec=storyarc-thumbnailer -s %s %i %o
+MimeType=application/vnd.comicbook+zip;application/x-cbz;application/vnd.comicbook-rar;application/x-cbr;application/x-cbt;

@@ -343,10 +343,16 @@ impl Reader {
             });
         let generation = self.generation.get();
         let publication = self.publication.clone();
+        // shortcut: a page keeps the size it decoded at; a later resize or move to another
+        // display does not re-render it. Re-request on a scale change if that shows blur.
+        let view = (
+            self.window.width().max(self.window.height()),
+            self.window.scale_factor(),
+        );
         let weak = Rc::downgrade(self);
         glib::spawn_future_local(async move {
             let decoded = gio::spawn_blocking(move || {
-                publication.decode_adjusted(index, MAX_DECODE_EDGE, &adjustments)
+                publication.decode_adjusted(index, MAX_DECODE_EDGE, view, &adjustments)
             })
             .await;
             let Some(reader) = weak.upgrade() else {

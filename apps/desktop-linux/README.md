@@ -102,6 +102,27 @@ floor. It is path-filtered, so mobile CI is unaffected.
 `headless-proof.sh` runs the display and bus tests under cage with a session bus and an
 accessibility bus; the gate `container-build.sh` runs the rest and skips these by name.
 
+## Wave 5 and 6: the link, the notices, the thumbnailer
+
+| Part | Where | How it is proved |
+| --- | --- | --- |
+| `storyarc://` link | `src/link.rs` (what a link means), `launch.rs` (the open signal), `x-scheme-handler/storyarc` and `%U` in the desktop entry | `link::tests` hold the three scenarios; `headless-proof.sh --walk <dir> wave5-walk.sh` hands four links to the running app from a second instance. |
+| Third-party notices | `src/about.rs` embeds `THIRD_PARTY_NOTICES.md` as the About dialog's legal section | `about::tests::the_generated_notices_list_pdfium_and_libarchive`. |
+| Thumbnailer | `src/thumbnailer.rs`, the `storyarc-thumbnailer` binary, and `data/com.mecedric.StoryArc.thumbnailer` | `cargo test -p storyarc-linux --bin storyarc-thumbnailer`: a comic yields a PNG at the size asked, a damaged file yields none and nothing is written. A file manager showing covers is owed by a host. |
+
+The thumbnailer is for source and AUR builds only. `flatpak build-finish` exports desktop
+files, icons, D-Bus services and metainfo from a Flatpak and never `share/thumbnailers`,
+so the Flatpak build shows no covers in the file manager. Install it beside the app:
+
+```bash
+install -Dm755 target/release/storyarc-thumbnailer /usr/local/bin/storyarc-thumbnailer
+install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.thumbnailer /usr/local/share/thumbnailers/com.mecedric.StoryArc.thumbnailer
+```
+
+GNOME Files and the other GIO file managers read `share/thumbnailers` and run
+`storyarc-thumbnailer -s <size> <file> <png>` for each comic. It opens no store and
+writes no history.
+
 ## Distros and build dependencies
 
 Targets: Arch, Manjaro, Ubuntu 24.04, Pop!_OS 24.04 and Fedora. All versions were
@@ -135,6 +156,34 @@ package of it is installed or linked.
 
 Rust: Ubuntu 24.04 ships at most `rustc-1.91`, which is below the `gtk4` 0.11
 floor of 1.92. Use `rustup`. The workspace sets `rust-version = "1.92"`.
+
+### Building from source
+
+The same steps on every distro once the table's packages are installed: build the
+release binaries, put the pinned PDFium beside the app binary (the core looks for
+`libpdfium.so` next to the running executable), and install the data files.
+
+```bash
+cargo build --locked --release -p storyarc-linux
+node scripts/pdfium-fetch.mjs --platform linux-x64        # or linux-arm64; checks pin.json
+sudo install -Dm755 target/release/storyarc /usr/local/lib/storyarc/storyarc
+sudo install -Dm755 .build/pdfium/lib/libpdfium.so /usr/local/lib/storyarc/libpdfium.so
+sudo ln -sf /usr/local/lib/storyarc/storyarc /usr/local/bin/storyarc
+sudo install -Dm755 target/release/storyarc-thumbnailer /usr/local/bin/storyarc-thumbnailer
+sudo install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.desktop -t /usr/local/share/applications
+sudo install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml -t /usr/local/share/metainfo
+sudo install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.thumbnailer -t /usr/local/share/thumbnailers
+sudo install -Dm644 apps/desktop-linux/data/icons/hicolor/scalable/apps/com.mecedric.StoryArc.svg -t /usr/local/share/icons/hicolor/scalable/apps
+```
+
+| Distro | Before the steps above |
+| --- | --- |
+| Ubuntu 24.04, Pop!_OS 24.04 | `sudo apt install build-essential pkg-config libgtk-4-dev libadwaita-1-dev libwebkitgtk-6.0-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-good gstreamer1.0-libav`, then `rustup` (the distro's Rust is too old). |
+| Fedora | `sudo dnf install gcc gcc-c++ make pkgconf-pkg-config gtk4-devel libadwaita-devel webkitgtk6.0-devel gstreamer1-devel gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel gstreamer1-plugins-good cargo rust`. |
+| Arch, Manjaro | Use the AUR package instead: `cd apps/desktop-linux/packaging/aur && makepkg -si`. The `PKGBUILD` fetches the tag tarball and the pinned PDFium, builds with `cargo --frozen`, and installs the binary, the thumbnailer, PDFium under `/usr/lib/storyarc/` and the data files. `container-build.sh arch` and `container-build.sh manjaro` build it from the working tree and install it as the proof. |
+
+The release tarball's digest in the `PKGBUILD` is `SKIP` until the first tag exists; fill it
+with the tag.
 
 Fedora risk: the `webkitgtk` source package is orphaned. Updates still flow. If
 Fedora retires it, a Fedora source build loses `webkitgtk6.0-devel`. The Flatpak

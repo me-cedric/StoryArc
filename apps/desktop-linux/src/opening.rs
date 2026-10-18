@@ -182,8 +182,10 @@ mod tests {
                 action.name()
             );
         }
-        assert!(entry.contains("Exec=storyarc %F"));
+        // `%U`, not `%F`: a `storyarc://` link (task 5.8) is a URI the entry must pass on.
+        assert!(entry.contains("Exec=storyarc %U"));
         assert!(entry.contains("MimeType="));
+        assert!(entry.contains("x-scheme-handler/storyarc;"));
         assert!(!entry.contains("application/x-cb7"));
     }
 

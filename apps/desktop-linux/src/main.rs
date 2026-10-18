@@ -32,6 +32,7 @@ mod library_search;
 mod library_selection;
 mod library_views;
 mod library_window;
+mod link;
 mod menus;
 mod mpris;
 mod network_ui;
@@ -259,6 +260,21 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             glib::g_message!(session::LOG_DOMAIN, "reader-action {name}: {outcome:?}");
         })
         .build();
+    // `preferences-page "'appearance'"` presents the preferences on a named page, for the
+    // walks: the dialog's view switcher takes no key under cage.
+    let on = shared.clone();
+    let preferences_page = gio::ActionEntry::builder("preferences-page")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |app: &adw::Application, _, parameter| {
+            preferences_dialog::present(&on, app.active_window().as_ref());
+            if let (Some(dialog), Some(name)) = (
+                on.preferences_dialog.borrow().as_ref(),
+                parameter.and_then(|value| value.get::<String>()),
+            ) {
+                dialog.set_visible_page_name(&name);
+            }
+        })
+        .build();
     let on = shared.clone();
     let show_shelf = gio::ActionEntry::builder("show-shelf")
         .parameter_type(Some(glib::VariantTy::STRING))
@@ -273,6 +289,7 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
     application.add_action_entries([
         library_action,
         reader_action,
+        preferences_page,
         show_shelf,
         quit,
         preferences,

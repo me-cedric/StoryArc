@@ -487,15 +487,19 @@ mod tests {
     }
 
     fn playerctl_walk(context: &glib::MainContext) {
-        if Process::new("dbus-daemon")
-            .arg("--version")
-            .output()
-            .is_err()
-        {
+        // A tool counts only when it runs: under emulated amd64 a missing program can spawn
+        // as Ok with a failing status instead of an error (the Arch row on Apple silicon).
+        let runs = |tool: &str| {
+            Process::new(tool)
+                .arg("--version")
+                .output()
+                .is_ok_and(|output| output.status.success())
+        };
+        if !runs("dbus-daemon") {
             eprintln!("skipped: no dbus-daemon");
             return;
         }
-        if Process::new("playerctl").arg("--version").output().is_err() {
+        if !runs("playerctl") {
             eprintln!("skipped: no playerctl");
             return;
         }

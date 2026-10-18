@@ -278,6 +278,7 @@ impl Browser {
                 publication.decode_adjusted(
                     index,
                     THUMBNAIL_EDGE,
+                    (0, 1),
                     &storyarc_core::domain::ImageAdjustments::default(),
                 )
             })

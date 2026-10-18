@@ -124,11 +124,13 @@ pub fn present(shared: &Shared, parent: Option<&gtk::Window>) {
 
     let appearance_page = adw::PreferencesPage::builder()
         .title(tr("settings.appearance", "Appearance"))
+        .name("appearance")
         .icon_name("preferences-desktop-appearance-symbolic")
         .build();
     appearance_page.add(&appearance);
     let reading_page = adw::PreferencesPage::builder()
         .title(tr("settings.reading", "Reading"))
+        .name("reading")
         .icon_name("view-paged-symbolic")
         .build();
     reading_page.add(&reading);
