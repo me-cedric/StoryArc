@@ -613,6 +613,16 @@ msgstr "Sync folder: %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "No sync folder chosen"
 
+msgid "desktop.w4.epub.leave.open"
+msgstr "Open in Browser"
+
+msgid "desktop.w4.epub.leave.stay"
+msgstr "Stay in the Book"
+
+#, c-format
+msgid "desktop.w4.epub.leave.title___"
+msgstr "Open a page on %s?"
+
 msgid "desktop.w4.epub.noWebView"
 msgstr "This book needs the WebView2 runtime, which this PC does not have"
 

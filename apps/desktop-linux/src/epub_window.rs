@@ -21,6 +21,7 @@ use storyarc_core::sources::PublicationIndexer;
 use crate::app::Shared;
 use crate::epub_host;
 use crate::epub_view::{EpubView, Guards, Served};
+use crate::epub_view::{confirm_leaving, outward};
 use crate::opening;
 use crate::player;
 use crate::progress::ProgressWriter;
@@ -118,12 +119,8 @@ impl EpubReader {
                     .turned(position - 1, Instant::now());
             }
             "link" => {
-                if let Some(href) = message["href"].as_str() {
-                    gtk::UriLauncher::new(href).launch(
-                        Some(&self.window),
-                        None::<&gio::Cancellable>,
-                        |_| {},
-                    );
+                if let Some((uri, host)) = message["href"].as_str().and_then(outward) {
+                    confirm_leaving(self.window.upcast_ref(), uri, &host);
                 }
             }
             "host-error" | "navigation-failed" => {

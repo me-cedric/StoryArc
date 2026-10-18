@@ -774,6 +774,18 @@
     <value>No se eligió carpeta de sincronización</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_epub_leave_open" xml:space="preserve">
+    <value>Abrir en el navegador</value>
+    <comment>desktop.w4.epub.leave.open</comment>
+  </data>
+  <data name="desktop_w4_epub_leave_stay" xml:space="preserve">
+    <value>Quedarse en el libro</value>
+    <comment>desktop.w4.epub.leave.stay</comment>
+  </data>
+  <data name="desktop_w4_epub_leave_title___" xml:space="preserve">
+    <value>¿Abrir una página en {0}?</value>
+    <comment>desktop.w4.epub.leave.title___</comment>
+  </data>
   <data name="desktop_w4_epub_noWebView" xml:space="preserve">
     <value>Este libro necesita el entorno WebView2, que este PC no tiene</value>
     <comment>desktop.w4.epub.noWebView</comment>

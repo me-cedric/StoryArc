@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.Web.WebView2.Core;
 using StoryArc.Interop.Epub;
@@ -249,12 +251,29 @@ public sealed partial class EpubReaderWindow : Window, IPublicationWindow
                 _host.ReaderMoved(State());
                 break;
             case "link" when message.OutboundLink() is { } outbound:
-                // A link out of the publication opens in the system browser, never inside the web view (ebook-reader, "Following a link out of the publication").
-                _ = Launcher.LaunchUriAsync(outbound);
+                // A link out of the publication opens in the system browser, never inside the web view, and only once the reader confirmed its host (ebook-reader, "Following a link out of the publication").
+                _ = ConfirmLeavingAsync(outbound);
                 break;
             case "host-error":
                 ShowUnavailable(Strings.Get("reader_pageUnavailable", "This page could not be read"));
                 break;
+        }
+    }
+
+    private async Task ConfirmLeavingAsync(Uri outbound)
+    {
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = string.Format(CultureInfo.CurrentCulture, Strings.Get("desktop_w4_epub_leave_title___", "Open a page on {0}?"), outbound.Host),
+            Content = outbound.AbsoluteUri,
+            PrimaryButtonText = Strings.Get("desktop_w4_epub_leave_open", "Open in Browser"),
+            CloseButtonText = Strings.Get("desktop_w4_epub_leave_stay", "Stay in the Book"),
+            DefaultButton = ContentDialogButton.Close,
+        };
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            _ = Launcher.LaunchUriAsync(outbound);
         }
     }
 

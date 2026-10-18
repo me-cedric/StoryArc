@@ -16,6 +16,7 @@ use webkit::prelude::*;
 use webkit::soup;
 
 use crate::epub_host::{self, Answer, CSP, Navigation, RULE_LIST, RULE_LIST_ID, Route, SCHEME};
+use crate::strings::{tr, tr_args};
 
 /// What the view serves: one book's documents and resources.
 pub trait Served {
@@ -119,7 +120,7 @@ impl EpubView {
             .settings(&settings)
             .build();
         if guards.policy {
-            web_view.connect_decide_policy(|_, decision, kind| decide(decision, kind));
+            web_view.connect_decide_policy(decide);
         }
         Ok(Self {
             web_view,
@@ -232,7 +233,11 @@ fn answer(
 
 /// A navigation inside the scheme goes ahead; a web link opens in the system's browser
 /// and the book stays; anything else is dropped. Responses are left to WebKit.
-fn decide(decision: &webkit::PolicyDecision, kind: webkit::PolicyDecisionType) -> bool {
+fn decide(
+    view: &webkit::WebView,
+    decision: &webkit::PolicyDecision,
+    kind: webkit::PolicyDecisionType,
+) -> bool {
     if kind != webkit::PolicyDecisionType::NavigationAction
         && kind != webkit::PolicyDecisionType::NewWindowAction
     {
@@ -251,11 +256,9 @@ fn decide(decision: &webkit::PolicyDecision, kind: webkit::PolicyDecisionType) -
         }
         Navigation::OpenOutside => {
             decision.ignore();
-            gtk::UriLauncher::new(&uri).launch(
-                None::<&gtk::Window>,
-                None::<&gio::Cancellable>,
-                |_| {},
-            );
+            if let Some((uri, host)) = outward(&uri) {
+                confirm_leaving(view.upcast_ref(), uri, &host);
+            }
         }
         _ => decision.ignore(),
     }
@@ -481,6 +484,66 @@ mod tests {
         assert_eq!(positions, 2, "the fixture has two positions");
         for note in reader.requests.borrow().iter() {
             eprintln!("book: {} {} -> {}", note.method, note.path, note.status);
+        }
+    }
+}
+
+/// A link out of the book: its address and host when it is `http` or `https` with a host; any other scheme is
+/// dropped rather than handed on.
+pub(crate) fn outward(href: &str) -> Option<(String, String)> {
+    let uri = glib::Uri::parse(href, glib::UriFlags::NONE).ok()?;
+    let host = uri.host()?.to_string();
+    let web = matches!(uri.scheme().to_ascii_lowercase().as_str(), "http" | "https");
+    (web && !host.is_empty()).then(|| (href.to_owned(), host))
+}
+
+/// Names the host a link goes to and opens the system browser only on a yes: the reader leaves the book on a
+/// publication's say-so (`ebook-reader`, *Following a link out of the publication*).
+pub(crate) fn confirm_leaving(parent: &gtk::Widget, uri: String, host: &str) {
+    use adw::prelude::*;
+    let dialog = adw::AlertDialog::new(
+        Some(&tr_args(
+            "desktop.w4.epub.leave.title___",
+            "Open a page on %@?",
+            &[&host],
+        )),
+        Some(&uri),
+    );
+    dialog.add_responses(&[
+        (
+            "stay",
+            &tr("desktop.w4.epub.leave.stay", "Stay in the Book"),
+        ),
+        ("open", &tr("desktop.w4.epub.leave.open", "Open in Browser")),
+    ]);
+    dialog.set_close_response("stay");
+    dialog.set_default_response(Some("stay"));
+    let window = parent.root().and_downcast::<gtk::Window>();
+    dialog.connect_response(None, move |_, response| {
+        if response == "open" {
+            gtk::UriLauncher::new(&uri).launch(window.as_ref(), None::<&gio::Cancellable>, |_| {});
+        }
+    });
+    dialog.present(Some(parent));
+}
+
+#[cfg(test)]
+mod link_tests {
+    use super::outward;
+
+    #[test]
+    fn only_a_web_address_with_a_host_leaves_the_book() {
+        let (_, host) = outward("https://example.org/a").expect("https is followed");
+        assert_eq!(host, "example.org");
+        assert!(outward("HTTP://example.org").is_some());
+        for refused in [
+            "file:///etc/hosts",
+            "mailto:a@b.org",
+            "javascript:alert(1)",
+            "storyarc://open",
+            "http://",
+        ] {
+            assert!(outward(refused).is_none(), "{refused} was followed");
         }
     }
 }

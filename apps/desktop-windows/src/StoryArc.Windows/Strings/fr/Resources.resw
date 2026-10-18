@@ -774,6 +774,18 @@
     <value>Aucun dossier de synchronisation choisi</value>
     <comment>desktop.w3.sync.noFolder</comment>
   </data>
+  <data name="desktop_w4_epub_leave_open" xml:space="preserve">
+    <value>Ouvrir dans le navigateur</value>
+    <comment>desktop.w4.epub.leave.open</comment>
+  </data>
+  <data name="desktop_w4_epub_leave_stay" xml:space="preserve">
+    <value>Rester dans le livre</value>
+    <comment>desktop.w4.epub.leave.stay</comment>
+  </data>
+  <data name="desktop_w4_epub_leave_title___" xml:space="preserve">
+    <value>Ouvrir une page sur {0} ?</value>
+    <comment>desktop.w4.epub.leave.title___</comment>
+  </data>
   <data name="desktop_w4_epub_noWebView" xml:space="preserve">
     <value>Ce livre a besoin du runtime WebView2, absent de ce PC</value>
     <comment>desktop.w4.epub.noWebView</comment>

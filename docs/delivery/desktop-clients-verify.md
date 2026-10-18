@@ -53,7 +53,14 @@ today because the feature is not there:
   window lists server collections and lists.
 - **Linux, wave 2** (`desktop-conformance-linux-wave2.md`, 1 of 484 after 2026-10-18, 3 before): no
   snapshot tests on Linux; the visual matrix of the host pass (6.2) is the proof owed.
-- **Windows** has walked no screen: every Windows scenario is *wired, not proved* until a desktop.
+- **Linux, wave 4** (`desktop-conformance-linux-wave4.md`, 49 of 92, written 2026-10-18 from the
+  headless walk and the code): the EPUB window turns pages, reads one chapter aloud and confirms a
+  link out, and has no typography, themes, contents, bookmarks, highlights or search; the player
+  has no compact bar, full player, sleep timer or chapter list.
+- **Windows, wave 4** (`desktop-conformance-windows-wave4.md`, 33 of 92, written the same day):
+  the same EPUB gaps, the scanned-PDF sentence, the spoken-sentence highlight, the coverless
+  player and the page's chapter list. Every other Windows scenario is *wired, not proved* until a
+  desktop.
 
 ## Coherence: the design
 
@@ -72,15 +79,17 @@ and the records. Where the build moved off the plan, the design says so:
 **Critical** (block the archive)
 
 1. 74 tasks are open; `/opsx:archive` must wait for the host pass and the owner's decisions.
-2. Resolved 2026-10-18: the Mac's wave 3 and wave 4 records list no failure. Linux and Windows
-   still owe their wave 4 records (Warning 1).
+2. The Mac's wave 3 and wave 4 records list no failure since 2026-10-18. Linux fails 49 and
+   Windows 33 of the 92 wave 4 scenarios: the ebook-reader and audio-playback features the Mac
+   gained that day are not built there.
 3. *Opening a link or a command* is built and tested on all three desktops (task 5.8) but no
    conformance record walks it; the wave 5 records should.
 
 **Warning**
 
-1. No `desktop-conformance-linux-wave4.md` or `desktop-conformance-windows-wave4.md` exists (task
-   4.22); Linux walked wave 4 headless without writing the record.
+1. Resolved 2026-10-18: `desktop-conformance-linux-wave4.md` and
+   `desktop-conformance-windows-wave4.md` exist (task 4.22), written from evidence before the
+   host pass. They show the wave 4 reader and player gaps above.
 2. The Mac grid resizes at 19 fps at 5,027 publications (`desktop-budgets-macos.md`), and every
    launch rescans the whole folder, about eight minutes for 5,027 archives.
 3. Resolved 2026-10-18: the Windows app files EPUB and PDF progress by the core's file identity,
@@ -90,8 +99,8 @@ and the records. Where the build moved off the plan, the design says so:
 
 **Suggestion**
 
-1. Give the Linux and Windows wave 4 walks their records before the host pass, so the host pass
-   only fills in rows.
+1. Build the Linux and Windows wave 4 reader and player gaps before the host pass, so the host
+   pass proves features instead of finding them missing.
 2. Cache a file's metadata by modification time and size in StoryArcKit, as the core does, so a
    launch does not re-read every archive.
 

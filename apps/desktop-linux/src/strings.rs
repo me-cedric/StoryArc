@@ -384,7 +384,10 @@ msgstr ""
 
     /// The keys the app's own code asks for, read from its sources: `tr`, `tr_plural` and `tr_args` calls.
     fn keys_in(dir: &std::path::Path, keys: &mut std::collections::BTreeSet<String>) {
-        for entry in std::fs::read_dir(dir).expect("the sources are readable").flatten() {
+        for entry in std::fs::read_dir(dir)
+            .expect("the sources are readable")
+            .flatten()
+        {
             let path = entry.path();
             if path.is_dir() {
                 keys_in(&path, keys);
@@ -412,12 +415,18 @@ msgstr ""
     #[test]
     fn every_key_the_app_asks_for_is_in_every_catalogue() {
         let mut keys = std::collections::BTreeSet::new();
-        keys_in(&std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"), &mut keys);
+        keys_in(
+            &std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
+            &mut keys,
+        );
         keys.retain(|key| !key.starts_with("missing "));
         assert!(keys.len() > 200, "{} keys found in the sources", keys.len());
         for (language, text) in CATALOGUES {
             let catalogue = Catalogue::parse(language, text);
-            let missing: Vec<_> = keys.iter().filter(|key| catalogue.get(key).is_none()).collect();
+            let missing: Vec<_> = keys
+                .iter()
+                .filter(|key| catalogue.get(key).is_none())
+                .collect();
             assert!(missing.is_empty(), "{language} lacks {missing:?}");
         }
     }

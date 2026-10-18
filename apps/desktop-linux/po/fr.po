@@ -613,6 +613,16 @@ msgstr "Dossier de synchronisation : %s"
 msgid "desktop.w3.sync.noFolder"
 msgstr "Aucun dossier de synchronisation choisi"
 
+msgid "desktop.w4.epub.leave.open"
+msgstr "Ouvrir dans le navigateur"
+
+msgid "desktop.w4.epub.leave.stay"
+msgstr "Rester dans le livre"
+
+#, c-format
+msgid "desktop.w4.epub.leave.title___"
+msgstr "Ouvrir une page sur %s ?"
+
 msgid "desktop.w4.epub.noWebView"
 msgstr "Ce livre a besoin du runtime WebView2, absent de ce PC"
 
