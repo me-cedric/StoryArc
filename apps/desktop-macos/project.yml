@@ -140,6 +140,9 @@ targets:
       # Wave 4: the one player behind a narrated book and a voice, and its Now Playing.
       - package: StoryArcKit
         product: Playback
+      # The player's artwork, and the coverless well every surface draws (`audio-playback`).
+      - package: StoryArcKit
+        product: PlayerFeature
       - package: licences
         product: StoryArcLicences
     settings:

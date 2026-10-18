@@ -1,5 +1,6 @@
 import Foundation
 import Playback
+import PlayerFeature
 import Testing
 
 @testable import StoryArc
@@ -20,5 +21,11 @@ struct PlayerMenusTests {
     func clock() {
         #expect(SleepMenu.clock(300) == "5:00")
         #expect(SleepMenu.clock(-4) == "0:00")
+    }
+
+    @Test("A book with no cover gives the Now Playing panel the coverless well, not nothing")
+    func coverlessArtwork() throws {
+        let png = try #require(PlayerArtworkImage.png(format: .m4b, cover: nil))
+        #expect(png.starts(with: [0x89, 0x50, 0x4E, 0x47]))
     }
 }

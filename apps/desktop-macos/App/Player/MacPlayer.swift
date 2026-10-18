@@ -3,6 +3,7 @@ import Formats
 import Foundation
 import Persistence
 import Playback
+import PlayerFeature
 import StoryArcCore
 
 /// The Mac's half of a playback session: the media keys and the Now Playing panel. There is
@@ -87,8 +88,9 @@ enum MacPlayer {
         }
         if centre.onArtwork == nil {
             centre.onArtwork = { book in
-                guard let cover = library?.model.cachedCover(for: book.publication) else { return nil }
-                return MacCoverPNG.data(cover)
+                PlayerArtworkImage.png(
+                    format: book.publication.format, cover: library?.model.cachedCover(for: book.publication)
+                )
             }
         }
     }
@@ -123,12 +125,5 @@ enum MacPlayer {
               !stored.isFinished, case let .listening(part, _, offset, _) = stored.position
         else { return nil }
         return (part, offset)
-    }
-}
-
-/// A cover as PNG bytes for the Now Playing artwork.
-enum MacCoverPNG {
-    static func data(_ image: CGImage) -> Data? {
-        NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
     }
 }

@@ -1,6 +1,7 @@
 import AppKit
 import DesignSystem
 import Playback
+import PlayerFeature
 import StoryArcCore
 import SwiftUI
 
@@ -59,14 +60,9 @@ struct PlayerWindow: View {
     // MARK: - Parts of the window
 
     private var artwork: some View {
-        Group {
-            if let cover {
-                Image(decorative: cover, scale: 1).resizable().scaledToFit()
-            } else {
-                RoundedRectangle(cornerRadius: 12).fill(theme.palette.surfaceSunken)
-                    .overlay { Image(systemName: "headphones").font(.system(size: 48)).foregroundStyle(.secondary) }
-            }
-        }
+        // `audio-playback`, *A publication with no cover*: the phones' artwork, so a coverless book draws the
+        // kind over the format's name, as every other surface does.
+        PlayerArtwork(format: publication.format, cover: cover)
         .frame(width: 220, height: 220)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .shadow(radius: 8, y: 4)
