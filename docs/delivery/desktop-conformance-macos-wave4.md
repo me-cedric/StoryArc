@@ -19,7 +19,7 @@ by name, so a scenario added to a spec later is missing here until the walk runs
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 39, seen 22, fail 15, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
+Totals: pass 44, seen 22, fail 10, later 0, n/a 10, not walked 6, of 92 scenarios (updated 2026-10-18 after the reader and player gaps were built).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as in
 waves 2 and 3. Wave 4 adds four: the EPUB walk over the corpus `fixture.epub` in the Mac's web
@@ -65,11 +65,6 @@ record lists the four bar rows as failures, which is the honest reading until th
 ## The failures, in one list
 
 - ebook-reader · *Bundled typefaces*: No typeface choice; the reading fonts the phone bundles are not in the Mac build (`MacAbout.linked`).
-- ebook-reader · *Theme choice*: The six presets apply and the renderer confirms the theme (`EpubWalkTests` applies *Quiet* and *Paper*); no brightness control.
-- ebook-reader · *The theme surface opens on the presets*: The menu lists the presets and nothing else; the action that opens the axes is absent with the axes.
-- ebook-reader · *Themes are named, not numbered*: Named *Original* to *Focus* (`desktop.epub.theme.*`), as rows of a menu with a check mark; no swatch and no specimen.
-- ebook-reader · *Theme follows appearance*: No setting links the appearance to the reading theme; the page keeps its preset in dark mode (wave 4 frame `epub-reader-dark.png`).
-- ebook-reader · *Progress display*: The foot states *Position N of M* (`EpubWalkTests` reads 1 then 2 of 2) and no slider is drawn; the sentence in words with the chapter's remainder is not there, and the position sits in the chrome, which hides.
 - ebook-reader · *Returning from any jump*: After a search hit the way back is offered and using it is not a place to return from (`EpubWalkTests`: `returnLocator` set, then nil after `goBack`); after a link there is none, and there is no contents entry or bookmark to jump by.
 - ebook-reader · *Following a link out of the publication*: `http` and `https` go to the default browser and any other scheme is dropped (`EpubReaderModel.follow`, `EpubLinkOpener`); the host is not shown or confirmed first.
 - ebook-reader · *Starting playback*: The voice starts at the first sentence of the chapter of the current position, on the one player (`EpubReaderModel.toggleReadAloud`); the sentence is stated in the foot, not highlighted in the page, and the page does not follow. The Mac draws no compact bar.
@@ -92,15 +87,15 @@ Source: `docs/openspec/specs/ebook-reader/spec.md`
 | Reflowable rendering | Publisher styles | pass | Under *Original* the axes the publisher governs are not sent and their rows are disabled with the reason (`EpubTypographyTests`, 2026-10-18). |
 | Reflowable rendering | An axis is inert while publisher styles are on | pass | The spacing, alignment and hyphenation rows are disabled under *Original* with the sentence that says why; `EpubTypographyTests` *Original keeps the publisher's spacing* (2026-10-18). |
 | Reflowable rendering | Fixed-layout EPUB | seen | `EpubWebPublicationTests` *a fixed-layout book says so*: the manifest the renderer reads carries `layout: fixed`; how the bundle paginates it is the renderer's, and the Mac adds no zoom or spread over the web view. |
-| Reader themes | Theme choice | **fail** | The six presets apply and the renderer confirms the theme (`EpubWalkTests` applies *Quiet* and *Paper*); no brightness control. |
-| Reader themes | The theme surface opens on the presets | **fail** | The menu lists the presets and nothing else; the action that opens the axes is absent with the axes. |
-| Reader themes | Themes are named, not numbered | **fail** | Named *Original* to *Focus* (`desktop.epub.theme.*`), as rows of a menu with a check mark; no swatch and no specimen. |
+| Reader themes | Theme choice | pass | The six presets as swatches, and a brightness slider in the same surface that dims the page (`darkenFilter`); `EpubLookTests` (2026-10-18). |
+| Reader themes | The theme surface opens on the presets | pass | The surface opens on the six swatches; the Text action below them, as wide as the grid, opens the axes; picking a preset applies it and closes the surface (2026-10-18). |
+| Reader themes | Themes are named, not numbered | pass | Each swatch shows its name and an *Aa* specimen in its own background, text colour and weight; the active one is outlined and marked *Modified* when the typography moved (2026-10-18). |
 | Reader themes | The axes, over the reader's own text | seen | The Text panel is a popover over the page, so each change is seen on the reader's own text as it is made (2026-10-18). |
 | Reader themes | Getting back to the preset | seen | *Reset text settings* in the Text panel returns every axis to the preset's values (2026-10-18). |
-| Reader themes | Theme follows appearance | **fail** | No setting links the appearance to the reading theme; the page keeps its preset in dark mode (wave 4 frame `epub-reader-dark.png`). |
+| Reader themes | Theme follows appearance | pass | *Follow the system's appearance* with a light and a dark preset; the window switches on the system's change; `EpubLookTests` (2026-10-18). |
 | Reader themes | Both levels at the largest text size | seen | Frame `epub-reader-light-largest.png`: the theme menu reads in full at the app's largest size; `AccessibilityAuditTests` at both sizes. One level only. |
 | Pagination and progress | Changing type size mid-chapter | pass | The size steps keep the locator; the walk changes it mid-book and the renderer reports the new size (2026-10-18). |
-| Pagination and progress | Progress display | **fail** | The foot states *Position N of M* (`EpubWalkTests` reads 1 then 2 of 2) and no slider is drawn; the sentence in words with the chapter's remainder is not there, and the position sits in the chrome, which hides. |
+| Pagination and progress | Progress display | pass | The foot states the share of the book read and what is left of the chapter, never a page number; `EpubLookTests` (2026-10-18). |
 | Pagination and progress | Moving somewhere else in a reflowable publication | pass | The Contents menu goes to a chapter with a way back; `EpubWalkTests` goes to the last chapter and back (2026-10-18). |
 | Pagination and progress | A publication that declares no chapters | seen | The Contents menu says the book lists no chapters (`desktop.epub.contents.none`, 2026-10-18). |
 | Pagination and progress | Scroll mode | pass | One flag to the renderer from the Text panel; `EpubTypographyTests` *scroll mode is one flag* (2026-10-18). |

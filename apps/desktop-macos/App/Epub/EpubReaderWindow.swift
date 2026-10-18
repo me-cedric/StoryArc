@@ -16,6 +16,7 @@ import WebKit
 struct EpubReaderWindow: View {
     @Environment(\.theme) private var theme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     let target: ReaderTarget
     let library: MacLibrary
@@ -74,6 +75,9 @@ struct EpubReaderWindow: View {
         // book that takes longer than that to load would otherwise open with its chrome gone.
         .onChange(of: model.isReady) { _, ready in if ready { scheduleChromeHide(); model.syncHighlights() } }
         .onChange(of: PlayerCentre.shared.place.partIndex) { _, part in model.follow(part: part) }
+        .onChange(of: colorScheme, initial: true) { _, scheme in
+            if let preset = EpubLook.preset(for: scheme), preset != model.theme { model.apply(preset) }
+        }
         .task { await openReader() }
         .onDisappear { close() }
     }
@@ -89,8 +93,7 @@ struct EpubReaderWindow: View {
                         EpubContentsMenu(model: model).hitTarget(HitTarget.icon).padding(4)
                         EpubMarksMenu(model: model).hitTarget(HitTarget.icon).padding(4)
                         EpubBookmarkButton(model: model).hitTarget(HitTarget.icon).padding(4)
-                        themeMenu
-                        textButton
+                        themeButton
                         searchButton
                         if model.offersReadAloud { readAloudButton }
                         if model.isBeingReadAloud { SleepMenu(centre: .shared).hitTarget(HitTarget.icon).padding(4) }
@@ -154,37 +157,20 @@ struct EpubReaderWindow: View {
 
     private var positionText: String {
         guard model.positionCount > 0 else { return "–" }
-        return "\(model.position ?? 1) / \(model.positionCount)"
+        let chapter = EpubPlace(locator: model.locator ?? "{}", chapter: "").progression
+        return EpubProgressLine.text(total: model.totalProgression, chapter: chapter)
     }
 
-    private var themeMenu: some View {
-        Menu {
-            Picker(selection: Binding(get: { model.theme }, set: { model.apply($0) })) {
-                ForEach(ThemePreset.allCases, id: \.self) { preset in
-                    Text(preset.titleKey).tag(preset)
-                }
-            } label: { EmptyView() }
-            .pickerStyle(.inline)
-        } label: {
-            Label("desktop.epub.theme", systemImage: "textformat")
-        }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .hitTarget(HitTarget.icon)
-        .padding(4)
-        .help(Text("desktop.epub.theme"))
-    }
-
-    private var textButton: some View {
+    private var themeButton: some View {
         Button { isTextOpen.toggle() } label: {
-            Label("desktop.epub.text", systemImage: "textformat.size")
+            Label("desktop.epub.theme", systemImage: "textformat")
         }
         .buttonStyle(.borderless)
         .labelStyle(.iconOnly)
         .hitTarget(HitTarget.icon)
         .padding(4)
-        .help(Text("desktop.epub.text"))
-        .popover(isPresented: $isTextOpen) { EpubTextPanel(model: model) }
+        .help(Text("desktop.epub.theme"))
+        .popover(isPresented: $isTextOpen) { EpubThemeSurface(model: model) { isTextOpen = false } }
     }
 
     private var searchButton: some View {

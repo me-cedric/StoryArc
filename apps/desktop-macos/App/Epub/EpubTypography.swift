@@ -77,9 +77,12 @@ enum EpubTypography {
 extension EpubReaderModel {
     /// A preset's colours with the reader's typography over them: what a theme message carries.
     static func readerAxes(_ preset: ThemePreset) -> [String: AnyHashable] {
-        axes(of: preset).merging(
+        var all = axes(of: preset).merging(
             EpubTypography.axes(EpubTypography.values, preset: preset, scroll: EpubTypography.scrolls)
         ) { _, typography in typography }
+        let darken = EpubLook.darken(EpubLook.brightness)
+        if darken > 0 { all["darkenFilter"] = darken }
+        return all
     }
 
     /// Saves the reader's typography and puts it on the page. A theme message replaces every axis, so the

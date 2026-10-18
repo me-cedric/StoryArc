@@ -3753,6 +3753,34 @@
         }
       }
     },
+    "desktop.epub.brightness": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brightness"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Luminosité"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Helligkeit"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brillo"
+          }
+        }
+      }
+    },
     "desktop.epub.contents": {
       "localizations": {
         "en": {
@@ -3805,6 +3833,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Este libro no enumera capítulos"
+          }
+        }
+      }
+    },
+    "desktop.epub.darkTheme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In dark mode"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En mode sombre"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im dunklen Modus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En modo oscuro"
+          }
+        }
+      }
+    },
+    "desktop.epub.followsAppearance": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow the system's appearance"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivre l'apparence du système"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dem Erscheinungsbild des Systems folgen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seguir la apariencia del sistema"
           }
         }
       }
@@ -4029,6 +4113,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Amarillo"
+          }
+        }
+      }
+    },
+    "desktop.epub.lightTheme": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In light mode"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En mode clair"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im hellen Modus"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En modo claro"
           }
         }
       }
@@ -4281,6 +4393,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Position %lld sur %lld"
+          }
+        }
+      }
+    },
+    "desktop.epub.progress %lld %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld%% read · %2$lld%% of this chapter left"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %% lu · il reste %2$lld %% du chapitre"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %% gelesen · noch %2$lld %% des Kapitels"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld %% leído · queda el %2$lld %% del capítulo"
           }
         }
       }
@@ -5125,6 +5265,34 @@
         }
       }
     },
+    "desktop.epub.theme.modified": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modified"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modifié"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geändert"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Modificado"
+          }
+        }
+      }
+    },
     "desktop.epub.theme.original": {
       "localizations": {
         "de": {
@@ -5205,6 +5373,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Calme"
+          }
+        }
+      }
+    },
+    "desktop.epub.theme.specimen": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aa"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aa"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aa"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aa"
           }
         }
       }
