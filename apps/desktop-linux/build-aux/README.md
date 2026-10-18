@@ -78,8 +78,8 @@ x86_64 build is not run here; CI would run it.
 | Distro | Result |
 | --- | --- |
 | Fedora (cargo 1.99.0) | Passes: core and ffi tests, `storyarc-linux` build and tests, `desktop-file-validate`, `appstreamcli validate`. |
-| Arch | Not proven. Emulated amd64 stalled twice, see below. |
-| Manjaro | Not proven. Stalled once in the package step, see below. |
+| Arch | Passes since 2026-10-18, AUR package included: the crate tests, then `makepkg` on `packaging/aur/PKGBUILD` from the working tree, `pacman -U`, and the installed binary, PDFium, thumbnailer and data files checked (task 6.6). |
+| Manjaro | Passes since 2026-10-18, the same steps as Arch. |
 
 Arch and Manjaro run as emulated amd64 under Rosetta. Their first runs stalled with
 no output for over 20 minutes, the container idle at 0 percent CPU, while a Docker

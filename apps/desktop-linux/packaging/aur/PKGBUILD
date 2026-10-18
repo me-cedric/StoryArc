@@ -1,0 +1,72 @@
+# Maintainer: Cédric Meyer <https://github.com/me-cedric>
+# StoryArc for Linux (desktop-clients task 6.6). The source build of apps/desktop-linux with the
+# pinned PDFium beside the binary: the core looks for libpdfium.so next to the running
+# executable, so /usr/bin/storyarc is a link into /usr/lib/storyarc and no environment is set.
+# libarchive is compiled from the vendored sources by the build, never linked from the system.
+# container-build.sh arch|manjaro builds this file from the working tree and installs the package.
+
+pkgname=storyarc
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Comic, ebook and audiobook reader"
+arch=(x86_64 aarch64)
+url="https://github.com/me-cedric/StoryArc"
+license=(MIT)
+depends=(gtk4 libadwaita webkitgtk-6.0 gstreamer gst-plugins-base-libs gst-plugins-bad-libs gst-plugins-good)
+makedepends=(cargo)
+optdepends=('gst-libav: MP3 and AAC audiobooks'
+            'speech-dispatcher: read aloud'
+            'xdg-desktop-portal-gtk: the file picker, dark mode and the system accent'
+            'gnome-keyring: saved passwords')
+options=(!lto)
+# The PDFium release apps/desktop-core/pdfium/pin.json pins; bump both together.
+_pdfium=chromium%2F7881
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+source_x86_64=("pdfium-linux-x64-7881.tgz::https://github.com/bblanchon/pdfium-binaries/releases/download/$_pdfium/pdfium-linux-x64.tgz")
+source_aarch64=("pdfium-linux-arm64-7881.tgz::https://github.com/bblanchon/pdfium-binaries/releases/download/$_pdfium/pdfium-linux-arm64.tgz")
+noextract=("pdfium-linux-x64-7881.tgz" "pdfium-linux-arm64-7881.tgz")
+sha256sums=('SKIP')
+sha256sums_x86_64=('1470e21b8b4a3b4ad7f85684e2da11d94f3b69a86d81dee11b9b6709d927ac1d')
+sha256sums_aarch64=('ee7f7b7d5468958336a818c1cd580bdd20972846b7377b13f9a923d92d1d4674')
+
+prepare() {
+  cd "StoryArc-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+  cd "StoryArc-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}"
+  cargo build --frozen --release -p storyarc-linux
+}
+
+check() {
+  cd "StoryArc-$pkgver"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-target}"
+  cargo test --frozen --release -p storyarc-linux --bin storyarc-thumbnailer
+}
+
+package() {
+  cd "StoryArc-$pkgver"
+  local target="${CARGO_TARGET_DIR:-target}/release"
+  install -Dm755 "$target/storyarc" "$pkgdir/usr/lib/storyarc/storyarc"
+  install -Dm755 "$target/storyarc-thumbnailer" "$pkgdir/usr/bin/storyarc-thumbnailer"
+  install -d "$pkgdir/usr/bin"
+  ln -s /usr/lib/storyarc/storyarc "$pkgdir/usr/bin/storyarc"
+  local pdfium
+  case "$CARCH" in
+    x86_64) pdfium=pdfium-linux-x64-7881.tgz ;;
+    aarch64) pdfium=pdfium-linux-arm64-7881.tgz ;;
+  esac
+  mkdir -p pdfium && tar -xzf "$srcdir/$pdfium" -C pdfium
+  install -Dm755 pdfium/lib/libpdfium.so "$pkgdir/usr/lib/storyarc/libpdfium.so"
+  install -Dm644 pdfium/LICENSE "$pkgdir/usr/share/licenses/$pkgname/PDFium.LICENSE"
+  install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.desktop -t "$pkgdir/usr/share/applications"
+  install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml -t "$pkgdir/usr/share/metainfo"
+  install -Dm644 apps/desktop-linux/data/com.mecedric.StoryArc.thumbnailer -t "$pkgdir/usr/share/thumbnailers"
+  install -Dm644 apps/desktop-linux/data/icons/hicolor/scalable/apps/com.mecedric.StoryArc.svg -t "$pkgdir/usr/share/icons/hicolor/scalable/apps"
+  install -Dm644 LICENSE THIRD_PARTY_NOTICES.md -t "$pkgdir/usr/share/licenses/$pkgname"
+}
