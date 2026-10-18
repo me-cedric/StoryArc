@@ -51,75 +51,75 @@ struct CoverGridView: View {
     let onShow: (Publication) -> Void
     /// Whether the shelf may be divided and indexed.
     var divides = false
+    @State private var memo = ShelfLayoutMemo()
 
     var body: some View {
-        let index = divides
-            ? ShelfSections.index(publications, sort: library.model.query.sort, locale: .storyArc) : []
+        let sort = library.model.query.sort
+        let shelf = memo.shelf(publications, sort: sort, divides: divides)
         GeometryReader { geometry in
-            let columns = LibraryGrid.columns(for: geometry.size.width - (index.isEmpty ? 0 : ShelfIndexRail.width))
+            let rail = shelf.index.isEmpty ? 0 : ShelfIndexRail.width
+            let columns = LibraryGrid.columns(for: geometry.size.width - rail)
             ScrollViewReader { proxy in
                 ScrollView {
-                    content(columns: columns)
-                        .padding(.trailing, index.isEmpty ? 0 : ShelfIndexRail.width)
+                    content(columns: columns, order: shelf.ids, sort: sort)
+                        .padding(.trailing, shelf.index.isEmpty ? 0 : ShelfIndexRail.width)
                 }
                 .overlay(alignment: .trailing) {
-                    if !index.isEmpty {
-                        ShelfIndexRail(entries: index) { proxy.scrollTo($0.publicationID, anchor: .top) }
+                    if !shelf.index.isEmpty {
+                        ShelfIndexRail(entries: shelf.index) { proxy.scrollTo($0.publicationID, anchor: .top) }
                     }
                 }
             }
         }
-        .onChange(of: publications.map(\.id)) { _, ids in selection = selection.kept(in: ids) }
+        .onChange(of: shelf.ids) { _, ids in selection = selection.kept(in: ids) }
         .accessibilityLabel(Text("desktop.nav.library"))
     }
 
-    @ViewBuilder
-    private func content(columns: [GridItem]) -> some View {
-        let sections = divides ? ShelfSections.divide(
-            publications, by: library.model.query.sort, columns: columns.count, locale: .storyArc
-        ) : []
-        if groupSeries {
-            ForEach(LibraryGrid.groupedBySeries(publications)) { group in
-                Section {
-                    grid(group.publications, columns: columns)
-                } header: {
-                    ShelfSectionHeading(title: group.name)
+    /// One lazy grid for the whole shelf, its sections included: a grid per section inside a
+    /// stack laid every cell of a section out when the section came into view.
+    private func content(columns: [GridItem], order: [String], sort: LibrarySort) -> some View {
+        let sections = groupSeries
+            ? [] : memo.sections(publications, sort: sort, divides: divides, columns: columns.count)
+        return LazyVGrid(columns: columns, spacing: LibraryGrid.spacing, pinnedViews: [.sectionHeaders]) {
+            if groupSeries {
+                ForEach(LibraryGrid.groupedBySeries(publications)) { group in
+                    Section {
+                        cells(group.publications, order: order)
+                    } header: {
+                        ShelfSectionHeading(title: group.name)
+                    }
                 }
-            }
-        } else if !sections.isEmpty {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+            } else if !sections.isEmpty {
                 ForEach(sections) { section in
                     Section {
-                        grid(section.publications, columns: columns)
+                        cells(section.publications, order: order)
                     } header: {
                         ShelfSectionHeading(title: section.title)
                     }
                 }
-            }
-        } else {
-            grid(publications, columns: columns)
-        }
-    }
-
-    private func grid(_ shown: [Publication], columns: [GridItem]) -> some View {
-        LazyVGrid(columns: columns, spacing: LibraryGrid.spacing) {
-            ForEach(shown) { publication in
-                CoverCell(library: library, publication: publication, isSelected: selection.contains(publication.id))
-                    .modifier(SelectionClicks(
-                        id: publication.id, order: publications.map(\.id), selection: $selection,
-                        onOpen: { onOpen(publication) }
-                    ))
-                    .contextMenu {
-                        PublicationMenu(
-                            library: library, publication: publication, onOpen: onOpen, onShow: onShow,
-                            selectionCount: RestartRequest.menuCount(for: publication.id, in: selection),
-                            selected: selection.ids
-                        )
-                    }
-                    .id(publication.id)
+            } else {
+                cells(publications, order: order)
             }
         }
         .padding(LibraryGrid.spacing)
+    }
+
+    private func cells(_ shown: [Publication], order: [String]) -> some View {
+        ForEach(shown) { publication in
+            CoverCell(library: library, publication: publication, isSelected: selection.contains(publication.id))
+                .modifier(SelectionClicks(
+                    id: publication.id, order: order, selection: $selection,
+                    onOpen: { onOpen(publication) }
+                ))
+                .contextMenu {
+                    PublicationMenu(
+                        library: library, publication: publication, onOpen: onOpen, onShow: onShow,
+                        selectionCount: RestartRequest.menuCount(for: publication.id, in: selection),
+                        selected: selection.ids
+                    )
+                }
+                .id(publication.id)
+        }
     }
 }
 

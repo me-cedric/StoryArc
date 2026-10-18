@@ -72,6 +72,11 @@ final class MacLibrary {
             downloadStore: DownloadStore(),
             journal: ScanJournal()
         )
+        // Last session's shelf, from one JSON read, before the library window's first frame,
+        // as a phone does at launch: the walks of `restore()` append to it and remove only
+        // what they prove gone. Without it a library of 5,000 publications took two to three
+        // minutes to come back (`desktop-budgets-macos.md`, task 5.9).
+        model.restoreCachedLibrary()
         servers = MacSources(model: model)
         downloads = MacDownloads()
         sync = MacSync(runner: MacSyncWiring.runner(progress: store)) {

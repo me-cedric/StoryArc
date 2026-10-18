@@ -111,6 +111,53 @@ walk is the next step, and the owner's Mac or a slower one gives the number that
 **What it does not measure.** A Release build, a trackpad's own scroll with momentum, the list
 layout, and a library a user grew over time rather than one folder of one size.
 
+## After the fixes, 2026-10-18
+
+Three causes, each found by sampling the main thread or by reading what the grid recomputes,
+and each fixed where it lives. Measured on the same Mac and the same 5,027-publication library.
+
+**1. The shelf waited for the walk.** The Mac now calls StoryArcKit's
+`restoreCachedLibrary()`, made public for it, in `MacLibrary.init`, before the library window's
+first frame, as a phone does at launch. The walks that follow append to that shelf and remove
+only what they prove gone.
+
+**2. The walk's merge was quadratic.** `LibraryModel.adopt(_:from:)` looked each found book up
+with `PublicationIdentity.matches` over the whole shelf, and `matches` parsed an app-container
+path out of both sides on every call: 25 million parses on the main actor, 36 seconds. A
+`PublicationIdentity.Matcher` works the found book's side out once; on a Mac, where no path is
+inside an iOS container, the parse is skipped for the whole search. `ContainerPathIdentityTests`
+holds that the matcher answers as `matches` does, each way round.
+
+**3. A resumed walk dropped the journal's rows.** A scan stopped by a quit writes a journal;
+the next walk put those rows back and skipped their files, and the reconcile then removed every
+row the walk had not met. With the cached shelf restored first, 4,536 of 5,027 books left the
+shelf after one quit mid-scan. The rows the journal puts back are now marked met
+(`LibraryShelfLifecycleTests`, *A walk resumed from the journal keeps the rows the journal put
+back*). The same code runs on a phone.
+
+**4. The grid redrew for nothing.** A rescan met every row again and assigned each its equal
+merge, and every assignment redrew the grid; it now writes a row only when the merge changed it.
+The grid also computed its section index, its division and the selection order of the whole
+shelf on every pass, and once per cell for the order: `ShelfLayoutMemo` keeps the last answer
+for a shelf, a sort and a width. The sections are one `LazyVGrid` with pinned headers rather
+than a grid per section inside a stack, which laid a whole section out when it came into view.
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Cold launch, shelf on screen (Release, 3 launches) | 126 to 168 s for all rows | 0.75 to 0.78 s, all 5,027 rows with the window (1.23 s on the first launch after a build) |
+| Cold launch, quit mid-scan, next launch | — | all 5,027 rows kept |
+| Grid scroll at 5,027 (Debug) | 45 to 46 fps, 95th 95 ms | 93 fps, median 8.3 ms, 95th 20 ms, during the launch's rescan |
+| Grid resize at 5,027 (Debug) | 4 to 11 fps | 19 fps, median 42 ms |
+
+**Result.** Task 5.9 holds on this Mac: the library is interactive within one second of a cold
+launch. Task 5.10 scrolls near the display's rate and still resizes at 19 frames a second: each
+width step relays out the visible cells of flexible columns, which is SwiftUI's own layout and
+the next thing to trace. The 10,000-publication library was not measured again.
+
+**Still slow.** A launch rescans the whole folder, about eight minutes for 5,027 archives (58 to
+95 ms each). The shelf is usable throughout; nothing caches a file's metadata by modification
+time and size, which the core's scanner does on Linux and Windows (task 2.2).
+
 ## Cleaning up
 
 The budget folders stay in the app's container until the owner deletes them:

@@ -16,19 +16,21 @@ struct CoverListView: View {
     let onShow: (Publication) -> Void
     /// Whether the shelf may be divided and indexed.
     var divides = false
+    @State private var memo = ShelfLayoutMemo()
 
     var body: some View {
         let sort = library.model.query.sort
-        let sections = divides ? ShelfSections.divide(publications, by: sort, columns: 1, locale: .storyArc) : []
-        let index = divides ? ShelfSections.index(publications, sort: sort, locale: .storyArc) : []
+        let sections = memo.sections(publications, sort: sort, divides: divides, columns: 1)
+        let shelf = memo.shelf(publications, sort: sort, divides: divides)
+        let index = shelf.index
         ScrollViewReader { proxy in
             List {
                 if sections.isEmpty {
-                    ForEach(publications) { row($0) }
+                    ForEach(publications) { row($0, order: shelf.ids) }
                 } else {
                     ForEach(sections) { section in
                         Section {
-                            ForEach(section.publications) { row($0) }
+                            ForEach(section.publications) { row($0, order: shelf.ids) }
                         } header: {
                             Text(section.title).scaledFont(.headline).accessibilityAddTraits(.isHeader)
                         }
@@ -45,7 +47,7 @@ struct CoverListView: View {
         }
     }
 
-    private func row(_ publication: Publication) -> some View {
+    private func row(_ publication: Publication, order: [String]) -> some View {
         HStack(spacing: 12) {
             CoverImage(library: library, publication: publication, maxPixelSize: 120)
                 .frame(width: 36, height: 54)
@@ -63,7 +65,7 @@ struct CoverListView: View {
         .contentShape(Rectangle())
         .listRowBackground(selection.contains(publication.id) ? theme.palette.surfaceRaised : Color.clear)
         .modifier(SelectionClicks(
-            id: publication.id, order: publications.map(\.id), selection: $selection,
+            id: publication.id, order: order, selection: $selection,
             onOpen: { onOpen(publication) }
         ))
         .contextMenu {

@@ -717,9 +717,14 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   **Measured 2026-10-18 on the Mac, fails:** with 5,000 publications the window is up in 0.6 to 1.1 s but the rows arrive
   after 126 to 168 s, because the Mac cannot show StoryArcKit's cached shelf first (`restoreCachedLibrary()` is internal;
   a parent change under `apps/ios`). `docs/delivery/desktop-budgets-macos.md`. Linux and Windows are the host pass.
+  **Mac meets it 2026-10-18:** the cached shelf comes back before the window's first frame and a quadratic merge in the
+  walk is gone: all 5,027 rows with the window at 0.75 to 0.78 s in Release on the M1 Pro, and a quit mid-scan loses none.
+  Linux and Windows are the host pass.
 - [ ] 5.10 **[M, L, W] Scroll, resize and frame rate** for a library of 10,000 publications. Verify: a frame trace per desktop.
   **Measured 2026-10-18 on the Mac, fails:** the grid of 10,000 scrolls at 30 to 45 fps and resizes at 11 to 12 fps;
   an Instruments trace is next. `docs/delivery/desktop-budgets-macos.md`.
+  **Mac improved 2026-10-18:** scroll 93 fps with a 95th of 20 ms during the launch's rescan, resize 19 fps (was 4 to
+  11); the 10,000 library was not measured again. Resize stays the open part.
 - [ ] 5.11 **[M, L, W] Chrome accent and click zone captures.** Capture both accent choices in light and dark on each desktop,
   the absent choice on a Linux session below libadwaita 1.6, and a reader with the edge click zones on. Verify: the captures
   exist for each desktop and the tests of 2.12, 2.23e, 2.35e and 2.47e pass.
