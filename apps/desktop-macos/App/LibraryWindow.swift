@@ -173,6 +173,7 @@ struct LibraryWindow: View {
                         .contextMenu { ShelfRowMenu(library: library, row: row) }
                 }
                 NewShelfMenu()
+                AllShelvesButton()
             } header: {
                 Text("desktop.shelves.title")
             }
@@ -267,6 +268,18 @@ private struct NewShelfMenu: View {
         }
         .menuStyle(.automatic)
         .menuIndicator(.hidden)
+    }
+}
+
+/// Opens every shelf, the servers' included, in a window of its own.
+private struct AllShelvesButton: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button { openWindow(id: AllShelvesWindow.id) } label: {
+            Label("desktop.shelves.all", systemImage: "square.stack")
+        }
+        .buttonStyle(.plain)
     }
 }
 

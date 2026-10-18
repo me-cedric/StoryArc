@@ -35,6 +35,20 @@ struct StoryArcMacApp: App {
         .windowResizability(.contentMinSize)
         .defaultSize(width: 980, height: 820)
 
+        // Every shelf, the servers' with the Mac's own.
+        Window(Text("desktop.shelves.all"), id: AllShelvesWindow.id) {
+            AllShelvesWindow(library: library).macChrome()
+        }
+        .defaultSize(width: 900, height: 700)
+
+        // A source's own screen: its browser, refresh and rename.
+        WindowGroup(id: SourceWindow.id, for: UUID.self) { $id in
+            if let id {
+                SourceWindow(library: library, sourceID: id).macChrome()
+            }
+        }
+        .defaultSize(width: 900, height: 700)
+
         // The `Settings` scene gives the StoryArc menu its Settings… item and ⌘, for free,
         // and opens one window however often it is asked.
         Settings {

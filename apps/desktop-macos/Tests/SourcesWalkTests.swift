@@ -1,3 +1,5 @@
+import AppKit
+import SwiftUI
 import Formats
 import Foundation
 import LibraryFeature
@@ -32,7 +34,25 @@ extension WindowWalks {
             }
             #expect(!title.isEmpty)
             let source = try #require(connection.source())
-            try await addAndRemove(source, in: library)
+            try await addAndRemove(source, in: library) { added in try await Self.browse(added, in: library) }
+        }
+
+        /// The source's own window: the phones' browser lists the feed, and a rename reaches the registry
+        /// (`opds-catalog`, *Browsing a navigation feed*; `sources`, *Renaming a source*).
+        static func browse(_ source: Source, in library: MacLibrary) async throws {
+            let window = NSWindow(contentViewController: NSHostingController(
+                rootView: SourceWindow(library: library, sourceID: source.id)
+            ))
+            window.setContentSize(NSSize(width: 900, height: 700))
+            window.makeKeyAndOrderFront(nil)
+            defer { window.close() }
+            let named = await Walk.until(.seconds(15)) {
+                AccessibilityAudit.controls(in: window).first { $0.name.contains("Torn Signal") }?.name
+            }
+            #expect(named != nil, "the feed's entries were not listed in the source window")
+            ConformanceLog.note("source window", "the catalogue lists \(named ?? "nothing")", wave: 5)
+            library.model.rename(source, to: "Renamed Catalogue")
+            #expect(library.model.registry[source.id]?.displayName == "Renamed Catalogue")
         }
 
         @Test("A catalogue behind a sign-in asks for it, and the secret goes to the keychain only",
@@ -151,7 +171,7 @@ extension WindowWalks {
         /// Saves the source as the sheet's Add does, waits for its books, then removes it the
         /// way the Sources tab does and checks they left with it.
         private func addAndRemove(
-            _ source: Source, in library: MacLibrary, also check: (Source) -> Void = { _ in }
+            _ source: Source, in library: MacLibrary, also check: (Source) async throws -> Void = { _ in }
         ) async throws {
             library.servers.add(source)
             let added = try #require(library.model.registry[source.id] ?? library.model.registry.sources.first {
@@ -163,7 +183,7 @@ extension WindowWalks {
             #expect(count != nil, "\(added.displayName) added nothing to the library")
             ConformanceLog.note("added \(added.kind.rawValue)", "\(added.displayName): \(count ?? 0) publications")
             #expect(library.servers.rows.contains { $0.id == added.id })
-            check(added)
+            try await check(added)
             library.servers.remove(added.id)
             _ = await Walk.until { library.model.itemCount(of: added.id) == 0 ? true : nil }
             #expect(library.model.registry[added.id] == nil)

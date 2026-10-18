@@ -16,7 +16,8 @@ runs again. For `desktop-experience`, only the requirements the wave 3 tasks nam
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario. |
 | not walked | Built, mostly in StoryArcKit, and not exercised by a Mac walk, for the reason given. |
 
-Totals: pass 59, seen 28, fail 18, later 23, n/a 4, not walked 58, of 190 scenarios.
+Totals: pass 60, seen 31, fail 1, later 23, n/a 4, not walked 71, of 190 scenarios (2026-10-18: the source
+window, source rename and order, and the *All Shelves* window turned 17 failures; 18 before).
 
 **What the walk is.** The walks run inside the app as `StoryArcMacTests` (`WindowWalks`), as
 in wave 2: the fixture comics are copied into the container and scanned as the app's one
@@ -58,26 +59,7 @@ collections and reading lists (`c633edfd9`).
 
 ## The failures, in one list
 
-Each is a screen the phone has and the Mac does not yet. None is a defect in what wave 3 built.
-
-- `sources` · *Reordering sources*: Preferences > Sources lists sources in the registry's order and offers no way to move one.
-- `sources` · *Renaming a source*: A source row's menu offers Refresh, Reconnect and Remove; there is no rename.
-- `sources` · *A refresh of one source from its own screen*: A source has no screen of its own on the Mac; the row's menu refreshes it.
-- `kavita-server` · *Browsing a Kavita source*: A Kavita server's series join the library as publications; the Mac has no library, series or volume browser for the server.
-- `kavita-server` · *Viewing server collections*: The Mac's shelves are local only; server collections are not listed.
-- `kavita-server` · *Adding to a server reading list*: As above: no server reading list is shown on the Mac.
-- `kavita-server` · *Mixing sources in one list*: As above.
-- `kavita-server` · *Searching a Kavita source*: The Mac's search reads the library alone; no server search.
-- `kavita-server` · *Searching from the library, scoped to one server*: As above.
-- `kavita-server` · *Searching while the server is unreachable*: As above.
-- `opds-catalog` · *Browsing a navigation feed*: A catalogue's entries join the library flat; the Mac has no feed browser.
-- `opds-catalog` · *Grouped feed*: As above.
-- `opds-catalog` · *Facets*: No feed browser.
-- `opds-catalog` · *Search*: No catalogue search.
-- `collections-and-reading-lists` · *Mixed listing*: Server collections and lists are not shown on the Mac, so nothing is mixed or labelled.
-- `collections-and-reading-lists` · *Converting a local list*: Not offered on the Mac.
-- `collections-and-reading-lists` · *Converting a local list while every server is away*: Not offered on the Mac.
-- `collections-and-reading-lists` · *A shelf that a server defines*: Server shelves are not shown on the Mac.
+- `kavita-server` · *Searching from the library, scoped to one server*: The Mac's library search reads the library alone; a server is searched only from its source window.
 
 **The 3.15a gaps that are not failures.** A bulk download states its count but not its size,
 because a catalogue entry gives no size before its download starts; the Downloads page counts
@@ -92,8 +74,8 @@ Source: `docs/openspec/specs/sources/spec.md`.
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
 | Source registry | Adding the first source | pass | `SourcesWalkTests` adds a catalogue, a Kavita server and a share, each of which joins the library; frame `settings-sources-*.png` |
-| Source registry | Reordering sources | **fail** | Preferences > Sources lists sources in the registry's order and offers no way to move one. |
-| Source registry | Renaming a source | **fail** | A source row's menu offers Refresh, Reconnect and Remove; there is no rename. |
+| Source registry | Reordering sources | seen | A row's menu offers *Move Up* and *Move Down*, which call `LibraryModel.move`; `SourceOrderTests` holds the first and last places. |
+| Source registry | Renaming a source | pass | `SourcesWalkTests` *An OPDS catalogue is added…* renames the source and reads the new name from the registry; the source window's *Rename* sheet makes the same call. |
 | Source registry | Removing a source | pass | `SourcesWalkTests` removes each source it adds, and its books and its keychain item go with it; the confirmation says downloads and positions stay (`SourcesTab`) |
 | Credential storage | Storing a secret | pass | `SourcesWalkTests` *A catalogue behind a sign-in asks for it, and the secret goes to the keychain only*; `MacCredentialStoreTests` |
 | Credential storage | Secret appears in a diagnostic | pass | `DiagnosticExportTests` *Every credential, token and host is redacted, as on a phone* (StoryArcKit's `DiagnosticRedactionTests` pass unchanged, 15 of 15) |
@@ -115,7 +97,7 @@ Source: `docs/openspec/specs/sources/spec.md`.
 | Refresh visibility | A refresh the user asked for | seen | *Refresh* on a row; no walk asserts the feedback. |
 | Refresh visibility | A refresh that finished | not walked | Not asserted on the Mac. |
 | Refresh visibility | A refresh that failed | seen | A failed refresh leaves the row grey with its state (`SourceRowTests`). |
-| Refresh visibility | A refresh of one source from its own screen | **fail** | A source has no screen of its own on the Mac; the row's menu refreshes it. |
+| Refresh visibility | A refresh of one source from its own screen | seen | The source window's toolbar carries *Refresh* for that source alone. |
 | Refresh visibility | Nothing to say | not walked | Not asserted on the Mac. |
 
 ## network-share
@@ -147,22 +129,22 @@ Source: `docs/openspec/specs/kavita-server/spec.md`.
 | Kavita connection | Pasting a full OPDS URL | seen | The sheet says a pasted Kavita OPDS address carries the key; `KavitaConnection` (StoryArcKit) parses it. No Mac walk pastes one. |
 | Kavita connection | Session token expires | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Kavita connection | API key revoked | seen | A refused key leaves the row asking for the sign-in (`SourceRowTests`). |
-| Library structure | Browsing a Kavita source | **fail** | A Kavita server's series join the library as publications; the Mac has no library, series or volume browser for the server. |
+| Library structure | Browsing a Kavita source | not walked | the source window (`SourceWindow`, from a row's *Browse* in Preferences > Sources) hosts StoryArcKit's `KavitaBrowserView`; the Kavita walk does not open it. |
 | Library structure | Series with volumes and loose chapters | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Library structure | A group Kavita numbers with a sentinel | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Library structure | Continue point | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Metadata | Server metadata differs from file metadata | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Metadata | Keeping a chapter on the device | not walked | Not walked against the Kavita mock on the Mac. |
 | Metadata | Reading a downloaded Kavita title offline | not walked | Not walked on the Mac. |
-| Server-side collections and reading lists | Viewing server collections | **fail** | The Mac's shelves are local only; server collections are not listed. |
-| Server-side collections and reading lists | Adding to a server reading list | **fail** | As above: no server reading list is shown on the Mac. |
-| Server-side collections and reading lists | Mixing sources in one list | **fail** | As above. |
+| Server-side collections and reading lists | Viewing server collections | not walked | The *All Shelves* window hosts StoryArcKit's `ShelvesView`, which lists server collections beside local ones; no Mac walk reaches a server shelf. |
+| Server-side collections and reading lists | Adding to a server reading list | not walked | As above: `ShelvesView` lists the server's reading lists. |
+| Server-side collections and reading lists | Mixing sources in one list | not walked | As above. |
 | Progress synchronisation | Progress pushed | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Progress synchronisation | Progress pulled | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | Progress synchronisation | Marking read state | not walked | The Mac's bulk mark writes the local store only; the push to Kavita is not wired on the Mac. |
-| Server-side search | Searching a Kavita source | **fail** | The Mac's search reads the library alone; no server search. |
+| Server-side search | Searching a Kavita source | not walked | the source window (`SourceWindow`, from a row's *Browse* in Preferences > Sources) hosts StoryArcKit's `KavitaBrowserView`, whose search asks the server. |
 | Server-side search | Searching from the library, scoped to one server | **fail** | As above. |
-| Server-side search | Searching while the server is unreachable | **fail** | As above. |
+| Server-side search | Searching while the server is unreachable | not walked | As above; the browser's unreachable state is StoryArcKit's. |
 
 ## opds-catalog
 
@@ -174,11 +156,11 @@ Source: `docs/openspec/specs/opds-catalog/spec.md`.
 | OPDS protocol support | Version detection fails | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
 | OPDS protocol support | HTTP authentication | pass | `SourcesWalkTests` *A catalogue behind a sign-in asks for it, and the secret goes to the keychain only* (11 publications) |
 | OPDS protocol support | Self-signed certificate | not walked | The pin flow is StoryArcKit's `OpdsTrust`; the mock serves plain HTTP on the loopback, so no walk meets a certificate. |
-| Feed navigation | Browsing a navigation feed | **fail** | A catalogue's entries join the library flat; the Mac has no feed browser. |
-| Feed navigation | Grouped feed | **fail** | As above. |
+| Feed navigation | Browsing a navigation feed | seen | `SourcesWalkTests` opens the source window on the mock's acquisition feed and finds an entry by name; no walk follows a navigation feed. |
+| Feed navigation | Grouped feed | not walked | the source window (`SourceWindow`, from a row's *Browse* in Preferences > Sources) hosts StoryArcKit's `CatalogueBrowserView`; no walk opens a grouped feed. |
 | Feed navigation | Paginated feed | seen | `RemoteEntry.resolve` follows `next` links to find an entry; there is no paged view. |
-| Feed navigation | Facets | **fail** | No feed browser. |
-| Feed navigation | Search | **fail** | No catalogue search. |
+| Feed navigation | Facets | not walked | As above. |
+| Feed navigation | Search | not walked | As above: the catalogue browser carries its own search. |
 | Acquisition | Publication detail | seen | A catalogue row has the library's own detail page, with *Download* in its menu. |
 | Acquisition | Multiple formats offered | seen | `CatalogueAcquisition.best` (StoryArcKit) picks one; the reader is not offered a choice. |
 | Acquisition | No supported format | not walked | Not walked on the Mac. |
@@ -228,11 +210,11 @@ Source: `docs/openspec/specs/collections-and-reading-lists/spec.md`.
 | Reading lists | Cover for a reading list | seen | As for a collection; frame `home-*.png`. |
 | Reading lists | Artwork for an entry | seen | A list entry shows its title and read share, without artwork; frame `shelf-list-*.png`. |
 | Reading lists | Entry no longer available | pass | `ShelvesModelTests` *An entry whose publication is gone stays in its place, unavailable* |
-| Server-backed and local objects | Mixed listing | **fail** | Server collections and lists are not shown on the Mac, so nothing is mixed or labelled. |
+| Server-backed and local objects | Mixed listing | not walked | The *All Shelves* window's `ShelvesView` lists server and local shelves, each labelled; no Mac walk reaches a server. |
 | Server-backed and local objects | Editing while the server is unreachable | pass | `ShelvesModelTests` *An edit made while the server is away is shown, grey, at the end of the list* (the rule; no server list reaches a Mac screen yet) |
 | Server-backed and local objects | Conflicting edit | not walked | the rule is StoryArcKit's, tested there, and the Mac calls it unchanged; no Mac walk drives it. |
-| Server-backed and local objects | Converting a local list | **fail** | Not offered on the Mac. |
-| Server-backed and local objects | Converting a local list while every server is away | **fail** | Not offered on the Mac. |
+| Server-backed and local objects | Converting a local list | not walked | The *All Shelves* window's shelf page offers the conversion through `ShelfBulkActions`. |
+| Server-backed and local objects | Converting a local list while every server is away | not walked | As above. |
 | Bulk actions | Downloading a collection | seen | *Download All* states the count before it queues; the size is not stated, as a catalogue gives none before a download starts. |
 | Bulk actions | Marking a list read | pass | `ShelvesModelTests` *A bulk mark changes only what differs, and its undo puts back exactly that*; `ShelvesWalkTests` marks both members read; the undo bar lasts ten seconds (`ShelfBulk`) |
 | Shelves on the home surface | Collections are listed | pass | `ShelvesModelTests` *Home lists collections and reading lists as two shelves*; `ShelvesWalkTests` finds the card on Home |
@@ -240,7 +222,7 @@ Source: `docs/openspec/specs/collections-and-reading-lists/spec.md`.
 | Shelves on the home surface | One kind with nothing in it | pass | `ShelvesModelTests` *…and leaves out a kind with nothing* |
 | Shelves on the home surface | No shelves at all | pass | `ShelvesModelTests` (`HomeShelves.isEmpty`); Home draws neither shelf |
 | Shelves on the home surface | A shelf with no cover of its own | seen | The well with the shelf's symbol (`ShelfCard`). |
-| Shelves on the home surface | A shelf that a server defines | **fail** | Server shelves are not shown on the Mac. |
+| Shelves on the home surface | A shelf that a server defines | not walked | The *All Shelves* window lists it; the Mac's home surface does not. |
 | Shelves on the home surface | The home surface never asks a server for a shelf | pass | Home's shelves are read from the local `Shelves` alone (`MacShelves.home`), asserted by the model tests. |
 | Shelves on the home surface | A source is removed | not walked | Local shelves only; a removed source's publications leave their shelves as unavailable entries. |
 | Shelves on the home surface | Each shelf leads to the whole of its kind | seen | A card opens its shelf, and the sidebar's Shelves group lists every shelf; Home has no *Show All* per kind. |

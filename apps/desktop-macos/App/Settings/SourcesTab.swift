@@ -8,6 +8,7 @@ import SwiftUI
 /// add and remove under the list, and removing asks first and says downloads and progress
 /// stay. A row's own actions are one menu (`AGENTS.md` section 6), the destructive one last.
 struct SourcesSettingsTab: View {
+    @Environment(\.openWindow) private var openWindow
     let library: MacLibrary
 
     @State private var removing: SourceRow?
@@ -124,7 +125,17 @@ struct SourcesSettingsTab: View {
             }
             Spacer()
             Menu {
+                Button { openWindow(id: SourceWindow.id, value: row.id) } label: { Text("desktop.sources.browse") }
                 Button { Task { await library.servers.refresh(row.id) } } label: { Text("desktop.sources.refresh") }
+                let order = library.model.registry.sources.map(\.id)
+                if let index = order.firstIndex(of: row.id) {
+                    if let up = SourceOrder.up(from: index) {
+                        Button { library.model.move(row.id, to: up) } label: { Text("desktop.sources.moveUp") }
+                    }
+                    if let down = SourceOrder.down(from: index, count: order.count) {
+                        Button { library.model.move(row.id, to: down) } label: { Text("desktop.sources.moveDown") }
+                    }
+                }
                 if row.offersReconnect {
                     Button { library.servers.reconnect(row.id) } label: { Text("desktop.sources.reconnect") }
                 }
