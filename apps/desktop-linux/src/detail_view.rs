@@ -22,6 +22,9 @@ use crate::settings::Rgb;
 use crate::strings::{tr, tr_args, tr_plural};
 
 /// What the page needs from the window.
+/// Starts an audiobook at a part and an offset.
+pub type ListenFrom = Rc<dyn Fn(&Publication, usize, std::time::Duration)>;
+
 pub struct DetailHooks {
     /// Opens the publication in a reader.
     pub read: Rc<dyn Fn(&Publication)>,
@@ -31,6 +34,9 @@ pub struct DetailHooks {
     pub others: Vec<(Publication, CardState)>,
     /// The app's accent, the wash for a cover that yields no colour.
     pub accent: Rgb,
+    /// For an audiobook: where the listener stopped, and a way to start at a chapter.
+    pub stopped: Option<(usize, std::time::Duration)>,
+    pub listen_from: ListenFrom,
 }
 
 /// The detail page pushed over the library in a narrow window.
@@ -138,7 +144,8 @@ fn detail_column(
                 .build(),
         );
     }
-    column.append(&actions(detail, publication, hooks));
+    let actions = actions(detail, publication, hooks);
+    column.append(&actions);
     if let Some(note) = detail.note {
         column.append(
             &gtk::Label::builder()
@@ -169,6 +176,19 @@ fn detail_column(
             .css_classes(["dimmed", "caption"])
             .build(),
     );
+    if publication.format.is_audio() {
+        column.append(&audiobook_section(publication, &actions, hooks));
+    }
+    if publication.format == storyarc_core::domain::PublicationFormat::Epub
+        && let Some(voice) = crate::player::voice_name()
+    {
+        column.append(
+            &gtk::Label::builder()
+                .label(tr_args("detail.readAloud.voice %s", "Read aloud by %s", &[&voice]))
+                .css_classes(["dimmed", "caption"])
+                .build(),
+        );
+    }
     if !hooks.others.is_empty() {
         column.append(&other_issues(&hooks.others, covers, &hooks.show));
     }
@@ -210,6 +230,68 @@ fn actions(detail: &Detail, publication: &Publication, hooks: &DetailHooks) -> g
     actions.append(&primary);
     actions.append(&more);
     actions
+}
+
+/// An audiobook's chapters before the first minute (`audio-playback`, *Chapters before the
+/// first minute*): read from the files on a worker, each a way to start there, or the book's
+/// length when it is one part with no marks. The primary action names where it resumes.
+fn audiobook_section(publication: &Publication, actions: &gtk::Box, hooks: &DetailHooks) -> gtk::Box {
+    let section = gtk::Box::new(gtk::Orientation::Vertical, 12);
+    section.set_margin_top(12);
+    let Some(path) = publication.identity.normalized_path.clone().map(PathBuf::from) else {
+        return section;
+    };
+    let primary = actions
+        .first_child()
+        .and_then(|child| child.downcast::<gtk::Button>().ok());
+    let (target, stopped, listen_from) = (publication.clone(), hooks.stopped, hooks.listen_from.clone());
+    let on_section = section.clone();
+    gtk::glib::spawn_future_local(async move {
+        let parts = crate::player::audiobook_parts(&path);
+        let Ok((chapters, _)) = gio::spawn_blocking(move || crate::player::book_chapters(&parts)).await else {
+            return;
+        };
+        if let Some(primary) = primary.filter(|p| p.is_sensitive()) {
+            primary.set_label(&crate::playback::resume_label(&chapters, stopped));
+        }
+        match crate::playback::listing(&chapters, stopped) {
+            crate::playback::Listing::Length(length) => {
+                if let Some(length) = length {
+                    on_section.append(
+                        &gtk::Label::builder()
+                            .label(tr_args("detail.duration %s", "Duration %s", &[&crate::player::clock(length)]))
+                            .css_classes(["dimmed"])
+                            .build(),
+                    );
+                }
+            }
+            crate::playback::Listing::Chapters(rows) => {
+                on_section.append(
+                    &gtk::Label::builder()
+                        .label(tr("detail.chapters", "Chapters"))
+                        .xalign(0.0)
+                        .css_classes(["title-4"])
+                        .accessible_role(gtk::AccessibleRole::Heading)
+                        .build(),
+                );
+                let list = gtk::ListBox::builder()
+                    .selection_mode(gtk::SelectionMode::None)
+                    .css_classes(["boxed-list"])
+                    .build();
+                for (row, chapter) in rows.into_iter().zip(chapters) {
+                    let item = adw::ActionRow::builder()
+                        .title(gtk::glib::markup_escape_text(&row))
+                        .activatable(true)
+                        .build();
+                    let (target, listen_from) = (target.clone(), listen_from.clone());
+                    item.connect_activated(move |_| listen_from(&target, chapter.part, chapter.start));
+                    list.append(&item);
+                }
+                on_section.append(&list);
+            }
+        }
+    });
+    section
 }
 
 /// The rest of the series, in order, each cover marked with how far it is read and

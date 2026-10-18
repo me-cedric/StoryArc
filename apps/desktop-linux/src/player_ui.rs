@@ -18,6 +18,10 @@ use crate::strings::{tr, tr_args};
 
 struct Bar {
     revealer: gtk::Revealer,
+    open: gtk::Button,
+    back: gtk::Button,
+    forward: gtk::Button,
+    bottom: gtk::Box,
     cover: gtk::Picture,
     title: gtk::Label,
     subtitle: gtk::Label,
@@ -52,10 +56,16 @@ pub fn bar(shared: &Shared, window: &adw::ApplicationWindow) -> gtk::Revealer {
         .css_classes(["dim-label", "caption"])
         .build();
     let words = gtk::Box::new(gtk::Orientation::Vertical, 2);
-    words.set_hexpand(true);
     words.set_valign(gtk::Align::Center);
     words.append(&title);
     words.append(&subtitle);
+    // The way back to where the audio reads: the book for a voice, the full player for a
+    // narrated book (`audio-playback`, *Playback outlives the publication*).
+    let open = gtk::Button::builder()
+        .child(&words)
+        .hexpand(true)
+        .css_classes(["flat"])
+        .build();
 
     let back = transport_button(
         "media-seek-backward-symbolic",
@@ -97,7 +107,7 @@ pub fn bar(shared: &Shared, window: &adw::ApplicationWindow) -> gtk::Revealer {
 
     let top = gtk::Box::new(gtk::Orientation::Horizontal, 12);
     top.append(&cover);
-    top.append(&words);
+    top.append(&open);
     top.append(&controls);
     top.append(&stop);
     let bottom = gtk::Box::new(gtk::Orientation::Horizontal, 12);
@@ -126,6 +136,10 @@ pub fn bar(shared: &Shared, window: &adw::ApplicationWindow) -> gtk::Revealer {
 
     let bar = Rc::new(Bar {
         revealer: revealer.clone(),
+        open: open.clone(),
+        back,
+        forward,
+        bottom: bottom.clone(),
         cover,
         title,
         subtitle,
@@ -147,6 +161,21 @@ pub fn bar(shared: &Shared, window: &adw::ApplicationWindow) -> gtk::Revealer {
         };
         if !bar.moving.get() {
             player.seek(Duration::from_secs_f64(slider.value().max(0.0)));
+        }
+    });
+    let (weak, on_shared) = (Rc::downgrade(&player), Rc::downgrade(shared));
+    open.connect_clicked(move |_| {
+        let (Some(player), Some(shared)) = (weak.upgrade(), on_shared.upgrade()) else {
+            return;
+        };
+        let showing = player.showing();
+        match showing.book.filter(|_| showing.voice) {
+            Some(book) => {
+                if let Err(reason) = crate::launch::open_publication(&shared, &book) {
+                    shared.toast(&reason);
+                }
+            }
+            None => crate::player_window::present(&shared),
         }
     });
     install_actions(shared, window);
@@ -173,6 +202,23 @@ impl Bar {
         }
         self.title.set_text(&showing.title);
         self.subtitle.set_text(&showing.subtitle);
+        let way_back = if showing.voice {
+            tr("player.back", "Back to the book")
+        } else {
+            tr("player.open", "Open the player")
+        };
+        self.open.set_tooltip_text(Some(&way_back));
+        self.open.update_property(&[gtk::accessible::Property::Label(&format!(
+            "{way_back}: {}",
+            showing.title
+        ))]);
+        let (back, forward) = crate::player_window::skip_labels(showing.voice);
+        for (button, label) in [(&self.back, back), (&self.forward, forward)] {
+            button.set_tooltip_text(Some(&label));
+            button.update_property(&[gtk::accessible::Property::Label(&label)]);
+        }
+        // A voice has no clock: the slider and the time are absent rather than dead.
+        self.bottom.set_visible(!showing.voice);
         let (icon, word) = if showing.state == PlayState::Playing {
             ("media-playback-pause-symbolic", tr("player.pause", "Pause"))
         } else {
@@ -184,7 +230,19 @@ impl Bar {
             .update_property(&[gtk::accessible::Property::Label(&word)]);
         match &showing.cover {
             Some(path) => self.cover.set_file(Some(&gio::File::for_path(path))),
-            None => self.cover.set_paintable(None::<&gtk::gdk::Paintable>),
+            // `audio-playback`, *A publication with no cover*: the kind's symbol.
+            None => {
+                let icon = if showing.voice { "x-office-document-symbolic" } else { "audio-headphones-symbolic" };
+                let paintable = gtk::IconTheme::for_display(&self.cover.display()).lookup_icon(
+                    icon,
+                    &[],
+                    44,
+                    1,
+                    gtk::TextDirection::None,
+                    gtk::IconLookupFlags::empty(),
+                );
+                self.cover.set_paintable(Some(&paintable));
+            }
         }
         self.slider.set_sensitive(showing.can_skip);
         self.moving.set(true);
@@ -214,8 +272,8 @@ type Transport = fn(&Rc<player::Player>);
 fn install_actions(shared: &Shared, window: &adw::ApplicationWindow) {
     let actions: [(&str, Transport); 6] = [
         ("play-pause", |player| player.toggle()),
-        ("skip-back", |player| player.skip(player::SKIP_BACK)),
-        ("skip-forward", |player| player.skip(player::SKIP_FORWARD)),
+        ("skip-back", |player| player.skip_by(false)),
+        ("skip-forward", |player| player.skip_by(true)),
         ("stop-playback", |player| player.stop()),
         ("next-part", |player| player.next()),
         ("previous-part", |player| player.previous()),

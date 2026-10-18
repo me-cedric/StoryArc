@@ -838,6 +838,10 @@
     <value>Aa</value>
     <comment>desktop.w4.epub.specimen</comment>
   </data>
+  <data name="desktop_w4_epub_stopReadingAloud" xml:space="preserve">
+    <value>Vorlesen beenden</value>
+    <comment>desktop.w4.epub.stopReadingAloud</comment>
+  </data>
   <data name="desktop_w4_epub_theme" xml:space="preserve">
     <value>Thema</value>
     <comment>desktop.w4.epub.theme</comment>
@@ -917,6 +921,10 @@
   <data name="desktop_w4_player_readingAloud" xml:space="preserve">
     <value>Wird vorgelesen</value>
     <comment>desktop.w4.player.readingAloud</comment>
+  </data>
+  <data name="desktop_w4_player_sleepMinutes" xml:space="preserve">
+    <value>{0} Minuten</value>
+    <comment>desktop.w4.player.sleepMinutes</comment>
   </data>
   <data name="detail_chapter_finished" xml:space="preserve">
     <value>Beendet</value>

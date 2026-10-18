@@ -229,9 +229,24 @@ impl Speech {
 
     /// The rate, from -100 (slowest) to 100 (fastest); 0 is the voice's own.
     #[allow(dead_code)] // the full player's speed control, a later task, sets it
+    /// The volume of what is said next, -100 to 100: the sleep timer's fade.
+    pub fn set_volume(&mut self, volume: i32) -> Result<(), String> {
+        self.command(&format!("SET SELF VOLUME {}", volume.clamp(-100, 100)))
+            .map(|_| ())
+    }
+
     pub fn set_rate(&mut self, rate: i32) -> Result<(), String> {
         self.command(&format!("SET SELF RATE {}", rate.clamp(-100, 100)))
             .map(|_| ())
+    }
+
+    /// The speech engine speech-dispatcher speaks through, such as `espeak-ng`.
+    pub fn output_module(&mut self) -> Result<String, String> {
+        self.command("GET OUTPUT_MODULE")?
+            .lines
+            .first()
+            .cloned()
+            .ok_or_else(|| "speech-dispatcher named no output module".to_owned())
     }
 
     /// The voices the current output module offers, as `name language variant` lines.

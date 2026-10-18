@@ -664,6 +664,9 @@ msgstr "Selected"
 msgid "desktop.w4.epub.specimen"
 msgstr "Aa"
 
+msgid "desktop.w4.epub.stopReadingAloud"
+msgstr "Stop reading aloud"
+
 msgid "desktop.w4.epub.theme"
 msgstr "Theme"
 
@@ -727,6 +730,10 @@ msgstr "Read aloud"
 
 msgid "desktop.w4.player.readingAloud"
 msgstr "Reading aloud"
+
+#, c-format
+msgid "desktop.w4.player.sleepMinutes"
+msgstr "%s minutes"
 
 msgid "detail.chapter.finished"
 msgstr "Finished"

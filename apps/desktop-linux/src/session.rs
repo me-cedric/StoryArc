@@ -46,6 +46,7 @@ const MODES_FILE: &str = "page-turns";
 const ADJUSTMENTS_FILE: &str = "image-adjustments";
 const EPUB_LOOK_FILE: &str = "epub-look";
 const EPUB_MARKS_FILE: &str = "epub-marks.json";
+const SPEEDS_FILE: &str = "player-speeds";
 pub const LOG_DOMAIN: &str = "storyarc";
 
 fn data_path(file: &str) -> PathBuf {
@@ -145,6 +146,15 @@ pub fn save_epub_marks(key: &str, marks: &crate::epub_marks::Marks) {
     let mut all = crate::epub_marks::read_all(&std::fs::read_to_string(&path).unwrap_or_default());
     all.insert(key.to_owned(), marks.to_json());
     write_file(&path, &serde_json::Value::Object(all).to_string());
+}
+
+/// The speed each book was last heard at (`playback.rs`).
+pub fn load_speeds() -> crate::playback::Speeds {
+    crate::playback::Speeds::restore(&std::fs::read_to_string(data_path(SPEEDS_FILE)).unwrap_or_default())
+}
+
+pub fn save_speeds(speeds: &crate::playback::Speeds) {
+    write_file(&data_path(SPEEDS_FILE), &speeds.save());
 }
 
 /// The recent searches and the search scope (`library/search.rs`).

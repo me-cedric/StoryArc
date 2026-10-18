@@ -1,0 +1,6 @@
+status: Playing
+title: chaptered
+chapter line: Two
+art: file://$HOME/.cache/com.mecedric.StoryArc/coverless-audio-M4B.svg
+after play-pause: Paused
+coverless art: file://$HOME/.cache/com.mecedric.StoryArc/coverless-audio-M4B.svg

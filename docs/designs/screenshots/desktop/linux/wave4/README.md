@@ -29,6 +29,20 @@ Tasks 4.10 to 4.15 of `desktop-clients`. The walks that read these frames are
 | `pdf-search-hit.png` | Return: the reader jumps to the hit's page, *2 of 3*. |
 | `player-bar.png` | `id3-chapters.mp3` playing on a null sink: the mini player revealed at the foot of the library with the title, the clock, the slider and the transport. |
 | `player-paused.png` | After `playerctl play-pause` and `playerctl position 2` from outside the app: the bar shows *Play* again and the clock the new position. |
+| `player-detail.png` | The player walk (`scripts/wave4-player-walk.sh`, 2026-10-18), with the corpus audiobooks as a second folder library: the page of `chaptered.m4b`, never started, lists its chapters with their lengths and offers *Listen*. |
+| `player-full.png` | The book opened: the full player with the coverless artwork (the headphones over *M4B*), the title, the chapter *Two*, the position and the length, skip back, play, skip forward, the chapters, the sleep timer and the speed. Paused from outside the app with `playerctl`. |
+| `player-chapters.png` | The chapters: *One* finished, *Two* in progress with what is left of it. |
+| `player-speed.png` | The speeds, half to triple, as numbers. |
+| `player-sleep.png` | The sleep timer: off, five to sixty minutes, and the end of the chapter. |
+| `player-detail-resume.png` | The library again: the page offers *Continue Two* and marks the chapters; the bar at the foot names the book and the chapter, with the coverless symbol. |
+| `player-coverless.png` | `unchaptered.m4a`, which has no cover: the same coverless artwork. `playerctl-player.txt` shows the desktop's controls get it too. |
+| `player-detail-one-part.png` | The page of the one-part book with no marks: its duration and no list. |
+| `epub-detail-voice.png` | The EPUB's page, with the corpus ebooks as a third library: *Read aloud by espeak-ng*, the one place the voice is named. |
+| `epub-voice.png` | *Read aloud* in the EPUB window: the sentence being spoken drawn in its own tint, and *Stop reading aloud* and *Open the player* in the header. |
+| `player-bar-voice.png` | The book closed while the voice reads: the bar names the book and the chapter, skips by sentence, has no slider, and leads back to the book. |
+| `epub-voice-reopened.png` | The book reopened: it takes the voice again at its sentence. The fixture repeats one sentence in every paragraph, so the tint falls on its first copy. |
+| `epub-voice-stopped.png` | Another book opened: the voice stops and the new window says *Stopped reading “Fixture Publication” aloud.* once. |
+| `playerctl-player.txt` | What `playerctl` read during the player walk: the chapter on the artist line and the coverless artwork's address. |
 | `a11y-*.txt` | The accessibility tree of each screen as Orca would read it, from `scripts/a11y-tree.py` over AT-SPI. |
 | `playerctl.txt` | What `playerctl` read and did over the session bus while the audiobook played. |
 | `storyarc.log` | The app's own output during the walk. |

@@ -380,11 +380,10 @@ mod tests {
 
     #[test]
     fn the_eight_vector_page_reaches_nothing_through_the_guarded_view() {
-        if std::env::var_os("WAYLAND_DISPLAY").is_none() && std::env::var_os("DISPLAY").is_none() {
-            eprintln!("skipped: no display; scripts/headless-proof.sh runs this under cage");
-            return;
-        }
-        gtk::init().expect("GTK on a display");
+        crate::display_test::on_display(egress_on_a_display);
+    }
+
+    fn egress_on_a_display() {
         let dir = tempfile::tempdir().expect("a folder for the filter store");
         let window = gtk::Window::new();
 

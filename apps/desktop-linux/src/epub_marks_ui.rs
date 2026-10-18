@@ -86,6 +86,7 @@ fn scrolled(child: &impl IsA<gtk::Widget>) -> gtk::ScrolledWindow {
     gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .propagate_natural_height(true)
+        .propagate_natural_width(true)
         .max_content_height(480)
         .min_content_width(320)
         .child(child)

@@ -311,6 +311,17 @@ pub fn start_of(href: &str, media_type: Option<&str>) -> String {
     .to_string()
 }
 
+/// A sentence of a chapter, as a locator the renderer finds again by its text.
+pub fn spoken_locator(sentence: &str, href: &str) -> String {
+    json!({
+        "href": href,
+        "type": "application/xhtml+xml",
+        "locations": {},
+        "text": { "highlight": sentence },
+    })
+    .to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -346,7 +357,7 @@ mod tests {
         marks.set_note(&id, "  remember  ");
         assert_eq!(marks.highlights[0].note, "remember");
         let message: Value = serde_json::from_str(&marks.highlights_message(
-            Some(&json!({"href": "a.xhtml", "text": {"highlight": "A sentence."}}).to_string()),
+            Some(&spoken_locator("A sentence.", "a.xhtml")),
             3,
         ))
         .unwrap();

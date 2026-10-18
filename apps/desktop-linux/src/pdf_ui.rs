@@ -364,6 +364,9 @@ fn install_read_aloud(reader: &Rc<Reader>, header: &adw::HeaderBar) {
         let publication = reader.publication.clone();
         let page = reader.page();
         let title = publication.title.clone();
+        let path = std::path::PathBuf::from(&publication.id);
+        let key = crate::player::speed_key(&publication.record.identity, &path);
+        let series = publication.record.series.clone();
         let weak = Rc::downgrade(&shared);
         glib::MainContext::default().spawn_local(async move {
             let text = gio::spawn_blocking(move || publication.page_text(page as usize))
@@ -373,7 +376,19 @@ fn install_read_aloud(reader: &Rc<Reader>, header: &adw::HeaderBar) {
                 return;
             };
             let sentences = crate::player::sentences_of_markup(&text);
-            if let Err(reason) = shared.player().read_aloud(&title, sentences) {
+            let book = crate::player::VoiceBook {
+                chapters: vec![crate::player::SpokenChapter {
+                    href: String::new(),
+                    title: title.clone(),
+                    sentences,
+                }],
+                title,
+                path,
+                key,
+                series,
+                part: 0,
+            };
+            if let Err(reason) = shared.player().read_aloud(book) {
                 shared.toast(&reason);
             }
         });

@@ -10,7 +10,7 @@ Task 4.22 of `desktop-clients`. This record lists every scenario of the capabili
 | **fail** | It is not built on Linux today. The evidence column says what is missing. |
 | n/a | Dropped on a desktop by `design.md` Decision 9, or another system's scenario, or the reason does not apply on Linux. |
 
-Totals: pass 29, seen 9, fail 25, not proved 22, n/a 7, of 92 scenarios (written 2026-10-18).
+Totals: pass 47, seen 14, fail 1, not proved 23, n/a 7, of 92 scenarios (written 2026-10-18).
 
 **What the evidence is.**
 
@@ -23,17 +23,17 @@ Totals: pass 29, seen 9, fail 25, not proved 22, n/a 7, of 92 scenarios (written
 
 ## The failures, in one list
 
-25 rows fail. Each one is a missing piece.
+1 row fails. Each one is a missing piece.
 
 - **EPUB look and typography:** built 2026-10-18 (`epub_look.rs`, `epub_theme_ui.rs`). Eleven rows pass; three are not proved until a capture of the second depth, a larger text size or a size change mid-chapter exists.
 - **EPUB position and navigation:** built 2026-10-18 (`epub_marks.rs`, `epub_marks_ui.rs`). Seven rows pass; two are not proved because the corpus EPUB has no footnote and declares its contents.
 - **PDF (1):** Text-based PDF has no highlight colours, no note and no search for the selection.
-- **Read aloud and its transport (9):** Starting playback (no sentence highlight, starts at the chapter), Leaving the publication while it speaks, The same controls as a narrated book, Reaching the end of a chapter, Where the listening got to, Getting back to the book, Controlling it without going back, What it says, Opening a different publication.
-- **Player (15):** The compact bar, The full player, A publication with no cover, Both sources look the same, Playback outlives the publication, Where a listening position is written, Speed, Skipping, Sleep timer, Chapters, Headphones removed, and the four *Chapters before the first minute* rows.
+- **Read aloud and its transport:** built 2026-10-18 (`player.rs`, `epub_window.rs`). The voice reads the book chapter after chapter from the one in view, its sentence drawn and followed, retaken by a reopened book, stopped with a notice by another. Six rows pass and two are seen; two stay not proved.
+- **Player:** built 2026-10-18 (`playback.rs`, `audio_chapters.rs`, `player_window.rs`, `player_ui.rs`, `detail_view.rs`). The bar leads back, the full player has the chapters, the sleep timer and the speed, and the publication's page lists the chapters. Thirteen rows pass and four are seen; *Headphones removed* needs a real audio device.
 
 **Found while reading the code and the frames.**
 
-- The skip buttons of the bar stay active for a voice and do nothing.
+- The skip buttons of the bar stay active for a voice and do nothing. Resolved 2026-10-18: for a voice they move by a sentence and say so.
 - `EpubReader::received` hands the `href` of a `link` message to the launcher with no scheme check. `epub_view::decide` does check.
 - The shelf rows have no name, and the close button of the PDF search bar has no name (dump `a11y-pdf-search.txt` counts 3 controls with no name).
 - The frame README says `epub-next.png` shows *2 of 2*. The frame has an empty foot and the same size as `epub-reader.png`. No capture shows the second position. Resolved 2026-10-18: the reader page kept the promise `StoryArcEpub.open` returns rather than the reader, so every host message, `next` included, was dropped. The page now awaits it, and `epub-next.png` shows the second page.
@@ -85,23 +85,23 @@ Source: `docs/openspec/changes/read-aloud-beyond-the-reader/specs/ebook-reader/s
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| Reading aloud | Starting playback | fail | The voice starts at the first sentence of the chapter the reader is in (`EpubReader::read_aloud`), not at the position. No sentence is highlighted and the page does not follow. The bar names the book and *Reading aloud*, not the chapter. The *Read aloud* button is named in dump `a11y-epub-reader.txt`. |
-| Reading aloud | Leaving the publication while it speaks | fail | The voice runs on the app `Player`, so a closed window does not own it. The bar has no way back to the book, and a reopened book does not go to the sentence being spoken. No walk closes a speaking book. |
-| Reading aloud | The same controls as a narrated book | fail | No full player, no speed, no sleep timer and no chapter list exist. The skip buttons of the bar do nothing for a voice. No page names the voice. |
-| Reading aloud | Background and lock screen | not proved | `Player::show_in_controls` publishes a voice to MPRIS. The tests assert the metadata for an audiobook. The walk played an audiobook only, and the shell panel needs a real desktop. The chapter line is not shown. |
-| Reading aloud | Reaching the end of a chapter | fail | The voice reads one chapter. At its last sentence `Player::tick` calls `stop`. It does not carry on into the next chapter. |
-| Reading aloud | Where the listening got to | fail | `Player::write_position` writes for an audiobook only. The page does not follow the voice, so the EPUB window cannot write where the voice got to. |
+| Reading aloud | Starting playback | pass | The voice reads from the start of the chapter in view, chapter after chapter (`EpubReader::read_aloud`, as on the Mac). Its sentence is drawn in its own tint and the page follows it: `epub_window::tests::the_renderer_answers_the_windows_look_search_go_and_highlights` draws and goes to the spoken sentence through the pinned renderer, `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book` names the chapter on the second line (both under cage); frame `epub-voice.png` (2026-10-18). |
+| Reading aloud | Leaving the publication while it speaks | seen | The voice belongs to the app's player, so closing the book leaves it reading; the bar leads back, and the reopened book takes the voice at its sentence (`EpubReader::adopt_voice`). Frames `player-bar-voice.png` and `epub-voice-reopened.png` (2026-10-18). Nothing asserts the reopening. |
+| Reading aloud | The same controls as a narrated book | pass | *Open the player* in the header while the voice reads opens the one full player: sentence skips, the chapter list, the sleep timer (end of chapter included) and the speed (`player_window.rs`). `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book` steps by sentence; `player_window::tests::the_full_player_states_its_chapters_timer_and_skips` holds the words (2026-10-18). No frame shows the full player over a voice. |
+| Reading aloud | Background and lock screen | not proved | `Player::show_in_controls` publishes the voice to MPRIS with the chapter on the artist line and the coverless artwork (`playerctl-player.txt` shows both for a narrated book, 2026-10-18). The shell's own panel needs a real desktop. |
+| Reading aloud | Reaching the end of a chapter | pass | At a chapter's last sentence the voice goes on into the next chapter that has words, unless the sleep timer waits for the end of the chapter (`player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book`, under cage, 2026-10-18). |
+| Reading aloud | Where the listening got to | pass | The page follows the voice's sentence (`EpubReader::follow_voice`), so the window's progress writer records where the voice reached as it records a turn; the follow is asserted through the renderer by `epub_window::tests::the_renderer_answers_the_windows_look_search_go_and_highlights` (under cage, 2026-10-18). |
 | Reading aloud | Something else takes the audio | not proved | It needs a second player or a call on a real session. The audio spike records that the app does not read the cork of PipeWire (gap 4 of `desktop-spike-audio-linux.md`). |
-| Reading aloud | A publication with nothing to say | not proved | A PDF with no text layer gets no read aloud control (`pdf_ui::install`). The EPUB window offers the control whenever a speech engine exists, and an empty chapter gets the toast *This page has nothing to read aloud.* No book with no text was tried. |
-| The transport outside the reader | Getting back to the book | fail | The bar has no action that opens the book (`player_ui::bar`). |
-| The transport outside the reader | Controlling it without going back | fail | The bar has *Play* or *Pause* and *Stop* (dump `a11y-player-bar.txt`). Sentence skip is not on the bar. Its skip buttons do nothing for a voice. Next and Previous reach a sentence only through MPRIS. |
-| The transport outside the reader | What it says | fail | The bar names the book and *Reading aloud*. It does not name the chapter. |
+| Reading aloud | A publication with nothing to say | not proved | Chapters with no words are passed over, and a book with none gets the toast *This page has nothing to read aloud.* (`Player::read_aloud`). The empty chapter is asserted by `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book`; no book with no text was opened. |
+| The transport outside the reader | Getting back to the book | seen | The bar's title is a button, *Back to the book: {title}* for a voice and *Open the player: {title}* for a narrator (`player_ui::bar`). Frame `player-bar-voice.png` and dump `a11y-player-bar-voice.txt` (2026-10-18). Its press is not walked. |
+| The transport outside the reader | Controlling it without going back | pass | The bar has play or pause and the previous and next sentence for a voice (dump `a11y-player-bar-voice.txt`), and `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book` steps by sentence across chapters (2026-10-18). |
+| The transport outside the reader | What it says | pass | The bar names the book and the chapter the voice is in (`player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book`; frame `player-bar-voice.png`, 2026-10-18). |
 | The transport outside the reader | It is absent when nothing is playing | seen | Frame `library.png` shows no bar before a session and no space kept for it. `Bar::show` hides the revealer when the state is stopped. The end of a session was not captured. |
-| The transport outside the reader | Opening a different publication | fail | Opening another book does not end a voice. No notice says that a voice stopped. Only a new read aloud or a new audiobook calls `stop_quietly`. |
+| The transport outside the reader | Opening a different publication | pass | Opening another book stops a voice reading a different one, and the new window says *Stopped reading “{title}” aloud.* once (`Player::displace_voice` from `launch::open_publication`; `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book`; frame `epub-voice-stopped.png`, 2026-10-18). |
 | The transport outside the reader | The transport on iOS | n/a | iOS. |
 | The transport outside the reader | The transport on Android | n/a | Android. |
 | The transport outside the reader | The session cannot continue | not proved | `Player::tick` and `Player::on_audio` log an engine error and call `stop`, which writes the audiobook position first. No test and no walk drives a lost engine. |
-| The transport outside the reader | Reaching the transport without touch | seen | Dump `a11y-player-bar.txt` lists `Cover`, the title, `15 s back`, `Play`, `30 s forward`, `Stop` and the slider `Position`. Focus stays on the sidebar row, so the bar does not take it. The bar has no open action. |
+| The transport outside the reader | Reaching the transport without touch | seen | Dumps `a11y-player-bar-voice.txt` and `a11y-player-detail-resume.txt` (2026-10-18) list the way back with the book's title, the two skips, play or pause and stop; a voice's bar has no slider. Focus stays where it was. The order Orca speaks is owed. |
 
 ## audio-playback (audiobooks delta)
 
@@ -109,29 +109,29 @@ Source: `docs/openspec/changes/audiobooks-and-playback/specs/audio-playback/spec
 
 | Requirement | Scenario | Result | Evidence or reason |
 | --- | --- | --- | --- |
-| One player for everything that speaks | The compact bar | fail | The bar shows the title and the author and has play, skip and stop (frame `player-bar.png`). It does not name the chapter and has no action that opens a full player. |
+| One player for everything that speaks | The compact bar | seen | The bar names the book and the chapter, has play or pause and opens the full player (frame `player-detail-resume.png`, dump `a11y-player-detail-resume.txt`, 2026-10-18). |
 | One player for everything that speaks | Nothing is playing | seen | Frame `library.png` shows no bar and no reserved space. |
-| One player for everything that speaks | The full player | fail | Not built on Linux (`desktop-a11y-linux.md`). |
-| One player for everything that speaks | A publication with no cover | fail | The bar draws nothing where a cover is missing (`Bar::show` clears the paintable). The shared coverless artwork is not drawn, and MPRIS gets no art. |
-| One player for everything that speaks | Both sources look the same | fail | One bar draws both sources (`Bar::show`). Its skip buttons stay active for a voice and do nothing. Its second line reads *Reading aloud*. No page names the voice. |
-| One player for everything that speaks | Playback outlives the publication | fail | The sound does not depend on a window, because `Player` belongs to the app. The bar gives no way back to where the audio reads. No walk closes a window while audio plays. |
+| One player for everything that speaks | The full player | seen | The cover or the coverless artwork, the book, the chapter, the position and the length, skip back, play, skip forward, the slider, the chapters, the sleep timer and the speed, over the one session (frames `player-full.png`, `player-chapters.png`, `player-speed.png`, `player-sleep.png`, 2026-10-18). |
+| One player for everything that speaks | A publication with no cover | pass | The kind's symbol over the format's name, never the title, in the bar, the full player and the desktop's controls (`playback::tests::the_coverless_artwork_names_the_format_and_never_the_title`; frames `player-full.png`, `player-coverless.png`; `playerctl-player.txt` reads the artwork's address, 2026-10-18). |
+| One player for everything that speaks | Both sources look the same | pass | One bar and one full player for both; for a voice the skips move by sentence and the slider is absent rather than dead (`player_window::tests::the_full_player_states_its_chapters_timer_and_skips`, `player::tests::a_voice_reads_on_across_chapters_and_stops_for_another_book`); the voice is named once, on the book's page (*Read aloud by espeak-ng*, frame `epub-detail-voice.png`, 2026-10-18). |
+| One player for everything that speaks | Playback outlives the publication | seen | The session belongs to the app: the full player closed and the book closed, the bar carries the audio and leads back (frames `player-detail-resume.png` and `player-bar-voice.png`, 2026-10-18). |
 | One player for everything that speaks | Starting a second thing | not proved | `play_audiobook` and `read_aloud` call `stop_quietly` first, which writes the first position. No test starts two sessions. |
-| One player for everything that speaks | Where a listening position is written | fail | `Player::write_position` runs on a stop and every 15 seconds (`WRITE_EVERY`). A pause, a skip, a seek and a change of part write nothing at once. |
-| Playback controls | Speed | fail | The engine takes a rate (`AudioPlayer::set_rate`, 0.5 to 3.0). No control sets it and nothing remembers it. |
-| Playback controls | Skipping | fail | The controls state *15 s back* and *30 s forward* (dump `a11y-player-bar.txt`). `AudioPlayer::skip` stops at the ends of the file and does not go on into the neighbouring part. No test asserts skip. |
-| Playback controls | Sleep timer | fail | Not built. |
-| Playback controls | Chapters | fail | No chapter list and no marks exist. The core reads no audiobook chapters (gap 2 of `desktop-spike-audio-linux.md`). Next and Previous step through the parts of a folder, through MPRIS only. |
-| Playback controls | Lock screen and system controls | pass | `playerctl_controls_playback_and_shows_the_metadata` asserts the title, the cover address, the position, pause, seek and next through MPRIS. `the_metadata_carries_title_cover_length_and_an_object_path_track` asserts the metadata. The chapter line is not shown, because no chapter list exists. The shell panel is owed. |
+| One player for everything that speaks | Where a listening position is written | pass | A chapter chosen, a pause and a skip each write at once, read from the engine; a scrub writes once the slider rests; playing writes every fifteen seconds (`player::tests::a_narrated_book_lists_its_chapters_and_writes_each_move`, 2026-10-18). |
+| Playback controls | Speed | pass | Half to triple as numbers, remembered for the book and offered to its series (`playback::tests::a_speed_is_a_number_kept_for_the_book_and_its_series`; frame `player-speed.png`, 2026-10-18). GStreamer keeps the pitch. |
+| Playback controls | Skipping | pass | Fifteen back and thirty forward, on into the neighbouring part at a boundary (`playback::tests::a_skip_crosses_into_the_neighbouring_part_and_stops_at_the_ends`); the player's skip back is written (`player::tests::a_narrated_book_lists_its_chapters_and_writes_each_move`, 2026-10-18). |
+| Playback controls | Sleep timer | pass | Five to sixty minutes or the end of the chapter; the remaining time on the control; a thirty second fade (ten for a voice); the place recorded a fade earlier (`playback::tests::the_sleep_timer_counts_down_fades_and_records_a_little_earlier`, `player::tests::a_narrated_book_lists_its_chapters_and_writes_each_move`; frame `player-sleep.png`, 2026-10-18). |
+| Playback controls | Chapters | pass | The chapters come from the file's own marks, ID3 `CHAP` and MP4 `chpl` (`audio_chapters::tests::the_corpus_audiobooks_name_their_chapters`, `audio::tests::chapters_come_from_the_files_table_of_contents`), or the folder's parts; each row is one control with its length or what is left and its mark (`playback::tests::chapters_are_marked_and_read_as_one_row`; frame `player-chapters.png`, 2026-10-18). |
+| Playback controls | Lock screen and system controls | pass | `playerctl_controls_playback_and_shows_the_metadata` asserts the title, the cover address, the position, pause, seek and next through MPRIS. The chapter is on the artist line and a book with no cover sends the coverless artwork (`playerctl-player.txt`, 2026-10-18). The shell panel is owed. |
 | Playback controls | Something else takes the audio | not proved | As for read aloud. It needs a second player or a call on a real session. |
-| Playback controls | Headphones removed | fail | No device watcher exists (gap 5 of `desktop-spike-audio-linux.md`). PipeWire moves the stream to the speakers and the book plays on. |
-| Reaching the player without sight | Labels and values | seen | Dump `a11y-player-bar.txt` names every control and the slider `Position`. The slider value text is the clock (`Bar::show`). The dump prints names and not values. Speed and sleep time do not exist. |
+| Playback controls | Headphones removed | not proved | A device monitor on the audio outputs pauses a playing book when one goes away and starts nothing when one comes back (`Player::watch_outputs`; the rule is `playback::tests::an_output_going_away_pauses_and_nothing_resumes`). The container has no audio device; unplugging headphones on a real desktop proves it. |
+| Reaching the player without sight | Labels and values | seen | Every control of the bar and the full player is named (dumps `a11y-player-full.txt`, `a11y-player-bar-voice.txt`); the slider's value is the clock, the speed control says *Speed, 1×* and the sleep timer states what is left (2026-10-18). The dump prints names and not values. |
 | Reaching the player without sight | The compact bar under a screen reader | seen | As in the row *Reaching the transport without touch*. The group named *Now playing* prints as an unnamed panel in the dump. The bar has no open action. |
-| Reaching the player without sight | At the largest text size | not proved | No full player exists. The walk has no settings portal, so GTK has no larger text size to show. |
+| Reaching the player without sight | At the largest text size | not proved | The full player exists and scrolls (`player_window.rs`). The walk has no settings portal, so GTK has no larger text size to show; a capture at the largest size proves it. |
 | Reaching the player without sight | The compact bar at the largest text size | not proved | The bar wraps in two rows (`player_ui.rs`). No capture at a large text size exists, because the walk has no settings portal. |
-| Chapters before the first minute | The chapter list on the publication's page | fail | The publication page has no audiobook section (`library/detail.rs`). |
-| Chapters before the first minute | Starting from a chapter | fail | No chapter list exists to start from. |
-| Chapters before the first minute | An audiobook with one part | fail | The page does not state the length of an audiobook. |
-| Chapters before the first minute | The primary action says where it will resume | fail | The page offers *Read* or *Continue reading* by page progress. It names no chapter. |
+| Chapters before the first minute | The chapter list on the publication's page | pass | The page lists the chapters in order with their lengths, the one stopped in marked in progress and the ones before finished (`playback::tests::the_page_lists_chapters_or_a_length_and_names_where_it_resumes`; frames `player-detail.png` and `player-detail-resume.png`, 2026-10-18). |
+| Chapters before the first minute | Starting from a chapter | pass | A chapter on the page starts the book there and writes nothing until the listener moves (`player::tests::a_narrated_book_lists_its_chapters_and_writes_each_move`, 2026-10-18). |
+| Chapters before the first minute | An audiobook with one part | pass | One part with no marks: the page states the duration and lists nothing (`playback::tests::the_page_lists_chapters_or_a_length_and_names_where_it_resumes`; frame `player-detail-one-part.png`, 2026-10-18). |
+| Chapters before the first minute | The primary action says where it will resume | pass | *Listen* before the book is started, *Continue {chapter}* after (`playback::tests::the_page_lists_chapters_or_a_length_and_names_where_it_resumes`; frame `player-detail-resume.png` reads *Continue Two*, 2026-10-18). |
 | Listening in a car | Continuing in the car | n/a | CarPlay is dropped on a desktop (`design.md` Decision 9). |
 | Listening in a car | Browsing audiobooks in the car | n/a | As above. |
 | Listening in a car | The car's own transport controls | n/a | As above. |

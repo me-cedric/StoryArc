@@ -4,6 +4,7 @@
 mod about;
 mod app;
 mod audio;
+mod audio_chapters;
 #[allow(dead_code)] // pure model; the parts no GTK code calls yet belong to later tasks
 mod commands;
 mod cover_colour;
@@ -13,6 +14,8 @@ mod detail_view;
 mod diagnostic_export;
 mod download_rules;
 mod downloads_ui;
+#[cfg(test)]
+mod display_test;
 mod epub_host;
 mod epub_look;
 mod epub_marks;
@@ -43,8 +46,10 @@ mod network_ui;
 mod opening;
 mod page_view;
 mod pdf_ui;
+mod playback;
 mod player;
 mod player_ui;
+mod player_window;
 mod portal;
 mod preferences_dialog;
 mod preferences_pages;
@@ -291,7 +296,43 @@ fn install_actions(application: &adw::Application, shared: &Shared) {
             shelf_ui::activate_row(&on, index);
         })
         .build();
+    // `player-action "'chapters'"` opens a list of the full player, and `show-detail "'<path>'"`
+    // shows a publication's page in the library, for the walks.
+    let player_action = gio::ActionEntry::builder("player-action")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let (Some(window), Some(name)) = (
+                player_window::window(),
+                parameter.and_then(|value| value.get::<String>()),
+            ) else {
+                return;
+            };
+            // A name with a group, such as `window.close`, is taken as it is.
+            let name = if name.contains('.') { name } else { format!("win.{name}") };
+            let _ = gtk::prelude::WidgetExt::activate_action(&window, &name, None);
+        })
+        .build();
+    let on = shared.clone();
+    let show_detail = gio::ActionEntry::builder("show-detail")
+        .parameter_type(Some(glib::VariantTy::STRING))
+        .activate(move |_: &adw::Application, _, parameter| {
+            let Some(path) = parameter.and_then(|value| value.get::<String>()) else {
+                return;
+            };
+            let found = on
+                .sources
+                .publications()
+                .into_iter()
+                .find(|publication| publication.identity.normalized_path.as_deref() == Some(path.as_str()));
+            if let (Some(publication), Some(window)) = (found, on.library.borrow().clone()) {
+                window.present();
+                library_data::show_detail(&on, &publication);
+            }
+        })
+        .build();
     application.add_action_entries([
+        player_action,
+        show_detail,
         library_action,
         reader_action,
         preferences_page,

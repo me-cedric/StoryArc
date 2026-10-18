@@ -18,6 +18,91 @@ use gstreamer as gst;
 use gstreamer_play as gst_play;
 use gtk::glib;
 
+/// The chapters a file declares, and its length, read by prerolling it once on a silent pipeline
+/// (`audio-playback`, *Chapters*): the marks `audio_chapters` reads from the file, else the table
+/// of contents a demuxer sends down. No chapter is an empty list, never an error. Blocks for at
+/// most ten seconds: call it from a worker.
+pub fn read_chapters(path: &Path) -> Result<(Vec<crate::playback::Chapter>, Option<Duration>), String> {
+    gst::init().map_err(|error| format!("GStreamer is not available: {error}"))?;
+    let uri = glib::filename_to_uri(path, None).map_err(|error| error.to_string())?;
+    let silent = || {
+        gst::ElementFactory::make("fakesink")
+            .build()
+            .map_err(|error| format!("no fakesink: {error}"))
+    };
+    // The table of contents travels down to the sink as a sticky event; playbin posts none.
+    let audio_sink = silent()?;
+    let found: std::sync::Arc<std::sync::Mutex<Option<gst::Toc>>> = std::sync::Arc::default();
+    if let Some(pad) = audio_sink.static_pad("sink") {
+        let found = found.clone();
+        pad.add_probe(gst::PadProbeType::EVENT_DOWNSTREAM, move |_, info| {
+            if let Some(gst::PadProbeData::Event(event)) = &info.data
+                && let gst::EventView::Toc(toc) = event.view()
+                && let Ok(mut slot) = found.lock()
+            {
+                *slot = Some(toc.toc().0.to_owned());
+            }
+            gst::PadProbeReturn::Ok
+        });
+    }
+    let pipeline = gst::ElementFactory::make("playbin")
+        .property("uri", uri.as_str())
+        .property("audio-sink", &audio_sink)
+        .property("video-sink", silent()?)
+        .build()
+        .map_err(|error| format!("no playbin: {error}"))?;
+    let bus = pipeline.bus().ok_or("the pipeline has no bus")?;
+    pipeline
+        .set_state(gst::State::Paused)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    let mut toc: Option<gst::Toc> = None;
+    let outcome = loop {
+        let Some(message) = bus.timed_pop(gst::ClockTime::from_seconds(10)) else {
+            break Err(format!("{}: no answer in ten seconds", path.display()));
+        };
+        match message.view() {
+            gst::MessageView::Toc(found) => toc = Some(found.toc().0),
+            gst::MessageView::AsyncDone(_) => break Ok(()),
+            gst::MessageView::Error(error) => break Err(format!("{}: {}", path.display(), error.error())),
+            _ => {}
+        }
+    };
+    let length = pipeline
+        .query_duration::<gst::ClockTime>()
+        .map(|length| Duration::from_nanos(length.nseconds()));
+    let _ = pipeline.set_state(gst::State::Null);
+    outcome?;
+    if toc.is_none() {
+        toc = found.lock().ok().and_then(|slot| slot.clone());
+    }
+    let marks = crate::audio_chapters::read_marks(path).unwrap_or_default();
+    let mut chapters = crate::audio_chapters::of(&marks, length);
+    if let Some(toc) = toc.filter(|_| chapters.is_empty()) {
+        let mut entries: Vec<gst::TocEntry> = toc.entries();
+        while let Some(entry) = entries.first().cloned() {
+            entries.remove(0);
+            if entry.entry_type() == gst::TocEntryType::Chapter {
+                let Some((start, stop)) = entry.start_stop_times() else {
+                    continue;
+                };
+                let title = entry
+                    .tags()
+                    .and_then(|tags| tags.get::<gst::tags::Title>().map(|title| title.get().to_owned()));
+                let nanos = |at: i64| Duration::from_nanos(u64::try_from(at).unwrap_or(0));
+                chapters.push(crate::playback::Chapter {
+                    title,
+                    part: 0,
+                    start: nanos(start),
+                    end: (stop > start).then(|| nanos(stop)),
+                });
+            }
+            entries.splice(0..0, entry.sub_entries());
+        }
+    }
+    chapters.sort_by_key(|chapter| chapter.start);
+    Ok((chapters, length))
+}
+
 /// What the player is doing, as the bus last said.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum PlayState {
@@ -128,6 +213,11 @@ impl AudioPlayer {
         self.play.play();
     }
 
+    /// The volume, nothing to one: the sleep timer's fade.
+    pub fn set_volume(&self, volume: f64) {
+        self.play.set_volume(volume.clamp(0.0, 1.0));
+    }
+
     pub fn pause(&self) {
         self.play.pause();
     }
@@ -162,6 +252,7 @@ impl AudioPlayer {
         self.play.set_rate(rate.clamp(0.5, 3.0));
     }
 
+    #[cfg(test)]
     pub fn rate(&self) -> f64 {
         self.play.rate()
     }
@@ -271,6 +362,26 @@ mod tests {
             std::thread::sleep(Duration::from_millis(10));
         }
         false
+    }
+
+    /// `audio-playback`, *Chapters*: the chapters of an MP4 chapter track and of ID3 `CHAP`
+    /// frames, each with its start and its end, and none for a file that declares none.
+    #[test]
+    fn chapters_come_from_the_files_table_of_contents() {
+        if !AudioPlayer::can_decode("audio/mp4") {
+            eprintln!("skipped: no MP4 demuxer");
+            return;
+        }
+        for name in ["id3-chapters.mp3", "chaptered.m4b"] {
+            let (chapters, length) = read_chapters(&fixture(name)).expect("the fixture reads");
+            eprintln!("{name}: {chapters:?} {length:?}");
+            assert!(chapters.len() >= 2, "{name}: {chapters:?}");
+            assert_eq!(chapters[0].start, Duration::ZERO, "{name}");
+            assert!(chapters.windows(2).all(|pair| pair[0].start < pair[1].start), "{name}");
+            assert!(length.is_some(), "{name}");
+        }
+        let (none, length) = read_chapters(&fixture("unchaptered.m4a")).expect("the fixture reads");
+        assert!(none.is_empty() && length.is_some(), "{none:?}");
     }
 
     #[test]

@@ -1886,6 +1886,35 @@
         }
       }
     },
+    "desktop.w4.epub.stopReadingAloud": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorlesen beenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop reading aloud"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Detener la lectura en voz alta"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arrêter la lecture à voix haute"
+          }
+        }
+      }
+    },
     "desktop.w4.epub.theme": {
       "extractionState": "manual",
       "localizations": {
@@ -2462,6 +2491,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lecture à voix haute"
+          }
+        }
+      }
+    },
+    "desktop.w4.player.sleepMinutes": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ Minuten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ minutes"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ minutos"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ minutes"
           }
         }
       }

@@ -179,6 +179,21 @@ impl App {
         }
     }
 
+    /// The application once startup has set it; tests run without one.
+    pub fn started_application(&self) -> Option<adw::Application> {
+        self.application.get().cloned()
+    }
+
+    /// An app with no files behind it: an in-memory progress store, for tests.
+    #[cfg(test)]
+    pub fn for_tests() -> Shared {
+        let app = Self::default();
+        let _ = app.progress.set(Rc::new(
+            library::ProgressStore::in_memory().expect("an in-memory store opens"),
+        ));
+        Rc::new(app)
+    }
+
     pub fn application(&self) -> adw::Application {
         self.application
             .get()

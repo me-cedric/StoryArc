@@ -76,6 +76,8 @@ pub(crate) fn detail_hooks(shared: &Shared, publication: &Publication) -> Detail
         }),
         others,
         accent: settings::chrome_accent(shared.preferences().accent, shared.system_accent.get()),
+        stopped: crate::player::stopped_at(shared, &publication.identity),
+        listen_from: listen_from(shared),
     }
 }
 
@@ -95,6 +97,24 @@ pub(crate) fn card_state(
             .source_of(publication)
             .is_some_and(|(_, access)| access != Access::Readable),
     }
+}
+
+/// Starts an audiobook at a chapter, leaving where it was left until the listener moves
+/// (`audio-playback`, *Starting from a chapter*).
+fn listen_from(shared: &Shared) -> crate::detail_view::ListenFrom {
+    let weak = Rc::downgrade(shared);
+    Rc::new(move |publication: &Publication, part, start| {
+        let Some(shared) = weak.upgrade() else {
+            return;
+        };
+        let Some(path) = publication.identity.normalized_path.clone().map(PathBuf::from) else {
+            return;
+        };
+        match shared.player().play_audiobook(publication, &path, Some((part, start))) {
+            Ok(()) => crate::player_window::present(&shared),
+            Err(reason) => shared.toast(&reason),
+        }
+    })
 }
 
 /// Opens a publication in a reader window, naming a refusal in grey.

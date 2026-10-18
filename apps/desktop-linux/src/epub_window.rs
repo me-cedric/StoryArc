@@ -121,6 +121,14 @@ pub(crate) struct EpubReader {
     /// The text and the locator a selection raised, waiting for a colour.
     selection: RefCell<Option<(String, String)>>,
     selection_bar: OnceCell<gtk::Revealer>,
+    /// The book's file, its speed key and series, for the voice.
+    path: std::path::PathBuf,
+    voice_key: String,
+    series: Option<String>,
+    /// The sentence the voice speaks in this book, as the locator drawn over the page.
+    spoken: RefCell<Option<String>>,
+    read_button: OnceCell<gtk::Button>,
+    player_button: OnceCell<gtk::Button>,
 }
 
 impl EpubReader {
@@ -266,10 +274,25 @@ impl EpubReader {
         }
     }
 
+    /// The page is on screen: the highlights are drawn, and a voice already reading this book
+    /// is taken again at the sentence it has reached (`ebook-reader`, *Leaving the publication
+    /// while it speaks*).
+    fn adopt_voice(&self) {
+        let spoken = self.spoken.borrow().clone();
+        self.sync_highlights();
+        if let Some(locator) = spoken {
+            self.moving_itself.set(Some(Instant::now()));
+            self.send_go(&locator);
+        }
+    }
+
     /// Draws every highlight; the message replaces what the page had.
     fn sync_highlights(&self) {
         let seq = self.next_seq();
-        let message = self.marks.borrow().highlights_message(None, seq);
+        let message = self
+            .marks
+            .borrow()
+            .highlights_message(self.spoken.borrow().as_deref(), seq);
         self.send_json(&message);
     }
 
@@ -339,7 +362,7 @@ impl EpubReader {
                     *self.href.borrow_mut() = Some(href.to_owned());
                 }
                 if !self.ready.replace(true) {
-                    self.sync_highlights();
+                    self.adopt_voice();
                 }
                 self.moved(&message["locator"]);
                 let position = u32::try_from(position).unwrap_or(u32::MAX).max(1);
@@ -359,7 +382,7 @@ impl EpubReader {
             }
             "ready" => {
                 if !self.ready.replace(true) {
-                    self.sync_highlights();
+                    self.adopt_voice();
                 }
             }
             "selection" => {
@@ -405,36 +428,89 @@ impl EpubReader {
         }
     }
 
-    /// Reads the chapter the reader is in aloud, through the one player (`ebook-reader`,
-    /// Reading aloud). Present only where a speech engine is.
+    /// Reads the book aloud from the chapter the reader is in, chapter after chapter, through
+    /// the one player (`ebook-reader`, Reading aloud), or stops the voice reading it.
     fn read_aloud(&self, shared: &Shared) {
-        let href = self.href.borrow().clone();
-        let Some(href) = href.or_else(|| {
-            self.book
-                .publication
-                .manifest()
-                .reading_order
-                .first()
-                .map(|link| link.href.clone())
-        }) else {
+        let player = shared.player();
+        if player.voice_book().as_deref() == Some(self.path.as_path()) {
+            player.stop();
             return;
+        }
+        let order = self.reading_order();
+        let here = self
+            .locator
+            .borrow()
+            .as_deref()
+            .map(|locator| Place::of(locator, "").resource)
+            .unwrap_or_default();
+        let part = order.iter().position(|href| *href == here).unwrap_or(0);
+        let chapters = order
+            .iter()
+            .map(|href| {
+                let markup = self.book.publication.resource(href).unwrap_or_default();
+                player::SpokenChapter {
+                    href: href.clone(),
+                    title: self.chapter_of(href),
+                    sentences: player::sentences_of_markup(&String::from_utf8_lossy(&markup)),
+                }
+            })
+            .collect();
+        let book = player::VoiceBook {
+            title: self.window.title().unwrap_or_default().to_string(),
+            path: self.path.clone(),
+            key: self.voice_key.clone(),
+            series: self.series.clone(),
+            chapters,
+            part,
         };
-        let Ok(markup) = self.book.publication.resource(&href) else {
-            return;
-        };
-        let sentences = player::sentences_of_markup(&String::from_utf8_lossy(&markup));
-        if let Err(reason) = shared
-            .player()
-            .read_aloud(&self.window.title().unwrap_or_default(), sentences)
-        {
+        if let Err(reason) = player.read_aloud(book) {
             shared.toast(&reason);
+        }
+    }
+
+    /// The page follows the voice reading this book: its sentence is drawn and brought into
+    /// view, with no way back kept, because the reader did not jump. A voice that stops, or
+    /// reads another book, leaves the page as it is (`ebook-reader`, *Starting playback*).
+    fn follow_voice(&self, showing: &player::Showing) {
+        let mine = showing.voice
+            && showing.state != crate::audio::PlayState::Stopped
+            && showing.book.as_deref() == Some(self.path.as_path());
+        if let Some(button) = self.read_button.get() {
+            let label = if mine {
+                tr("desktop.w4.epub.stopReadingAloud", "Stop reading aloud")
+            } else {
+                tr("desktop.w4.player.readAloud", "Read aloud")
+            };
+            button.set_icon_name(if mine { "media-playback-stop-symbolic" } else { "audio-speakers-symbolic" });
+            button.set_tooltip_text(Some(&label));
+            button.update_property(&[gtk::accessible::Property::Label(&label)]);
+        }
+        if let Some(button) = self.player_button.get() {
+            button.set_visible(mine);
+        }
+        let spoken = mine
+            .then_some(showing.spoken.as_ref())
+            .flatten()
+            .map(|(href, sentence)| epub_marks::spoken_locator(sentence, href));
+        if spoken == *self.spoken.borrow() {
+            return;
+        }
+        *self.spoken.borrow_mut() = spoken.clone();
+        if !self.ready.get() {
+            return;
+        }
+        self.sync_highlights();
+        if let Some(locator) = spoken {
+            self.moving_itself.set(Some(Instant::now()));
+            self.send_go(&locator);
         }
     }
 }
 
 /// Opens `path` in an EPUB window, or brings forward the one that reads it. The error
 /// names the file and the reason, for the library to show in grey.
-pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
+/// `notice`, when given, is said once in the window: a voice that stopped for this book.
+pub fn open(shared: &Shared, path: &Path, notice: Option<String>) -> Result<(), String> {
     let id = path.to_string_lossy().into_owned();
     if let Some((_, window)) = shared
         .epub_windows
@@ -482,6 +558,11 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         .margin_bottom(6)
         .build();
     let toolbar = adw::ToolbarView::new();
+    let toasts = adw::ToastOverlay::new();
+    toasts.set_child(Some(&toolbar));
+    if let Some(notice) = notice {
+        toasts.add_toast(adw::Toast::new(&notice));
+    }
     toolbar.add_top_bar(&header);
     let foot = gtk::Box::new(gtk::Orientation::Vertical, 0);
     foot.append(&bottom);
@@ -490,7 +571,7 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
     let window = adw::ApplicationWindow::builder()
         .application(&app)
         .title(&title)
-        .content(&toolbar)
+        .content(&toasts)
         .default_width(900)
         .default_height(720)
         .build();
@@ -533,6 +614,12 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
         search_query: RefCell::new(String::new()),
         selection: RefCell::new(None),
         selection_bar: OnceCell::new(),
+        path: path.to_path_buf(),
+        voice_key: player::speed_key(&record.identity, path),
+        series: record.series.clone(),
+        spoken: RefCell::new(None),
+        read_button: OnceCell::new(),
+        player_button: OnceCell::new(),
     });
     let weak = Rc::downgrade(&reader);
     back.connect_clicked(move |_| {
@@ -638,6 +725,32 @@ pub fn open(shared: &Shared, path: &Path) -> Result<(), String> {
             "Read aloud",
         ))]);
         header.pack_end(&read);
+        let _ = reader.read_button.set(read);
+        let show = gtk::Button::builder()
+            .icon_name("audio-headphones-symbolic")
+            .tooltip_text(tr("player.open", "Open the player"))
+            .visible(false)
+            .build();
+        show.update_property(&[gtk::accessible::Property::Label(&tr(
+            "player.open",
+            "Open the player",
+        ))]);
+        let weak_shared = Rc::downgrade(shared);
+        show.connect_clicked(move |_| {
+            if let Some(shared) = weak_shared.upgrade() {
+                crate::player_window::present(&shared);
+            }
+        });
+        header.pack_end(&show);
+        let _ = reader.player_button.set(show);
+        let weak = Rc::downgrade(&reader);
+        let player = shared.player();
+        player.connect(move |showing| {
+            if let Some(reader) = weak.upgrade() {
+                reader.follow_voice(showing);
+            }
+        });
+        reader.follow_voice(&player.showing());
         let action = gio::SimpleAction::new("read-aloud", None);
         let weak = Rc::downgrade(&reader);
         let weak_shared = Rc::downgrade(shared);
@@ -728,11 +841,10 @@ mod tests {
     /// `headless-proof.sh epub_window` runs it under cage.
     #[test]
     fn the_renderer_answers_the_windows_look_search_go_and_highlights() {
-        if std::env::var_os("WAYLAND_DISPLAY").is_none() && std::env::var_os("DISPLAY").is_none() {
-            eprintln!("skipped: no display; scripts/headless-proof.sh runs this under cage");
-            return;
-        }
-        gtk::init().expect("GTK on a display");
+        crate::display_test::on_display(renderer_on_a_display);
+    }
+
+    fn renderer_on_a_display() {
         let dir = tempfile::tempdir().expect("a folder for the filter store");
         let path = Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../packages/test-fixtures/ebooks/fixture.epub");
@@ -809,6 +921,18 @@ mod tests {
                 .any(|m| m["type"] == "highlights" && m["ids"].as_array().is_some_and(|ids| ids.iter().any(|i| *i == id.as_str())))
         });
         assert!(moved && themed && drawn, "moved {moved}, themed {themed}, drawn {drawn}: {:?}", heard.borrow());
+
+        // The voice's sentence: drawn in its own tint and brought into view, as `follow_voice`
+        // sends it (`ebook-reader`, *Starting playback*).
+        let spoken = epub_marks::spoken_locator("Chapter 1, paragraph 12.", "OEBPS/ch1.xhtml");
+        view.send(&marks.highlights_message(Some(&spoken), 5));
+        view.send(&epub_marks::go_message(6, &spoken).unwrap());
+        let followed = pump_until(5.0, || {
+            let heard = heard.borrow();
+            heard.iter().any(|m| m["type"] == "highlights" && m["ids"].as_array().is_some_and(|ids| ids.iter().any(|i| *i == epub_marks::SPOKEN_ID)))
+                && heard.iter().rev().find(|m| m["type"] == "locator").is_some_and(|m| m["locator"]["href"].as_str().is_some_and(|h| h.contains("ch1")))
+        });
+        assert!(followed, "the spoken sentence was not drawn and followed: {:?}", heard.borrow());
         let properties = heard
             .borrow()
             .iter()

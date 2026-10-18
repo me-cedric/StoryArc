@@ -443,12 +443,10 @@ mod tests {
     /// epub_theme_ui` runs it under cage.
     #[test]
     fn the_surface_opens_on_named_presets_and_its_second_depth_obeys_original() {
-        if std::env::var_os("WAYLAND_DISPLAY").is_none() && std::env::var_os("DISPLAY").is_none() {
-            eprintln!("skipped: no display; scripts/headless-proof.sh runs this under cage");
-            return;
-        }
-        gtk::init().expect("GTK on a display");
-        adw::init().expect("libadwaita");
+        crate::display_test::on_display(surface_on_a_display);
+    }
+
+    fn surface_on_a_display() {
         let look = Rc::new(RefCell::new(Look {
             preset: Preset::Calm,
             ..Look::default()

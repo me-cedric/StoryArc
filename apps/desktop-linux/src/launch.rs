@@ -176,15 +176,22 @@ pub fn open_paths(shared: &Shared, paths: &[PathBuf]) {
 /// Opens a publication in a reader window, or brings forward the one that reads it, and
 /// records it with the desktop's recent files. The error names the file and the reason.
 pub fn open_publication(shared: &Shared, path: &Path) -> Result<(), String> {
+    // `ebook-reader`, *Opening a different publication*: a voice reading another book stops,
+    // and the window that opens says so once.
+    let notice = shared.player().displace_voice(path);
     if crate::epub_window::is_epub(path) {
-        return crate::epub_window::open(shared, path);
+        return crate::epub_window::open(shared, path, notice);
+    }
+    if let Some(notice) = notice {
+        shared.toast(&notice);
     }
     if crate::player::is_audio_path(path) {
         let name = crate::opening::name(path);
         let record = storyarc_core::sources::PublicationIndexer::index_path(path, None)
             .map_err(|error| format!("{name}: {error}"))?;
         if record.format.is_audio() {
-            shared.player().play_audiobook(&record, path)?;
+            shared.player().play_audiobook(&record, path, None)?;
+            crate::player_window::present(shared);
             record_recent(path);
             return Ok(());
         }
