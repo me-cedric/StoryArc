@@ -217,6 +217,24 @@ fn a_progress_record_is_written_and_read_back_as_json() {
     assert_eq!(back["position"]["index"], 12);
     assert_eq!(back["updatedAt"], "2025-12-30T13:06:40Z");
 
+    // A listening position, as both phones write it, travels the same two calls.
+    let record = br#"{"identity":{"contentDigest":"a1","normalizedPath":"/b/Dune"},"isFinished":false,"position":{"kind":"listening","part":2,"partCount":9,"offsetMillis":61500,"ofMillis":600000},"updatedAt":"2025-12-30T13:06:40Z"}"#;
+    assert_eq!(
+        unsafe { storyarc_progress_write(store, record.as_ptr(), record.len()) },
+        STORYARC_OK
+    );
+    let by_digest = br#"{"contentDigest":"a1"}"#;
+    let mut out = empty();
+    assert_eq!(
+        unsafe { storyarc_progress_read(store, by_digest.as_ptr(), by_digest.len(), &mut out) },
+        STORYARC_OK
+    );
+    let back: serde_json::Value = serde_json::from_str(&take_string(out)).unwrap();
+    assert_eq!(
+        back["position"],
+        serde_json::json!({"kind":"listening","part":2,"partCount":9,"offsetMillis":61500,"ofMillis":600000})
+    );
+
     let junk = b"{not json";
     assert_eq!(
         unsafe { storyarc_progress_write(store, junk.as_ptr(), junk.len()) },

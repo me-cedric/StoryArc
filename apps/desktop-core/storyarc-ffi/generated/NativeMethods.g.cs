@@ -622,6 +622,23 @@ namespace StoryArc.Interop
         internal static extern int storyarc_secrets_seal(byte* request, nuint request_len, StoryArcBuffer* @out);
 
         /// <summary>
+        ///  Writes the ADR-0006 identity of the file at the UTF-8 path `path` (`path_len` bytes) to
+        ///  `out` as the UTF-8 JSON object `storyarc_progress_read` takes: `contentDigest`, the
+        ///  SHA-256 over the file's length and its first and last 512 KB that the library's own
+        ///  records and both phones carry, and `normalizedPath`. An EPUB, a PDF or an audiobook
+        ///  file files its progress under this, so a move or a second copy finds the same record.
+        ///  A file that is not there is `STORYARC_ERROR_NOT_FOUND`; one that cannot be read is
+        ///  `STORYARC_ERROR_UNREADABLE`. Free `out` with `storyarc_buffer_free`.
+        ///
+        ///  # Safety
+        ///
+        ///  `path` must point to `path_len` readable bytes. `out` must point to one writable
+        ///  `StoryArcBuffer`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_file_identity", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_file_identity(byte* path, nuint path_len, StoryArcBuffer* @out);
+
+        /// <summary>
         ///  Opens the EPUB at the UTF-8 path `path` (`path_len` bytes), builds its Readium Web
         ///  Publication Manifest with `self_url` (`self_url_len` bytes) as the manifest's own
         ///  address, and writes an EPUB handle to `out_epub`, freed with `storyarc_epub_free`. A
@@ -750,6 +767,19 @@ namespace StoryArc.Interop
         /// </summary>
         [DllImport(__DllName, EntryPoint = "storyarc_pdf_render_page", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern int storyarc_pdf_render_page(void* pdf, uint index, uint max_pixel_size, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
+
+        /// <summary>
+        ///  Renders page `index` as `storyarc_pdf_render_page` does, at `scale` device pixels per
+        ///  point (2.0 on a high-density window; at or under zero renders one pixel a point), then
+        ///  shrunk to at most `max_edge` pixels on its longest edge (zero for no cap). The page view
+        ///  asks for its own density so a 612 by 792 point page is sharp on a large or dense window.
+        ///
+        ///  # Safety
+        ///
+        ///  As `storyarc_pdf_render_page`.
+        /// </summary>
+        [DllImport(__DllName, EntryPoint = "storyarc_pdf_render_page_scaled", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern int storyarc_pdf_render_page_scaled(void* pdf, uint index, float scale, uint max_edge, StoryArcBuffer* out_pixels, uint* out_width, uint* out_height);
 
         /// <summary>
         ///  Writes page `index`'s text, in content order, to `out` as UTF-8; empty for a page with

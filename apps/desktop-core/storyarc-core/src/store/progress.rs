@@ -130,7 +130,9 @@ impl Store {
     /// Finished is sticky: a routine save never unmarks a publication, and the finished
     /// stamp is set once. A synced position the incoming record lacks is kept, because
     /// only an exchange with a server knows one. Identity components fill in as they
-    /// become known, so a record written against a path is later found by its digest.
+    /// become known, so a record written against a path is later found by its digest. A
+    /// `path-` digest, the placeholder the wave 4 Windows app filed EPUB and PDF progress
+    /// under, gives way to the real digest on the first save that brings one.
     pub fn save_progress(&self, progress: &ReadingProgress) -> Result<(), StoreError> {
         let position = serde_json::to_string(&progress.position)?;
         let synced = progress
@@ -150,7 +152,8 @@ impl Store {
                     "UPDATE progress SET position = ?1, is_finished = ?2, finished_at = ?3, updated_at = ?4,
                         synced_position = COALESCE(?5, synced_position),
                         server_key = COALESCE(server_key, ?6),
-                        content_digest = COALESCE(content_digest, ?7),
+                        content_digest = CASE WHEN content_digest LIKE 'path-%'
+                            THEN COALESCE(?7, content_digest) ELSE COALESCE(content_digest, ?7) END,
                         normalized_path = COALESCE(normalized_path, ?8)
                      WHERE id = ?9",
                     params![

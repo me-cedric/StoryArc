@@ -97,6 +97,12 @@ void storyarc_folder_free(void *folder);
 int32_t storyarc_publication_open(const uint8_t *path, size_t path_len,
                                   void **out_publication);
 
+/* Writes the ADR-0006 identity of the file at `path` as the UTF-8 JSON object
+ * storyarc_progress_read takes: `contentDigest` (the SHA-256 over the length and the first
+ * and last 512 KB the library's records carry) and `normalizedPath`. An EPUB, a PDF or an
+ * audiobook file files its progress under it. A missing file is STORYARC_ERROR_NOT_FOUND. */
+int32_t storyarc_file_identity(const uint8_t *path, size_t path_len, StoryArcBuffer *out);
+
 /* Writes the number of pages, in reading order, to `out_count`. */
 int32_t storyarc_publication_page_count(const void *publication, uint32_t *out_count);
 
@@ -290,6 +296,13 @@ int32_t storyarc_pdf_page_size(const void *pdf, uint32_t index, float *out_width
 int32_t storyarc_pdf_render_page(const void *pdf, uint32_t index, uint32_t max_pixel_size,
                                  StoryArcBuffer *out_pixels, uint32_t *out_width,
                                  uint32_t *out_height);
+
+/* Renders a page as storyarc_pdf_render_page does, at `scale` device pixels per point (at or
+ * under zero: one pixel a point), then shrunk to at most `max_edge` pixels on its longest
+ * edge (zero for no cap). The three outputs are zeroed on failure. */
+int32_t storyarc_pdf_render_page_scaled(const void *pdf, uint32_t index, float scale,
+                                        uint32_t max_edge, StoryArcBuffer *out_pixels,
+                                        uint32_t *out_width, uint32_t *out_height);
 
 /* Writes a page's text as UTF-8, empty for a page with no text layer. */
 int32_t storyarc_pdf_page_text(const void *pdf, uint32_t index, StoryArcBuffer *out);

@@ -129,6 +129,85 @@ mod merge {
     }
 
     #[test]
+    fn a_reflowable_position_follows_the_same_table() {
+        let reflowable = |progression: f64, synced: Option<f64>| ReadingProgress {
+            identity: identity(),
+            position: ReadingPosition::reflowable(progression, "epubcfi(/6/14!/4/2)"),
+            is_finished: false,
+            finished_at: None,
+            updated_at: EPOCH,
+            synced_position: synced.map(|p| ReadingPosition::reflowable(p, "")),
+        };
+        // Remote ahead, local untouched since the last sync: adopted silently.
+        let remote = reflowable(0.6, None);
+        assert_eq!(
+            ProgressMerge::merge(&reflowable(0.3, Some(0.3)), &remote),
+            ProgressMergeOutcome::AdoptRemote(remote.clone())
+        );
+        // Both moved: the further locator wins and the conflict is reported.
+        let local = reflowable(0.5, Some(0.2));
+        let remote = reflowable(0.4, None);
+        assert_eq!(
+            ProgressMerge::merge(&local, &remote),
+            ProgressMergeOutcome::Conflict {
+                resolved: local.clone(),
+                discarded: remote.position.clone(),
+            }
+        );
+        // Finished stays finished over a further reflowable position.
+        let mut finished = reflowable(0.2, None);
+        finished.is_finished = true;
+        assert_eq!(
+            ProgressMerge::merge(&finished, &reflowable(0.9, None)),
+            ProgressMergeOutcome::KeepLocalAndPush(finished.clone())
+        );
+    }
+
+    #[test]
+    fn a_listening_position_follows_the_same_table() {
+        let listening = |part: i64, offset: i64, synced: Option<(i64, i64)>| ReadingProgress {
+            identity: identity(),
+            position: ReadingPosition::Listening {
+                part,
+                part_count: 10,
+                offset_millis: offset,
+                of_millis: Some(600_000),
+            },
+            is_finished: false,
+            finished_at: None,
+            updated_at: EPOCH,
+            synced_position: synced.map(|(part, offset)| ReadingPosition::Listening {
+                part,
+                part_count: 10,
+                offset_millis: offset,
+                of_millis: Some(600_000),
+            }),
+        };
+        // Remote ahead, local untouched: adopted silently.
+        let remote = listening(4, 0, None);
+        assert_eq!(
+            ProgressMerge::merge(&listening(2, 30_000, Some((2, 30_000))), &remote),
+            ProgressMergeOutcome::AdoptRemote(remote.clone())
+        );
+        // Both moved: further in time wins, inside one part too.
+        let local = listening(3, 300_000, Some((1, 0)));
+        let remote = listening(3, 120_000, None);
+        assert_eq!(
+            ProgressMerge::merge(&local, &remote),
+            ProgressMergeOutcome::Conflict {
+                resolved: local.clone(),
+                discarded: remote.position.clone(),
+            }
+        );
+        // Remote behind: keep local and push it.
+        let local = listening(5, 0, Some((5, 0)));
+        assert_eq!(
+            ProgressMerge::merge(&local, &listening(1, 0, None)),
+            ProgressMergeOutcome::KeepLocalAndPush(local.clone())
+        );
+    }
+
+    #[test]
     fn a_synced_position_kept_as_a_bare_fraction_still_counts() {
         // What Android's Room row hands back: the fraction survived, the page did not.
         let mut local = progress(10, false, None);
@@ -394,6 +473,149 @@ mod store {
         assert_eq!(store.recent_progress(10).unwrap().len(), 1);
         store.clear_progress().unwrap();
         assert!(store.recent_progress(10).unwrap().is_empty());
+    }
+
+    /// The identity the Linux app and the seam derive for an EPUB or PDF: what the
+    /// indexer records, the content digest and the normalised path.
+    fn identity_of(path: &std::path::Path) -> PublicationIdentity {
+        storyarc_core::sources::PublicationIndexer::index_path(path, None)
+            .unwrap()
+            .identity
+    }
+
+    #[test]
+    fn a_moved_epub_or_pdf_keeps_its_progress() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::in_memory().unwrap();
+        for (fixture, name) in [
+            ("ebooks/fixture.epub", "Moved.epub"),
+            ("comics/text-pages.pdf", "Moved.pdf"),
+        ] {
+            let first = dir.path().join("first").join(name);
+            std::fs::create_dir_all(first.parent().unwrap()).unwrap();
+            std::fs::copy(corpus::manifest::path(fixture), &first).unwrap();
+            let before = identity_of(&first);
+            assert!(before.content_digest.is_some(), "{fixture} has a digest");
+            store
+                .save_progress(&ReadingProgress::new(
+                    before,
+                    ReadingPosition::reflowable(0.42, "epubcfi(/6/8!/4)"),
+                    Timestamp(1_000),
+                ))
+                .unwrap();
+
+            let second = dir.path().join("second").join(name);
+            std::fs::create_dir_all(second.parent().unwrap()).unwrap();
+            std::fs::rename(&first, &second).unwrap();
+            let after = identity_of(&second);
+            assert_ne!(after.normalized_path, None);
+            let found = store
+                .progress(&after)
+                .unwrap()
+                .expect("found by its digest");
+            assert_eq!(found.position.fraction(), 0.42, "{fixture}");
+        }
+        assert_eq!(store.recent_progress(10).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn a_row_filed_under_a_path_placeholder_is_rekeyed_once_by_the_real_digest() {
+        // The wave 4 Windows app filed EPUB and PDF progress as `path-<id>` for want of an
+        // identity export. The first save with the real digest adopts it in place.
+        let store = Store::in_memory().unwrap();
+        let old =
+            PublicationIdentity::path("/books/novel.epub").recording_digest(Some("path-7f3a"));
+        store
+            .save_progress(&ReadingProgress::new(
+                old.clone(),
+                ReadingPosition::reflowable(0.25, "a"),
+                Timestamp(1_000),
+            ))
+            .unwrap();
+        let real = PublicationIdentity::path("/books/novel.epub").recording_digest(Some("c0ffee"));
+        assert_eq!(
+            store
+                .progress(&real)
+                .unwrap()
+                .map(|r| r.position.fraction()),
+            Some(0.25),
+            "found by the path it was filed under"
+        );
+        store
+            .save_progress(&ReadingProgress::new(
+                real,
+                ReadingPosition::reflowable(0.5, "b"),
+                Timestamp(2_000),
+            ))
+            .unwrap();
+        assert_eq!(
+            store.recent_progress(10).unwrap().len(),
+            1,
+            "one book, one row"
+        );
+        let moved = store
+            .progress(&PublicationIdentity::digest("c0ffee"))
+            .unwrap()
+            .expect("found by the real digest alone, as after a move");
+        assert_eq!(moved.position.fraction(), 0.5);
+        assert!(
+            store.progress(&old).unwrap().is_some(),
+            "the old path still finds it"
+        );
+        // A real digest is never replaced by a placeholder from an app not yet updated.
+        store
+            .save_progress(&ReadingProgress::new(
+                old,
+                ReadingPosition::reflowable(0.75, "c"),
+                Timestamp(3_000),
+            ))
+            .unwrap();
+        assert_eq!(
+            store
+                .progress(&PublicationIdentity::digest("c0ffee"))
+                .unwrap()
+                .map(|r| r.position.fraction()),
+            Some(0.75)
+        );
+    }
+
+    #[test]
+    fn a_listening_position_is_saved_and_read_back_whole() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("library.sqlite");
+        let book = PublicationIdentity::path("/audio/Dune").recording_digest(Some("d-une"));
+        let at = |part, offset, of: Option<i64>| ReadingPosition::Listening {
+            part,
+            part_count: 12,
+            offset_millis: offset,
+            of_millis: of,
+        };
+        {
+            let store = Store::open(&path).unwrap();
+            store
+                .save_progress(&ReadingProgress::new(
+                    book.clone(),
+                    at(3, 61_500, Some(1_800_000)),
+                    Timestamp(1_000),
+                ))
+                .unwrap();
+            // A read-aloud session knows no duration; the position keeps none.
+            store
+                .save_progress(&ReadingProgress::new(
+                    book.clone(),
+                    at(4, 2_000, None),
+                    Timestamp(2_000),
+                ))
+                .unwrap();
+        }
+        let store = Store::open(&path).unwrap();
+        let back = store
+            .progress(&PublicationIdentity::digest("d-une"))
+            .unwrap()
+            .expect("found by its digest");
+        assert_eq!(back.position, at(4, 2_000, None));
+        assert_eq!(back.updated_at, Timestamp(2_000));
+        assert_eq!(store.recent_progress(10).unwrap().len(), 1);
     }
 
     #[test]

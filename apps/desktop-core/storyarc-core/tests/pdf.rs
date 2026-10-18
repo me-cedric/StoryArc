@@ -150,6 +150,32 @@ fn the_image_pdf_reads_as_a_comic_with_no_text_layer() {
 }
 
 #[test]
+fn a_page_renders_at_device_scale_and_the_edge_cap_holds() {
+    let Some(document) = open("comics/text-pages.pdf") else {
+        return;
+    };
+    let one = document.render_page_scaled(0, 1.0, None).unwrap();
+    assert_eq!((one.width, one.height), (612, 792));
+    let two = document.render_page_scaled(0, 2.0, None).unwrap();
+    assert_eq!((two.width, two.height), (one.width * 2, one.height * 2));
+    assert_eq!(two.rgba.len(), 1224 * 1584 * 4);
+    assert_eq!(
+        two.width as f32 / two.height as f32,
+        one.width as f32 / one.height as f32
+    );
+
+    // The cap wins over the scale: 792 * 4 would be 3168 on the long edge.
+    let capped = document.render_page_scaled(0, 4.0, Some(1000)).unwrap();
+    assert_eq!((capped.width, capped.height), (773, 1000));
+    // A scale that fits under the cap is left alone.
+    let under = document.render_page_scaled(0, 1.5, Some(4000)).unwrap();
+    assert_eq!((under.width, under.height), (918, 1188));
+    // The old call is the one-pixel-a-point case.
+    let plain = document.render_page(0, None).unwrap();
+    assert_eq!((plain.width, plain.height), (one.width, one.height));
+}
+
+#[test]
 fn a_page_past_the_end_is_named_rather_than_rendered() {
     let Some(document) = open("comics/text-pages.pdf") else {
         return;

@@ -262,19 +262,36 @@ impl PdfDocument {
         })
     }
 
-    /// Renders a page to 8-bit RGBA, not premultiplied, at most `max_pixel_size` on its
-    /// longest edge, or at one pixel per point when `None`.
+    /// Renders a page to 8-bit RGBA, not premultiplied, at one pixel per point, shrunk to
+    /// at most `max_pixel_size` on its longest edge when one is given. Never upscales.
     pub fn render_page(
         &self,
         index: u32,
         max_pixel_size: Option<u32>,
+    ) -> Result<DecodedPage, PdfError> {
+        self.render_page_scaled(index, 1.0, max_pixel_size)
+    }
+
+    /// Renders a page to 8-bit RGBA, not premultiplied, at `scale` device pixels per point
+    /// (2.0 on a high-density window), then shrunk to at most `max_edge` pixels on its
+    /// longest edge when one is given. A scale at or under zero renders at one pixel a point.
+    pub fn render_page_scaled(
+        &self,
+        index: u32,
+        scale: f32,
+        max_edge: Option<u32>,
     ) -> Result<DecodedPage, PdfError> {
         self.check(index)?;
         self.with(move |document| {
             let page = page_at(document, index)?;
             let (width, height) = (page.width().value.max(1.0), page.height().value.max(1.0));
             let longest = width.max(height);
-            let scale = max_pixel_size.map_or(1.0, |max| (max.max(1) as f32 / longest).min(1.0));
+            let scale = if scale.is_finite() && scale > 0.0 {
+                scale
+            } else {
+                1.0
+            };
+            let scale = max_edge.map_or(scale, |max| scale.min(max.max(1) as f32 / longest));
             let target_width = (width * scale).round().max(1.0) as i32;
             let target_height = (height * scale).round().max(1.0) as i32;
             let config = PdfRenderConfig::new().set_target_size(target_width, target_height);
