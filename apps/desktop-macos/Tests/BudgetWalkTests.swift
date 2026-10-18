@@ -14,6 +14,15 @@ extension WindowWalks {
     @MainActor
     @Suite("Budget walk", .enabled(if: BudgetRequest.value != nil, "set TEST_RUNNER_STORYARC_BUDGET to measure"))
     struct BudgetWalkTests {
+        /// `local-library`'s reconcile: a second walk over files that did not change reopens none of them.
+        static func rescan(_ library: MacLibrary, count: Int) async {
+            let clock = ContinuousClock()
+            let start = clock.now
+            await library.model.rescan()
+            let took = clock.now - start
+            ConformanceLog.note("budget rescan", "\(count) unchanged publications walked again in \(took)", wave: 5)
+        }
+
         @Test("The library of the asked size: laid down, scanned, scrolled and resized")
         func budget() async throws {
             let library = try await Walk.library()
@@ -43,10 +52,7 @@ extension WindowWalks {
             #expect(held == true, "the scan did not hold \(count) publications")
             let scanned = clock.now - start
             ConformanceLog.note("budget scan", "\(count) publications in \(scanned)", wave: 5)
-            // `local-library`'s reconcile: a second walk over files that did not change reopens none of them.
-            let again = clock.now
-            await library.model.rescan()
-            ConformanceLog.note("budget rescan", "\(count) unchanged publications walked again in \(clock.now - again)", wave: 5)
+            await Self.rescan(library, count: count)
 
             let window = try #require(NSApplication.shared.windows.first {
                 $0.isVisible && $0.identifier?.rawValue.hasPrefix(LibraryWindow.id) == true
