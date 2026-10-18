@@ -14,7 +14,7 @@ use crate::epub_marks::{COLOURS, start_of};
 use crate::epub_window::EpubReader;
 use crate::strings::{tr, tr_args};
 
-fn colour_name(colour: &str) -> String {
+pub(crate) fn colour_name(colour: &str) -> String {
     match colour {
         "green" => tr("annotations.colour.green", "Green"),
         "blue" => tr("annotations.colour.blue", "Blue"),
@@ -25,7 +25,7 @@ fn colour_name(colour: &str) -> String {
 }
 
 /// One class a highlight colour, added to the display once.
-fn colour_class(colour: &str) -> String {
+pub(crate) fn colour_class(colour: &str) -> String {
     thread_local! {
         static PROVIDER: OnceCell<gtk::CssProvider> = const { OnceCell::new() };
     }

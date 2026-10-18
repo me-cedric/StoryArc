@@ -45,6 +45,7 @@ mod mpris;
 mod network_ui;
 mod opening;
 mod page_view;
+mod pdf_marks;
 mod pdf_ui;
 mod playback;
 mod player;

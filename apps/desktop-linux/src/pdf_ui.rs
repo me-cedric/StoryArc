@@ -97,6 +97,8 @@ struct PdfChrome {
     hits: RefCell<PdfHits>,
     /// The page whose text the pane shows, so a turn refreshes it once.
     shown: RefCell<Option<u32>>,
+    /// What a selection in the page text offers.
+    marking: RefCell<Option<Rc<crate::pdf_marks::PdfMarking>>>,
 }
 
 /// Installs the PDF chrome on a reader whose publication is a PDF.
@@ -168,9 +170,11 @@ pub fn install(reader: &Rc<Reader>, header: &adw::HeaderBar) {
         hit_words,
         hits: RefCell::default(),
         shown: RefCell::default(),
+        marking: RefCell::default(),
     });
 
     if has_text {
+        install_marking(&chrome, reader, &text_scroll);
         install_text_pane(&chrome, reader, header);
         install_search(&chrome, reader);
         if crate::player::speech_available() {
@@ -182,6 +186,38 @@ pub fn install(reader: &Rc<Reader>, header: &adw::HeaderBar) {
     if !outline.is_empty() {
         install_outline(reader, header, &outline);
     }
+}
+
+/// A selection in the page text: the five colours, a note, copy and search, kept as the EPUB's
+/// own highlight record under the publication's key (`pdf_marks.rs`). The bar sits under the
+/// text.
+fn install_marking(chrome: &Rc<PdfChrome>, reader: &Rc<Reader>, text_scroll: &gtk::ScrolledWindow) {
+    let identity = &reader.publication.record.identity;
+    let key = identity
+        .content_digest
+        .clone()
+        .or_else(|| identity.normalized_path.clone())
+        .unwrap_or_else(|| reader.publication.id.clone());
+    let marks = crate::session::load_epub_marks(&key);
+    let on = Rc::downgrade(chrome);
+    let marking = crate::pdf_marks::PdfMarking::new(
+        &chrome.text,
+        marks,
+        reader.publication.page_count,
+        move |marks| crate::session::save_epub_marks(&key, marks),
+        move |text| {
+            if let Some(chrome) = on.upgrade() {
+                chrome.search_bar.set_search_mode(true);
+                chrome.search_entry.set_text(text);
+            }
+        },
+    );
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 0);
+    text_scroll.set_vexpand(true);
+    column.append(text_scroll);
+    column.append(&marking.bar);
+    chrome.text_pane.set_child(Some(&column));
+    *chrome.marking.borrow_mut() = Some(marking);
 }
 
 /// The text pane sits beside the page; a toggle in the header shows it. Its text follows
@@ -240,6 +276,9 @@ impl PdfChrome {
                 text
             };
             chrome.text.buffer().set_text(&words);
+            if let Some(marking) = chrome.marking.borrow().as_ref() {
+                marking.page_shown(page);
+            }
         });
     }
 

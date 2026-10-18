@@ -349,13 +349,16 @@ impl Player {
             scrub: RefCell::default(),
             outputs: RefCell::default(),
         });
+        // The clock runs on this thread's own context, which is the app's main one.
         let weak = Rc::downgrade(&player);
-        glib::timeout_add_local(Duration::from_millis(250), move || {
-            let Some(player) = weak.upgrade() else {
-                return glib::ControlFlow::Break;
-            };
-            player.tick();
-            glib::ControlFlow::Continue
+        glib::MainContext::ref_thread_default().spawn_local(async move {
+            loop {
+                glib::timeout_future(Duration::from_millis(250)).await;
+                let Some(player) = weak.upgrade() else {
+                    break;
+                };
+                player.tick();
+            }
         });
         player
     }
