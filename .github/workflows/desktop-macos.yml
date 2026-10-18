@@ -58,9 +58,12 @@ jobs:
       # No `pnpm install`: the collector and the mocks are plain Node scripts. They run in
       # the background so the egress tests (wave 4) and the source walks (wave 3) run rather
       # than skip; a test whose server is down skips by name, so a crash here is visible.
+      # setup-node v5 caches through the package manager named in package.json, which is pnpm and
+      # is not installed here; the scripts below need Node alone.
       - uses: actions/setup-node@v5
         with:
           node-version: 24
+          package-manager-cache: false
       - name: Start the egress collector and the mock servers
         run: |
           node apps/desktop-web/epub/test/collector.mjs > .build/egress.log 2>&1 &
