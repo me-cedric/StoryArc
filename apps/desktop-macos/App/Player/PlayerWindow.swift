@@ -127,18 +127,8 @@ struct PlayerWindow: View {
 
     private var settings: some View {
         HStack(spacing: 16) {
-            Menu {
-                ForEach(centre.parts) { part in
-                    Button { centre.play(part: part.index) } label: {
-                        Text(part.title ?? Self.partName(part.index))
-                    }
-                }
-            } label: {
-                Label("desktop.player.chapters", systemImage: "list.bullet")
-            }
-            .menuStyle(.borderlessButton).fixedSize()
-            .hitTarget(HitTarget.icon)
-            .help(Text("desktop.player.chapters"))
+            ChaptersMenu(centre: centre).hitTarget(HitTarget.icon)
+            SleepMenu(centre: centre).hitTarget(HitTarget.icon)
             Menu {
                 ForEach(PlaybackSpeed.stops, id: \.rate) { speed in
                     Button { centre.setSpeed(speed) } label: { Text(Self.speedText(speed)) }

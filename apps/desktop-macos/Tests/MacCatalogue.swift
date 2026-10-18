@@ -114,10 +114,19 @@ enum MacCatalogue {
             centre.book?.url.standardizedFileURL == target.url.standardizedFileURL ? true : nil
         }
         #expect(started == true, "the book did not start")
-        centre.pause()
+        // Pinned paused at the very start: `play(part:offset:)` can start the sound after the pause that
+        // follows it, and a reference drawn mid-play is what made this screen drift from run to run.
         centre.play(part: 0, offset: 0)
-        centre.pause()
-        try await Task.sleep(for: .milliseconds(900))
+        // Held still for a whole second, the engine's late start included, before the screen is drawn.
+        var stillSince: ContinuousClock.Instant?
+        _ = await Walk.until(.seconds(8)) { () -> Bool? in
+            if centre.isPlaying { centre.pause() }
+            if centre.place.offset > 0.05 { centre.scrub(to: 0) }
+            guard !centre.isPlaying, centre.place.offset <= 0.05 else { stillSince = nil; return nil }
+            let since = stillSince ?? .now
+            stillSince = since
+            return ContinuousClock.now - since >= .seconds(1) ? true : nil
+        }
         try await visit("player", window)
         await Walk.close([window])
         centre.end()

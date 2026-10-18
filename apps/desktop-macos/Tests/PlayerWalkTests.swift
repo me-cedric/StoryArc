@@ -65,12 +65,33 @@ extension WindowWalks {
             #expect(isMine() && centre.place.partIndex == 0)
             centre.toggle()
             #expect(centre.isPlaying)
+
+            try await Self.sleepAndOutput(centre)
             await Walk.close([again])
             centre.end()
             #expect(!centre.isRunning)
         }
 
         /// The fixture at a fixed place under one id, with nothing left from an earlier run.
+
+        /// `audio-playback`, *Sleep timer* and *Headphones removed*, on a playing session.
+        static func sleepAndOutput(_ centre: PlayerCentre) async throws {
+            // `audio-playback`, *Sleep timer*: a timer set from the menu counts down on the platform's clock.
+            centre.setSleepTimer(.after(300))
+            let started = try #require(centre.sleep?.remaining)
+            let counted = await Walk.until(.seconds(3)) { (centre.sleep?.remaining ?? started) < started ? true : nil }
+            #expect(counted == true, "the sleep timer did not count down")
+            centre.setSleepTimer(nil)
+            #expect(centre.sleep == nil)
+            ConformanceLog.note("player sleep", "five minutes counted down from \(started) s, then cleared", wave: 4)
+
+            // *Headphones removed*: the default output changing while it plays pauses it.
+            let platform = try #require(centre.platform as? MacPlaybackPlatform)
+            platform.output.changed()
+            #expect(!centre.isPlaying, "an output change did not pause")
+            centre.toggle()
+        }
+
         private static func freshTarget() throws -> ReaderTarget {
             let folder = URL.temporaryDirectory.appending(path: "walk-audiobooks", directoryHint: .isDirectory)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

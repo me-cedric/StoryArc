@@ -9,23 +9,46 @@ import StoryArcCore
 /// no `AVAudioSession` on a Mac, so nothing is claimed or given back; the interruption and
 /// route rules of `audio-playback` are the system's own here.
 ///
-/// A Mac copy of `Playback`'s `SystemPlaybackPlatform` (parent task 1.30). The sleep timer's
-/// clock is not carried: the Mac player offers no sleep timer in wave 4.
+/// A Mac copy of `Playback`'s `SystemPlaybackPlatform` (parent task 1.30), with its sleep-timer
+/// clock: half a second at a time while a timer runs, cancelled when it is cleared or replaced.
 @MainActor
 final class MacPlaybackPlatform: PlaybackPlatform {
     let nowPlaying: MacNowPlaying
+    private weak var centre: PlayerCentre?
+    private var countdown: Task<Void, Never>?
+    let output: MacAudioOutput
 
     init(for centre: PlayerCentre, commands: any RemoteCommanding, board: any NowPlayingBoard) {
+        self.centre = centre
         nowPlaying = MacNowPlaying(publishing: centre, commands: commands, board: board)
+        output = MacAudioOutput { [weak centre] in
+            // `audio-playback`, *Headphones removed*: the sound would move to the speakers.
+            if centre?.isPlaying == true { centre?.pause() }
+        }
     }
 
-    func sessionBegan() {}
+    func sessionBegan() { output.start() }
 
     func published() { nowPlaying.publish() }
 
-    func sessionEnded() { nowPlaying.clear() }
+    func sessionEnded() {
+        sleepTimerChanged(isRunning: false)
+        nowPlaying.clear()
+        output.stop()
+    }
 
-    func sleepTimerChanged(isRunning: Bool) {}
+    func sleepTimerChanged(isRunning: Bool) {
+        countdown?.cancel()
+        countdown = nil
+        guard isRunning else { return }
+        countdown = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(SleepCountdown.tick))
+                guard !Task.isCancelled, let centre = self?.centre, centre.sleep != nil else { return }
+                centre.tickSleepTimer(by: SleepCountdown.tick)
+            }
+        }
+    }
 }
 
 /// Starts a narrated book on the one player and keeps its position, speed and panel wired.

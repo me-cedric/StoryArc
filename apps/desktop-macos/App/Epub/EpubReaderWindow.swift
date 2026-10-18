@@ -91,6 +91,7 @@ struct EpubReaderWindow: View {
                         textButton
                         searchButton
                         if model.offersReadAloud { readAloudButton }
+                        if model.isBeingReadAloud { SleepMenu(centre: .shared).hitTarget(HitTarget.icon).padding(4) }
                     }
                     .labelStyle(.iconOnly)
                 }
