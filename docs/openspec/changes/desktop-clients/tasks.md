@@ -847,6 +847,9 @@ Capabilities walked: `ebook-reader`, `audio-playback`, `read-aloud-beyond-the-re
   ad hoc and unsigned until then; task 5.7 (Handoff) waits with it.
 - [ ] 6.9 **[X] Verify and archive.** Run `/opsx:verify` on this change, resolve each critical finding, update the `Desktop`
   section of `docs/openspec/STATUS.md`, then `/opsx:archive`. Verify: `pnpm spec:guard` reports no error.
+  **Verified 2026-10-18, not archived:** `docs/delivery/desktop-clients-verify.md`; `pnpm spec:guard` passes. Three critical
+  findings stand: 74 open tasks, the Mac's missing ebook-reader and audio-playback features, and no walk of the link.
+
 
 ## Coverage of the parity audit
 
