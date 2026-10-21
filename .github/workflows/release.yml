@@ -18,7 +18,9 @@ name: Release
 on:
   push:
     tags: ['v*']
+    # A push filter with tags alone ignores every branch push, so branches are named too.
     # Path filters do not apply to a tag push, so they only pick which branch pushes rehearse.
+    branches: ['**']
     paths:
       - '.github/workflows/release.yml'
       - '.github/workflows/*-release.yml'
