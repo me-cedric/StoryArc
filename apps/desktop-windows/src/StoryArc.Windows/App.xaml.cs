@@ -12,6 +12,10 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        // A crash leaves its exception in crash.log in the data folder: never sent anywhere, read by the
+        // reader or by the release lane's start-up check. XAML otherwise reports only 0xC000027B.
+        UnhandledException += (_, e) => CrashLog.Write(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) => CrashLog.Write(e.ExceptionObject as Exception);
     }
 
     /// <summary>

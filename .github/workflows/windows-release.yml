@@ -130,6 +130,8 @@ jobs:
           Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue |
             Where-Object { $_.ProviderName -in '.NET Runtime', 'Application Error', 'Windows Error Reporting' -or $_.Message -match 'StoryArc' } |
             Format-List TimeCreated, ProviderName, Message
+          # The app's own record of the exception (Shell/CrashLog.cs), from whichever copy ran.
+          Get-Content "$env:RUNNER_TEMP\portable\StoryArc\data\crash.log", "$env:LOCALAPPDATA\StoryArc\crash.log" -ErrorAction SilentlyContinue
 
       - uses: actions/upload-artifact@v4
         with:
