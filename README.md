@@ -2,7 +2,7 @@
 <br />
 <img src="docs/designs/brand/storyarc-mark.svg" alt="The StoryArc mark" width="112" height="112">
 <h1>StoryArc</h1>
-<p><strong>Native comic, manga and ebook readers for iOS and Android.</strong></p>
+<p><strong>Native comic, manga and ebook readers for iOS, Android, macOS, Windows and Linux.</strong></p>
 <p>
 <a href="https://github.com/me-cedric/StoryArc/actions/workflows/contract.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/contract.yml?branch=main&label=Contract&logo=github&style=flat" alt="Contract CI" /></a>
 <a href="https://github.com/me-cedric/StoryArc/actions/workflows/ios.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/ios.yml?branch=main&label=iOS&logo=apple&style=flat" alt="iOS CI" /></a>
@@ -17,6 +17,7 @@
 <a href="https://developer.apple.com/ios/"><img src="https://img.shields.io/badge/iOS-26.1%2B-black?logo=apple&style=flat" alt="iOS 26.1+" /></a>
 <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white&style=flat" alt="Kotlin 2.4" /></a>
 <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android-12%2B-3DDC84?logo=android&logoColor=white&style=flat" alt="Android 12+" /></a>
+<a href="https://github.com/me-cedric/StoryArc/releases/latest"><img src="https://img.shields.io/github/v/release/me-cedric/StoryArc?label=Download&style=flat" alt="Latest release" /></a>
 <a href="https://ko-fi.com/mecedric"><img src="https://img.shields.io/badge/Ko--fi-Support%20StoryArc-ff5f5f?logo=kofi&logoColor=white&style=flat" alt="Support StoryArc on Ko-fi" /></a>
 </p>
 <br />
@@ -34,10 +35,18 @@
   <img src="docs/designs/screenshots/android-sweep-2026-09-02/android-epub-themes-dark.png" alt="The Android reading-theme sheet: the same preview and the same presets, in Compose" width="300">
 </p>
 
+<p align="center">
+  <img src="apps/desktop-macos/Tests/__Snapshots__/player.dark.png" alt="StoryArc on macOS: the audiobook player with chapters, a sleep timer and the playback speed" width="210">
+  &nbsp;&nbsp;
+  <img src="docs/designs/screenshots/desktop/linux/wave4/epub-reader.png" alt="StoryArc on Linux: the EPUB reader in GTK 4 and libadwaita, with contents, marks, read aloud and search in the header bar" width="480">
+</p>
+
 <p align="center"><em>The same test library on both platforms — including the two files that
 could not be opened, named rather than counted — and the reading-theme sheet on each: a live
 preview above six presets, each drawn in its own colours <strong>and</strong> typeface. Both
-pairs were taken by the capture harnesses in <code>scripts/</code>, not by hand.</em></p>
+pairs were taken by the capture harnesses in <code>scripts/</code>, not by hand. Below them, the
+desktop apps: the Mac audiobook player (a snapshot test reference) and the Linux EPUB reader (a
+headless capture). No Windows desktop has walked a screen yet.</em></p>
 
 StoryArc reads what you already own, from wherever you keep it: a folder on the
 device, iCloud Drive or any Files provider, an SMB share on your NAS, an OPDS
@@ -45,15 +54,32 @@ catalogue, or a Kavita server. It caches what it finds, downloads what you ask
 it to, remembers where you stopped, and syncs that back when the source can hold
 it.
 
-Two apps, written twice on purpose. iOS is Swift and SwiftUI with Liquid Glass.
-Android is Kotlin and Compose with Material 3 Expressive. **No cross-platform UI
-layer, ever** — the point is that each one feels like it shipped with the
-operating system.
+Each app is written for its own system, on purpose. iOS is Swift and SwiftUI with
+Liquid Glass. Android is Kotlin and Compose with Material 3 Expressive. The Mac app is
+SwiftUI over the iOS packages, Windows is WinUI 3, and Linux is GTK 4 and libadwaita;
+the last two share a Rust core that holds no UI. **No cross-platform UI layer, ever**
+— the point is that each one feels like it shipped with the operating system.
 
 StoryArc is free and open source, with no paid tier, no accounts and no
 telemetry. If it helps you, you can [support development on Ko-fi](https://ko-fi.com/mecedric).
 
 ---
+
+## Download
+
+Every release is on the [releases page](https://github.com/me-cedric/StoryArc/releases/latest),
+built and signed by CI from the tagged commit.
+
+| Platform | File | Needs | First start |
+| --- | --- | --- | --- |
+| Android | `StoryArc-X.Y.Z-android.apk` | Android 12 | Allow your browser or file manager to install unknown apps. Play testers get the same build from Play. |
+| Windows | `…-windows-x64-setup.exe` or `…-arm64-setup.exe` | Windows 11 24H2 | Installs for you alone, no administrator rights. SmartScreen warns: **More info**, then **Run anyway**. |
+| Windows, portable | `…-windows-x64-portable.zip` or `…-arm64-portable.zip` | Windows 11 24H2 | Unzip anywhere and run `StoryArc.exe`. Its data stays in a `data` folder beside it. |
+| macOS | `…-macos.dmg` | macOS 26, Apple silicon or Intel | Drag StoryArc to Applications. It is not notarised yet: open it once, then **Open Anyway** in System Settings > Privacy & Security. |
+| Linux | `…-linux-x86_64.flatpak` or `…-aarch64.flatpak` | Flatpak | `flatpak install --user <file>`. Flatpak takes the GNOME runtime from Flathub. Arch and Manjaro can build the AUR `PKGBUILD` in `apps/desktop-linux/packaging/aur`. |
+
+iOS has no public build yet: its TestFlight lane is ready and waits for an Apple
+Developer account. Nothing is in a public store.
 
 ## Status
 
@@ -80,20 +106,22 @@ steps that no simulator answers are in
 | Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 83 of 91 done and 7 partial, and `read-aloud-beyond-the-reader` 20 of 24 |
 | Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is the last rung of the ladder, and the publication page offers the title and web search. `cover-for-every-publication` has 23 of 28 done and 4 partial |
 | Portability | 🟡 One versioned library document, exported and imported from a screen on both platforms with no secret in it, and synced through a share or a folder. `library-portability` has 30 of 31 done (3.1b open), and `library-sync` 24 of 28 |
-| Desktop: macOS | 🟡 Base only: a SwiftUI app in its own project opens an empty window and links `StoryArcKit`; no reading feature yet |
-| Desktop: Windows | 🟡 Base only: a WinUI 3 shell, an interop library and its tests; not yet run on Windows; no reading feature yet |
-| Desktop: Linux | 🟡 Base only: a GTK4 and libadwaita window on the shared Rust core; no reading feature yet |
+| Desktop: macOS | 🟡 Reads comics, EPUB and PDF, plays audiobooks with Now Playing and the media keys, reads aloud, and has the sources, downloads, sync and shelves of the phones; 238 tests and an accessibility audit of 23 screens. `desktop-clients` is the plan |
+| Desktop: Windows | 🟡 The same screens compile on CI over the Rust core, and a release build starts and stays up on a Windows runner; no Windows desktop has walked a screen yet |
+| Desktop: Linux | 🟡 Reads EPUB and PDF, plays audiobooks with MPRIS, reads aloud through speech-dispatcher; 291 crate tests and headless walks; Flatpak and AUR builds install in CI |
+| Releases | ✅ One tag builds every download into a draft GitHub release and a Play internal draft; the owner publishes. A push to the release files rehearses it all without publishing |
 
 Tests: **about 3,570 on iOS** across 485 host suites, plus 144 more in
 `StoryArcEpub` that need a simulator; on Android, **about 4,070 JVM plus 170
 instrumented**, counted from their `@Test` attributes. The instrumented ones exist because image
 decoding, PDF rendering, Room and the RAR decoder cannot run on a host JVM.
 
-Android builds are signed by CI, never on a laptop: each `vX.Y.Z` tag puts a
-signed APK on its GitHub release and the bundle on Play's internal testing track,
-with the notes of [`RELEASE_NOTES.md`](RELEASE_NOTES.md). The owner promotes it to
-closed testing and production. Nothing is in a public store, and iOS has no
-release lane yet.
+Releases are built by CI, never on a laptop. `pnpm release` writes one version into
+every client and tags it; the tag builds the APK, the Windows installer and portable
+zip, the macOS disk image and the Linux Flatpak into a draft GitHub release, and puts
+the Android bundle on Play's internal testing track as a draft, with the notes of
+[`RELEASE_NOTES.md`](RELEASE_NOTES.md). The owner publishes the release and promotes
+the Play build. The rules are §10 of [`AGENTS.md`](AGENTS.md).
 
 ### What the format layer actually does
 
@@ -380,22 +408,23 @@ cd apps/android && ./gradlew lint test assembleDebug
 ### macOS
 
 The Mac app is a native SwiftUI app with its own project. It consumes
-`apps/ios/Packages/StoryArcKit` by path and leaves `apps/ios` untouched. It is
-base only: an empty window.
+`apps/ios/Packages/StoryArcKit` by path and leaves `apps/ios` untouched.
 
 ```bash
 brew install xcodegen
 pnpm build:macos          # xcodegen generate, then xcodebuild build, scheme StoryArc
 ```
 
-Builds are ad-hoc signed and run locally. See
+Builds are ad-hoc signed and run locally. `apps/desktop-macos/packaging/make-dmg.sh`
+makes the release disk image from a built app. See
 [`apps/desktop-macos`](apps/desktop-macos/README.md).
 
 ### Windows
 
 A WinUI 3 app on .NET 10, over the shared Rust core. Windows 11 24H2 is the floor.
-The base has not yet been run on Windows. The interop library and its tests build
-and run on any OS that has the .NET 10 SDK and Rust.
+The interop library and its tests build and run on any OS that has the .NET 10 SDK
+and Rust. The release lane publishes it unpackaged and self-contained, and
+`apps/desktop-windows/packaging/StoryArc.iss` (Inno Setup 6) makes the installer.
 
 ```bash
 pnpm test:desktop:core        # cargo test -p storyarc-core -p storyarc-ffi
