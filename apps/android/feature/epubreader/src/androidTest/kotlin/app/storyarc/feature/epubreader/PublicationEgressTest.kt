@@ -139,6 +139,12 @@ class PublicationEgressTest {
         }
 
         loaded.await(15, TimeUnit.SECONDS)
+        // On a slow emulator the stylesheet can be asked for after onPageFinished. Wait for it, up to
+        // 10 s, so the assertions below judge the run and not the emulator's speed (CI, 2026-10-21).
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+        while (synchronized(served) { served.none { it.endsWith("/style.css") } } && System.nanoTime() < deadline) {
+            Thread.sleep(100)
+        }
         // The beacons fire from a script, and the last of them is a navigation on a
         // timer. A refused connection is quicker than an accepted one, so the wait has
         // to be long enough that the control cannot pass for being slow.
