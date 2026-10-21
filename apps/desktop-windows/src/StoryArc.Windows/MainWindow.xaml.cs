@@ -12,7 +12,6 @@ using StoryArc.Interop.Sources;
 using StoryArc.Interop.SystemSettings;
 using StoryArc.Windows.Library;
 using StoryArc.Windows.Shell;
-using Windows.ApplicationModel;
 using Windows.System;
 // System.Globalization (CultureInfo, above) also declares a SortKey class: CS0104 without this alias.
 using SortKey = StoryArc.Interop.Library.SortKey;
@@ -41,9 +40,9 @@ public sealed partial class MainWindow : Window
         _host = host;
         InitializeComponent();
 
-        // Windows.ApplicationModel.AppInfo: the display name from Package.appxmanifest, so the window,
-        // the title bar and the taskbar agree with the Start menu. The name is a brand, the same in every language.
-        var displayName = AppInfo.Current.DisplayInfo.DisplayName;
+        // The name of the Start menu entry, so the window, the title bar and the taskbar agree with it. The name is a
+        // brand, the same in every language. Not AppInfo: the installer's and the portable copy have no package.
+        const string displayName = "StoryArc";
         Title = displayName;
         AppTitleBar.Title = displayName;
 

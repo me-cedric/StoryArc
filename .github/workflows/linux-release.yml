@@ -1,0 +1,71 @@
+name: Linux release
+
+# The Linux lane of release.yml (openspec change shared-release-train, design D7). For x86_64
+# and aarch64 it builds the Flatpak from the repository's own manifest and makes a single-file
+# bundle, StoryArc-X.Y.Z-linux-<arch>.flatpak, uploaded as the artefact `release-linux-<arch>`.
+#
+# The bundle names Flathub as its runtime repository, so `flatpak install --user` on it fetches
+# the GNOME runtime there. The build runs in the image apps/desktop-linux/scripts/flatpak-build.sh
+# uses, privileged for bubblewrap, offline through build-aux/cargo-sources.json. A stale
+# cargo-sources.json fails the build by crate name: run flatpak-cargo-sources.sh.
+#
+# Flathub itself is not a channel yet: a human submits there (desktop-clients task 6.5).
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version in the file names, X.Y.Z.'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x86_64, runner: ubuntu-24.04 }
+          - { arch: aarch64, runner: ubuntu-24.04-arm }
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    env:
+      BUNDLE: StoryArc-${{ inputs.version }}-linux-${{ matrix.arch }}.flatpak
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build the Flatpak
+        # rofiles-fuse is off because the container has no FUSE device, as in flatpak-build.sh.
+        run: |
+          flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak-builder --repo=repo --force-clean --disable-rofiles-fuse --install-deps-from=flathub \
+            build apps/desktop-linux/build-aux/com.mecedric.StoryArc.json
+
+      - name: Bundle it
+        run: |
+          mkdir -p release
+          flatpak build-bundle repo "release/$BUNDLE" com.mecedric.StoryArc \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+          ls -la release
+
+      - name: Install the bundle
+        run: |
+          flatpak install -y --noninteractive "release/$BUNDLE"
+          flatpak info com.mecedric.StoryArc
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-${{ matrix.arch }}
+          path: release/
+          retention-days: 7
+          if-no-files-found: error

@@ -4527,7 +4527,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "storyarc-core"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -4565,7 +4565,7 @@ dependencies = [
 
 [[package]]
 name = "storyarc-ffi"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "csbindgen",
  "serde",
@@ -4576,7 +4576,7 @@ dependencies = [
 
 [[package]]
 name = "storyarc-linux"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "gstreamer",
  "gstreamer-play",

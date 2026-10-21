@@ -17,8 +17,8 @@ settings:
     CLANG_ENABLE_MODULES: YES
     GCC_TREAT_WARNINGS_AS_ERRORS: YES
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.1"
+    CURRENT_PROJECT_VERSION: "6"
     # Ad-hoc, as in apps/ios: an unsigned app carries no entitlements, and the sandbox
     # entitlements below are what a local run has to prove.
     CODE_SIGN_STYLE: Automatic
@@ -162,6 +162,8 @@ targets:
         # AccentColor.colorset`: on a Mac whose system accent is Multicolor (the default) the
         # sidebar's selection and icons take it, which no SwiftUI tint reaches.
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Drawn from the iOS icon by packaging/make-icon.swift.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_EMIT_LOC_STRINGS: YES
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
   # The Quick Look thumbnail extension (task 5.4): a comic's or an ebook's cover as its icon

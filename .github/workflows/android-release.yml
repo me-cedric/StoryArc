@@ -1,23 +1,23 @@
 name: Android release
 
-# A tag starts this. `pnpm release patch` writes the new version into
-# `apps/android/gradle.properties`, commits, tags `vX.Y.Z` and pushes; this lane does
-# everything after that and nothing before it.
+# The Android lane of release.yml (openspec change shared-release-train, design D4). A
+# `vX.Y.Z` tag starts release.yml, and release.yml calls this.
 #
 # What it produces, in order:
-#   1. a signed App Bundle and a signed APK, both at the version the tag carries
-#   2. a GitHub release on that tag, with the APK attached for sideloading
-#   3. that bundle on Play's internal testing track, rolled out to the internal testers
+#   1. a signed App Bundle and a signed APK, both at the version gradle.properties carries
+#   2. the APK as the artefact `release-android`; release.yml attaches it to the draft release
+#   3. that bundle on Play's internal testing track as a **draft**, with the reader's notes
 #
-# Both carry the reader's notes of that version from `RELEASE_NOTES.md`.
+# The owner rolls the draft out to the internal testers in the Play Console, then promotes it
+# to closed testing and later to production, there or with `android-promote.yml`. Promotion
+# to a closed or open track is what sends the build for review.
 #
-# Internal testing first, because a release there reaches the testers in minutes and
-# normally skips Play's review. The owner tries it, then promotes it to closed testing and
-# later to production, in the Play Console or with `android-promote.yml`. Promotion to a
-# closed or open track is what sends the build for review. A manual run may still choose
-# another track or a draft.
+# A rehearsal builds and signs both files, and skips Play.
 #
-# It never promotes. `android-promote.yml` does, and it reuses this artefact and never
+# A manual run is the one way to roll out at once: `releaseStatus: completed`, only when the
+# owner asks for it. It uploads to Play and keeps the APK as an artefact; it makes no release.
+#
+# It never promotes. `android-promote.yml` does, and it reuses the uploaded bundle and never
 # rebuilds.
 #
 # Secrets this needs, all five of them repository secrets:
@@ -27,8 +27,11 @@ name: Android release
 #   ANDROID_KEY_ALIAS           the key alias inside the keystore
 #   ANDROID_KEY_PASSWORD        the key password
 on:
-  push:
-    tags: ['v*']
+  workflow_call:
+    inputs:
+      rehearsal:
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       track:
@@ -37,23 +40,22 @@ on:
         options: [internal, alpha, beta]
         default: internal
       releaseStatus:
-        description: 'completed rolls it out on the track at once; on alpha or beta that sends it for review. draft waits for the owner in the Play Console.'
+        description: 'draft waits for the owner in the Play Console. completed rolls it out on the track at once; on alpha or beta that sends it for review.'
         type: choice
-        options: [completed, draft]
-        default: completed
-
-concurrency:
-  # Two uploads at once would race for the same version code. Queue them.
-  group: android-release
-  cancel-in-progress: false
+        options: [draft, completed]
+        default: draft
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   release:
-    name: Build, sign, publish, upload to internal testing
+    name: ${{ inputs.rehearsal && 'Build and sign' || 'Build, sign, upload a Play draft' }}
     runs-on: ubuntu-latest
+    concurrency:
+      # Two uploads at once would race for the same version code. Queue them; a rehearsal uploads nothing.
+      group: ${{ inputs.rehearsal && format('android-rehearsal-{0}', github.ref) || 'android-play' }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v5
 
@@ -67,14 +69,12 @@ jobs:
           test -n "$NAME" && test -n "$CODE"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "tag=v$NAME" >> "$GITHUB_OUTPUT"
 
       - name: Read the reader's notes of this version
         # `pnpm release` filed them under the version. Play reads `<versionCode>.txt` from the
-        # changelogs folder of each listing language; the GitHub release reads the en-US text.
-        run: |
-          node scripts/release.mjs --play-notes "${{ steps.version.outputs.name }}" "${{ steps.version.outputs.code }}" "$RUNNER_TEMP/play"
-          node scripts/release.mjs --notes "${{ steps.version.outputs.name }}" > "$RUNNER_TEMP/notes.txt"
+        # changelogs folder of each listing language. A rehearsal has no filed notes and no upload.
+        if: ${{ !inputs.rehearsal }}
+        run: node scripts/release.mjs --play-notes "${{ steps.version.outputs.name }}" "${{ steps.version.outputs.code }}" "$RUNNER_TEMP/play"
 
       - uses: actions/setup-java@v5
         with:
@@ -111,8 +111,17 @@ jobs:
         run: unzip -l apps/android/app/build/outputs/bundle/release/app-release.aab | grep -q 'BUNDLE-METADATA/com.android.tools.build.debugsymbols/'
 
       - name: Name the APK after its version
-        # `app-release.apk` in a downloads list says nothing. `StoryArc-0.2.0.apk` does.
-        run: cp apps/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk"
+        # `app-release.apk` in a downloads list says nothing. `StoryArc-0.2.0-android.apk` does.
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          cp apps/android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/release/StoryArc-${{ steps.version.outputs.name }}-android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: ${{ runner.temp }}/release/
+          retention-days: 7
+          if-no-files-found: error
 
       - name: Keep the bundle and the mapping
         # R8 runs on release. Without the mapping file kept here as well as sent to Play,
@@ -125,35 +134,27 @@ jobs:
             apps/android/app/build/outputs/mapping/release/mapping.txt
           retention-days: 90
 
-      - name: Publish the GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-        # On a tag push the tag is already here. On a manual run it may not be, and
-        # `gh release create` makes it at this commit.
-        run: |
-          gh release create "$TAG" "$RUNNER_TEMP/StoryArc-${{ steps.version.outputs.name }}.apk" \
-            --title "$TAG" \
-            --notes-file "$RUNNER_TEMP/notes.txt"
-
       - name: Install fastlane
+        if: ${{ !inputs.rehearsal }}
         # `supply` is the Play Developer API client both lanes use. The floor is pinned;
         # the patch level is not, because Play's API changes under it.
         # The runner's system gem directory is not writable by the build user.
         run: sudo gem install fastlane -N -v '~> 2.228'
 
       - name: Write the service account key
+        if: ${{ !inputs.rehearsal }}
         env:
           PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: printf '%s' "$PLAY_JSON" > "$RUNNER_TEMP/play.json"
 
       - name: Upload to internal testing
+        if: ${{ !inputs.rehearsal }}
         env:
           TRACK: ${{ inputs.track || 'internal' }}
-          RELEASE_STATUS: ${{ inputs.releaseStatus || 'completed' }}
+          RELEASE_STATUS: ${{ inputs.releaseStatus || 'draft' }}
           VERSION_NAME: ${{ steps.version.outputs.name }}
-        # `internal` is internal testing and `alpha` the default closed track. A manual run
-        # can name another track.
+        # `internal` is internal testing and `alpha` the default closed track. A draft waits for
+        # the owner in the Play Console. A manual run can name another track or `completed`.
         run: |
           fastlane supply \
             --package_name com.mecedric.storyarc \

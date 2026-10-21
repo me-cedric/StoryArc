@@ -12,7 +12,7 @@
   <Identity
     Name="com.mecedric.StoryArc"
     Publisher="CN=StoryArc"
-    Version="0.1.0.0" />
+    Version="0.2.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="6a1c3a52-5f0e-4d0a-9a8e-6f6c0b6e2f10" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

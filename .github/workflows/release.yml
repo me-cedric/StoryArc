@@ -1,0 +1,145 @@
+name: Release
+
+# One release for every platform (openspec change shared-release-train, design D4).
+#
+# **A `vX.Y.Z` tag is a real run.** `pnpm release` pushes the tag. Each lane builds its
+# downloads and uploads them as a workflow artefact; `publish` then makes a **draft** GitHub
+# release that carries every download that exists and names the ones that do not. Nothing is
+# public until the owner publishes the draft. The Android lane also gives the bundle to Play's
+# internal testing track as a **draft**: the owner rolls it out in the Play Console.
+#
+# **Anything else is a rehearsal.** A push that changes the release machinery, or a manual
+# run, builds the same downloads and the same release text into one artefact,
+# `release-rehearsal-<sha>`, and makes no tag, no release and no Play upload.
+#
+# The Apple lanes (TestFlight for iOS; Developer ID and notarisation for macOS) run only when
+# the repository variable APPLE_RELEASES is `true`. Until then the macOS disk image is signed
+# ad hoc and no iOS build is made.
+on:
+  push:
+    tags: ['v*']
+    # Path filters do not apply to a tag push, so they only pick which branch pushes rehearse.
+    paths:
+      - '.github/workflows/release.yml'
+      - '.github/workflows/*-release.yml'
+      - 'scripts/release.mjs'
+      - 'apps/desktop-macos/packaging/**'
+      - 'apps/desktop-windows/packaging/**'
+      - 'apps/desktop-linux/build-aux/**'
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Version and check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.name }}
+      rehearsal: ${{ steps.version.outputs.rehearsal }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Read the version the repository carries
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          NAME=$(grep -m1 '^versionName=' apps/android/gradle.properties | cut -d= -f2)
+          test -n "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          if [ "$REF_TYPE" = tag ]; then
+            # A tag that does not match the version would publish one version under another's name.
+            test "$REF_NAME" = "v$NAME" || { echo "::error::tag $REF_NAME, but gradle.properties says $NAME"; exit 1; }
+            echo "rehearsal=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "rehearsal=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Every client carries the same version
+        run: node scripts/release.mjs --check
+      - name: The notes of this version exist
+        # A rehearsal reads the Unreleased notes, because the version's own are filed only by the release command.
+        env:
+          REHEARSAL: ${{ steps.version.outputs.rehearsal }}
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          if [ "$REHEARSAL" = true ]; then node scripts/release.mjs --release-body "$VERSION" --notes-from Unreleased; else node scripts/release.mjs --release-body "$VERSION"; fi > /dev/null
+
+  android:
+    needs: prepare
+    uses: ./.github/workflows/android-release.yml
+    with:
+      rehearsal: ${{ needs.prepare.outputs.rehearsal == 'true' }}
+    secrets: inherit
+
+  windows:
+    needs: prepare
+    uses: ./.github/workflows/windows-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+
+  macos:
+    needs: prepare
+    uses: ./.github/workflows/macos-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+      apple: ${{ vars.APPLE_RELEASES == 'true' }}
+    secrets: inherit
+
+  linux:
+    needs: prepare
+    uses: ./.github/workflows/linux-release.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+
+  ios:
+    needs: prepare
+    if: vars.APPLE_RELEASES == 'true'
+    uses: ./.github/workflows/ios-release.yml
+    with:
+      rehearsal: ${{ needs.prepare.outputs.rehearsal == 'true' }}
+    secrets: inherit
+
+  publish:
+    name: ${{ needs.prepare.outputs.rehearsal == 'true' && 'Rehearsal artefact' || 'Draft release' }}
+    needs: [prepare, android, windows, macos, linux, ios]
+    # Every lane that finished counts; a failed lane's downloads are named as missing.
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      REHEARSAL: ${{ needs.prepare.outputs.rehearsal }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/downloads
+      - name: Write the release text
+        run: |
+          ls -la "$RUNNER_TEMP/downloads"
+          if [ "$REHEARSAL" = true ]; then notes=Unreleased; else notes=$VERSION; fi
+          node scripts/release.mjs --release-body "$VERSION" "$RUNNER_TEMP/downloads" --notes-from "$notes" > "$RUNNER_TEMP/body.md"
+          cat "$RUNNER_TEMP/body.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Keep the rehearsal
+        if: env.REHEARSAL == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-rehearsal-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/downloads
+            ${{ runner.temp }}/body.md
+          retention-days: 7
+      - name: Make the draft release
+        if: env.REHEARSAL != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$VERSION" --draft --verify-tag --title "v$VERSION" --notes-file "$RUNNER_TEMP/body.md" "$RUNNER_TEMP"/downloads/*

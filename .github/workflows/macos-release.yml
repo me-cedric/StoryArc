@@ -1,0 +1,154 @@
+name: macOS release
+
+# The macOS lane of release.yml (design.md D4 and D6). It builds the app, puts it in a disk
+# image with the designed window, and uploads that image as the artefact `release-macos`.
+# Only release.yml's `publish` job talks to the GitHub release.
+#
+# Ad hoc signed by default: the reader allows it once in System Settings > Privacy & Security.
+# With `apple` on (release.yml passes vars.APPLE_RELEASES), the lane signs with the Developer
+# ID certificate and notarises instead.
+# Secrets that `apple` needs, all six of them repository secrets:
+#   MACOS_DEVELOPER_ID_P12        the Developer ID Application certificate and key, base64 encoded
+#   MACOS_DEVELOPER_ID_PASSWORD   the .p12 password
+#   ASC_KEY_ID                    App Store Connect API key ID
+#   ASC_ISSUER_ID                 App Store Connect issuer ID
+#   ASC_KEY_P8                    the API key, the whole .p8 file
+#   APPLE_TEAM_ID                 the team that owns the certificate
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+      apple:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version in the file name, X.Y.Z.'
+        type: string
+        required: true
+      apple:
+        description: 'Sign with Developer ID and notarise. Needs the six secrets in the header.'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS disk image
+    runs-on: macos-26
+    env:
+      DMG: StoryArc-${{ inputs.version }}-macos.dmg
+      APP: ${{ github.workspace }}/.build/StoryArc.app
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Report toolchain
+        # The runner image's default Xcode is the contract, as in desktop-macos.yml.
+        run: xcodebuild -version
+
+      - name: Install the tools
+        # A venv, because the runner's Homebrew Python refuses a global pip install.
+        run: |
+          brew install xcodegen
+          python3 -m venv "$RUNNER_TEMP/dmgbuild"
+          "$RUNNER_TEMP/dmgbuild/bin/pip" install -q dmgbuild==1.6.5
+          echo "$RUNNER_TEMP/dmgbuild/bin" >> "$GITHUB_PATH"
+
+      - name: Generate project
+        working-directory: apps/desktop-macos
+        run: xcodegen generate
+
+      - name: Archive
+        # Signed ad hoc: the sandbox entitlements stay in the signature, and no certificate is needed.
+        working-directory: apps/desktop-macos
+        run: >-
+          xcodebuild archive
+          -project StoryArcMac.xcodeproj
+          -scheme StoryArc
+          -destination 'generic/platform=macOS'
+          -archivePath "$RUNNER_TEMP/StoryArc.xcarchive"
+          CODE_SIGN_IDENTITY=-
+          -quiet
+
+      - name: Take the app from the archive
+        # A generic destination builds every standard architecture; the log says which.
+        run: |
+          mkdir -p .build
+          ditto "$RUNNER_TEMP/StoryArc.xcarchive/Products/Applications/StoryArc.app" "$APP"
+          lipo -archs "$APP/Contents/MacOS/StoryArc"
+
+      - name: Check the Apple secrets
+        if: inputs.apple
+        env:
+          MACOS_DEVELOPER_ID_P12: ${{ secrets.MACOS_DEVELOPER_ID_P12 }}
+          MACOS_DEVELOPER_ID_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for n in MACOS_DEVELOPER_ID_P12 MACOS_DEVELOPER_ID_PASSWORD ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 APPLE_TEAM_ID; do
+            [ -n "${!n}" ] || { echo "::error::secret $n is empty"; missing=1; }
+          done
+          exit $missing
+
+      - name: Sign with Developer ID
+        if: inputs.apple
+        env:
+          MACOS_DEVELOPER_ID_P12: ${{ secrets.MACOS_DEVELOPER_ID_P12 }}
+          MACOS_DEVELOPER_ID_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # A throwaway keychain, so the certificate never touches the login keychain.
+        run: |
+          kc="$RUNNER_TEMP/release.keychain-db"
+          kcpass=$(openssl rand -hex 24)
+          echo "$MACOS_DEVELOPER_ID_P12" | base64 --decode > "$RUNNER_TEMP/devid.p12"
+          security create-keychain -p "$kcpass" "$kc"
+          security set-keychain-settings -lut 3600 "$kc"
+          security unlock-keychain -p "$kcpass" "$kc"
+          security import "$RUNNER_TEMP/devid.p12" -k "$kc" -P "$MACOS_DEVELOPER_ID_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/devid.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpass" "$kc" > /dev/null
+          security list-keychains -d user -s "$kc" login.keychain-db
+          # The team ID picks the right certificate when the .p12 holds more than one.
+          id=$(security find-identity -v -p codesigning "$kc" | grep "Developer ID Application" | grep "($APPLE_TEAM_ID)" | head -1 | awk '{print $2}')
+          [ -n "$id" ] || { echo "::error::no Developer ID Application identity for team $APPLE_TEAM_ID"; exit 1; }
+          # preserve-metadata keeps each binary's own entitlements: the sandbox ones of the app and the extension's.
+          codesign --force --deep --options runtime --timestamp --preserve-metadata=entitlements --keychain "$kc" --sign "$id" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Make the disk image
+        run: apps/desktop-macos/packaging/make-dmg.sh "$APP" "$RUNNER_TEMP/$DMG"
+
+      - name: Notarise and staple
+        if: inputs.apple
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          xcrun notarytool submit "$RUNNER_TEMP/$DMG" --wait --key "$RUNNER_TEMP/asc.p8" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID"
+          xcrun stapler staple "$RUNNER_TEMP/$DMG"
+
+      - name: Verify the disk image
+        run: hdiutil verify "$RUNNER_TEMP/$DMG"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: ${{ runner.temp }}/${{ env.DMG }}
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Remove the keychain and the key
+        if: always() && inputs.apple
+        run: |
+          security delete-keychain "$RUNNER_TEMP/release.keychain-db" || true
+          rm -f "$RUNNER_TEMP/asc.p8" "$RUNNER_TEMP/devid.p12"

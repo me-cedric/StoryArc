@@ -1,0 +1,131 @@
+name: Windows release
+
+# The Windows lane of release.yml (openspec change shared-release-train, design D5). For x64
+# and ARM64 it makes:
+#   StoryArc-X.Y.Z-windows-<arch>-setup.exe      an Inno Setup installer, for the current user, no admin rights
+#   StoryArc-X.Y.Z-windows-<arch>-portable.zip   the same build with a `portable` file: data stays beside it
+# and uploads both as the artefact `release-windows-<arch>`.
+#
+# The build is unpackaged and self-contained: no MSIX, no .NET or Windows App SDK runtime to
+# install. WebView2 ships with Windows 11. Nothing is signed: SmartScreen warns on the first
+# run until the owner has a signing identity. The Microsoft Store is not a channel yet.
+#
+# On x64 the lane starts the portable copy and the installed copy for 20 seconds each, and
+# fails if either exits. ARM64 is cross-built on the x64 image and cannot start there.
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version in the file names, X.Y.Z.'
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows ${{ matrix.arch }}
+    # Pinned image, as in desktop-windows.yml: the windows-latest label moves.
+    runs-on: windows-2025-vs2026
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: x64, arch: x64, rust: x86_64-pc-windows-msvc, pdfium: win-x64, smoke: true }
+          - { platform: ARM64, arch: arm64, rust: aarch64-pc-windows-msvc, pdfium: win-arm64, smoke: false }
+    env:
+      VERSION: ${{ inputs.version }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Paths
+        # The runner context is not available in a job's env.
+        run: |
+          "PUBLISH=$env:RUNNER_TEMP\publish" >> $env:GITHUB_ENV
+          "OUT=$env:RUNNER_TEMP\release" >> $env:GITHUB_ENV
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: apps/desktop-windows/global.json
+      - uses: actions/cache@v4
+        with:
+          path: .build/pdfium/${{ matrix.pdfium }}
+          key: pdfium-${{ matrix.pdfium }}-${{ hashFiles('apps/desktop-core/pdfium/pin.json') }}
+      - run: node scripts/pdfium-fetch.mjs --platform ${{ matrix.pdfium }}
+
+      - name: Publish, unpackaged and self-contained
+        run: >-
+          dotnet publish apps/desktop-windows/src/StoryArc.Windows
+          -c Release
+          -p:Platform=${{ matrix.platform }}
+          -p:WindowsPackageType=None
+          -p:SelfContained=true
+          -p:WindowsAppSDKSelfContained=true
+          -o "$env:PUBLISH"
+
+      - name: The build carries the core, PDFium and the runtime
+        run: |
+          foreach ($file in 'StoryArc.exe', 'storyarc_ffi.dll', 'pdfium.dll', 'Microsoft.WindowsAppRuntime.dll', 'Assets\storyarc-epub.js') {
+            if (-not (Test-Path (Join-Path $env:PUBLISH $file))) { Write-Error "missing $file"; exit 1 }
+          }
+          "{0:N0} MB" -f ((Get-ChildItem $env:PUBLISH -Recurse | Measure-Object Length -Sum).Sum / 1MB)
+
+      - name: Portable zip
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'portable\StoryArc'
+          New-Item -ItemType Directory -Force $root, $env:OUT | Out-Null
+          Copy-Item "$env:PUBLISH\*" $root -Recurse
+          # The file that makes this copy portable (Shell/DataRoot.cs). Its text is for the reader who finds it.
+          Set-Content (Join-Path $root 'portable') 'StoryArc keeps its library, settings and downloads in the data folder beside StoryArc.exe while this file is here.'
+          Compress-Archive -Path $root -DestinationPath "$env:OUT\StoryArc-$env:VERSION-windows-$env:ARCH-portable.zip"
+
+      - name: Start the portable copy
+        if: matrix.smoke
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'portable\StoryArc'
+          $app = Start-Process (Join-Path $root 'StoryArc.exe') -PassThru
+          Start-Sleep -Seconds 20
+          if ($app.HasExited) { Write-Error "StoryArc exited with $($app.ExitCode)"; exit 1 }
+          Stop-Process -Id $app.Id
+          if (-not (Test-Path (Join-Path $root 'data'))) { Write-Error 'the portable copy made no data folder beside itself'; exit 1 }
+          if (Test-Path "$env:LOCALAPPDATA\StoryArc") { Write-Error 'the portable copy wrote to the user profile'; exit 1 }
+
+      - name: Installer
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          (Get-Item $iscc).VersionInfo.ProductVersion
+          & $iscc /Qp "/DAppVersion=$env:VERSION" "/DArch=$env:ARCH" "/DSourceDir=$env:PUBLISH" "/DOutputDir=$env:OUT" apps\desktop-windows\packaging\StoryArc.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Install, start, uninstall
+        if: matrix.smoke
+        run: |
+          $setup = "$env:OUT\StoryArc-$env:VERSION-windows-$env:ARCH-setup.exe"
+          Start-Process $setup -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CURRENTUSER' -Wait
+          $exe = "$env:LOCALAPPDATA\Programs\StoryArc\StoryArc.exe"
+          if (-not (Test-Path $exe)) { Write-Error "the installer put no StoryArc.exe at $exe"; exit 1 }
+          $app = Start-Process $exe -PassThru
+          Start-Sleep -Seconds 20
+          if ($app.HasExited) { Write-Error "the installed StoryArc exited with $($app.ExitCode)"; exit 1 }
+          Stop-Process -Id $app.Id
+          if (-not (Test-Path "$env:LOCALAPPDATA\StoryArc")) { Write-Error 'the installed copy made no data folder in LOCALAPPDATA'; exit 1 }
+          Start-Sleep -Seconds 2
+          Start-Process "$env:LOCALAPPDATA\Programs\StoryArc\unins000.exe" -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES' -Wait
+          Start-Sleep -Seconds 2
+          if (Test-Path $exe) { Write-Error 'the uninstaller left StoryArc.exe'; exit 1 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-${{ matrix.arch }}
+          path: ${{ runner.temp }}/release/
+          retention-days: 7
+          if-no-files-found: error

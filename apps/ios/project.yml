@@ -33,8 +33,8 @@ settings:
     CLANG_ENABLE_MODULES: YES
     GCC_TREAT_WARNINGS_AS_ERRORS: YES
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.1"
+    CURRENT_PROJECT_VERSION: "6"
     # No development team yet — see README. Device builds need one set.
     CODE_SIGN_STYLE: Automatic
     # Ad-hoc rather than unsigned. An unsigned app carries no entitlements, and with no

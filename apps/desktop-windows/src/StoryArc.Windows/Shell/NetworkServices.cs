@@ -11,7 +11,6 @@ using StoryArc.Interop.Network;
 using StoryArc.Interop.Settings;
 using StoryArc.Interop.Sources;
 using StoryArc.Interop.Sync;
-using Windows.ApplicationModel;
 
 namespace StoryArc.Windows.Shell;
 
@@ -125,7 +124,9 @@ internal sealed class NetworkServices : IDisposable
     {
         get
         {
-            var version = Package.Current.Id.Version;
+            // The assembly version, not Package.Current: the installer's and the portable copy have no package.
+            // release.mjs keeps the .csproj <Version> equal to Package.appxmanifest.
+            var version = typeof(NetworkServices).Assembly.GetName().Version!;
             return string.Create(CultureInfo.InvariantCulture, $"{version.Major}.{version.Minor}.{version.Build}");
         }
     }

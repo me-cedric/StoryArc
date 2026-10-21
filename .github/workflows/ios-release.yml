@@ -1,0 +1,133 @@
+name: iOS release
+
+# The iOS lane of release.yml (openspec change shared-release-train, design D8). It is
+# **off**: release.yml calls it only when the repository variable APPLE_RELEASES is `true`,
+# which the owner sets after joining the Apple Developer Program and adding the secrets below.
+#
+# It archives the app, exports it for App Store Connect with automatic signing through the API
+# key, and uploads it to TestFlight with the reader's notes as "What to Test", for the internal
+# testers only. Nothing goes to App Store review: the owner submits it in App Store Connect.
+# A rehearsal archives and exports, and uploads nothing.
+#
+# Secrets this needs, all four of them repository secrets:
+#   ASC_KEY_ID      the App Store Connect API key id
+#   ASC_ISSUER_ID   the issuer id of the team
+#   ASC_KEY_P8      the whole text of the AuthKey .p8 file, with its BEGIN and END lines
+#   APPLE_TEAM_ID   the team that signs the app
+on:
+  workflow_call:
+    inputs:
+      rehearsal:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      rehearsal:
+        description: 'Archive and export only; upload nothing.'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: ${{ inputs.rehearsal && 'Archive and export' || 'Archive, export, upload to TestFlight' }}
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the Apple secrets
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          missing=0
+          for n in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 APPLE_TEAM_ID; do
+            [ -n "${!n}" ] || { echo "::error::secret $n is empty"; missing=1; }
+          done
+          exit $missing
+
+      - name: Read the version the repository carries
+        id: version
+        run: |
+          echo "name=$(grep -m1 '^versionName=' apps/android/gradle.properties | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Report toolchain
+        run: xcodebuild -version
+
+      - run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: apps/ios
+        run: xcodegen generate
+
+      - name: Write the API key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        # One .p8 for xcodebuild, and the same key as the JSON document fastlane reads.
+        run: |
+          printf '%s\n' "$ASC_KEY_P8" > "$RUNNER_TEMP/asc.p8"
+          jq -n --arg id "$ASC_KEY_ID" --arg issuer "$ASC_ISSUER_ID" --rawfile key "$RUNNER_TEMP/asc.p8" \
+            '{key_id: $id, issuer_id: $issuer, key: $key, in_house: false}' > "$RUNNER_TEMP/asc.json"
+
+      - name: Archive
+        working-directory: apps/ios
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: >-
+          xcodebuild archive
+          -project StoryArc.xcodeproj
+          -scheme StoryArc
+          -destination 'generic/platform=iOS'
+          -archivePath "$RUNNER_TEMP/StoryArc.xcarchive"
+          -allowProvisioningUpdates
+          -authenticationKeyPath "$RUNNER_TEMP/asc.p8"
+          -authenticationKeyID "$ASC_KEY_ID"
+          -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+          CODE_SIGN_STYLE=Automatic
+          -quiet
+
+      - name: Export for App Store Connect
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          plutil -create xml1 "$RUNNER_TEMP/export.plist"
+          plutil -insert method -string app-store-connect "$RUNNER_TEMP/export.plist"
+          plutil -insert teamID -string "$APPLE_TEAM_ID" "$RUNNER_TEMP/export.plist"
+          plutil -insert signingStyle -string automatic "$RUNNER_TEMP/export.plist"
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/StoryArc.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/asc.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          ls "$RUNNER_TEMP/export"
+
+      - name: Upload to TestFlight
+        if: ${{ !inputs.rehearsal }}
+        # The "What to Test" text is the Play text: every-platform lines and phone lines.
+        run: |
+          sudo gem install fastlane -N -v '~> 2.228'
+          node scripts/release.mjs --play-notes "${{ steps.version.outputs.name }}" 0 "$RUNNER_TEMP/notes"
+          fastlane pilot upload \
+            --api_key_path "$RUNNER_TEMP/asc.json" \
+            --ipa "$(ls "$RUNNER_TEMP"/export/*.ipa)" \
+            --changelog "$(cat "$RUNNER_TEMP/notes/en-US/changelogs/0.txt")" \
+            --distribute_external false \
+            --skip_waiting_for_build_processing true
+
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/asc.p8" "$RUNNER_TEMP/asc.json"
