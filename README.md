@@ -7,6 +7,9 @@
 <a href="https://github.com/me-cedric/StoryArc/actions/workflows/contract.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/contract.yml?branch=main&label=Contract&logo=github&style=flat" alt="Contract CI" /></a>
 <a href="https://github.com/me-cedric/StoryArc/actions/workflows/ios.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/ios.yml?branch=main&label=iOS&logo=apple&style=flat" alt="iOS CI" /></a>
 <a href="https://github.com/me-cedric/StoryArc/actions/workflows/android.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/android.yml?branch=main&label=Android&logo=android&logoColor=white&style=flat" alt="Android CI" /></a>
+<a href="https://github.com/me-cedric/StoryArc/actions/workflows/desktop-windows.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/desktop-windows.yml?branch=main&label=Windows&logo=data:image/svg%2Bxml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZmlsbD0nd2hpdGUnIGQ9J00wIDBoMTEuNHYxMS40SDB6TTEyLjYgMEgyNHYxMS40SDEyLjZ6TTAgMTIuNmgxMS40VjI0SDB6TTEyLjYgMTIuNkgyNFYyNEgxMi42eicvPjwvc3ZnPg==&style=flat" alt="Windows CI" /></a>
+<a href="https://github.com/me-cedric/StoryArc/actions/workflows/desktop-macos.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/desktop-macos.yml?branch=main&label=macOS&logo=apple&style=flat" alt="macOS CI" /></a>
+<a href="https://github.com/me-cedric/StoryArc/actions/workflows/desktop-linux.yml"><img src="https://img.shields.io/github/actions/workflow/status/me-cedric/StoryArc/desktop-linux.yml?branch=main&label=Linux&logo=linux&logoColor=white&style=flat" alt="Linux CI" /></a>
 <a href="LICENSE"><img src="https://img.shields.io/github/license/me-cedric/StoryArc?label=License&style=flat" alt="MIT License" /></a>
 </p>
 <p>
@@ -111,7 +114,7 @@ Two details worth knowing, because they shape everything above:
 the cover, and whether the archive is solid all live in RAR headers, which carry
 no compression — so they are read with ranged reads and no decoder. libarchive is
 used for exactly one thing: turning a compressed entry's bytes into pixels' worth
-of bytes. That is why only 26 of its 132 sources are vendored, pinned to one
+of bytes. That is why only 27 of its 134 sources are vendored, pinned to one
 upstream release — and a scheduled workflow raises a hand when upstream moves,
 because copied sources are invisible to every dependency scanner.
 
@@ -205,7 +208,7 @@ storyarc/
 │   ├── designs/                   the mark, and screenshots of what the apps look like
 │   └── agent-compass/             the agent contract this repo imports — a submodule
 ├── third_party/
-│   └── libarchive/                26 of 132 sources, for RAR only
+│   └── libarchive/                27 of 134 sources, for RAR only
 └── scripts/                       the gates, the test library, the mock servers, the cameras
 ```
 
