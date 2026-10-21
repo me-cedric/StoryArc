@@ -46,10 +46,12 @@ pnpm spec:guard          # artifact chain, one root, config, installed workflows
 
 ## Releasing
 
-`pnpm release patch|minor|major|X.Y.Z` is the whole release. It bumps the version, tags, and
-pushes; CI then builds and signs the bundle and the APK, publishes a GitHub release carrying
-the APK, and uploads it to Play's internal testing track. Both carry the reader's notes from
-`RELEASE_NOTES.md`, which you keep up to date as you work. The owner promotes the build to closed
-testing and production, or asks you to run `android-promote.yml`. Read §10 of [`AGENTS.md`](AGENTS.md)
+`pnpm release patch|minor|major|X.Y.Z` is the whole release. It writes the version into every
+client, tags, and pushes; `release.yml` then builds the APK, the Windows installer and portable
+zip, the macOS disk image and the Linux Flatpak into a **draft** GitHub release, and uploads the
+bundle to Play's internal testing track as a **draft**. Both carry the reader's notes from
+`RELEASE_NOTES.md`, which you keep up to date as you work. The owner publishes the release, rolls
+out and promotes the Play build, or asks you to run `android-promote.yml`. A push that changes
+the release machinery runs a rehearsal that publishes nothing. Read §10 of [`AGENTS.md`](AGENTS.md)
 before you run it — in particular: never hand-edit a version, never build a release locally,
 and never cut one unless you were asked to.

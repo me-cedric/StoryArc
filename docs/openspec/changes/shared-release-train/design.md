@@ -111,10 +111,11 @@ platform. The output folder runs without the .NET or Windows App SDK runtimes. W
 
 - `StateFiles` gets one data root. With package identity: `ApplicationData.Current.LocalFolder`, as today. Without
   it: `data\` beside the executable when a file named `portable` is there, else `%LOCALAPPDATA%\StoryArc`. The
-  identity check is `AppInstance`-free: a `Package.Current` call in a `try`, done once. A small pure function takes
-  the three inputs and is unit-tested.
-- The version comes from the assembly's informational version when there is no package. The `.csproj` gets
-  `<Version>`, which `release.mjs` writes.
+  identity check is one `ApplicationData.Current` call in a `try`, done once (`Shell/StateFiles.cs`). The pure
+  function `StoryArc.Interop.Shell.DataRoot` takes the inputs and is unit-tested (`DataRootTests`).
+- The version comes from the assembly version, for every build. The `.csproj` gets `<Version>`, which
+  `release.mjs` writes and keeps equal to `Package.appxmanifest`. The window title is the literal brand name,
+  not `AppInfo`, which also needs a package.
 - Portable: the publish folder plus the `portable` file, zipped as `StoryArc-X.Y.Z-windows-<arch>-portable.zip`.
 - Installer: Inno Setup 6, script `apps/desktop-windows/packaging/StoryArc.iss`. `PrivilegesRequired=lowest`, install
   to `{localappdata}\Programs\StoryArc`, a Start menu entry, an uninstaller, `ArchitecturesAllowed` set for each

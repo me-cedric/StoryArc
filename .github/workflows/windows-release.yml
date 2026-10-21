@@ -98,6 +98,14 @@ jobs:
           if (-not (Test-Path (Join-Path $root 'data'))) { Write-Error 'the portable copy made no data folder beside itself'; exit 1 }
           if (Test-Path "$env:LOCALAPPDATA\StoryArc") { Write-Error 'the portable copy wrote to the user profile'; exit 1 }
 
+      - name: Why the app stopped
+        # A XAML start-up crash exits with 0xC000027B and says nothing; the .NET runtime writes the exception here.
+        if: failure() && matrix.smoke
+        run: |
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = (Get-Date).AddMinutes(-30) } -ErrorAction SilentlyContinue |
+            Where-Object ProviderName -in '.NET Runtime', 'Application Error', 'Windows Error Reporting' |
+            Format-List TimeCreated, ProviderName, Message
+
       - name: Installer
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"

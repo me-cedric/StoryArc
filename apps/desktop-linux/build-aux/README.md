@@ -24,8 +24,9 @@ against a pinned sha256, and runs it in a throwaway `python:3.12-slim` container
 The generator is MIT licensed (`__license__` in the script and `cargo/pyproject.toml`
 in that repository); it is fetched rather than vendored so the pin stays one line.
 
-The output was last generated on 2026-10-17 from the `Cargo.lock` at commit `1d19c50f`
-(wave 2 added crates): 239 archive sources, all from crates.io, plus the inline `cargo/config`.
+The output was last generated on 2026-10-21 from the `Cargo.lock` of the shared-release-train
+change: 549 archive sources, all from crates.io, plus the inline `cargo/config`. The release
+lane (`.github/workflows/linux-release.yml`) fails by crate name when it is stale.
 
 ## What the manifest bundles, and what it does not
 

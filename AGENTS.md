@@ -709,23 +709,45 @@ pnpm release patch        # or minor, or major, or an explicit 0.4.0
 
 That command, and then the tag it pushes, produce:
 
-1. the new `versionName` and `versionCode` written into `apps/android/gradle.properties`,
-   the version into `package.json`, and the `## Unreleased` notes of `RELEASE_NOTES.md`
-   filed under the new version, all committed as `chore(release): vX.Y.Z`
+1. the new `versionName` and `versionCode` written into `apps/android/gradle.properties`, the
+   same version written into every other client (`CLIENTS` in `scripts/release.mjs`: iOS,
+   macOS, Windows, Linux, `Cargo.toml`, `package.json`), and the `## Unreleased` notes of
+   `RELEASE_NOTES.md` filed under the new version, all committed as `chore(release): vX.Y.Z`
 2. a `vX.Y.Z` tag, pushed with the branch
-3. a signed App Bundle **and** a signed APK, built once by
-   [`android-release.yml`](.github/workflows/android-release.yml) from that commit
-4. a GitHub release on the tag, carrying the APK, with the notes of that version as its text
-5. that bundle on Play's **internal testing** track, rolled out to the internal testers, with
-   the same notes as "What's new". Internal testing normally skips Play's review and reaches
-   the testers in minutes.
+3. [`release.yml`](.github/workflows/release.yml), which runs one lane for each platform from
+   that commit. A lane that fails does not stop the others:
+   - [`android-release.yml`](.github/workflows/android-release.yml): a signed App Bundle and a
+     signed APK; the bundle goes to Play's **internal testing** track as a **draft**
+   - [`windows-release.yml`](.github/workflows/windows-release.yml): an installer and a
+     portable zip for x64 and ARM64, unpackaged and unsigned
+   - [`macos-release.yml`](.github/workflows/macos-release.yml): a disk image with the
+     designed window, signed ad hoc
+   - [`linux-release.yml`](.github/workflows/linux-release.yml): a Flatpak bundle for x86_64
+     and aarch64
+4. a **draft** GitHub release on the tag, carrying every download, with the notes of that
+   version as its text and a line for each download that a failed lane did not make.
+
+Nothing is public after that. The owner publishes the draft release on GitHub, and rolls out
+the Play draft to the internal testers in the Play Console.
+
+**A rehearsal tests all of this without a release.** A push that changes the release
+machinery (the `*-release.yml` workflows, `scripts/release.mjs`, the packaging folders) runs
+`release.yml` as a rehearsal: the same builds and the release text go into one workflow
+artefact, `release-rehearsal-<sha>`. No tag, release or Play upload. Start one by hand with
+`gh workflow run release.yml --ref <branch>`.
+
+**The Apple lanes are off.** [`ios-release.yml`](.github/workflows/ios-release.yml) (TestFlight)
+and the Developer ID signature and notarisation in `macos-release.yml` run only when the
+repository variable `APPLE_RELEASES` is `true`. The owner sets it after joining the Apple
+Developer Program and adding the secrets each workflow names in its header. Do not set it.
 
 **The rules that bind you:**
 
-- **`apps/android/gradle.properties` is the only place a version lives, and
-  `scripts/release.mjs` is the only thing that edits it.** Do not hand-edit either version
-  field and do not pass `-PversionName` in a lane that publishes. A version typed twice is a
-  version that disagrees with itself.
+- **`apps/android/gradle.properties` is the source of the version, and `scripts/release.mjs`
+  is the only thing that edits a version.** It writes the other clients from it.
+  `pnpm release:check` (part of `pnpm lint`) fails, by file name, when a client disagrees. Do
+  not hand-edit a version field and do not pass `-PversionName` or `MARKETING_VERSION=` in a
+  lane that publishes. A version typed twice is a version that disagrees with itself.
 - **The version code only ever goes up.** Play refuses a code it has already accepted, and
   it refuses it after the build has run. Never reuse or lower one, even for a release that
   failed — cut the next one instead.
@@ -735,9 +757,11 @@ That command, and then the tag it pushes, produce:
 - **Ask before you release.** A release is outward-facing and a tag is hard to withdraw.
   Cut one only when asked for one outright; §8's "do not commit, push, or tag unless asked"
   is not suspended here, it is the reason this section is explicit.
-- **Promotion stays a separate, deliberate act, and the owner decides it.** This lane stops
-  at internal testing. The owner promotes the build to closed testing (`alpha`), then to
-  production, in the Play Console. When the owner asks you to promote, run
+- **Publishing and promotion stay separate, deliberate acts, and the owner decides them.**
+  The tag stops at a draft release and a Play draft. The owner publishes the release, rolls
+  out the draft, and promotes the build to closed testing (`alpha`), then to production, in
+  the Play Console. An immediate roll-out is a manual run of `android-release.yml` with
+  `releaseStatus=completed`, and only when the owner asks for it. When the owner asks you to promote, run
   [`android-promote.yml`](.github/workflows/android-promote.yml). It reuses the artefact and
   rebuilds nothing, so the bytes testers approved are the bytes production gets. The notes
   travel with the release. A promotion to `alpha`, `beta` or `production` sends the build
@@ -762,10 +786,14 @@ notes are for readers.
   the app's own words for a feature: its `strings.xml` in `values`, `values-de`, `values-es`
   and `values-fr`. `LANGUAGES` in `scripts/release.mjs` lists the languages; change it when
   the listing changes.
-- **Describe the Android app.** Only it ships today. Leave out a change that only iOS or a
-  desktop app has.
-- **Keep the section short.** Play takes at most 500 characters in each language. Merge
-  small fixes into one line, such as "- Fixes for reading and playback."
+- **Put each line in its group.** A line directly under the language applies to every
+  platform. A line under `#### Phones and tablets` applies to Android and iOS only, and a line
+  under `#### Desktop` to Windows, macOS and Linux only. Play shows the first two groups; the
+  GitHub release shows all three under headings. A release with no phone line still gives
+  Play a short generic line.
+- **Keep the section short.** Play takes at most 500 characters in each language, counted
+  over the lines it shows. Merge small fixes into one line, such as "- Fixes for reading and
+  playback."
 - **`pnpm release` checks this.** It refuses a language with no notes and notes over 500
   characters, before it changes anything. Then it files the section under the version.
 
@@ -774,11 +802,11 @@ a rejected version code, an expired key.
 
 ```bash
 gh run watch --exit-status        # while it runs
-gh release view v0.2.0            # the APK is attached, or it is not
+gh release view v0.2.0            # the draft carries every download, or names the missing one
 ```
 
-**iOS is not wired into this yet.** `pnpm release` touches the Android version only. Do not
-claim a release covers iOS.
+**iOS ships no build yet.** `pnpm release` writes the iOS version, but no iOS build leaves CI
+until the owner switches the Apple lanes on. Do not claim a release covers iOS.
 
 **Store listing.** The listing is the texts, screenshots, feature graphic and icon that the
 stores show. Updating it is outward-facing, so the owner decides it, as with a release.
