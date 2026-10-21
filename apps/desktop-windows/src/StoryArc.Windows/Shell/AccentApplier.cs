@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using StoryArc.Interop.Settings;
 
@@ -13,16 +15,31 @@ namespace StoryArc.Windows.Shell;
 /// </summary>
 internal static class AccentApplier
 {
-    public static void Apply(AccentPalette palette, IEnumerable<Window> windows)
+    public static void Apply(AccentPalette palette, IEnumerable<Window> windows, bool retry = true)
     {
         var resources = Application.Current.Resources;
-        resources["SystemAccentColor"] = SystemSettingsWatcher.ToColor(palette.Base);
-        resources["SystemAccentColorLight1"] = SystemSettingsWatcher.ToColor(palette.Light1);
-        resources["SystemAccentColorLight2"] = SystemSettingsWatcher.ToColor(palette.Light2);
-        resources["SystemAccentColorLight3"] = SystemSettingsWatcher.ToColor(palette.Light3);
-        resources["SystemAccentColorDark1"] = SystemSettingsWatcher.ToColor(palette.Dark1);
-        resources["SystemAccentColorDark2"] = SystemSettingsWatcher.ToColor(palette.Dark2);
-        resources["SystemAccentColorDark3"] = SystemSettingsWatcher.ToColor(palette.Dark3);
+        try
+        {
+            resources["SystemAccentColor"] = SystemSettingsWatcher.ToColor(palette.Base);
+            resources["SystemAccentColorLight1"] = SystemSettingsWatcher.ToColor(palette.Light1);
+            resources["SystemAccentColorLight2"] = SystemSettingsWatcher.ToColor(palette.Light2);
+            resources["SystemAccentColorLight3"] = SystemSettingsWatcher.ToColor(palette.Light3);
+            resources["SystemAccentColorDark1"] = SystemSettingsWatcher.ToColor(palette.Dark1);
+            resources["SystemAccentColorDark2"] = SystemSettingsWatcher.ToColor(palette.Dark2);
+            resources["SystemAccentColorDark3"] = SystemSettingsWatcher.ToColor(palette.Dark3);
+        }
+        catch (COMException)
+        {
+            // At start-up the write can fail with 0x800F0902 while XAML still resolves the first window, which crashed the
+            // app on CI (2026-10-21). Try once more after the current work; if that fails too, the App.xaml brand accent stays.
+            if (retry)
+            {
+                var open = windows.ToList();
+                DispatcherQueue.GetForCurrentThread()?.TryEnqueue(DispatcherQueuePriority.Low, () => Apply(palette, open, retry: false));
+            }
+
+            return;
+        }
 
         foreach (var window in windows)
         {

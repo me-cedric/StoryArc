@@ -998,3 +998,19 @@ three walks are `docs/delivery/desktop-conformance-<os>-wave2.md`.
 
 Requirements of the new capability: 43, with 168 scenarios. None is built. The owner answered the three open questions on 2026-10-07:
 the chrome accent, the edge click zones default and the cold-launch budget (design.md Open Questions 1 to 3).
+
+## Releases: `shared-release-train`, 2026-10-21
+
+One `vX.Y.Z` tag builds every download into a **draft** GitHub release and gives the Android bundle to Play
+internal testing as a **draft**. A push that changes the release machinery runs a rehearsal that publishes nothing.
+The plan is `changes/shared-release-train/tasks.md`; the rules are §10 of `AGENTS.md`.
+
+| Lane | Download | State |
+| --- | --- | --- |
+| Android | signed APK; Play internal draft | **built**, rehearsed: 0.2.1 (6), signed (v2) |
+| Windows | installer and portable zip, x64 and ARM64, unsigned | **built**; the x64 start-up check found a crash at start, fixed in `SystemSettingsWatcher.cs` |
+| macOS | disk image with the designed window, universal, ad hoc signed | **built**, rehearsed |
+| Linux | Flatpak bundle, x86_64 and aarch64 | **built**, rehearsed, installed in CI |
+| iOS | TestFlight | **off** until the owner sets `APPLE_RELEASES`; the macOS notarisation waits on the same switch |
+
+No release has used the train yet. The Microsoft Store, Flathub and the App Store are not channels yet.
