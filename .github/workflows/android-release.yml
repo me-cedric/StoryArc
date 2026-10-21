@@ -155,6 +155,8 @@ jobs:
           VERSION_NAME: ${{ steps.version.outputs.name }}
         # `internal` is internal testing and `alpha` the default closed track. A draft waits for
         # the owner in the Play Console. A manual run can name another track or `completed`.
+        # A draft also commits its edit with changesNotSentForReview, so it never sends anything
+        # for review, nor joins a submission that is already waiting there.
         run: |
           fastlane supply \
             --package_name com.mecedric.storyarc \
@@ -168,7 +170,8 @@ jobs:
             --skip_upload_metadata true \
             --skip_upload_images true \
             --skip_upload_screenshots true \
-            --skip_upload_changelogs false
+            --skip_upload_changelogs false \
+            --changes_not_sent_for_review "$([ "$RELEASE_STATUS" = draft ] && echo true || echo false)"
 
       - name: Shred the credentials
         if: always()
