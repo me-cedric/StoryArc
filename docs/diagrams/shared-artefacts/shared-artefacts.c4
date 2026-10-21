@@ -82,7 +82,7 @@ model {
 
     libarchive = artefact 'libarchive (vendored)' {
       description '''
-        third_party/libarchive — 26 of libarchive 3.8.9 sources, vendored once
+        third_party/libarchive — 27 of libarchive 3.8.10 sources, vendored once
         and compiled by two build systems: SwiftPM on iOS, CMake and the NDK on
         Android, against one hand-authored config.h. It exists for exactly one
         job, decompressing a RAR entry. This is the only C the two apps have in

@@ -138,7 +138,7 @@ model {
 
     libarchive = artefact 'libarchive (vendored)' {
       description '''
-        third_party/libarchive — 26 of libarchive 3.8.9 sources, vendored once
+        third_party/libarchive — 27 of libarchive 3.8.10 sources, vendored once
         and compiled by two build systems. Here, by SwiftPM. It exists for
         exactly one job, decompressing a RAR entry (ADR-0005).
       '''

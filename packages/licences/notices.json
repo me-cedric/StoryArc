@@ -245,7 +245,7 @@
     },
     {
       "name": "libarchive",
-      "version": "3.8.9",
+      "version": "3.8.10",
       "licence": "BSD-2-Clause",
       "url": "https://github.com/libarchive/libarchive",
       "platforms": [
@@ -254,7 +254,7 @@
         "windows",
         "linux"
       ],
-      "why": "Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md.",
+      "why": "Decompressing RAR entries. 27 of 134 sources vendored; see third_party/libarchive/VENDORING.md.",
       "copyright": "The libarchive distribution as a whole is Copyright by Tim Kientzle"
     },
     {

@@ -369,7 +369,7 @@ Collation and formatting (ICU4X, Assumed).
 
 | Need | Choice | Version | Label |
 | --- | --- | --- | --- |
-| RAR | libarchive 3.8.9, vendored from `third_party/libarchive`, compiled by the `cc` crate from `build.rs`, about ten hand-written `extern "C"` declarations | `cc` 1.6.0 | Known (versions), Inferred (the MSVC build) |
+| RAR | libarchive 3.8.10, vendored from `third_party/libarchive`, compiled by the `cc` crate from `build.rs`, about ten hand-written `extern "C"` declarations | `cc` 1.6.0 | Known (versions), Inferred (the MSVC build) |
 | PDF | `pdfium-render` with a bundled PDFium from `pdfium-binaries` | 0.9.4, binary `chromium/7881` | Known |
 | SMB | `smb` first, `smb2` as the swap-in, behind `RandomAccessSource` | `smb` 0.12.x, `smb2` 0.27.x | Known |
 | Secrets, Windows | `keyring` with `windows-native-keyring-store` | 4.2.0 and 1.1.0 | Known |
@@ -744,7 +744,7 @@ Nothing migrates for a reader: no desktop app exists today. Rollback is deletion
 | GNOME Flatpak runtime | 51 (GTK 4.24.0, libadwaita 1.10.0) | Known |
 | `@readium/navigator` / `@readium/shared` | 2.11.1 / 2.7.0 | Known |
 | `pdfium-render` / PDFium binary | 0.9.4 / `chromium/7881` | Known |
-| libarchive (vendored) | 3.8.9 | Known (`pin.json`) |
+| libarchive (vendored) | 3.8.10 | Known (`pin.json`) |
 | `smb` / `smb2` | 0.12.x / 0.27.x | Known |
 | `keyring` / `windows-native-keyring-store` / `oo7` | 4.2.0 / 1.1.0 / 0.6.0 | Known |
 | `cc` crate | 1.6.0 | Known |

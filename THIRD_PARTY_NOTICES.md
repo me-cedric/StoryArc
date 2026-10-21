@@ -34,7 +34,7 @@ Copyright (c) 2016-2025 Nabil Chatbi (Swift port) | HTML parsing inside the Read
 | [SLF4J API 2.0.18](https://www.slf4j.org) | `MIT` | Android | Copyright (c) 2004-2022 QOS.ch Sarl (Switzerland) | The logging facade smbj writes to. ADR-0019. |
 | [Bouncy Castle 1.85.2](https://www.bouncycastle.org) | `MIT` | Android | Copyright (c) 2000-2026 The Legion of the Bouncy Castle Inc. (https://www.bouncycastle.org). | The ciphers, MACs and key derivation inside smbj, for SMB signing and SMB 3 encryption. ADR-0019. |
 | [desugar_jdk_libs 2.1.5](https://github.com/google/desugar_jdk_libs) | `GPL-2.0-with-classpath-exception` | Android | Copyright (c) Oracle and/or its affiliates. All rights reserved. | Core library desugaring, which the Readium AAR requires. The Classpath Exception is what lets the app link it. |
-| [libarchive 3.8.9](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android, Windows, Linux | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 26 of 132 sources vendored; see third_party/libarchive/VENDORING.md. |
+| [libarchive 3.8.10](https://github.com/libarchive/libarchive) | `BSD-2-Clause` | iOS, Android, Windows, Linux | The libarchive distribution as a whole is Copyright by Tim Kientzle | Decompressing RAR entries. 27 of 134 sources vendored; see third_party/libarchive/VENDORING.md. |
 | [AndroidX and Jetpack Compose](https://developer.android.com/jetpack/androidx) | `Apache-2.0` | Android | Copyright (C) The Android Open Source Project | The UI toolkit, lifecycle, Room, media3 and the activity host. |
 | [Kotlin and kotlinx](https://github.com/JetBrains/kotlin) | `Apache-2.0` | Android | Copyright 2010-2018 JetBrains s.r.o. and Kotlin Programming Language contributors. | The language, coroutines and serialization. |
 | [Literata](https://fonts.google.com/specimen/Literata) | `OFL-1.1` | iOS, Android | Copyright 2017 The Literata Project Authors (https://github.com/googlefonts/literata) | A bundled reading typeface. Designed for screen reading. |
@@ -641,7 +641,7 @@ linking it produces no obligation on the app's own code.
 ## libarchive, specifically
 
 libarchive's own `COPYING` warns that "some files have different licensing terms", so
-the audit is per file rather than per project: **every one of the 26 vendored sources
+the audit is per file rather than per project: **every one of the 27 vendored sources
 is BSD-2-Clause**, and none of the three RAR readers references the UnRAR licence —
 which is the whole reason libarchive was chosen over UnrarKit, Unrar.swift or junrar.
 See [ADR-0005](docs/decisions/0005-format-and-rendering-libraries.md) and

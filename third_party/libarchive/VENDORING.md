@@ -1,7 +1,7 @@
 # libarchive, vendored
 
-**Upstream:** <https://github.com/libarchive/libarchive> · **version 3.8.9** ·
-[release tarball](https://github.com/libarchive/libarchive/releases/tag/v3.8.9)
+**Upstream:** <https://github.com/libarchive/libarchive> · **version 3.8.10** ·
+[release tarball](https://github.com/libarchive/libarchive/releases/tag/v3.8.10)
 
 The machine-readable copy of that pin — version, tarball URL and digest, the key
 the release was signed with, and a digest over every vendored source — is
@@ -48,7 +48,7 @@ One copy, two build systems, no symlinks.
 
 ## The file list, and why each file is here
 
-26 of libarchive's 132 sources. The other 106 are parsers and writers for
+27 of libarchive's 134 sources. The other 107 are parsers and writers for
 formats StoryArc does not open — 7-Zip, CAB, ISO, LHA, XAR, and every writer.
 Leaving them out is a smaller attack surface, not just a smaller repository:
 `SECURITY.md` names archive parsing as the largest one in the app.
@@ -59,7 +59,7 @@ Leaving them out is a smaller attack surface, not just a smaller repository:
 | Read framework | `archive_read.c`, `archive_read_open_filename.c`, `archive_read_support_filter_none.c`, `archive_read_add_passphrase.c`, `archive_virtual.c`, `archive_check_magic.c`, `archive_util.c` |
 | Entry model | `archive_entry.c`, `archive_entry_copy_stat.c`, `archive_entry_stat.c`, `archive_entry_sparse.c`, `archive_entry_xattr.c`, `archive_entry_link_resolver.c`, `archive_acl.c` |
 | Strings, paths, time | `archive_string.c`, `archive_string_sprintf.c`, `archive_pathmatch.c`, `archive_time.c` |
-| RAR's own codecs and hashes | `archive_ppmd7.c`, `archive_blake2s_ref.c`, `archive_blake2sp_ref.c` |
+| RAR's own codecs and hashes | `archive_crc32.c`, `archive_ppmd7.c`, `archive_blake2s_ref.c`, `archive_blake2sp_ref.c` |
 | Crypto scaffolding the RAR readers reference | `archive_cryptor.c`, `archive_hmac.c`, `archive_random.c` |
 
 Plus every private header from `libarchive/`, the public `archive.h` and
@@ -105,7 +105,9 @@ chosen over UnrarKit, Unrar.swift or junrar ([ADR-0005]).
    `contrib/android/include/android_lf.h`. A release may add a private header
    the vendored sources now include — 3.8.9 added `archive_integer.h` and
    `archive_platform_stat.h` — so copy until nothing is missing, not just the
-   files that were already here.
+   files that were already here. A release can also add a source: 3.8.10 moved
+   CRC-32 from `archive_crc32.h` to `archive_crc32.c`, which both RAR readers
+   call. Delete a vendored file that upstream removed.
 3. Re-read `config.h` against the new `config.h.in` for macros that appeared or
    changed meaning.
 4. Compile for macOS and all four Android ABIs before running any test — a

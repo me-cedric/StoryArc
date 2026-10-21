@@ -33,9 +33,9 @@
 #endif
 
 /* Version reported by archive_version_string(). Keep in step with third_party/libarchive/pin.json. */
-#define ARCHIVE_VERSION_ONLY_STRING "3.8.9"
+#define ARCHIVE_VERSION_ONLY_STRING "3.8.10"
 #define ARCHIVE_VERSION_STRING "libarchive " ARCHIVE_VERSION_ONLY_STRING
-#define ARCHIVE_VERSION_NUMBER 3008009
+#define ARCHIVE_VERSION_NUMBER 3008010
 #define VERSION ARCHIVE_VERSION_ONLY_STRING
 
 /* ── Headers ────────────────────────────────────────────────────────────── */

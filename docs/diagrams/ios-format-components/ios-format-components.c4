@@ -97,8 +97,8 @@ model {
 
     libarchive = artefact 'libarchive (vendored)' {
       description '''
-        third_party/libarchive — 26 of libarchive 3.8.9 sources. Headers need
-        no decoder, which is why 26 of libarchive's sources are vendored
+        third_party/libarchive — 27 of libarchive 3.8.10 sources. Headers need
+        no decoder, which is why 27 of libarchive's sources are vendored
         rather than all of them (ADR-0005).
       '''
       technology 'C, BSD-2-Clause'
@@ -151,7 +151,7 @@ views {
       every field read is bounds-checked because the input is untrusted.
 
       `libarchive` has exactly one caller and exactly one job: decompressing a
-      RAR entry. Headers need no decoder, which is why 26 of libarchive 132
+      RAR entry. Headers need no decoder, which is why 27 of libarchive 134
       sources are vendored rather than all of them (ADR-0005).
     '''
 
