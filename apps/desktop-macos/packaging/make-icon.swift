@@ -13,9 +13,10 @@ guard args.count == 3, let art = NSImage(contentsOfFile: args[1]) else {
     exit(1)
 }
 let canvas = 1024, body: CGFloat = 824, radius: CGFloat = 185
-let rep = NSBitmapImageRep(
+guard let rep = NSBitmapImageRep(
     bitmapDataPlanes: nil, pixelsWide: canvas, pixelsHigh: canvas, bitsPerSample: 8, samplesPerPixel: 4,
-    hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+    hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+else { exit(1) }
 NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 let frame = NSRect(x: (1024 - body) / 2, y: (1024 - body) / 2 + 10, width: body, height: body)
 let shape = NSBezierPath(roundedRect: frame, xRadius: radius, yRadius: radius)
@@ -31,4 +32,5 @@ NSGraphicsContext.restoreGraphicsState()
 shape.addClip()
 art.draw(in: frame)
 NSGraphicsContext.current = nil
-try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: args[2]))
+guard let png = rep.representation(using: .png, properties: [:]) else { exit(1) }
+try png.write(to: URL(fileURLWithPath: args[2]))
