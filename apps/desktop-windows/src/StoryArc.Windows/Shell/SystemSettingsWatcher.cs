@@ -30,7 +30,15 @@ internal sealed class SystemSettingsWatcher
         _ui.AnimationsEnabledChanged += (sender, args) => Forward();
         _ui.AdvancedEffectsEnabledChanged += (sender, args) => Forward();
         _ui.TextScaleFactorChanged += (sender, args) => Forward();
-        _accessibility.HighContrastChanged += (sender, args) => Forward();
+        try
+        {
+            _accessibility.HighContrastChanged += (sender, args) => Forward();
+        }
+        catch (System.Runtime.InteropServices.COMException)
+        {
+            // The subscription can fail with 0x80070490 (element not found) at start-up, which crashed the app on 3 of 4
+            // CI starts. A contrast theme switch also changes the system colours, so ColorValuesChanged still re-reads it.
+        }
     }
 
     /// <summary>Raised on the UI thread with the new readings.</summary>
