@@ -11,7 +11,9 @@ name: Windows release
 # run until the owner has a signing identity. The Microsoft Store is not a channel yet.
 #
 # On x64 the lane starts the portable copy and the installed copy for 20 seconds each, and
-# fails if either exits. ARM64 is cross-built on the x64 image and cannot start there.
+# fails if either exits. ARM64 is cross-built on the x64 image and cannot start there. On a
+# failure it prints the event log and the app's crash.log: that is how the HighContrastChanged
+# start-up crash was found (SystemSettingsWatcher.cs, 2026-10-21).
 on:
   workflow_call:
     inputs:
