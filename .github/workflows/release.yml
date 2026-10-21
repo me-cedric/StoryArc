@@ -44,6 +44,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.name }}
       rehearsal: ${{ steps.version.outputs.rehearsal }}
+      notes: ${{ steps.notes.outputs.heading }}
     steps:
       - uses: actions/checkout@v5
       - name: Read the version the repository carries
@@ -65,12 +66,19 @@ jobs:
       - name: Every client carries the same version
         run: node scripts/release.mjs --check
       - name: The notes of this version exist
+        id: notes
         # A rehearsal reads the Unreleased notes, because the version's own are filed only by the release command.
+        # Right after a release Unreleased is empty, so a rehearsal then reads the notes of the current version.
         env:
           REHEARSAL: ${{ steps.version.outputs.rehearsal }}
           VERSION: ${{ steps.version.outputs.name }}
         run: |
-          if [ "$REHEARSAL" = true ]; then node scripts/release.mjs --release-body "$VERSION" --notes-from Unreleased; else node scripts/release.mjs --release-body "$VERSION"; fi > /dev/null
+          heading=$VERSION
+          if [ "$REHEARSAL" = true ] && node scripts/release.mjs --release-body "$VERSION" --notes-from Unreleased > /dev/null 2>&1; then
+            heading=Unreleased
+          fi
+          node scripts/release.mjs --release-body "$VERSION" --notes-from "$heading" > /dev/null
+          echo "heading=$heading" >> "$GITHUB_OUTPUT"
 
   android:
     needs: prepare
@@ -118,6 +126,7 @@ jobs:
     env:
       VERSION: ${{ needs.prepare.outputs.version }}
       REHEARSAL: ${{ needs.prepare.outputs.rehearsal }}
+      NOTES: ${{ needs.prepare.outputs.notes }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v4
@@ -128,8 +137,7 @@ jobs:
       - name: Write the release text
         run: |
           ls -la "$RUNNER_TEMP/downloads"
-          if [ "$REHEARSAL" = true ]; then notes=Unreleased; else notes=$VERSION; fi
-          node scripts/release.mjs --release-body "$VERSION" "$RUNNER_TEMP/downloads" --notes-from "$notes" > "$RUNNER_TEMP/body.md"
+          node scripts/release.mjs --release-body "$VERSION" "$RUNNER_TEMP/downloads" --notes-from "$NOTES" > "$RUNNER_TEMP/body.md"
           cat "$RUNNER_TEMP/body.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Keep the rehearsal
         if: env.REHEARSAL == 'true'
