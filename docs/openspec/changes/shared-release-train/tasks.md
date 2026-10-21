@@ -33,8 +33,11 @@
   **Done 2026-10-21:** `StoryArc.Interop.Shell.DataRoot`, used by `StateFiles`; the version is the assembly's and
   the title the brand name. `DataRootTests` (3) pass with `dotnet test` on the Mac; the Windows runner runs them on
   the next pull request through `desktop-windows.yml`.
-- [ ] 3.2 Windows lane: self-contained publish, portable zip, Inno Setup installer, smoke start, for x64 and ARM64.
+- [x] 3.2 Windows lane: self-contained publish, portable zip, Inno Setup installer, smoke start, for x64 and ARM64.
   Verify: the rehearsal artefact holds four Windows files, and the smoke step passes on x64.
+  **Done 2026-10-21:** rehearsal 39590092252: four Windows files; on x64 the portable copy and the installed copy
+  each start and stay up for 20 s, and the uninstaller removes the app. The check found two start-up crashes,
+  fixed in `SystemSettingsWatcher.cs` and `AccentApplier.cs`, and `Shell/CrashLog.cs` now keeps a local record.
 - [x] 3.3 macOS: the background drawing and the `dmgbuild` settings. Verify: a local disk image opens on this Mac
   with the app, the Applications link and the arrow on the background.
   **Done 2026-10-21:** `make-background.swift`, `background.tiff`, `dmg-settings.py`, `make-dmg.sh`, and the Mac
@@ -53,9 +56,11 @@
 
 ## 4. Rehearsal
 
-- [ ] 4.1 Push the branch and let the rehearsal run. Verify: every lane is green, and the artefact holds the APK,
+- [x] 4.1 Push the branch and let the rehearsal run. Verify: every lane is green, and the artefact holds the APK,
   four Windows files, the disk image, two Flatpak bundles and the release text. No tag, release or Play upload
   exists.
+  **Done 2026-10-21:** rehearsal 39590092252 green on every lane, `ios` skipped; the artefact holds all eight
+  downloads and a release text that names nothing as missing. No tag, release or Play upload was made.
 
 ## 5. Docs and close
 
@@ -63,5 +68,6 @@
   draft, the rehearsal, the Apple switch. Update the head of `RELEASE_NOTES.md` for the three groups. Verify: every
   workflow name in the docs exists under `.github/workflows/`.
   **Done 2026-10-21:** §10 and "Releasing" rewritten; the notes head names the three groups.
-- [ ] 5.2 Add the `release-train` row to `docs/openspec/STATUS.md`. Verify: the row names the Apple lanes as off.
+- [x] 5.2 Add the `release-train` row to `docs/openspec/STATUS.md`. Verify: the row names the Apple lanes as off.
+  **Done 2026-10-21:** the "Releases" section at the end of STATUS.md.
 - [ ] 5.3 Run `/opsx:verify`, then `/opsx:archive`. Verify: `pnpm spec:guard` reports no error.
