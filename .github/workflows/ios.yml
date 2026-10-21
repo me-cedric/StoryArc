@@ -12,6 +12,9 @@ on:
     paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
   pull_request:
     paths: ['apps/ios/**', 'packages/**', 'third_party/**', '.github/workflows/ios.yml', '.swiftlint.yml']
+  # A run on any branch without a pull request: `gh workflow run ios.yml --ref <branch>`. How a
+  # flaky UI test is proved fixed, by several runs of one commit side by side.
+  workflow_dispatch:
 
 concurrency:
   group: ios-${{ github.ref }}
