@@ -6,7 +6,7 @@
 # container-build.sh arch|manjaro builds this file from the working tree and installs the package.
 
 pkgname=storyarc
-pkgver=0.1.0
+pkgver=0.2.2
 pkgrel=1
 pkgdesc="Comic, ebook and audiobook reader"
 arch=(x86_64 aarch64)

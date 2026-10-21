@@ -264,6 +264,12 @@ export const CLIENTS = [
     write: (text, v) => text.replace(/(<Identity\b[^>]*?\bVersion=")[^"]+/, `$1${v.versionName}.0`),
   },
   {
+    file: 'apps/desktop-linux/packaging/aur/PKGBUILD',
+    // makepkg fetches the tag tarball of pkgver; container-build.sh packs the tree under the Cargo.toml version.
+    read: (text) => text.match(/^pkgver=(.+)$/m)?.[1],
+    write: (text, v) => text.replace(/^pkgver=.+$/m, `pkgver=${v.versionName}`),
+  },
+  {
     file: 'apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml',
     read: (text) => text.match(/<release version="([^"]+)"/)?.[1],
     write: (text, v) =>
@@ -369,6 +375,7 @@ function selfTest() {
     'Cargo.lock': '[[package]]\nname = "serde"\nversion = "1.0.0"\n\n[[package]]\nname = "storyarc-core"\nversion = "0.1.0"\n\n[[package]]\nname = "storyarc-ffi"\nversion = "0.1.0"\n\n[[package]]\nname = "storyarc-linux"\nversion = "0.1.0"\n',
     'apps/desktop-windows/src/StoryArc.Windows/StoryArc.Windows.csproj': '<PropertyGroup>\n  <Version>0.1.0</Version>\n</PropertyGroup>\n',
     'apps/desktop-windows/src/StoryArc.Windows/Package.appxmanifest': '<Identity\n    Name="x"\n    Version="0.1.0.0" />\n<TargetDeviceFamily MinVersion="10.0.26100.0" />\n',
+    'apps/desktop-linux/packaging/aur/PKGBUILD': 'pkgname=storyarc\npkgver=0.1.0\npkgrel=1\n',
     'apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml': '  <releases>\n    <release version="0.1.0" date="2026-10-07">\n    </release>\n  </releases>\n',
   }
   assert(disagreements((file) => files[file]).length === CLIENTS.length, 'every client at 0.1.0 disagrees with 0.2.1')

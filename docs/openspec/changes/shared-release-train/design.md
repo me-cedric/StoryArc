@@ -57,6 +57,7 @@ later Store lane then needs no change. Linux carries no build number.
 | `Cargo.toml`, `Cargo.lock` | `[workspace.package] version`; the entries of the workspace crates |
 | `apps/desktop-windows/src/StoryArc.Windows/StoryArc.Windows.csproj` | `<Version>` |
 | `apps/desktop-windows/src/StoryArc.Windows/Package.appxmanifest` | `Identity Version`, as `X.Y.Z.0` |
+| `apps/desktop-linux/packaging/aur/PKGBUILD` | `pkgver` (added after v0.2.2: the Arch and Manjaro CI rows fetched a missing tag tarball) |
 | `apps/desktop-linux/data/com.mecedric.StoryArc.metainfo.xml` | the first `<release version date>` |
 
 `node scripts/release.mjs --check` fails, by file name, on a disagreement. `pnpm lint` runs it. *Alternative:* CI
