@@ -371,17 +371,27 @@ extension XCTestCase {
     /// the comic reader's menu reported "the reader revealed no menu to open" on a reader
     /// that had drawn one twice.
     ///
-    /// So the fade is waited out rather than raced: if the control is already reachable, take
-    /// it; otherwise let the countdown finish, tap once, and wait. Three attempts, because a
-    /// tap that lands during the *fade-in* is the same trap in the other direction.
+    /// So the fade is waited out rather than raced: let the countdown finish, tap once, and take
+    /// the control while most of the new countdown is left. Three attempts, because a tap that
+    /// lands during the *fade-in* is the same trap in the other direction.
+    ///
+    /// **A control that is already reachable is not taken.** Its countdown started when the
+    /// reader arrived, which may be four seconds ago, and the caller's `tap()` comes after
+    /// this returns. On CI that tap met a chrome that had gone: "No matches found for label ==
+    /// Menu", "Activation point invalid", or a menu that never opened (CatalogueAuditTests
+    /// 16, four of five red iOS runs from 2026-10-16 to 2026-10-21). The reveal this helper
+    /// makes itself leaves about two seconds for that tap.
     func revealed(_ name: String, in app: XCUIApplication, attempts: Int = 3) -> XCUIElement? {
+        let control = app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
         for _ in 0..<attempts {
-            if let hit = hittable(name, in: app, timeout: 1) { return hit }
-            // Past the four seconds `comic-reader` gives the chrome, so its state is known.
-            hold(5)
+            // Shown or fading: its countdown is at an unknown point. Past the four seconds
+            // `comic-reader` gives the chrome, it is hidden, and the tap below shows it.
+            if control.exists { hold(5) }
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            hold(1)
+            // The fade-in is 0.2 s; a control caught inside it exists but is not hittable.
+            hold(0.5)
+            if let hit = hittable(name, in: app, timeout: 2) { return hit }
         }
-        return hittable(name, in: app, timeout: 2)
+        return nil
     }
 }
