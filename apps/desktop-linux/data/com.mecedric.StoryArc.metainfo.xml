@@ -33,6 +33,7 @@
     <category>Graphics</category>
   </categories>
   <releases>
+    <release version="0.2.2" date="2026-10-21"/>
     <release version="0.2.1" date="2026-10-10"/>
     <release version="0.1.0" date="2026-10-07">
       <description>

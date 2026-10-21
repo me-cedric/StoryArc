@@ -6,7 +6,7 @@
     <RootNamespace>StoryArc.Windows</RootNamespace>
     <AssemblyName>StoryArc</AssemblyName>
     <!-- Written by scripts/release.mjs. The unpackaged builds read it; the MSIX reads Package.appxmanifest. -->
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x64;ARM64</Platforms>

@@ -12,6 +12,16 @@ only. Play shows the first two groups; the GitHub release shows all three.
 
 ### en-US
 
+### de-DE
+
+### es-ES
+
+### fr-FR
+
+## 0.2.2
+
+### en-US
+
 - Read aloud starts again after a phone call ends.
 
 #### Desktop
