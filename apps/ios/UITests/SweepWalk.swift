@@ -388,9 +388,10 @@ extension XCTestCase {
             // `comic-reader` gives the chrome, it is hidden, and the tap below shows it.
             if control.exists { hold(5) }
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-            // The fade-in is 0.2 s; a control caught inside it exists but is not hittable.
-            hold(0.5)
-            if let hit = hittable(name, in: app, timeout: 2) { return hit }
+            // Not `hittable`: `isHittable` on a control whose frame is still moving *records a
+            // failure* ("Activation point invalid") rather than answering false, which is how
+            // the first version of this fix still went red (run 39632193814).
+            if settled(control, in: app, timeout: 2), control.isHittable { return control }
         }
         return nil
     }

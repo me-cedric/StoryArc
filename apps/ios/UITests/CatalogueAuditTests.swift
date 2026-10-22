@@ -251,7 +251,7 @@ final class CatalogueAuditTests: XCTestCase {
         XCTAssertEqual(app.buttons["audit.target.44"].frame.height, 44, accuracy: 1)
 
         var flagged: [String] = []
-        try app.performAccessibilityAudit(for: .hitRegion) { issue in
+        try app.auditAllowingOneTimeout(for: .hitRegion) { issue in
             flagged.append(issue.element?.identifier ?? "")
             return true
         }
@@ -276,7 +276,7 @@ final class CatalogueAuditTests: XCTestCase {
         XCTAssertTrue(faint.waitForExistence(timeout: 15), "The debug build drew no faint label.")
 
         var verdicts: [CatalogueVerdict] = []
-        try app.performAccessibilityAudit(for: .contrast) { issue in
+        try app.auditAllowingOneTimeout(for: .contrast) { issue in
             if issue.element?.identifier == "audit.contrast" {
                 verdicts.append(catalogueVerdict(for: issue, on: "any screen"))
                 verdicts.append(catalogueVerdict(for: issue, on: faintFault.screen, known: [faintFault]))
@@ -360,7 +360,7 @@ extension XCTestCase {
         var bars: [CGRect] = app.tabBars.allElementsBoundByIndex.map(\.frame)
         bars += app.toolbars.allElementsBoundByIndex.map(\.frame)
         bars += app.navigationBars.allElementsBoundByIndex.map(\.frame)
-        try app.performAccessibilityAudit(for: .all) { issue in
+        try app.auditAllowingOneTimeout(for: .all) { issue in
             // The first line of the description names the element: type, frame, identifier, label.
             let element = issue.element?.debugDescription.split(separator: "\n").first.map(String.init)
             let line = "\(issue.compactDescription). \(element ?? "No element reported.")"

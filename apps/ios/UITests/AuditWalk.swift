@@ -27,7 +27,7 @@ extension XCTestCase {
         types: XCUIAccessibilityAuditType = .all
     ) throws {
         var found: [String] = []
-        try app.performAccessibilityAudit(for: types) { issue in
+        try app.auditAllowingOneTimeout(for: types) { issue in
             let element = issue.element?.debugDescription ?? "no element reported"
             found.append("  • \(issue.compactDescription)\n    \(element)")
             return false
@@ -66,7 +66,7 @@ extension XCTestCase {
     /// become `audit` and gain an expectation of its own.
     func reportOnly(_ app: XCUIApplication, named screen: String) throws {
         var found: [String] = []
-        try app.performAccessibilityAudit { issue in
+        try app.auditAllowingOneTimeout { issue in
             let element = issue.element?.debugDescription ?? "no element reported"
             found.append("  • \(issue.compactDescription)\n    \(element)")
             return true
