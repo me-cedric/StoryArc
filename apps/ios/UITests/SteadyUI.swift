@@ -13,8 +13,7 @@ extension XCTestCase {
         let deadline = Date().addingTimeInterval(timeout)
         var last: CGRect?
         while Date() < deadline {
-            if element.exists {
-                let frame = element.frame
+            if let frame = element.currentFrame {
                 if !frame.isEmpty, window.contains(CGPoint(x: frame.midX, y: frame.midY)), frame == last {
                     return true
                 }
@@ -30,13 +29,15 @@ extension XCTestCase {
 
 @MainActor
 extension XCUIApplication {
-    /// `performAccessibilityAudit`, run once more when the platform gave up before it finished.
+    /// `performAccessibilityAudit`, run again one check at a time when the platform gave up.
     ///
-    /// "Audit failed to complete in time" (code -56) is a timeout, not a finding: it failed
-    /// `PlayerAuditTests.testTheSpeedSheetPassesTheAudit` on a CI runner on 2026-10-21 with no
-    /// issue reported. Only that error gets the second run; a finding, or any other error, fails
-    /// as before. An issue the first, unfinished run already reported can reach the handler twice.
-    func auditAllowingOneTimeout(
+    /// "Audit failed to complete in time" (code -56) is a timeout, not a finding. On CI runners
+    /// it hit the whole-screen audit of the theme sheet and the library notice twice in a row
+    /// (run 39745852241, 2026-10-22), so a plain second run is not enough: the fallback runs each
+    /// audit type of `types` on its own, the same checks in pieces small enough to finish. Only
+    /// that error gets the fallback; a finding, or any other error, fails as before. An issue the
+    /// unfinished run already reported can reach the handler twice.
+    func auditSplittingOnTimeout(
         for types: XCUIAccessibilityAuditType = .all,
         _ handler: ((XCUIAccessibilityAuditIssue) throws -> Bool)? = nil
     ) throws {
@@ -44,7 +45,13 @@ extension XCUIApplication {
             try performAccessibilityAudit(for: types, handler)
         } catch let error as NSError
             where error.domain == "com.apple.xcode.xctest.accessibilityAudit" && error.code == -56 {
-            try performAccessibilityAudit(for: types, handler)
+            let single: [XCUIAccessibilityAuditType] = [
+                .contrast, .elementDetection, .hitRegion, .sufficientElementDescription,
+                .dynamicType, .textClipped, .trait,
+            ]
+            for type in single where types.contains(type) {
+                try performAccessibilityAudit(for: type, handler)
+            }
         }
     }
 }
@@ -60,11 +67,21 @@ extension XCUIElement {
     /// in `revealed`, `hittable` and `pauseWhatPlays`. The expected failure covers this one
     /// query and nothing the test asserts afterwards.
     var isReachable: Bool {
-        guard exists, !frame.isEmpty else { return false }
         var hit = false
+        // `exists` and `frame` too: an element that went between two reads fails the test with
+        // "Failed to get matching snapshot" (CI run 39745914279, 2026-10-22).
         XCTExpectFailure("The element moved while its hit point was being worked out.", strict: false) {
-            hit = isHittable
+            hit = exists && !frame.isEmpty && isHittable
         }
         return hit
+    }
+
+    /// `frame`, or nil when the element has gone, without failing the test.
+    var currentFrame: CGRect? {
+        var found: CGRect?
+        XCTExpectFailure("The element went while its frame was being read.", strict: false) {
+            if exists { found = frame }
+        }
+        return found
     }
 }

@@ -375,18 +375,20 @@ extension XCTestCase {
     /// the control while most of the new countdown is left. Three attempts, because a tap that
     /// lands during the *fade-in* is the same trap in the other direction.
     ///
-    /// **A control that is already reachable is not taken.** Its countdown started when the
-    /// reader arrived, which may be four seconds ago, and the caller's `tap()` comes after
-    /// this returns. On CI that tap met a chrome that had gone: "No matches found for label ==
-    /// Menu", "Activation point invalid", or a menu that never opened (CatalogueAuditTests
-    /// 16, four of five red iOS runs from 2026-10-16 to 2026-10-21). The reveal this helper
-    /// makes itself leaves about two seconds for that tap.
+    /// **A control already up is not taken:** its countdown may be nearly over, and on CI the
+    /// caller's `tap()` met a chrome that had gone (CatalogueAuditTests 16, four of five red
+    /// iOS runs from 2026-10-16 to 2026-10-21). This helper's own reveal leaves the tap time.
     func revealed(_ name: String, in app: XCUIApplication, attempts: Int = 3) -> XCUIElement? {
-        let control = app.buttons.matching(NSPredicate(format: "label == %@", name)).firstMatch
+        // A button or a pop-up button: SwiftUI's `Menu` reports itself as either ("Automation
+        // type mismatch … Button … vs PopUpButton"), and a `buttons` query can then miss it.
+        let control = app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ AND (elementType == %d OR elementType == %d)",
+            name, XCUIElement.ElementType.button.rawValue, XCUIElement.ElementType.popUpButton.rawValue
+        )).firstMatch
         for _ in 0..<attempts {
             // Shown or fading: its countdown is at an unknown point. Past the four seconds
             // `comic-reader` gives the chrome, it is hidden, and the tap below shows it.
-            if control.exists { hold(5) }
+            if control.currentFrame != nil { hold(5) }
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             // Not `hittable`: `isHittable` on a control whose frame is still moving *records a
             // failure* ("Activation point invalid") rather than answering false, which is how
