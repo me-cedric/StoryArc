@@ -19,11 +19,11 @@ extension XCTestCase {
         for _ in 0..<8 where !wanted.exists {
             let display = settings.staticTexts["Display & Text Size"].firstMatch
             let accessibility = settings.staticTexts["Accessibility"].firstMatch
-            if display.exists && display.isHittable {
+            if display.exists && display.isReachable {
                 display.tap()
-            } else if accessibility.exists && accessibility.isHittable {
+            } else if accessibility.exists && accessibility.isReachable {
                 accessibility.tap()
-            } else if settings.navigationBars.buttons.firstMatch.isHittable {
+            } else if settings.navigationBars.buttons.firstMatch.isReachable {
                 settings.navigationBars.buttons.firstMatch.tap()
             }
             _ = wanted.waitForExistence(timeout: 2)

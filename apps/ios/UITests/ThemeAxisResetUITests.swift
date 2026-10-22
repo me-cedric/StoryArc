@@ -130,13 +130,14 @@ final class ThemeAxisResetUITests: XCTestCase {
             let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
             var cover: XCUIElement?
             for _ in 0..<8 where cover == nil {
-                cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+                cover = wanted.allElementsBoundByIndex.first(where: \.isReachable)
                 if cover == nil { app.swipeUp() }
             }
             guard let cover else { continue }
             cover.tap()
             if app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 8),
-               let action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable) {
+               let action = app.buttons.matching(opensAPublication).allElementsBoundByIndex
+                   .first(where: \.isReachable) {
                 action.tap()
                 if app.webViews.firstMatch.waitForExistence(timeout: 20) {
                     hold(3)

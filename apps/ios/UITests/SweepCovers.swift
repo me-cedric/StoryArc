@@ -26,7 +26,7 @@ extension XCTestCase {
         // filter, one round trip to the app.
         let ceiling = app.frame.height - 100
         let isACover = { (element: XCUIElement) in
-            element.isHittable
+            element.isReachable
                 && element.frame.midY > 150
                 && element.frame.midY < ceiling
                 && formats.contains { element.label.contains(", \($0)") }

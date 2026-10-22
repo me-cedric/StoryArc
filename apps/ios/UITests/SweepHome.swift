@@ -134,7 +134,7 @@ final class SweepHomeTests: XCTestCase {
         _ = scrollTo(app.staticTexts["Shelves"], in: app, swipes: 8)
             || names.dropFirst().contains { scrollTo(app.staticTexts[$0], in: app, swipes: 4) }
         let ways = names.flatMap { [app.buttons[$0], app.cells[$0], app.staticTexts[$0]] }
-        for way in ways where way.exists && way.isHittable {
+        for way in ways where way.exists && way.isReachable {
             way.tap()
             if arrivedAtShelves(app) { return }
         }

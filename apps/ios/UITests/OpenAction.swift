@@ -12,7 +12,7 @@ extension XCTestCase {
         let deadline = Date().addingTimeInterval(timeout)
         repeat {
             if let action = app.buttons.matching(opensAPublication)
-                .allElementsBoundByIndex.first(where: \.isHittable) {
+                .allElementsBoundByIndex.first(where: \.isReachable) {
                 return action
             }
             RunLoop.current.run(until: Date().addingTimeInterval(0.25))
@@ -56,7 +56,7 @@ extension XCTestCase {
         let height = app.windows.firstMatch.frame.height
         func inBand() -> XCUIElement? {
             wanted.allElementsBoundByIndex.first {
-                $0.isHittable && $0.frame.midY > 160 && $0.frame.midY < height - 190
+                $0.isReachable && $0.frame.midY > 160 && $0.frame.midY < height - 190
             }
         }
         func scroll(by fraction: CGFloat) {
@@ -72,7 +72,7 @@ extension XCTestCase {
         if let initial = title.first.map({ String($0).uppercased() }) {
             // The index is one scrubber (24.6): tap it where the initial would sit in A to Z.
             let rail = app.descendants(matching: .any).matching(identifier: "library.rail").firstMatch
-            if rail.isHittable, let letter = initial.unicodeScalars.first, ("A"..."Z").contains(letter) {
+            if rail.isReachable, let letter = initial.unicodeScalars.first, ("A"..."Z").contains(letter) {
                 let place = (Double(letter.value - 65) + 0.5) / 27
                 rail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: place)).tap()
                 for _ in 0..<4 {

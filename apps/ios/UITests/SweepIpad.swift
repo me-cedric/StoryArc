@@ -152,7 +152,7 @@ final class SweepIpadTests: XCTestCase {
         covers[0].tap()
         guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 10),
               let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+                  .allElementsBoundByIndex.first(where: \.isReachable)
         else { throw XCTSkip("The publication page offered no hittable way in.") }
         action.tap()
         XCTAssertTrue(
@@ -200,7 +200,7 @@ final class SweepIpadTests: XCTestCase {
         cover.tap()
         guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 10),
               let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+                  .allElementsBoundByIndex.first(where: \.isReachable)
         else { throw XCTSkip("The publication page offered no hittable way in.") }
         action.tap()
         try XCTSkipUnless(
@@ -212,7 +212,7 @@ final class SweepIpadTests: XCTestCase {
         hold(1.5)
         // Out through the reader's own control. A back swipe on an iPad in landscape lands
         // on the page-turn gesture as readily as on the navigation one.
-        if app.buttons["Close"].isHittable {
+        if app.buttons["Close"].isReachable {
             app.buttons["Close"].tap()
         } else {
             app.tap()

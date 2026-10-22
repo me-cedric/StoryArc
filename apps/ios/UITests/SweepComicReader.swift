@@ -249,7 +249,7 @@ final class SweepComicReaderTests: XCTestCase {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
         var found: XCUIElement?
         for _ in 0..<8 where found == nil {
-            found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            found = wanted.allElementsBoundByIndex.first(where: \.isReachable)
             if found == nil { app.swipeUp() }
         }
         // 21.1-ios: at the largest accessibility text size a row is 147 pt tall, and a cover
@@ -265,11 +265,11 @@ final class SweepComicReaderTests: XCTestCase {
         if found == nil, let initial = title.first.map({ String($0).uppercased() }) {
             // The index is one scrubber (24.6): tap it where the initial would sit in A to Z.
             let rail = app.descendants(matching: .any).matching(identifier: "library.rail").firstMatch
-            if rail.isHittable, let letter = initial.unicodeScalars.first, ("A"..."Z").contains(letter) {
+            if rail.isReachable, let letter = initial.unicodeScalars.first, ("A"..."Z").contains(letter) {
                 let place = (Double(letter.value - 65) + 0.5) / 27
                 rail.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: place)).tap()
                 for _ in 0..<4 where found == nil {
-                    found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+                    found = wanted.allElementsBoundByIndex.first(where: \.isReachable)
                     if found == nil { app.swipeUp() }
                 }
             }
@@ -281,10 +281,10 @@ final class SweepComicReaderTests: XCTestCase {
         else { throw XCTSkip("“\(title)”'s page offered no hittable way to open it.") }
         // At the largest accessibility text sizes the action sits lower than one screen,
         // behind the title and the cover — scroll for it the way `scrollTo` does elsewhere.
-        var action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        var action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         for _ in 0..<4 where action == nil {
             app.swipeUp()
-            action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         }
         guard let action else {
             throw XCTSkip("“\(title)”'s page offered no hittable way to open it.")

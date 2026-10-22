@@ -116,11 +116,11 @@ final class CatalogueAuditTests: XCTestCase {
         try showTheShelf(in: app)
         let cover = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
         var swipes = 0
-        while !(cover.exists && cover.isHittable), swipes < 8 {
+        while !(cover.exists && cover.isReachable), swipes < 8 {
             app.swipeUp()
             swipes += 1
         }
-        try XCTSkipUnless(cover.exists && cover.isHittable, "This device's library holds no “\(title)”.")
+        try XCTSkipUnless(cover.exists && cover.isReachable, "This device's library holds no “\(title)”.")
         cover.tap()
         XCTAssertTrue(
             app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 10),
@@ -157,7 +157,7 @@ final class CatalogueAuditTests: XCTestCase {
         try auditCatalogue(app, named: "10 Sources list")
 
         let row = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'title'")).allElementsBoundByIndex
-            .first(where: \.isHittable)
+            .first(where: \.isReachable)
         try XCTSkipUnless(row != nil, "Your libraries lists no source to open.")
         row?.tap()
         XCTAssertTrue(app.staticTexts["Status"].waitForExistence(timeout: 5), "The source opened no page of status.")
@@ -194,7 +194,7 @@ final class CatalogueAuditTests: XCTestCase {
     func testCatalogue15ReaderChrome() throws {
         let app = sweepLaunch(grouping: "issues")
         try openCover(titled: "Fine Print", in: app)
-        let action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        let action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         try XCTUnwrap(action, "The page offers no hittable way in.").tap()
         let close = app.buttons["Close"]
         if !close.waitForExistence(timeout: 10) {
@@ -340,7 +340,7 @@ extension XCTestCase {
             // behind a presented sheet is left out, because no finger reaches it while the sheet
             // is up. On 2026-10-10 (iOS 26.5) a Resume on Home failed the three Settings entries
             // from behind their sheet. Home's own entry measures it.
-            return control.isHittable
+            return control.isReachable
         }
     }
 

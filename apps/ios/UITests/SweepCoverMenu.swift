@@ -120,7 +120,7 @@ final class SweepCoverMenuTests: XCTestCase {
     private func tapSeaRoom(prefix: String, in app: XCUIApplication) -> Bool {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", prefix))
         for _ in 0..<25 {
-            if let hit = wanted.allElementsBoundByIndex.first(where: \.isHittable) {
+            if let hit = wanted.allElementsBoundByIndex.first(where: \.isReachable) {
                 hit.tap()
                 return true
             }

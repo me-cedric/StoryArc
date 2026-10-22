@@ -35,20 +35,20 @@ final class SweepHomeFoldTests: XCTestCase {
     private func readAComic(named title: String, in app: XCUIApplication) throws {
         try showTheShelf(in: app)
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
-        var cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+        var cover = wanted.allElementsBoundByIndex.first(where: \.isReachable)
         for _ in 0..<8 where cover == nil {
             app.swipeUp()
-            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            cover = wanted.allElementsBoundByIndex.first(where: \.isReachable)
         }
         try XCTSkipUnless(cover != nil, "This device's shelf never showed a cover for “\(title)”.")
         cover?.tap()
 
         let open = app.buttons.matching(opensAPublication).firstMatch
         try XCTSkipUnless(open.waitForExistence(timeout: 20), "“\(title)”'s page offered no way to open it.")
-        var action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+        var action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         for _ in 0..<4 where action == nil {
             app.swipeUp()
-            action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            action = app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         }
         try XCTUnwrap(action, "“\(title)”'s page offered no hittable way to open it.").tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "Opening “\(title)” reached no reader.")

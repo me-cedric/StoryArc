@@ -83,7 +83,7 @@ final class SmbEncryptedWalkTests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10), "The libraries list shows no Comics share.")
         // The prompt is drawn by another process, so no query of this app finds its button, and
         // while it is up the row is covered. Its Not Now sits left of centre, below the middle.
-        for _ in 0..<3 where !row.isHittable {
+        for _ in 0..<3 where !row.isReachable {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.33, dy: 0.615)).tap()
             hold(2)
         }

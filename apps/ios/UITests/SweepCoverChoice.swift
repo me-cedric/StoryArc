@@ -95,7 +95,7 @@ final class SweepCoverChoiceTests: XCTestCase {
         // deeper than it is at the default one. A slow swipe there crossed four of them and
         // the walk reported a title the shelf was holding as a title the shelf never drew.
         for _ in 0..<25 {
-            if let hit = wanted.allElementsBoundByIndex.first(where: \.isHittable) {
+            if let hit = wanted.allElementsBoundByIndex.first(where: \.isReachable) {
                 hit.tap()
                 return true
             }

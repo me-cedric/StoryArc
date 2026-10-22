@@ -48,3 +48,23 @@ extension XCUIApplication {
         }
     }
 }
+
+@MainActor
+extension XCUIElement {
+    /// `isHittable` that answers false, not fails, for an element without a usable frame.
+    ///
+    /// `isHittable` *records a test failure* — "Failed to determine hittability … Activation
+    /// point invalid" — when it meets an element whose frame is empty or still moving: a
+    /// button mid-fade, a play button turning into pause. Every helper that searched with it
+    /// could fail a test that asserts nothing about that element; on 2026-10-21 and 22 it did
+    /// in `revealed`, `hittable` and `pauseWhatPlays`. The expected failure covers this one
+    /// query and nothing the test asserts afterwards.
+    var isReachable: Bool {
+        guard exists, !frame.isEmpty else { return false }
+        var hit = false
+        XCTExpectFailure("The element moved while its hit point was being worked out.", strict: false) {
+            hit = isHittable
+        }
+        return hit
+    }
+}

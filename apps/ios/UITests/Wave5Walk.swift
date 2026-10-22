@@ -14,7 +14,7 @@ extension XCTestCase {
         hold(0.5)
         for _ in 0..<30 {
             let match = app.buttons.matching(named).allElementsBoundByIndex.first {
-                $0.isHittable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 110
+                $0.isReachable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 110
             }
             if let match { return match }
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
@@ -46,7 +46,7 @@ extension XCTestCase {
     /// Reads forward `turns` pages in the open reader, then closes it.
     func readAndClose(turns: Int, in app: XCUIApplication) throws {
         let primary = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         )
         primary.tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "No reader opened.")
@@ -55,7 +55,7 @@ extension XCTestCase {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
             hold(1.2)
         }
-        if !app.buttons["Close"].isHittable {
+        if !app.buttons["Close"].isReachable {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             hold(1)
         }
@@ -66,7 +66,7 @@ extension XCTestCase {
     /// Turns to the end screen, steps back onto the last page, and closes the reader there.
     func readToLastPage(in app: XCUIApplication) throws {
         let primary = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         )
         primary.tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "No reader opened.")
@@ -79,7 +79,7 @@ extension XCTestCase {
         XCTAssertTrue(back.waitForExistence(timeout: 5), "The reader never reached its end screen.")
         back.tap()
         hold(2)
-        if !app.buttons["Close"].isHittable {
+        if !app.buttons["Close"].isReachable {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             hold(1)
         }
@@ -91,7 +91,7 @@ extension XCTestCase {
     /// dwelt on becomes the end screen and a finished record, so the walk does not dwell.
     func readFast(turns: Int, in app: XCUIApplication) throws {
         let primary = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         )
         primary.tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "No reader opened.")
@@ -107,7 +107,7 @@ extension XCTestCase {
     /// A tab, after scrolling back up if the floating tab bar folded away.
     func w5Tab(_ name: String, in app: XCUIApplication) throws {
         for _ in 0..<4 {
-            if app.tabBars.buttons[name].exists, app.tabBars.buttons[name].isHittable {
+            if app.tabBars.buttons[name].exists, app.tabBars.buttons[name].isReachable {
                 app.tabBars.buttons[name].tap()
                 return
             }
@@ -124,7 +124,7 @@ extension XCTestCase {
     func backToShelf(in app: XCUIApplication) {
         for _ in 0..<3 {
             let back = app.buttons["BackButton"]
-            guard back.exists, back.isHittable else { break }
+            guard back.exists, back.isReachable else { break }
             back.tap()
             hold(1)
         }

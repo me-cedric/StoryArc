@@ -20,7 +20,7 @@ final class SweepWave5ShelvesTests: XCTestCase {
         hold(3)
         for name in ["Collections", "Shelves", "Reading lists"] {
             let ways = [app.buttons[name], app.cells[name], app.staticTexts[name]]
-            for way in ways where way.exists && way.isHittable {
+            for way in ways where way.exists && way.isReachable {
                 way.tap()
                 hold(2)
                 if app.staticTexts["Shelves"].exists, app.buttons["BackButton"].exists { return }

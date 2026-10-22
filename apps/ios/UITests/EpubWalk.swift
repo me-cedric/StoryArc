@@ -118,7 +118,7 @@ extension XCTestCase {
                 // entries and `firstMatch` can bind to one no finger could reach.
                 guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5),
                       let action = app.buttons.matching(opensAPublication)
-                          .allElementsBoundByIndex.first(where: \.isHittable)
+                          .allElementsBoundByIndex.first(where: \.isReachable)
                 else { continue }
                 action.tap()
 

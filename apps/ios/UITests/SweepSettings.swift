@@ -75,7 +75,7 @@ final class SweepSettingsTests: XCTestCase {
         try open("Privacy", in: app)
         let show = app.buttons["Show"]
         _ = scrollTo(show, in: app, swipes: 6)
-        guard show.exists, show.isHittable else {
+        guard show.exists, show.isReachable else {
             throw XCTSkip("Privacy showed no diagnostic control on this build.")
         }
         show.tap()

@@ -32,7 +32,7 @@ extension XCTestCase {
             let clearOfTheBar = app.frame.maxY - 160
             let onScreen = wanted.allElementsBoundByIndex.filter(\.exists)
             cover = onScreen.first {
-                $0.isHittable && $0.frame.midY > clearOfTheHeader && $0.frame.midY < clearOfTheBar
+                $0.isReachable && $0.frame.midY > clearOfTheHeader && $0.frame.midY < clearOfTheBar
             }
             if cover == nil {
                 let tooHigh = onScreen.contains { $0.frame.midY <= clearOfTheHeader && $0.frame.maxY > 0 }
@@ -48,7 +48,7 @@ extension XCTestCase {
             "The page for \(title) offered no way to open it."
         )
         try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         ).tap()
         if expectingAPage {
             XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20), "\(title) opened no page.")

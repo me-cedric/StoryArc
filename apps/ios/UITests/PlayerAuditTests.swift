@@ -119,7 +119,7 @@ final class PlayerAuditTests: XCTestCase {
 
         guard let control = app.buttons.matching(
             NSPredicate(format: "label BEGINSWITH %@", sheet)
-        ).allElementsBoundByIndex.first(where: \.isHittable) else {
+        ).allElementsBoundByIndex.first(where: \.isReachable) else {
             XCTFail(
                 "The player offers no \(sheet) control. Buttons on screen: "
                     + "\(app.buttons.allElementsBoundByIndex.map(\.label))"
@@ -217,7 +217,7 @@ final class PlayerAuditTests: XCTestCase {
     /// discriminator: the player is full-height, so nothing behind it can be hit.
     private func hittablePlayPause(in app: XCUIApplication) -> XCUIElement? {
         app.buttons.allElementsBoundByIndex.first {
-            ($0.label == "Pause" || $0.label == "Play") && $0.isHittable
+            ($0.label == "Pause" || $0.label == "Play") && $0.isReachable
         }
     }
 

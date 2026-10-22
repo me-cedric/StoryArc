@@ -122,7 +122,7 @@ extension XCTestCase {
         let named = NSPredicate(format: "label == %@", name)
         for query in [app.cells.matching(named), app.buttons.matching(named)] {
             _ = query.firstMatch.waitForExistence(timeout: 3)
-            if let hit = query.allElementsBoundByIndex.first(where: \.isHittable) { return hit }
+            if let hit = query.allElementsBoundByIndex.first(where: \.isReachable) { return hit }
         }
         return nil
     }
@@ -145,7 +145,7 @@ extension XCTestCase {
         let toggle = app.buttons.matching(
             NSPredicate(format: "identifier CONTAINS[c] %@ OR label CONTAINS[c] %@", "sidebar", "sidebar")
         ).firstMatch
-        if !alreadyOut, toggle.waitForExistence(timeout: 5), toggle.isHittable { toggle.tap() }
+        if !alreadyOut, toggle.waitForExistence(timeout: 5), toggle.isReachable { toggle.tap() }
         hold(1.5)
         try XCTSkipUnless(
             app.buttons["All shelves"].waitForExistence(timeout: 5)

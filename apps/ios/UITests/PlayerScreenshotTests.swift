@@ -153,7 +153,7 @@ final class PlayerScreenshotTests: XCTestCase {
         // and carries the remaining time as its value.
         let sleepControl = try XCTUnwrap(
             app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Sleep timer"))
-                .allElementsBoundByIndex.first { $0.isHittable },
+                .allElementsBoundByIndex.first { $0.isReachable },
             "The player offers no sleep timer control."
         )
         sleepControl.tap()
@@ -190,7 +190,7 @@ final class PlayerScreenshotTests: XCTestCase {
         let before = try XCTUnwrap(sleepControl.value as? String)
         let play = app.buttons.matching(
             NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Play", "Pause")
-        ).allElementsBoundByIndex.first { $0.isHittable }
+        ).allElementsBoundByIndex.first { $0.isReachable }
         let transport = try XCTUnwrap(
             play,
             "The player offers no play control. Buttons: "

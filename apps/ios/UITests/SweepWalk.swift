@@ -290,10 +290,10 @@ extension XCTestCase {
     @discardableResult
     func scrollTo(_ element: XCUIElement, in app: XCUIApplication, swipes: Int = 8) -> Bool {
         for _ in 0..<swipes {
-            if element.exists, element.isHittable { return true }
+            if element.exists, element.isReachable { return true }
             app.swipeUp()
         }
-        return element.exists && element.isHittable
+        return element.exists && element.isReachable
     }
 
     /// Opens the library's *View* menu, and proves it opened.
@@ -337,12 +337,12 @@ extension XCTestCase {
     func hittable(_ name: String, in app: XCUIApplication, timeout: TimeInterval = 5) -> XCUIElement? {
         let matches = app.buttons.matching(NSPredicate(format: "label == %@", name))
         _ = matches.firstMatch.waitForExistence(timeout: timeout)
-        if let reachable = matches.allElementsBoundByIndex.first(where: \.isHittable) {
+        if let reachable = matches.allElementsBoundByIndex.first(where: \.isReachable) {
             return reachable
         }
         guard matches.firstMatch.exists else { return nil }
         app.swipeUp()
-        return matches.allElementsBoundByIndex.first(where: \.isHittable)
+        return matches.allElementsBoundByIndex.first(where: \.isReachable)
     }
 
     /// A named control whose label may carry its own value after the name.
@@ -358,7 +358,7 @@ extension XCTestCase {
     func hittableRow(_ name: String, in app: XCUIApplication, timeout: TimeInterval = 5) -> XCUIElement? {
         let matches = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", name))
         _ = matches.firstMatch.waitForExistence(timeout: timeout)
-        return matches.allElementsBoundByIndex.first(where: \.isHittable)
+        return matches.allElementsBoundByIndex.first(where: \.isReachable)
     }
 
     /// A control in a reader's chrome, with the chrome actually up.
@@ -391,7 +391,7 @@ extension XCTestCase {
             // Not `hittable`: `isHittable` on a control whose frame is still moving *records a
             // failure* ("Activation point invalid") rather than answering false, which is how
             // the first version of this fix still went red (run 39632193814).
-            if settled(control, in: app, timeout: 2), control.isHittable { return control }
+            if settled(control, in: app, timeout: 2), control.isReachable { return control }
         }
         return nil
     }

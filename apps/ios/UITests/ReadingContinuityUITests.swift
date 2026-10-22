@@ -136,7 +136,7 @@ final class ReadingContinuityUITests: XCTestCase {
         // simulator, and the reader had no page to open. A runner holds no such row.
         return readable.allElementsBoundByIndex
             .first {
-                $0.isHittable && !$0.label.contains("100% read")
+                $0.isReachable && !$0.label.contains("100% read")
                     && !$0.label.contains("Needs its library to be reachable")
             }?
             .label
@@ -187,10 +187,10 @@ final class ReadingContinuityUITests: XCTestCase {
     /// and a centre tap then hid the Close button it was meant to show.
     private func close(_ reader: XCUIElement, in app: XCUIApplication) {
         let close = app.buttons["Close"].firstMatch
-        if !(close.exists && close.isHittable) {
+        if !(close.exists && close.isReachable) {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
-        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isHittable, "The reader shows no Close button.")
+        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isReachable, "The reader shows no Close button.")
         close.tap()
         hold(1)
     }

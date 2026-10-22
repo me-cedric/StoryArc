@@ -84,7 +84,7 @@ final class SweepWave5SourcesTests: XCTestCase {
         hold(1)
         shutter(app, named: "page-downloaded-overflow-offers-download")
         let keep = app.buttons.matching(NSPredicate(format: "label == 'Download'")).allElementsBoundByIndex
-            .first { $0.isHittable && $0.frame.minY > 400 }
+            .first { $0.isReachable && $0.frame.minY > 400 }
         try XCTUnwrap(keep, "The overflow offers no Download.").tap()
         hold(5)
         try XCTUnwrap(hittable("More actions", in: app)).tap()

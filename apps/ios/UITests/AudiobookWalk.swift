@@ -119,7 +119,7 @@ extension XCTestCase {
     /// Opens the full player from the compact bar, then its chapter list.
     func openTheChapterList(in app: XCUIApplication) throws {
         let wayIn = app.buttons["Open the player"].firstMatch
-        if wayIn.exists, wayIn.isHittable { wayIn.tap() }
+        if wayIn.exists, wayIn.isReachable { wayIn.tap() }
         let chapters = app.buttons["Chapters"].firstMatch
         XCTAssertTrue(chapters.waitForExistence(timeout: 10), "The player offers no chapter list.")
         chapters.tap()
@@ -132,7 +132,7 @@ extension XCTestCase {
     /// `rate` is a regex, because the decimal mark follows the device locale.
     func setSpeed(_ rate: String, in app: XCUIApplication) throws {
         let wayIn = app.buttons["Open the player"].firstMatch
-        if wayIn.exists, wayIn.isHittable { wayIn.tap() }
+        if wayIn.exists, wayIn.isReachable { wayIn.tap() }
         let speed = app.buttons["Speed"].firstMatch
         XCTAssertTrue(speed.waitForExistence(timeout: 10), "The player offers no speed control.")
         speed.tap()
@@ -158,7 +158,7 @@ extension XCTestCase {
         let deadline = Date().addingTimeInterval(5)
         while Date() < deadline {
             let pauses = app.buttons.matching(identifier: "Pause").allElementsBoundByIndex
-            if let pause = pauses.first(where: \.isHittable) {
+            if let pause = pauses.first(where: \.isReachable) {
                 // A six-second fixture a moment from its end can finish between this check and the
                 // tap, and the button goes with it. A finished book plays nothing, which is what
                 // this asks for, so a tap that finds nothing is not a failure here. `openAnAudiobook`
@@ -174,7 +174,7 @@ extension XCTestCase {
     func chapterRows(in app: XCUIApplication) -> [XCUIElement] {
         let top = app.navigationBars["Chapters"].frame.maxY
         return app.buttons.allElementsBoundByIndex
-            .filter { $0.exists && $0.isHittable && $0.frame.minY >= top && $0.label != "Close" }
+            .filter { $0.exists && $0.isReachable && $0.frame.minY >= top && $0.label != "Close" }
             .sorted { $0.frame.minY < $1.frame.minY }
     }
 }

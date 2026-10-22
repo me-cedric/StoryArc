@@ -33,7 +33,7 @@ final class ReadiumPaginationWalkTests: XCTestCase {
         try XCTUnwrap(hittableRow("Reading themes", in: app), "The menu offers no reading-themes row.").tap()
         let customise = app.buttons["Customise"]
         XCTAssertTrue(customise.waitForExistence(timeout: 8), "The theme sheet offers no Customise.")
-        for _ in 0..<3 where !customise.isHittable {
+        for _ in 0..<3 where !customise.isReachable {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
                 .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)))
             hold(0.7)

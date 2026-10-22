@@ -249,7 +249,7 @@ final class SweepSourcesTests: XCTestCase {
         var covered = false
         for _ in 0..<20 where !covered {
             hold(0.5)
-            covered = !app.buttons["Add books"].isHittable
+            covered = !app.buttons["Add books"].isReachable
         }
         XCTAssertTrue(
             covered,

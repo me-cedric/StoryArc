@@ -81,7 +81,7 @@ final class ShareRowWalkTests: XCTestCase {
         hold(10)
         try openPage(of: "Field Notes", in: app)
         let read = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable),
             "The page of Field Notes offers no action."
         )
         read.tap()
@@ -102,7 +102,7 @@ final class ShareRowWalkTests: XCTestCase {
         try openPage(of: "Solid Five", in: app)
         shutter(app, named: "ios-share-solid-page")
         let read = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable),
             "The page of the solid RAR5 offers no action."
         )
         read.tap()
@@ -118,7 +118,7 @@ final class ShareRowWalkTests: XCTestCase {
         try openPage(of: title, in: app)
         shutter(app, named: name.replacingOccurrences(of: "-read", with: "-page"))
         let read = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable),
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable),
             "The page of \(title) offers no action."
         )
         read.tap()
@@ -130,7 +130,7 @@ final class ShareRowWalkTests: XCTestCase {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
         var found: XCUIElement?
         for _ in 0..<6 where found == nil {
-            found = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            found = wanted.allElementsBoundByIndex.first(where: \.isReachable)
             if found == nil { app.swipeUp() }
         }
         try XCTUnwrap(found, "The share shelf shows no cover for \(title). Buttons: "

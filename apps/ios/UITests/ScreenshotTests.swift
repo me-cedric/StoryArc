@@ -184,7 +184,7 @@ final class ScreenshotTests: XCTestCase {
         // in `WhatsNewLayoutTest` measure it properly, and until iOS has an equivalent this
         // line is carrying the whole platform.
         XCTAssertTrue(
-            app.buttons["Continue"].isHittable,
+            app.buttons["Continue"].isReachable,
             "Continue exists but is not reachable — it is off-screen at this text size, "
             + "which is the failure the requirement names rather than a passing capture."
         )
@@ -273,7 +273,7 @@ final class ScreenshotTests: XCTestCase {
 
         guard app.buttons.matching(opensAPublication).firstMatch.waitForExistence(timeout: 5),
               let action = app.buttons.matching(opensAPublication)
-                  .allElementsBoundByIndex.first(where: \.isHittable)
+                  .allElementsBoundByIndex.first(where: \.isReachable)
         else { throw XCTSkip("The publication page offered no hittable way to open it.") }
         action.tap()
 

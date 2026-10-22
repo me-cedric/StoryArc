@@ -76,7 +76,7 @@ final class AppIconCaptureTests: XCTestCase {
         // any text size on a phone. Scrolling to a known row is what makes the capture show
         // the thing it is named after rather than the top of a list.
         let mono = row("Mono", in: app)
-        for _ in 0..<8 where !mono.waitForExistence(timeout: 2) || !mono.isHittable {
+        for _ in 0..<8 where !mono.waitForExistence(timeout: 2) || !mono.isReachable {
             app.swipeUp()
         }
         XCTAssertTrue(mono.exists, "Appearance never revealed the icon chooser.")

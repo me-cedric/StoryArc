@@ -83,7 +83,7 @@ extension XCTestCase {
     /// static text rather than a button — asking only for a button found none of the seven.
     func control(_ name: String, in app: XCUIApplication) -> XCUIElement? {
         for candidate in [app.buttons[name], app.cells[name], app.staticTexts[name]]
-        where candidate.waitForExistence(timeout: 5) && candidate.isHittable {
+        where candidate.waitForExistence(timeout: 5) && candidate.isReachable {
             return candidate
         }
         return nil
@@ -158,8 +158,8 @@ extension XCTestCase {
             let named = app.buttons.matching(NSPredicate(format: "label == %@", cover.label)).firstMatch
             // Hittable, not merely existing: a cover the shelf has scrolled past still exists,
             // and tapping one taps where it is not.
-            let handle = named.exists && named.isHittable ? named : cover
-            guard handle.exists, handle.isHittable else { continue }
+            let handle = named.exists && named.isReachable ? named : cover
+            guard handle.exists, handle.isReachable else { continue }
             handle.tap()
             // Ten seconds, not five. The page is drawn from the store, and on a device
             // holding the whole corpus the first one after a launch is slower than the five
@@ -246,7 +246,7 @@ extension XCTestCase {
         // bar's own buttons out, on the assumption that each sits wholly inside its strip —
         // which is what this was written on and what no run here has measured.
         app.buttons.allElementsBoundByIndex
-            .filter { $0.isHittable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 100 }
+            .filter { $0.isReachable && $0.frame.midY > 150 && $0.frame.midY < app.frame.height - 100 }
             // **A comma, because the band alone cannot tell a chip from a cover.** The band
             // was written to keep the toolbar's and the tab bar's buttons out, and the
             // shelf's own browsing controls sit between the two: *Everywhere*, *Filter*,
@@ -285,7 +285,7 @@ extension XCTestCase {
     /// does not silently stop navigating the day it runs on an iPad.
     func destination(_ name: String, in app: XCUIApplication) -> XCUIElement? {
         for candidate in [app.tabBars.buttons[name], app.buttons[name], app.staticTexts[name]]
-        where candidate.waitForExistence(timeout: 5) && candidate.isHittable {
+        where candidate.waitForExistence(timeout: 5) && candidate.isReachable {
             return candidate
         }
         return nil

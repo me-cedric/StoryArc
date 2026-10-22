@@ -103,7 +103,7 @@ final class SweepPlayerTests: XCTestCase {
             return
         }
         let minimised = app.tabBars.buttons.firstMatch
-        if minimised.exists, minimised.isHittable { minimised.tap() }
+        if minimised.exists, minimised.isReachable { minimised.tap() }
         try XCTUnwrap(destination(name, in: app), diagnosis(name, in: app)).tap()
     }
 
@@ -146,7 +146,7 @@ final class SweepPlayerTests: XCTestCase {
         let matches = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", control))
         _ = matches.firstMatch.waitForExistence(timeout: 5)
         try XCTUnwrap(
-            matches.allElementsBoundByIndex.first(where: \.isHittable),
+            matches.allElementsBoundByIndex.first(where: \.isReachable),
             "The player offers no \(control) control."
         ).tap()
         try assertArrived(landmark, in: app, from: control)

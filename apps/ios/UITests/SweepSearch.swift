@@ -188,7 +188,7 @@ final class SweepSearchTests: XCTestCase {
                 + "\(app.searchFields.count). On screen: "
                 + "\(app.staticTexts.allElementsBoundByIndex.prefix(15).map(\.label))"
         )
-        XCTAssertTrue(field.isHittable, "The search field is present but cannot be tapped.")
+        XCTAssertTrue(field.isReachable, "The search field is present but cannot be tapped.")
         XCTAssertEqual(
             field.placeholderValue,
             "Search",

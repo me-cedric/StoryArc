@@ -60,7 +60,7 @@ final class SweepWave6Tests: XCTestCase {
         let wanted = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Fixture Publication"))
         var cover: XCUIElement?
         for _ in 0..<8 where cover == nil {
-            cover = wanted.allElementsBoundByIndex.first(where: \.isHittable)
+            cover = wanted.allElementsBoundByIndex.first(where: \.isReachable)
             if cover == nil { app.swipeUp() }
         }
         try XCTUnwrap(cover, "No Fixture Publication on the shelf. Copy fixture.epub into Documents/Corpus.").tap()
@@ -73,10 +73,10 @@ final class SweepWave6Tests: XCTestCase {
 
     private func closeReader(in app: XCUIApplication) throws {
         let close = app.buttons["Close"].firstMatch
-        if !(close.exists && close.isHittable) {
+        if !(close.exists && close.isReachable) {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         }
-        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isHittable, "No Close button.")
+        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isReachable, "No Close button.")
         close.tap()
         hold(2)
     }
@@ -133,7 +133,7 @@ final class SweepWave6Tests: XCTestCase {
             waitForTheShelfToSettle(in: app)
             let named = NSPredicate(format: "label BEGINSWITH 'Sea Room' AND label CONTAINS %@", title)
             let cover = app.buttons.matching(named)
-                .allElementsBoundByIndex.first(where: \.isHittable)
+                .allElementsBoundByIndex.first(where: \.isReachable)
             guard let cover else { continue }
             cover.tap()
             hold(2)
@@ -205,9 +205,9 @@ final class SweepWave6Tests: XCTestCase {
         try moveRemote(titles: ["Quiet Machines.cbz", "Tidal Reach 01.cbz"])
         try w5Tab("Home", in: app)
         try syncNow(in: app)
-        for _ in 0..<5 where !app.tabBars.buttons["Library"].isHittable && !app.alerts.firstMatch.exists {
+        for _ in 0..<5 where !app.tabBars.buttons["Library"].isReachable && !app.alerts.firstMatch.exists {
             let leave = NSPredicate(format: "label IN {'Done','Close'}")
-            if let done = app.buttons.matching(leave).allElementsBoundByIndex.first(where: \.isHittable) {
+            if let done = app.buttons.matching(leave).allElementsBoundByIndex.first(where: \.isReachable) {
                 done.tap()
             } else if !app.navigationBars.buttons.allElementsBoundByIndex.isEmpty {
                 app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -330,7 +330,7 @@ final class SweepWave6Tests: XCTestCase {
     /// Two turns, then the chrome is brought back and waited for before Close is tapped.
     private func readTwoAndClose(turns: Int = 2, in app: XCUIApplication) throws {
         let primary = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         )
         primary.tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "No reader opened.")
@@ -339,12 +339,12 @@ final class SweepWave6Tests: XCTestCase {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
             hold(1.2)
         }
-        for _ in 0..<3 where !(app.buttons["Close"].exists && app.buttons["Close"].isHittable) {
+        for _ in 0..<3 where !(app.buttons["Close"].exists && app.buttons["Close"].isReachable) {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             hold(1.5)
         }
         let close = app.buttons["Close"].firstMatch
-        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isHittable, "No Close button.")
+        XCTAssertTrue(close.waitForExistence(timeout: 5) && close.isReachable, "No Close button.")
         close.tap()
         hold(1.5)
     }
@@ -373,7 +373,7 @@ final class SweepWave6Tests: XCTestCase {
         let app = sweepLaunch(grouping: "issues", pinDownloads: false)
         try w5OpenPage(of: "Quiet Machines", in: app)
         let primary = try XCTUnwrap(
-            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isHittable)
+            app.buttons.matching(opensAPublication).allElementsBoundByIndex.first(where: \.isReachable)
         )
         primary.tap()
         XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 15), "No reader opened.")

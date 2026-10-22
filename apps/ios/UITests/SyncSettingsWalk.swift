@@ -101,7 +101,7 @@ final class SyncSettingsWalkTests: XCTestCase {
         shutter(app, named: "sync-search-results")
         let row = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS[c] 'sync'")).allElementsBoundByIndex
-            .first { $0.isHittable && $0.elementType != .searchField }
+            .first { $0.isReachable && $0.elementType != .searchField }
         try XCTUnwrap(row, "Search for sync offered no row.").tap()
         hold(0.7)
         shutter(app, named: "sync-search-opened")
@@ -188,7 +188,7 @@ final class SyncSettingsWalkTests: XCTestCase {
         _ = scrollTo(menu, in: app)
         menu.tap()
         let item = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", name)).allElementsBoundByIndex
-            .first { $0.isHittable && $0.label != "Use a shared folder" }
+            .first { $0.isReachable && $0.label != "Use a shared folder" }
         try XCTUnwrap(item, "The menu offers no share. \(texts(in: app))").tap()
     }
 
