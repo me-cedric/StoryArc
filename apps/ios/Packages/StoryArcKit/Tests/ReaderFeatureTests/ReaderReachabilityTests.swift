@@ -34,7 +34,11 @@ private final class Reports: @unchecked Sendable {
 /// path moves, and the next page read cannot reach the share. That read is where the
 /// library is told, through ``ReaderModel/pageData(of:in:sourceID:)``, the function the
 /// reader's own decode calls.
-@Suite("Reader reachability")
+///
+/// Serialized: every test listens to the one global notification, and Swift Testing runs a
+/// suite's tests in parallel, so the sourceless test once collected the report the gone-share
+/// test posted beside it (CI, 2026-10-07 and 2026-10-22).
+@Suite("Reader reachability", .serialized)
 struct ReaderReachabilityTests {
 
     private func reports(reading failure: any Error, sourceID: UUID?) async -> [UUID] {
