@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -34,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -372,7 +372,7 @@ private fun ChapterRow(
         )
         when {
             isFetching ->
-                CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+                StoryArcLoadingIndicator(modifier = Modifier.padding(2.dp))
             chapter.isFinished ->
                 Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = palette.accent)
         }

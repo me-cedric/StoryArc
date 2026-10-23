@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -23,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import app.storyarc.core.catalogue.CoverCandidate
 import app.storyarc.core.catalogue.CoverLookupClient
 import app.storyarc.core.catalogue.candidates
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Publication
@@ -140,7 +140,7 @@ internal fun CoverFinderContent(
                 verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
                 modifier = Modifier.fillMaxWidth().padding(vertical = StoryArcSpace.lg),
             ) {
-                CircularProgressIndicator()
+                StoryArcLoadingIndicator()
                 Text(
                     text = stringResource(R.string.covers_finding),
                     style = MaterialTheme.typography.bodyMedium,

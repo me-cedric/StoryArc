@@ -281,7 +281,7 @@ struct SourcesSettings: View {
             if !textSize.isAccessibilitySize { status(of: source) }
         }
         // One control per row, announced once, and at least 44pt tall.
-        .frame(minHeight: 44)
+        .frame(minWidth: 44, minHeight: 44)
         .accessibilityElement(children: .combine)
     }
 

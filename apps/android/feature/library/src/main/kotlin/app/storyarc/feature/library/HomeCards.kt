@@ -48,12 +48,14 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.storyarc.core.designsystem.cover.CoverlessWell
+import app.storyarc.core.designsystem.theme.EditorialFontFamily
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -302,6 +304,9 @@ internal fun HomeKeepReadingCard(
         Text(
             text = entry.publication.displayTitle,
             style = MaterialTheme.typography.titleMedium,
+            // The one serif moment on Home, as iOS's `.textRole(.display)` draws it.
+            fontFamily = EditorialFontFamily,
+            fontWeight = FontWeight.SemiBold,
             color = palette.textPrimary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,

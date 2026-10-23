@@ -371,7 +371,7 @@ public struct HomeScreen: View {
             .textRole(.body)
             .foregroundStyle(theme.palette.textPrimary)
             .padding(.horizontal, StoryArcSpace.gutter)
-            .frame(minHeight: 44)
+            .frame(minWidth: 44, minHeight: 44)
             // The whole row is the target, for a finger and for the accessibility frame. Without
             // it the frame was the text alone, 20 pt high (`CatalogueAuditTests`, entry 01).
             .contentShape([.interaction, .accessibility], .rect)

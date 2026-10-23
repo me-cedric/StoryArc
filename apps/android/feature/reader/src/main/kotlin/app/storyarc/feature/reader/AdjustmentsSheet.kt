@@ -31,6 +31,7 @@ import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.theme.MatteSwatch
 import app.storyarc.core.designsystem.theme.matteNameRes
+import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
@@ -39,10 +40,11 @@ import kotlin.math.roundToInt
 /** Opens the adjustment controls, and shows whether anything is applied. */
 @Composable
 internal fun AdjustButton(isNeutral: Boolean, onOpen: () -> Unit) {
+    val chrome = readerChromeColours()
     IconButton(onClick = onOpen, modifier = Modifier.padding(StoryArcSpace.md)) {
         Surface(
             color = if (isNeutral) {
-                LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f)
+                chrome.toolbarContainerColor
             } else {
                 // Marked while something is applied, so a reader who wonders why the page
                 // looks like that can see that they asked for it.
@@ -53,7 +55,9 @@ internal fun AdjustButton(isNeutral: Boolean, onOpen: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Tune,
                 contentDescription = stringResource(R.string.reader_adjust),
-                tint = Color.White,
+                // The chrome pair while neutral; white on the accent, which the pair does
+                // not cover.
+                tint = if (isNeutral) chrome.toolbarContentColor else Color.White,
                 modifier = Modifier.padding(StoryArcSpace.sm),
             )
         }

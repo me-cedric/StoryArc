@@ -10,13 +10,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
@@ -124,7 +124,7 @@ internal fun LibraryExportContent(
         ) {
             TextButton(onClick = onCancel) { Text(stringResource(R.string.transfer_cancel)) }
             if (state.isWorking) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                StoryArcLoadingIndicator(modifier = Modifier.size(24.dp))
             } else {
                 Button(onClick = onExport, enabled = state.canExport) {
                     Text(stringResource(R.string.transfer_export_action))

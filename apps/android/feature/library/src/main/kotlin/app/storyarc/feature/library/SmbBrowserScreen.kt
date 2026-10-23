@@ -17,11 +17,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.Text
@@ -364,7 +364,7 @@ private fun EntryRow(entry: SmbEntry, overlay: Publication?, isOpening: Boolean,
             }
         }
         if (isOpening) {
-            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+            StoryArcLoadingIndicator(modifier = Modifier.padding(2.dp))
         }
     }
 }

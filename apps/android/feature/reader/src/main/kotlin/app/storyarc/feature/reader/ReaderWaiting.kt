@@ -3,7 +3,6 @@ package app.storyarc.feature.reader
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 
 /**
@@ -27,7 +27,7 @@ internal fun WaitingForDownload() {
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         modifier = Modifier.padding(StoryArcSpace.gutter),
     ) {
-        CircularProgressIndicator(color = Color.White)
+        StoryArcLoadingIndicator(color = Color.White)
         Text(
             text = stringResource(R.string.reader_waiting_for_download),
             style = MaterialTheme.typography.bodySmall,

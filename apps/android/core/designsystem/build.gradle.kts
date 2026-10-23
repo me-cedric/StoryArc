@@ -122,3 +122,37 @@ tasks.withType<Test>().configureEach {
         .withPropertyName("arcStopsGuardSources")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
+
+// The editorial face, `fonts/SourceSerif4.ttf`, staged from `packages/fonts` the way
+// `:feature:epubreader` stages the reading families: one shippable file and its licence,
+// never the directory. Here as well as there, so a feature module's own catalogue tests
+// draw the title in the face the app draws it in. The app's merge sees the same file twice
+// at the same path and keeps one.
+abstract class StageEditorialFont : DefaultTask() {
+    @get:InputDirectory
+    abstract val source: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @get:Inject
+    abstract val files: FileSystemOperations
+
+    @TaskAction
+    fun stage() {
+        files.sync {
+            from(source) { include("SourceSerif4.ttf", "OFL-sourceserif4.txt") }
+            into(outputDirectory.dir("fonts"))
+        }
+    }
+}
+
+val stageEditorialFont = tasks.register<StageEditorialFont>("stageEditorialFont") {
+    source.set(rootProject.layout.projectDirectory.dir("../../packages/fonts"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(stageEditorialFont, StageEditorialFont::outputDirectory)
+    }
+}

@@ -68,14 +68,8 @@ struct Failure: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: StoryArcSpace.sm) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 32, weight: .light))
-            Text(message)
-                .textRole(.footnote)
-                .multilineTextAlignment(.center)
-        }
-        .foregroundStyle(theme.palette.textSecondary)
-        .padding(StoryArcSpace.gutter)
+        ReaderMessage(.warning, Text(message))
+            .foregroundStyle(theme.palette.textSecondary)
+            .padding(StoryArcSpace.gutter)
     }
 }

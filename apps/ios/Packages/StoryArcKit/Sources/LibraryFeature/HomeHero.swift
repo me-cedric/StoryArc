@@ -180,7 +180,6 @@ private struct HomeHeroCard: View {
                 .foregroundStyle(.white)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
-                .minimumScaleFactor(0.7)
 
             if let byline {
                 Text(byline)

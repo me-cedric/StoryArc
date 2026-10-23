@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AppBarWithSearch
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExpandedDockedSearchBarWithGap
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,6 +37,7 @@ import androidx.compose.material3.SearchBarScrollBehavior
 import androidx.compose.material3.SearchBarValue
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.material3.rememberSearchBarWithGapState
@@ -468,7 +468,7 @@ internal fun SearchAnswerList(
                     horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
                     modifier = Modifier.padding(StoryArcSpace.gutter, StoryArcSpace.sm),
                 ) {
-                    CircularProgressIndicator(modifier = Modifier.size(WAITING_SPINNER_DP.dp))
+                    StoryArcLoadingIndicator(modifier = Modifier.size(WAITING_SPINNER_DP.dp))
                     Text(
                         text = stringResource(R.string.search_waiting),
                         style = MaterialTheme.typography.bodySmall,

@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +34,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.theme.hexColour
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MemoryPressure
@@ -176,11 +177,12 @@ private fun androidx.compose.foundation.layout.BoxScope.CloseButton(onClose: () 
     ) {
         // Scrim, not a 20% white pill: the chrome draws straight onto the page art, and
         // over a white manga page a white icon on a white pill measured 1:1.
-        Surface(color = LocalStoryArcPalette.current.scrim.copy(alpha = 0.6f), shape = CircleShape) {
+        val chrome = readerChromeColours()
+        Surface(color = chrome.toolbarContainerColor, shape = CircleShape) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = stringResource(R.string.reader_close),
-                tint = Color.White,
+                tint = chrome.toolbarContentColor,
                 modifier = Modifier.padding(StoryArcSpace.sm),
             )
         }
@@ -201,7 +203,7 @@ internal fun DelayedProgressIndicator() {
         delay(SPINNER_DELAY_MILLIS)
         isVisible = true
     }
-    if (isVisible) CircularProgressIndicator(color = Color.White)
+    if (isVisible) StoryArcLoadingIndicator(color = Color.White)
 }
 
 @Composable

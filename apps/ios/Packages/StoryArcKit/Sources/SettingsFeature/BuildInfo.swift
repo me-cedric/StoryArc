@@ -8,12 +8,19 @@ internal import UIKit
 /// Read from the bundle rather than hard-coded, because a hard-coded version in an About
 /// screen is a version that is wrong by the next release.
 enum BuildInfo {
+    /// The snapshot runner pins both values (`scripts/snap-ios.mjs`), because the About row and
+    /// the Settings root draw them, and a reference that carries the real version goes stale on
+    /// every release. A real launch sets neither variable.
+    private static let environment = ProcessInfo.processInfo.environment
+
     static var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        environment["STORYARC_SNAPSHOT_VERSION"]
+            ?? Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
     }
 
     static var build: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        environment["STORYARC_SNAPSHOT_BUILD"]
+            ?? Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
     // Literal URLs. `URL(string:)` is non-failing for these because they are written

@@ -78,8 +78,7 @@ struct HomeSection<Content: View, Destination: View>: View {
 
             Spacer(minLength: 0)
         }
-        .frame(minHeight: 44)
-        .contentShape(.rect)
+        .hitRegion()
         .padding(.horizontal, StoryArcSpace.gutter)
     }
 }

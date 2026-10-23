@@ -251,7 +251,7 @@ struct PickMark: View {
                 isPicked ? theme.palette.surfaceCanvas : .white,
                 isPicked ? theme.accent : .black.opacity(0.35)
             )
-            .font(.title3)
+            .textRole(.title3)
             .padding(StoryArcSpace.xs)
             // Announced by the cell, which already speaks the title this belongs to.
             .accessibilityHidden(true)
@@ -280,7 +280,7 @@ struct OnDeviceMark: View {
         Image(systemName: "arrow.down.circle.fill")
             .symbolRenderingMode(.palette)
             .foregroundStyle(theme.palette.surfaceCanvas, StoryArcColor.Status.downloaded)
-            .font(.subheadline)
+            .textRole(.subheadline)
             .padding(StoryArcSpace.xs)
             // Announced by the cell, which already names the publication this belongs to.
             .accessibilityHidden(true)
@@ -305,7 +305,7 @@ struct FinishedMark: View {
             // The label colour, not white: the material under it is light in light mode,
             // and a white glyph on it had almost no contrast on any cover.
             .foregroundStyle(.primary)
-            .font(.subheadline)
+            .textRole(.subheadline)
             .padding(StoryArcSpace.xs)
             .background(.regularMaterial, in: .circle)
             // Announced by the cell, which already names the publication this belongs to.

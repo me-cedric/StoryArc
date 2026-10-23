@@ -100,15 +100,9 @@ struct ReaderFailure: View {
     let message: String
 
     var body: some View {
-        VStack(spacing: StoryArcSpace.sm) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 32, weight: .light))
-            Text(message)
-                .textRole(.footnote)
-                .multilineTextAlignment(.center)
-        }
-        .foregroundStyle(.white.opacity(0.8))
-        .padding(StoryArcSpace.gutter)
+        ReaderMessage(.warning, Text(message))
+            .foregroundStyle(.white.opacity(0.8))
+            .padding(StoryArcSpace.gutter)
     }
 }
 
@@ -117,14 +111,10 @@ struct ReaderFailure: View {
 /// a wait, not an error, so the icon and the wording say so.
 struct ReaderWaitingForDownload: View {
     var body: some View {
-        VStack(spacing: StoryArcSpace.sm) {
-            ProgressView().tint(.white)
-            Text("reader.waitingForDownload", bundle: .module)
-                .textRole(.footnote)
-                .multilineTextAlignment(.center)
-        }
-        .foregroundStyle(.white.opacity(0.8))
-        .padding(StoryArcSpace.gutter)
+        ReaderMessage(.waiting, Text("reader.waitingForDownload", bundle: .module))
+            .tint(.white)
+            .foregroundStyle(.white.opacity(0.8))
+            .padding(StoryArcSpace.gutter)
     }
 }
 
@@ -297,19 +287,13 @@ struct PageProblem: View {
     let codecName: String?
 
     var body: some View {
-        VStack(spacing: StoryArcSpace.sm) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 28, weight: .light))
-            if let codecName {
-                Text("reader.pageUnavailable.codec \(codecName)", bundle: .module)
-                    .textRole(.footnote)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text("reader.pageUnavailable", bundle: .module)
-                    .textRole(.footnote)
-            }
+        let text = if let codecName {
+            Text("reader.pageUnavailable.codec \(codecName)", bundle: .module)
+        } else {
+            Text("reader.pageUnavailable", bundle: .module)
         }
-        .foregroundStyle(.white.opacity(0.7))
+        ReaderMessage(.warning, text)
+            .foregroundStyle(.white.opacity(0.7))
     }
 }
 

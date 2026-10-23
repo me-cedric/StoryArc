@@ -11,7 +11,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import app.storyarc.core.designsystem.control.SwitchRow
 import app.storyarc.core.model.PageFit
 import app.storyarc.core.model.PageTransition
 import app.storyarc.core.model.ReadingDirection
@@ -250,15 +250,6 @@ private fun ChoiceRow(
             choices { open = false }
         }
     }
-}
-
-/** One row that is a switch, with the switch itself as the row's trailing content. */
-@Composable
-private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    ListItem(
-        trailingContent = { Switch(checked = checked, onCheckedChange = onCheckedChange) },
-        modifier = Modifier.fillMaxWidth(),
-    ) { Text(label) }
 }
 
 /** How the transition modes are named on screen. */

@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.emptyFlow
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -208,7 +208,7 @@ private fun ColumnScope.Details(connection: SmbConnection, step: SmbConnection.S
 
     when (step) {
         is SmbConnection.Step.Connecting ->
-            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+            StoryArcLoadingIndicator(modifier = Modifier.padding(2.dp))
 
         // `network-share` wants the specific failure, and the four the client separates are
         // four different sentences here.

@@ -1,7 +1,6 @@
 package app.storyarc
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,11 +29,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import app.storyarc.core.designsystem.grid.SectionHeading
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -290,26 +289,13 @@ private fun InFlightHeader(
         TextButton(onClick = onStopAll) { Text(stringResource(R.string.downloads_cancel_all)) }
     }
 
-    // Three word-length buttons beside the heading share no line at the accessibility font
-    // scales, the same threshold `DownloadQueueRow`'s own controls split at.
-    if (LocalDensity.current.fontScale >= 1.5f) {
-        Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
-            heading()
-            // A flow, not a row: at font scale 2.0 the three labels are wider than a phone, and
-            // a row squeezed the last one to "Ca / nce / l all".
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
-        }
-    } else {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            // The heading takes what the three buttons leave and wraps. Left to measure first it
-            // took a whole line, and on a phone the last button was squeezed to no width and its
-            // label wrapped one letter to a line: a gap 200 dp tall with no button in it.
-            Box(Modifier.weight(1f)) { heading() }
-            Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
-        }
+    // The heading is a one-line band across the whole width, as the library draws its own, so
+    // the controls go under it rather than beside it.
+    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+        heading()
+        // A flow, not a row: at font scale 2.0 the three labels are wider than a phone, and
+        // a row squeezed the last one to "Ca / nce / l all".
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) { controls() }
     }
 }
 
@@ -391,13 +377,3 @@ private fun DestinationTitle(text: String) {
         overflow = TextOverflow.Ellipsis,
     )
 }
-
-@Composable
-private fun SectionHeading(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge,
-        color = LocalStoryArcPalette.current.textPrimary,
-    )
-}
-

@@ -39,10 +39,15 @@ class ThemeSheetTest {
             )
     }
 
-    private fun code(name: String): String {
-        val file = File(module, "src/main/kotlin/app/storyarc/feature/epubreader/$name")
+    private fun code(name: String): String =
+        source(File(module, "src/main/kotlin/app/storyarc/feature/epubreader/$name"))
+
+    private fun designSystem(name: String): String =
+        source(File(module, "../../core/designsystem/src/main/kotlin/app/storyarc/core/designsystem/$name"))
+
+    private fun source(file: File): String {
         if (!file.isFile) {
-            error("$name is not under ${module.absolutePath} — has it moved?")
+            error("${file.name} is not at ${file.absolutePath} — has it moved?")
         }
         val withoutBlocks = Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL)
             .replace(file.readText(), "")
@@ -221,23 +226,30 @@ class ThemeSheetTest {
     @Test
     fun `Bold is a list item with a supporting line and a trailing switch`() {
         val level = code("ThemeAxesScreen.kt")
+        // The row itself lives in the design system since the audit of 2026-10-23, so its form
+        // is read there; this screen is held to calling it with the supporting line.
+        val row = designSystem("control/SwitchRow.kt")
 
+        assertTrue(
+            "The switch axes do not go through the design system's `SwitchRow`.",
+            level.contains("SwitchRow(") && level.contains("supporting = stringResource("),
+        )
         assertTrue(
             "The switch axes are not `ListItem`s. `design.md`: `ListItem(content =," +
                 " supportingContent =, trailingContent = Switch)`, with `toggleable` on the" +
                 " item — Material authorises the supporting line on a list item, and the" +
                 " Switch page requires only an inline label.",
-            level.contains("supportingContent = { Text(supporting) }"),
+            row.contains("supportingContent = supporting?.let { { Text(it) } }"),
         )
         assertTrue(
             "The item is not the toggleable. A switch on its own is an unnamed node: its" +
                 " label is a sibling, and a screen reader landing on it hears a bare on/off.",
-            level.contains(".toggleable(value = checked, role = Role.Switch"),
+            row.contains(".toggleable(value = checked, role = Role.Switch"),
         )
         assertTrue(
             "The switch still claims the gesture. `onCheckedChange = null` is what stops the" +
                 " item and the switch from both taking it.",
-            level.contains("Switch(checked = checked, onCheckedChange = null)"),
+            row.contains("Switch(checked = checked, onCheckedChange = null)"),
         )
     }
 

@@ -301,7 +301,7 @@ public struct ReaderView: View {
             .onChange(of: adjustments) { _, now in
                 rememberAdjustments(now)
             }
-            .readerBrightness(model: model, scenePhase: scenePhase, captured: $deviceBrightness)
+            .readerBrightness($model.brightness, scenePhase: scenePhase, captured: $deviceBrightness)
             // The geometry answers this rather than an orientation notification, and it
             // answers it for a split-screen window too.
             .onChange(of: geometry.size, initial: true) { _, size in

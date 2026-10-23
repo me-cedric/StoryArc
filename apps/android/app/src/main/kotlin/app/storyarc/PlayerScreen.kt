@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalButton
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -176,8 +177,8 @@ internal fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = StoryArcSpace.lg, vertical = StoryArcSpace.lg),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg),
     ) {
         // First, because `audio-playback` lists the cover first and because the artwork is
         // the interface: the transport reads as belonging to the picture above it. Bounded at
@@ -319,7 +320,7 @@ private fun Position(
     // handle sat pinned at its own end from the second chapter on.
     // `NowPlaying.positionInPart` is the way back to what a seek takes.
     val offset = playing.offsetInPartMillis
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
         if (playing.isScrubbable && total != null) {
             Slider(
                 value = offset.toFloat(),
@@ -343,7 +344,7 @@ private fun Position(
         } else {
             // No total, so no line to drag along. A flat indeterminate line would claim a
             // progress this source cannot report.
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(StoryArcSpace.xs))
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -418,7 +419,7 @@ private fun Transport(
     val bySentence = playing.skipUnit == SkipUnit.SENTENCE
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.xl, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Skip(
@@ -547,7 +548,7 @@ private fun Speed(speed: PlaybackSpeed, onSpeed: (PlaybackSpeed) -> Unit) {
 @Composable
 private fun Sleep(playing: NowPlaying, timer: SleepTimer?, onSleep: (SleepAfter?) -> Unit) {
     val endOfChapter = playing.statedPartDurationMillis != null
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.xs)) {
         Text(
             text = timer
                 ?.let { stringResource(R.string.player_sleep_in, clock(it.remainingMillis)) }
@@ -620,8 +621,8 @@ internal fun PlayerFinishedScreen(
     markedFinished: Boolean = false,
 ) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        modifier = modifier.fillMaxSize().padding(StoryArcSpace.xl),
+        verticalArrangement = Arrangement.spacedBy(StoryArcSpace.lg, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(

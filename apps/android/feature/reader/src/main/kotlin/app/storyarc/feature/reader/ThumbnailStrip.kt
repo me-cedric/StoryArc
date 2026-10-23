@@ -88,7 +88,7 @@ internal fun ThumbnailStrip(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val cellWidth = 64.dp
+    val cellWidth = CELL_WIDTH
     val palette = LocalStoryArcPalette.current
     var markers by remember { mutableStateOf<List<ChapterMarker>>(emptyList()) }
     LaunchedEffect(viewModel) { markers = viewModel.chapterMarkers() }
@@ -243,7 +243,7 @@ internal fun ThumbnailColumn(
     LazyVerticalGrid(
         // Adaptive rather than a fixed count: the pane is as wide as the window can spare,
         // and a fixed two columns would be cramped at 840 dp and wasteful at 1600.
-        columns = GridCells.Adaptive(88.dp),
+        columns = GridCells.Adaptive(PANE_CELL_WIDTH),
         state = state,
         modifier = modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)),
         contentPadding = PaddingValues(StoryArcSpace.md),
@@ -255,7 +255,7 @@ internal fun ThumbnailColumn(
                 viewModel = viewModel,
                 index = index,
                 isCurrent = index == currentIndex,
-                width = 88.dp,
+                width = PANE_CELL_WIDTH,
                 onSelect = onSelect,
             )
         }
@@ -284,7 +284,7 @@ internal fun ScrubThumbnail(
 
     Box(
         modifier = modifier
-            .width(72.dp)
+            .width(CELL_WIDTH + StoryArcSpace.sm)
             .aspectRatio(2f / 3f)
             .clip(RoundedCornerShape(StoryArcRadius.sm))
             .border(1.dp, palette.borderSubtle, RoundedCornerShape(StoryArcRadius.sm)),
@@ -394,3 +394,9 @@ private fun ThumbnailCell(
         )
     }
 }
+
+/** One cell in the strip; iOS's `ThumbnailStrip` has one width too. */
+private val CELL_WIDTH = 64.dp
+
+/** The pane's cell, wider by a token because the pane has a window's width to spend. */
+private val PANE_CELL_WIDTH = CELL_WIDTH + StoryArcSpace.xl

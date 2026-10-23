@@ -19,9 +19,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +60,7 @@ internal fun SyncRows(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val palette = LocalStoryArcPalette.current
-    val status by runner.status.collectAsState()
+    val status by runner.status.collectAsStateWithLifecycle()
     val choice = runner.choice.takeIf { status != SyncStatus.Off }
     var refusal by remember { mutableStateOf<Int?>(null) }
     var isListingShares by remember { mutableStateOf(false) }

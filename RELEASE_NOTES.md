@@ -12,11 +12,47 @@ only. Play shows the first two groups; the GitHub release shows all three.
 
 ### en-US
 
+#### Phones and tablets
+
+- A library file imported from another device lists each conflict by title, and you can keep the other position.
+- The notice about files that could not be opened fits at the largest text size.
+- A book that is still downloading shows its progress on its page.
+- The audiobook player keeps every control on screen on a short phone.
+- Resume on the Home page opens a PDF at the page you left.
+- An audiobook folder that holds one file with chapters keeps its chapters.
+
 ### de-DE
+
+#### Phones and tablets
+
+- Eine von einem anderen Gerät importierte Bibliotheksdatei nennt jeden Konflikt beim Titel, und du kannst die andere Position behalten.
+- Der Hinweis zu Dateien, die sich nicht öffnen ließen, passt auch bei größter Schrift.
+- Ein Buch, das noch heruntergeladen wird, zeigt seinen Fortschritt auf seiner Seite.
+- Der Hörbuch-Player behält auf einem kurzen Telefon alle Bedienelemente auf dem Bildschirm.
+- „Weiterlesen“ auf der Startseite öffnet ein PDF auf der Seite, auf der du aufgehört hast.
+- Ein Hörbuch-Ordner mit einer Datei, die Kapitel enthält, behält seine Kapitel.
 
 ### es-ES
 
+#### Phones and tablets
+
+- Un archivo de biblioteca importado desde otro dispositivo nombra cada conflicto por su título, y puedes conservar la otra posición.
+- El aviso sobre archivos que no se pudieron abrir cabe con el tamaño de texto más grande.
+- Un libro que todavía se está descargando muestra su progreso en su página.
+- El reproductor de audiolibros mantiene todos los controles en pantalla en un teléfono corto.
+- «Continuar» en la página de inicio abre un PDF en la página donde lo dejaste.
+- Una carpeta de audiolibro con un solo archivo con capítulos conserva sus capítulos.
+
 ### fr-FR
+
+#### Phones and tablets
+
+- Un fichier de bibliothèque importé depuis un autre appareil nomme chaque conflit par son titre, et vous pouvez garder l'autre position.
+- L'avis sur les fichiers qui n'ont pas pu être ouverts tient à la plus grande taille de texte.
+- Un livre en cours de téléchargement affiche sa progression sur sa page.
+- Le lecteur de livres audio garde toutes ses commandes à l'écran sur un téléphone court.
+- « Reprendre » sur la page d'accueil ouvre un PDF à la page où vous vous êtes arrêté.
+- Un dossier de livre audio qui contient un seul fichier avec des chapitres garde ses chapitres.
 
 ## 0.2.2
 

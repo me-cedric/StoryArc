@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,14 +23,13 @@ import androidx.compose.material.icons.filled.TextIncrease
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import app.storyarc.core.designsystem.control.SwitchRow
 import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.TopAppBar
@@ -401,40 +399,6 @@ private fun HyphenationToggle(
             onChange(ThemeAxis.HYPHENATION, values.copy(isHyphenated = it))
         },
     )
-}
-
-/**
- * One switch axis, as a Material list item.
- *
- * `design.md`: `ListItem(content =, supportingContent =, trailingContent = Switch)`, with
- * `toggleable` on the item. Material authorises the supporting line on a list item; the
- * Switch page requires only an inline label and says nothing about supporting text, so the
- * second line is the list's affordance rather than the switch's.
- *
- * **The item is the toggleable, not the switch inside it.** A switch on its own is an unnamed
- * node — its label is a sibling, and a screen reader landing on it hears a bare on/off.
- * `toggleable` merges the label and the supporting line in, states the role, and widens the
- * target to the whole row; `onCheckedChange = null` on the switch is what stops the two from
- * both claiming the gesture.
- *
- * The supporting line is what `reading-themes` means by an axis stating its value in words:
- * a switch's *value* is its on/off state, which the switch itself carries, and what a reader
- * cannot get from it is what turning it on does.
- */
-@Composable
-private fun SwitchRow(
-    label: String,
-    supporting: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    ListItem(
-        supportingContent = { Text(supporting) },
-        trailingContent = { Switch(checked = checked, onCheckedChange = null) },
-        modifier = Modifier
-            .fillMaxWidth()
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
-    ) { Text(label) }
 }
 
 /**

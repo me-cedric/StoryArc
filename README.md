@@ -91,8 +91,9 @@ all 411 scenarios of the contract against both codebases on 2026-09-12 — **232
 and tested on both, 154 built and asserted by nothing, 17 on one platform only,
 8 missing on both** — and every capability is `partial`. The main specs hold 426
 scenarios on 2026-10-10. The build that followed is recorded change by change in that
-document's "Build progress" paragraphs. None is absent, none is done, and the device
-steps that no simulator answers are in
+document's "Build progress" paragraphs, and its "Completion audit, 2026-10-23" section
+is the current list of what is done and what each open item needs. None is absent, and the
+device steps that no simulator answers are in
 [`docs/mvp-device-checklist.md`](docs/mvp-device-checklist.md).
 
 | Area | State |
@@ -101,15 +102,17 @@ steps that no simulator answers are in
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI; the mark and every icon rendered from one SVG |
 | Format layer | ✅ CBZ, CBR, CBT, PDF, EPUB and image folders open on both platforms — see below |
 | Test corpus | ✅ 26 archives, 2 PDFs, 6 EPUBs and 7 audiobooks, one manifest, asserted by both suites |
-| Sources | 🟡 Folders, SMB (SMB 3 encryption included), OPDS and Kavita connect, cache, read every page of a source and diagnose on both; the `sources` row in STATUS is `partial`, and `close-the-audited-gaps` has 262 of 276 tasks done |
-| Readers | 🟡 Paged comic reader with a page carousel and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 54 of 59 done and 4 partial |
+| Sources | 🟡 Folders, SMB (SMB 3 encryption included), OPDS and Kavita connect, cache, read every page of a source and diagnose on both; the `sources` row in STATUS is `partial`, and `close-the-audited-gaps` has 278 of 288 tasks done |
+| Readers | 🟡 Paged comic reader with a page carousel and reflowable EPUB reader on both, six themes, four page transitions; `reader-theming-and-page-transitions` has 54 of 59 done and 4 partial, each an owner step or a frame |
 | Playback | 🟡 Read-aloud and an audiobook player on both, behind one session; `audiobooks-and-playback` has 83 of 91 done and 7 partial, and `read-aloud-beyond-the-reader` 20 of 24 |
-| Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is the last rung of the ladder, and the publication page offers the title and web search. `cover-for-every-publication` has 23 of 28 done and 4 partial |
-| Portability | 🟡 One versioned library document, exported and imported from a screen on both platforms with no secret in it, and synced through a share or a folder. `library-portability` has 30 of 31 done (3.1b open), and `library-sync` 24 of 28 |
+| Covers | 🟡 One cover ladder on both; a reader may choose a picture for any publication; the opt-in lookup is the last rung of the ladder, and the publication page offers the title and web search. `cover-for-every-publication` has 25 of 28 done and 2 partial |
+| Portability | 🟡 One versioned library document, exported and imported from a screen on both platforms with no secret in it, and synced through a share or a folder. `library-portability` has 31 of 32 done (3.1c, an Android frame), and `library-sync` 28 of 30, the two open ones owner steps on real devices |
 | Desktop: macOS | 🟡 Reads comics, EPUB and PDF, plays audiobooks with Now Playing and the media keys, reads aloud, and has the sources, downloads, sync and shelves of the phones; 238 tests and an accessibility audit of 23 screens. `desktop-clients` is the plan |
 | Desktop: Windows | 🟡 The same screens compile on CI over the Rust core, and a release build starts and stays up on a Windows runner; no Windows desktop has walked a screen yet |
 | Desktop: Linux | 🟡 Reads EPUB and PDF, plays audiobooks with MPRIS, reads aloud through speech-dispatcher; 291 crate tests and headless walks; Flatpak and AUR builds install in CI |
-| Releases | ✅ One tag builds every download into a draft GitHub release and a Play internal draft; the owner publishes. A push to the release files rehearses it all without publishing |
+| Releases | ✅ One tag builds every download into a draft GitHub release and a Play internal draft; the owner publishes. A push to the release files rehearses it all without publishing. Specified by `release-train`, archived 2026-10-23 |
+| Interface audit | ✅ [`docs/designs/reviews/ui-audit-2026-10-23.md`](docs/designs/reviews/ui-audit-2026-10-23.md): every catalogue screen read against the iOS 26 and Material 3 Expressive guidelines, the design system and the reuse rules; 32 rows, applied in two waves on 2026-10-23 |
+| Foldables | 📝 Planned, not built: [`foldables-and-iphone-duo`](docs/openspec/changes/foldables-and-iphone-duo/proposal.md) covers iPhone Duo, Android postures and the store screenshot sets |
 
 Tests: **about 3,570 on iOS** across 485 host suites, plus 144 more in
 `StoryArcEpub` that need a simulator; on Android, **about 4,070 JVM plus 170
@@ -166,7 +169,7 @@ Offline is a normal state, never an error.
 folder of images. Format is detected from content, not the extension, so a
 mis-named file still opens. Metadata comes from `ComicInfo.xml`, the EPUB
 package, or the filename — in that order. CB7 is refused by name rather than
-half-supported. Audiobooks are arriving through `audiobooks-and-playback`.
+half-supported. Audiobooks play on both platforms, specified by `audiobooks-and-playback`, whose sync into the main specs waits on the owner's device steps.
 
 **Reading** — A paged image reader with an interactive page curl that follows
 your finger ([ADR-0009]), plus slide, fast fade, and continuous scroll for

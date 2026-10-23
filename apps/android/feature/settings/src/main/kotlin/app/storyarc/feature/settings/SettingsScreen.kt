@@ -1,5 +1,6 @@
 package app.storyarc.feature.settings
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.back.PredictiveBack
 import app.storyarc.core.designsystem.back.PredictiveBackHost
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +26,6 @@ import androidx.compose.material3.Text
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -172,7 +172,7 @@ fun SettingsScreen(
     // the list makes, asked in the same place so the two cannot disagree.
     // What each share's last session negotiated, so the detail screen's sentence follows a
     // test of the connection the moment it ends.
-    val negotiated by ShareSessions.all.collectAsState()
+    val negotiated by ShareSessions.all.collectAsStateWithLifecycle()
     val diagnose: (Source) -> SourceDiagnosis = { source ->
         SourceDiagnosis.of(
             source,

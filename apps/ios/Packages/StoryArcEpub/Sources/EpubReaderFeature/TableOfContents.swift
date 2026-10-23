@@ -261,8 +261,7 @@ private struct ContentsRow: View {
             // a section belongs to the chapter above it.
             .padding(.leading, CGFloat(entry.depth) * StoryArcSpace.lg)
             // A single line of text is shorter than the 44 pt touch floor by itself.
-            .frame(minHeight: 44)
-            .contentShape(.rect)
+            .hitRegion()
         }
         .buttonStyle(.plain)
         // One control, not a title and a tick to swipe through separately.

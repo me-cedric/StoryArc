@@ -10,11 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -121,7 +121,7 @@ internal fun Scanning(found: Int, modifier: Modifier = Modifier, onCancel: () ->
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(StoryArcSpace.md),
     ) {
-        CircularProgressIndicator(color = palette.accent)
+        StoryArcLoadingIndicator(color = palette.accent)
         Text(
             text = pluralStringResource(R.plurals.library_scanning, found, found),
             style = MaterialTheme.typography.bodySmall,

@@ -40,7 +40,6 @@ struct DetailHero: View {
                 RoundedRectangle(cornerRadius: StoryArcRadius.md)
                     .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
             }
-            .shadow(color: theme.palette.scrim.opacity(0.35), radius: 24, y: 12)
             // One image with no label. The title is the next thing in the reading order and
             // it says everything this could; a second announcement of the same words is
             // noise to anyone listening to the page rather than looking at it. What *acts* is

@@ -173,7 +173,7 @@ extension ThemeAxesSheet {
     }
 
     /// `reading-themes`: reader-local, and it does not permanently move the
-    /// device's own. The reader's value is restored on leaving by `EpubReaderBrightness`.
+    /// device's own. The reader's value is restored on leaving by `ReaderBrightness`.
     var brightness: some View {
         let inForce = Self.brightnessInForce(model)
         return VStack(alignment: .leading, spacing: StoryArcSpace.sm) {

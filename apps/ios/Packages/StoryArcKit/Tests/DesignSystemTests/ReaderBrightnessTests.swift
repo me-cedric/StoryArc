@@ -1,13 +1,13 @@
 import SwiftUI
 import Testing
 
-@testable import ReaderFeature
+@testable import DesignSystem
 
-/// `reading-themes`, *Brightness is reader-local*, over the comic reader.
+/// `reading-themes`, *Brightness is reader-local*, for both readers.
 ///
-/// A mirror of `EpubReaderBrightnessTests`: the two pure functions are identical in shape,
-/// because `reading-themes` asks the same four moments of both readers.
-@Suite("Brightness across the comic reader's lifecycle")
+/// One suite where there were two: the comic reader's and the EPUB reader's modifiers were
+/// mirrors, and so were their tests.
+@Suite("Brightness across a reader's lifecycle")
 struct ReaderBrightnessTests {
 
     @Test("Leaving restores the captured device level, when the reader set one of their own")

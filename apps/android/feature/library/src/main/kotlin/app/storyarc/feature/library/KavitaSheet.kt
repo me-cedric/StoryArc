@@ -10,9 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -128,7 +128,7 @@ fun KavitaSheet(
                 is KavitaConnection.Step.Entering -> Unit
 
                 is KavitaConnection.Step.Connecting ->
-                    CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+                    StoryArcLoadingIndicator(modifier = Modifier.padding(2.dp))
 
                 is KavitaConnection.Step.Confirmed -> {
                     Text(

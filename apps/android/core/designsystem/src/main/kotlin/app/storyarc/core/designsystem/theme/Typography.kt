@@ -1,6 +1,10 @@
 package app.storyarc.core.designsystem.theme
 
+import android.content.Context
 import androidx.compose.material3.Typography
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 
 /**
@@ -30,4 +34,22 @@ import androidx.compose.ui.text.font.FontFamily
 internal val StoryArcTypography = Typography()
 
 /** The serif face used only for publication titles and series headers. */
-val EditorialFontFamily: FontFamily = FontFamily.Serif
+val EditorialFontFamily: FontFamily
+    @Composable get() = LocalEditorialFontFamily.current
+
+/**
+ * Source Serif 4, bundled, or the system serif where the asset is not packaged.
+ *
+ * `StoryArcTheme` provides it once per theme. The asset is staged by this module's build from
+ * `packages/fonts`; a module's own unit tests do not merge it, and a font that fails to load
+ * throws at the first text measure, so [editorialFontFamily] checks the asset before it names
+ * it.
+ */
+val LocalEditorialFontFamily = staticCompositionLocalOf<FontFamily> { FontFamily.Serif }
+
+private const val EDITORIAL_ASSET = "fonts/SourceSerif4.ttf"
+
+internal fun editorialFontFamily(context: Context): FontFamily = runCatching {
+    context.assets.open(EDITORIAL_ASSET).close()
+    FontFamily(Font(EDITORIAL_ASSET, context.assets))
+}.getOrDefault(FontFamily.Serif)

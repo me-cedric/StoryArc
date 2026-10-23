@@ -10,9 +10,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -180,7 +180,7 @@ private fun Row(text: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
     ) {
-        CircularProgressIndicator(modifier = Modifier.padding(StoryArcSpace.xs), strokeWidth = 2.dp)
+        StoryArcLoadingIndicator(modifier = Modifier.padding(StoryArcSpace.xs))
         Text(text, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
     }
 }

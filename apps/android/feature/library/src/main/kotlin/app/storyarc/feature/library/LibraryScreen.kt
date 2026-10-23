@@ -32,9 +32,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.Lifecycle
@@ -183,7 +183,8 @@ fun LibraryScreen(
     // content meets chrome; on Material that is the flexible bar collapsing as the shelf
     // passes under it. A window under 480 dp tall (25.2) takes the small bar, and the strip
     // of chips under it scrolls away too: [LibraryFrame].
-    val compactHeight = isCompactHeight(LocalConfiguration.current.screenHeightDp)
+    val windowHeight = LocalWindowInfo.current.containerSize.height
+    val compactHeight = isCompactHeight(with(LocalDensity.current) { windowHeight.toDp() }.value.toInt())
     val topBarScroll = if (compactHeight) {
         TopAppBarDefaults.enterAlwaysScrollBehavior()
     } else {

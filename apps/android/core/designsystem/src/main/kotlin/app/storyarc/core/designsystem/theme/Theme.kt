@@ -13,6 +13,7 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -418,6 +419,8 @@ fun StoryArcTheme(
     // deciding for itself what to do about it.
     val isHighContrast = rememberHighContrast()
     val context = LocalContext.current
+    // The editorial face, loaded once per theme.
+    val editorial = remember(context) { editorialFontFamily(context) }
     val isDynamic = !appearance.isTrueBlack && !isNatural &&
         useDynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val chrome = when {
@@ -460,6 +463,7 @@ fun StoryArcTheme(
         // else, so what travels down the tree is the *permission*, not the texture. The
         // reader asks for it; the shelf and the settings list never do.
         LocalIsNaturalTheme provides isNatural,
+        LocalEditorialFontFamily provides editorial,
     ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,

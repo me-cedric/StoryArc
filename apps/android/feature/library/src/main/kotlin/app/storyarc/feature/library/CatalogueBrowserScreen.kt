@@ -22,7 +22,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -51,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.catalogue.CatalogueAcquisition
 import app.storyarc.core.catalogue.OpdsEntry
 import app.storyarc.core.catalogue.OpdsFacet
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -272,7 +272,7 @@ fun CatalogueBrowserScreen(
                         is CatalogueBrowser.State.Loading -> Box(
                             modifier = Modifier.fillMaxWidth().padding(StoryArcSpace.xl),
                             contentAlignment = Alignment.Center,
-                        ) { CircularProgressIndicator() }
+                        ) { StoryArcLoadingIndicator() }
 
                         is CatalogueBrowser.State.Failed -> Surface(
                             color = palette.surfaceRaised,

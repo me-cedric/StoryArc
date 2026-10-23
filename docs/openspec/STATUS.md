@@ -6,6 +6,55 @@ change task lists track four changes and the specs describe seventeen capabiliti
 
 Keep this current. A status document that lags is worse than none, because it is believed.
 
+## Completion audit, 2026-10-23
+
+**What is done.** Every mobile capability is built on both platforms, and every one of the
+eleven mobile changes is at 95 percent or more of its task list. The release train is a
+main spec (`release-train`, archived 2026-10-23). The desktop clients read comics, EPUB and
+PDF, play audiobooks and read aloud on macOS and Linux, and compile and start on Windows.
+The counts on this day, from the task lists (done, partial, open):
+
+| Change | Done | Partial | Open | What the open items need |
+| --- | --- | --- | --- | --- |
+| `close-the-audited-gaps` | 278 | 8 | 2 | 26.1 and 26.2 (test corpora); 15.10, 26.3 (frames); 20.1 (owner: signing team, device); 21.1 (owner: a trace on the phone that froze); 25.5 (a shared-simulator cause not found); 28.2, 28.3, 28.12 (device frames) |
+| `audiobooks-and-playback` | 83 | 7 | 1 | owner device steps (3.9 headphones, 4.4b, 6.1 a call, 7.3, 8.1 TalkBack, 12.6 CarPlay); 9.5 is the verify and sync that waits on them |
+| `reader-theming-and-page-transitions` | 54 | 4 | 1 | 3.5 (emulator run), 4.3b (Android raster ahead), 7.6 (VoiceOver and TalkBack by ear), 7.8 (a finer locator, owner decision O15); 7.7 is the sync |
+| `one-library-three-destinations` | 33 | 3 | 1 | 4.1 (iPad settings measure), 4.2 (a foldable at half-open: now planned in `foldables-and-iphone-duo`), 4.3 (true Split View); 6.5 is the screenshot set |
+| `publication-detail` | 25 | 3 | 1 | 2.3, 4.1, 6.5 (device frames); 5.5 is the screenshot set |
+| `one-vocabulary-in-four-languages` | 28 | 3 | 1 | 1.8 (a screen reader by ear), 4.6, 6.5 (frames); 6.6 is the STATUS row |
+| `read-aloud-beyond-the-reader` | 20 | 3 | 1 | 2.5 (largest-size frames, owner cancelled), 3.2, 4.1 (a call on a device); 5.6 is the screenshot set |
+| `cover-for-every-publication` | 25 | 2 | 1 | 4.3, 5.3 (a live Kavita upload, owner); 6.7 (frames that need a person: Chrome first run, TLS on the emulator) |
+| `library-sync` | 28 | 0 | 2 | 2.5 and 4.5 (owner: a cloud folder and a locked phone on two devices) |
+| `library-portability` | 31 | 0 | 1 | 3.1c (an Android frame and one real export between two devices) |
+| `desktop-clients` | 110 | 0 | 74 | a Linux desktop session, a Windows desktop, Flathub's answer, signing and notarisation, two parent edits under `apps/ios` (the dated note at the head of its task list names each) |
+| `foldables-and-iphone-duo` | 0 | 0 | 26 | the owner's go: a plan with no code, by decision of 2026-10-23 |
+
+**What this audit closed** (wave 1, commit `02f4255a4`): `close-the-audited-gaps` 28.1, 28.4,
+28.5, 28.6, 28.8, 28.9, 28.10 and the iOS half of 20.1; `library-sync` 5.9 and 5.10; `library-portability`
+3.1b (iOS); `one-library-three-destinations` 0b.3; `publication-detail` 6.2; and the code of 28.2,
+28.3 and 28.12, which wait for a device frame each. `shared-release-train` 5.3 (verify and archive).
+
+**The UI audit** (`docs/designs/reviews/ui-audit-2026-10-23.md`, 32 rows: 2 high, 15 medium, 15 low)
+read every catalogue screen on both platforms against the platform guidelines, the design system
+and the reuse rules. Both shells follow their platform (a `TabView` with the glass accessory on iOS, a
+`NavigationSuiteScaffold` with button groups and pane scaffolds on Android). The two high rows:
+Android did not apply the typography tokens, and the iOS detail cover carried a drop shadow the
+design system forbids. Wave 1 applied the pixel-neutral rows (remote covers decoded off the main
+thread at the cell size, one hex parser, one menu row, one matte swatch, one voice-stopped banner,
+the chrome fade token, the touch target tokens, a device scene manifest for multiple windows). Wave
+2 applies the rows that move pixels, with the snapshot references recorded again.
+
+**Foldables are planned and not built.** `changes/foldables-and-iphone-duo/` holds the proposal,
+the `native-experience` delta (nine scenarios: the hand-over, the fold, the camera, tabletop, book,
+the outer display, Split View, no posture, store listings), the design (the iOS 27.1 SDK and Xcode
+27.1, size classes over orientation, the fold as a reserved region, the App Store iPhone Duo slots
+at 1398 x 2034 and 2007 x 2853 that become **required in April 2027**, Play's large screen slots
+for a Pixel Fold set) and 26 tasks in four waves. Nothing starts before the owner says so.
+
+**What no agent can close on this Mac.** Owner device steps (`docs/mvp-device-checklist.md`), a
+Linux and a Windows desktop for the desktop walks, signing and notarisation, a live Kavita upload,
+and frames that need a person at the screen.
+
 ## What is left to build, 2026-09-28
 
 **The counts below this section measure test coverage. This section measures product work.**

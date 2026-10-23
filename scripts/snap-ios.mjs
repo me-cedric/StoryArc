@@ -70,6 +70,9 @@ const run = spawnSync(
     env: {
       ...process.env,
       TEST_RUNNER_TZ: 'UTC',
+      // The About row draws the version; the references were recorded at 0.1.0 (1).
+      TEST_RUNNER_STORYARC_SNAPSHOT_VERSION: '0.1.0',
+      TEST_RUNNER_STORYARC_SNAPSHOT_BUILD: '1',
       ...(record ? { TEST_RUNNER_SNAPSHOT_TESTING_RECORD: 'all' } : {}),
     },
   },

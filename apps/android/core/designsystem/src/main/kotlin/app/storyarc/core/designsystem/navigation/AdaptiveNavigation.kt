@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.MenuOpen
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LoadingIndicatorDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationItemColors
 import androidx.compose.material3.NavigationItemIconPosition
@@ -37,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +63,17 @@ import kotlinx.coroutines.launch
  * A wrapper earns its place here when the Expressive API it hides is experimental. A stable
  * Material component is used directly at its call site, not re-exported through here.
  */
+
+/**
+ * Material 3 Expressive's loading indicator, drawn wherever a spinner used to be.
+ *
+ * [modifier] sizes it and [color] tints it, the two things the spinner's call sites set.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun StoryArcLoadingIndicator(modifier: Modifier = Modifier, color: Color = LoadingIndicatorDefaults.indicatorColor) {
+    LoadingIndicator(modifier = modifier, color = color)
+}
 
 /**
  * One destination in the app's persistent navigation.

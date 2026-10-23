@@ -25,7 +25,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +53,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.navigation.StoryArcLoadingIndicator
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.cover.rememberRemoteCover
 import app.storyarc.core.designsystem.grid.coverMaximumWidth
@@ -513,7 +513,7 @@ internal fun EntryRow(
             }
         }
         if (isFetching) {
-            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+            StoryArcLoadingIndicator(modifier = Modifier.padding(2.dp))
         }
         // Two buttons rather than a drag, which is what a local reading list already offers
         // here: the same control on both of this platform's reading lists beats matching the

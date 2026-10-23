@@ -332,7 +332,7 @@ struct SidebarSeriesList: View {
                         .foregroundStyle(theme.palette.textTertiary)
                 }
                 .padding(.horizontal, StoryArcSpace.gutter)
-                .frame(minHeight: 44)
+                .frame(minWidth: 44, minHeight: 44)
 
                 Rectangle()
                     .fill(theme.palette.borderSubtle)
