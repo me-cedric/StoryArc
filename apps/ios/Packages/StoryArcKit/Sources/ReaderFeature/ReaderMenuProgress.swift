@@ -111,7 +111,7 @@ extension ReaderView {
         // both recognizers accept calls this twice. `.toggle()` would make a double call
         // net back to `false`; an assignment leaves the browser open either way.
         centredPreviewIndex = model.currentIndex
-        withAnimation(.easeInOut(duration: 0.2)) { isBrowsingThumbnails = true }
+        withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) { isBrowsingThumbnails = true }
     }
 
     /// The position, in this reader's own units.

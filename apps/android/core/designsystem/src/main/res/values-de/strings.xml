@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="matte_white">Weiß</string>
+    <string name="matte_cream">Creme</string>
+    <string name="matte_sepia">Sepia</string>
+    <string name="matte_sage">Blassgrün</string>
+    <string name="matte_sky">Blassblau</string>
+    <string name="matte_charcoal">Dunkelgrau</string>
+    <string name="matte_navy">Nachtblau</string>
+    <string name="matte_trueblack">Reinschwarz</string>
+    <string name="matte_swatch">Farbe %1$s</string>
+</resources>

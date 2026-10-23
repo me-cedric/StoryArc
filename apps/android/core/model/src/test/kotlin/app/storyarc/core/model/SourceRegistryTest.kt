@@ -394,4 +394,18 @@ class SourceRegistryTest {
         assertEquals(5_000L, after[share.id]?.lastSuccessfulSyncEpochMillis)
         assertEquals(9_000L, after[server.id]?.lastSuccessfulSyncEpochMillis)
     }
+
+
+    // Task 28.6: the same place again
+
+    @Test
+    fun `a source at the same place is found by kind and locator, never by name`() {
+        val share = Source(displayName = "NAS", kind = SourceKind.NETWORK_SHARE, locator = "smb://nas/Comics")
+        val registry = SourceRegistry().adding(share)
+
+        assertEquals(share, registry.atSamePlace(share.copy(id = UUID.randomUUID(), displayName = "Other name")))
+        assertNull(registry.atSamePlace(share.copy(id = UUID.randomUUID(), kind = SourceKind.KAVITA_SERVER)))
+        assertNull(registry.atSamePlace(share.copy(id = UUID.randomUUID(), locator = "smb://nas/Manga")))
+        assertNull(registry.atSamePlace(share.copy(id = UUID.randomUUID(), locator = null)))
+    }
 }

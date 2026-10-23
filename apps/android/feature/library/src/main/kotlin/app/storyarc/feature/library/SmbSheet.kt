@@ -42,6 +42,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.emptyFlow
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.smb.SmbDiscovery
@@ -142,7 +143,7 @@ private fun ColumnScope.Details(connection: SmbConnection, step: SmbConnection.S
                                 "${host.address}:${host.port}"
                             }
                     }
-                    .defaultMinSize(minHeight = 48.dp)
+                    .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
                     .padding(vertical = StoryArcSpace.xs),
             )
         }
@@ -290,7 +291,7 @@ private fun FolderRow(name: String, isUp: Boolean, onOpen: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs),
     ) {
         Icon(

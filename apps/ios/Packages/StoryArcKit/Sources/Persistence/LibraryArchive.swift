@@ -35,6 +35,11 @@ public struct LibraryArchive: @unchecked Sendable {
         self.now = now
     }
 
+    /// Writes one position, as the reader taking the other side of a conflict does.
+    public func save(_ record: ReadingProgress) async throws {
+        try await progress.save(record)
+    }
+
     /// The failure an import reports when a cover could not be written.
     public struct CoverNotWritten: Error, Equatable {
         public let key: String

@@ -28,10 +28,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import app.storyarc.core.designsystem.control.MenuRow
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ChapterRemainder
@@ -115,14 +115,14 @@ internal fun EpubMenuBody(facts: EpubMenuFacts, actions: EpubMenuActions) {
             onOpen = { actions.onOpenContents(ContentsTab.CONTENTS) },
         )
 
-        MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
+        MenuRow(stringResource(ReaderMenuEntry.BOOKMARKS.labelRes), Icons.Filled.Bookmark) {
             actions.onOpenContents(ContentsTab.BOOKMARKS)
         }
 
         // One row, not an add beside a remove: `ebook-reader` marks a *position*, and a
         // position is either marked or it is not. A circular pill whose filled and hollow
         // bookmark glyphs were the only statement of which, until now.
-        LabelledRow(
+        MenuRow(
             label = stringResource(
                 if (facts.isPageBookmarked) {
                     R.string.epub_bookmark_remove
@@ -138,7 +138,7 @@ internal fun EpubMenuBody(facts: EpubMenuFacts, actions: EpubMenuActions) {
             onClick = actions.onToggleBookmark,
         )
 
-        MenuRow(ReaderMenuEntry.SEARCH, Icons.Filled.Search) {
+        MenuRow(stringResource(ReaderMenuEntry.SEARCH.labelRes), Icons.Filled.Search) {
             actions.onOpenContents(ContentsTab.SEARCH)
         }
 
@@ -146,7 +146,7 @@ internal fun EpubMenuBody(facts: EpubMenuFacts, actions: EpubMenuActions) {
         // reachable before this change, from the same sheet's fourth panel, and
         // `comic-reader` requires everything that was reachable to stay reachable in one
         // action.
-        LabelledRow(
+        MenuRow(
             label = stringResource(R.string.annotations_title),
             icon = Icons.Filled.Highlight,
             onClick = { actions.onOpenContents(ContentsTab.ANNOTATIONS) },
@@ -163,13 +163,13 @@ internal fun EpubMenuBody(facts: EpubMenuFacts, actions: EpubMenuActions) {
             ),
         )
 
-        MenuRow(ReaderMenuEntry.THEMES, Icons.Filled.TextFormat, actions.onOpenTheme)
+        MenuRow(stringResource(ReaderMenuEntry.THEMES.labelRes), Icons.Filled.TextFormat, actions.onOpenTheme)
 
         // Absent, not disabled, when the publication has no text a voice could say.
         // `ebook-reader` says a control a platform cannot honour is "absent rather than
         // empty", and this app does not ship a button that does nothing.
         if (facts.canReadAloud) {
-            LabelledRow(
+            MenuRow(
                 label = stringResource(
                     if (facts.isReadingAloud) R.string.readaloud_stop else R.string.readaloud_start,
                 ),
@@ -280,21 +280,6 @@ private val ChapterRemainder.labelRes: Int
         ChapterRemainder.MORE_THAN_HALF_LEFT -> R.string.reader_chapter_left_more_than_half
         ChapterRemainder.JUST_BEGUN -> R.string.reader_chapter_left_just_begun
     }
-
-/** One of the five doors, named by the entry rather than by this file. */
-@Composable
-private fun MenuRow(entry: ReaderMenuEntry, icon: ImageVector, onClick: () -> Unit) {
-    LabelledRow(label = stringResource(entry.labelRes), icon = icon, onClick = onClick)
-}
-
-/** One row: an icon beside words, the whole row a target. */
-@Composable
-private fun LabelledRow(label: String, icon: ImageVector, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
-    ) { Text(label) }
-}
 
 /**
  * How the five rows are named on screen.

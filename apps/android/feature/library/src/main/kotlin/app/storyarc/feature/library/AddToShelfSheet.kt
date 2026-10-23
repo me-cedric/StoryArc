@@ -10,6 +10,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,7 +21,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -302,7 +302,7 @@ private fun Row(name: String, isMember: Boolean, enabled: Boolean, onTap: () -> 
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onTap)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.sm),
     )
 }

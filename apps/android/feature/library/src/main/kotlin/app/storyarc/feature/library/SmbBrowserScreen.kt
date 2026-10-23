@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -336,7 +337,7 @@ private fun EntryRow(entry: SmbEntry, overlay: Publication?, isOpening: Boolean,
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !isOpening, onClick = onTap)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs)
             .semantics(mergeDescendants = true) { contentDescription = entry.name },
     ) {

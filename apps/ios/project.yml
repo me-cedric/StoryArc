@@ -16,11 +16,12 @@ options:
   # `carplay-audio` entitlement, and this project has no Apple team to grant the entitlement
   # to a device build. So the simulator build alone carries both, and the CarPlay Simulator
   # (I/O, External Displays, CarPlay) can prove the scene. `Info.simulator.plist` is
-  # `Info.plist` plus `CarSceneManifest.json`, written here on every generate. A device build
-  # uses `Info.plist` and `StoryArc.entitlements`, which hold neither.
-  # `CarSimulatorOnlyTests` fails if either device file gains a car key.
+  # `Info.plist` with its scene manifest replaced by `CarSceneManifest.json`, written here on
+  # every generate. A device build uses `Info.plist` and `StoryArc.entitlements`: its manifest
+  # declares the window role only. `CarSimulatorOnlyTests` fails if either device file gains
+  # a car key.
   postGenCommand: >-
-    plutil -insert UIApplicationSceneManifest -json "$(cat App/CarSceneManifest.json)"
+    plutil -replace UIApplicationSceneManifest -json "$(cat App/CarSceneManifest.json)"
     -o App/Info.simulator.plist App/Info.plist
 
 settings:
@@ -121,6 +122,14 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UIApplicationSupportsIndirectInputEvents: true
+        # design.md section 4: an iPad opens a second StoryArc window. Without a manifest the
+        # device build has one scene only, and only the simulator build (above) had one. The
+        # window role alone; the car role stays simulator-only.
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+          UISceneConfigurations:
+            UIWindowSceneSessionRoleApplication:
+              - UISceneConfigurationName: Default Configuration
         # `page-transitions`: the curl runs "at the display's refresh rate including 120 Hz".
         # A ProMotion iPhone caps an app at 60 Hz unless this key is present, and it caps
         # `CADisplayLink` with it — so the panel draws at 120 and `FrameProbe` reports 60,

@@ -200,7 +200,7 @@ public final class ReaderModel {
     /// Black otherwise, which is what a comic is read against.
     public var matte: Color {
         guard let hex = settings.theme.custom?.background else { return .black }
-        return Color(readerHex: hex) ?? .black
+        return Color(hex: hex) ?? .black
     }
 
     /// Reader-local screen brightness, 0…1, or `nil` for the device's own. See

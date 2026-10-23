@@ -1,6 +1,5 @@
 package app.storyarc.feature.library
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -19,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import app.storyarc.core.designsystem.cover.rememberRemoteCover
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -51,15 +50,9 @@ import app.storyarc.core.kavita.KavitaSeries
 @Composable
 fun KavitaSeriesCell(series: KavitaSeries, client: KavitaClient, onOpen: () -> Unit) {
     val palette = LocalStoryArcPalette.current
-    var cover by remember(series.id) { mutableStateOf<android.graphics.Bitmap?>(null) }
-
     // Through the client, not an image loader: Kavita's image routes want the reader's key,
-    // and a loader has nowhere to put one.
-    LaunchedEffect(series.id) {
-        val bytes = runCatching { client.seriesCover(series.id) }.getOrNull()
-            ?: return@LaunchedEffect
-        cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
-    }
+    // and a loader has nowhere to put one. Decoded no larger than the widest cell.
+    val cover = rememberRemoteCover(series.id, rememberCoverPixels()) { client.seriesCover(series.id) }
 
     val read = series.fraction?.takeIf { it > 0.0 }
     val percent = read?.let { (it * 100).toInt() }

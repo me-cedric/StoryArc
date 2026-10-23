@@ -2,6 +2,7 @@ package app.storyarc.core.model
 
 import kotlinx.serialization.Serializable
 
+import java.net.URLDecoder
 import java.util.UUID
 
 /**
@@ -119,3 +120,17 @@ data class PublicationIdentity(
     val isEmpty: Boolean
         get() = serverIdentifier == null && contentDigest == null && normalizedPath == null
 }
+
+/**
+ * The name a notice calls a publication that carries no title: the last path segment of its
+ * path, decoded, without its extension. A `content://` path ends in `tree:folder/file.cbz`, so
+ * the segment after the last colon is taken. Empty for an identity with no path.
+ */
+val PublicationIdentity.leafTitle: String
+    get() {
+        val path = normalizedPath.orEmpty()
+        val decoded = runCatching { URLDecoder.decode(path.replace("+", "%2B"), "UTF-8") }.getOrDefault(path)
+        val leaf = decoded.substringAfterLast('/').substringAfterLast(':')
+        val dot = leaf.lastIndexOf('.')
+        return if (dot > 0) leaf.substring(0, dot) else leaf
+    }

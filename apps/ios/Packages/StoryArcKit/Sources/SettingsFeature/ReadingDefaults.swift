@@ -112,7 +112,7 @@ struct ReadingDefaults: View {
     private func matteSwatch(_ hex: String?, isActive: Bool) -> some View {
         Button { chooseMatte(hex) } label: {
             Circle()
-                .fill(hex.flatMap { Color(settingsHex: $0) } ?? .black)
+                .fill(hex.flatMap { Color(hex: $0) } ?? .black)
                 .frame(height: 30)
                 .overlay { Circle().strokeBorder(theme.palette.borderSubtle, lineWidth: 1) }
                 .overlay {
@@ -122,8 +122,7 @@ struct ReadingDefaults: View {
                 }
                 // A plain button is hit only inside its label, and the drawn circle is
                 // 30 pt. The ring above paints outside the frame and adds no hit area.
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
+                .hitRegion()
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)

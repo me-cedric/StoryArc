@@ -70,4 +70,5 @@
   **Done 2026-10-21:** §10 and "Releasing" rewritten; the notes head names the three groups.
 - [x] 5.2 Add the `release-train` row to `docs/openspec/STATUS.md`. Verify: the row names the Apple lanes as off.
   **Done 2026-10-21:** the "Releases" section at the end of STATUS.md.
-- [ ] 5.3 Run `/opsx:verify`, then `/opsx:archive`. Verify: `pnpm spec:guard` reports no error.
+- [x] 5.3 Run `/opsx:verify`, then `/opsx:archive`. Verify: `pnpm spec:guard` reports no error.
+  **Done 2026-10-23 (completion audit):** `docs/delivery/shared-release-train-verify.md` finds no critical issue and two warnings; the change is archived and `release-train` is a main spec.

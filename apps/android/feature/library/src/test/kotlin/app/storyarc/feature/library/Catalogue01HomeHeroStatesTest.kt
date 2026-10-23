@@ -128,4 +128,21 @@ class Catalogue01HomeHeroStatesTest {
 
     @Test
     fun pinnedDark() = draw("01f-home-pinned-shelves", Look.Dark, pinned, scrollTo = "Harbour stories")
+
+    // Font scale 2.0, as every older entry draws (task 28.7 of `close-the-audited-gaps`).
+
+    @Test
+    fun finishAndNextLargest() = draw("01b-home-finish-and-next", Look.Largest, finishAndNext)
+
+    @Test
+    fun finishAloneLargest() = draw("01c-home-finish-alone", Look.Largest, finishAlone)
+
+    @Test
+    fun sourceAwayLargest() = draw("01d-home-source-away", Look.Largest, sourceAway)
+
+    @Test
+    fun afterFinishLargest() = draw("01e-home-after-finish", Look.Largest, afterFinish)
+
+    @Test
+    fun pinnedLargest() = draw("01f-home-pinned-shelves", Look.Largest, pinned, scrollTo = "Harbour stories")
 }

@@ -71,16 +71,7 @@
     <string name="settings_cancel">Abbrechen</string>
     <string name="reading_matte">Farbe hinter einer Comicseite</string>
     <string name="reading_matte_note">Nur der Bereich um die Seite. Artwork wird nie getönt.</string>
-    <string name="reading_matte_white">Weiß</string>
-    <string name="reading_matte_cream">Creme</string>
-    <string name="reading_matte_sepia">Sepia</string>
-    <string name="reading_matte_sage">Blassgrün</string>
-    <string name="reading_matte_sky">Blassblau</string>
-    <string name="reading_matte_charcoal">Dunkelgrau</string>
-    <string name="reading_matte_navy">Nachtblau</string>
-    <string name="reading_matte_trueblack">Reinschwarz</string>
     <string name="reading_matte_none">Schwarz</string>
-    <string name="reading_matte_swatch">Farbe %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>
     <string name="privacy_cache_note">Seiten, die StoryArc bereithält, damit sie schnell öffnen. Werden beim Lesen neu aufgebaut.</string>
     <string name="privacy_history">Leseverlauf · %1$s</string>
@@ -113,6 +104,7 @@
     <string name="sources_kavita_system_trust">Benötigt ein Zertifikat, dem Ihr Gerät bereits vertraut.</string>
     <string name="sources_state_connecting">Verbinden</string>
     <string name="sources_state_unreachable">Keine Antwort</string>
+    <string name="sources_state_not_tried">Auf diesem Gerät nicht versucht</string>
     <string name="sources_state_unauthorized">Anmeldung nötig</string>
     <string name="covers_lookup">Fehlende Cover nachschlagen</string>
     <string name="covers_lookup_providers">Fragt: %1$s</string>
@@ -315,7 +307,8 @@
         <item quantity="other">Beide Geräte waren bei %1$d Titeln weitergekommen. Für jeden wurde die weitere Position behalten.</item>
     </plurals>
     <string name="transfer_done_conflict_show">Anzeigen</string>
-    <string name="transfer_done_conflict_item">Behalten: %1$s, verworfen: %2$s</string>
+    <string name="transfer_done_conflict_item">%1$s: behalten %2$s, verworfen %3$s</string>
+    <string name="transfer_done_conflict_use_other">Die andere Position verwenden</string>
     <string name="transfer_position_page">Seite %1$d von %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Fertig</string>

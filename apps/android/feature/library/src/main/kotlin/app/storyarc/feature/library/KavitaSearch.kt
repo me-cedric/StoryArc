@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
@@ -205,7 +206,7 @@ private fun HitRow(hit: KavitaHit, onOpenSeries: (Int) -> Unit, onOpenKept: (Str
                     }
                 },
             )
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs),
     )
 }

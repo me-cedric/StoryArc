@@ -321,7 +321,7 @@ public struct ReaderView: View {
                 else { return }
                 try? await Task.sleep(for: .seconds(4))
                 guard !Task.isCancelled else { return }
-                withAnimation(.easeInOut(duration: 0.2)) { wantsChrome = false }
+                withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) { wantsChrome = false }
             }
             .readerLifecycle(
                 model,

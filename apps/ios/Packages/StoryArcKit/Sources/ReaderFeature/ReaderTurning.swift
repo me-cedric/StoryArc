@@ -1,5 +1,7 @@
 public import SwiftUI
 
+internal import DesignSystem
+
 /// The display-order step that a reading-order turn of `step` performs.
 ///
 /// Held outside `ReaderView` so a test can call it without building a view. See
@@ -81,7 +83,7 @@ extension ReaderView {
     /// What the Return key does too — `page-transitions` asks for "one key" that
     /// toggles the chrome the same way a centre tap does.
     func toggleChrome() {
-        withAnimation(.easeInOut(duration: 0.2)) { wantsChrome.toggle() }
+        withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) { wantsChrome.toggle() }
     }
 
     /// A tap handler with the setting already read into it.
@@ -187,7 +189,7 @@ extension ReaderView {
     func returnFromJump() {
         guard let mark = pageReturn.mark, model.pages.indices.contains(mark) else { return }
         pageReturn = pageReturn.taken()
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) {
             displayIndex = displayIndex(forModel: mark)
         }
     }

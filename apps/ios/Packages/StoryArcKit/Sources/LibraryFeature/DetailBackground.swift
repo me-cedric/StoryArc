@@ -73,29 +73,13 @@ struct DetailBackground: View {
     private var strength: Double { DetailWash.drawn(wash, isPlain: isPlain) }
 
     /// The colour it fades in, or a placeholder nothing ever sees at zero strength.
-    private var tint: Color { Color(hex: wash?.tint ?? "#000000") }
+    private var tint: Color { wash.flatMap { Color(hex: $0.tint) } ?? .black }
 
     /// Whether the system has asked for a plain surface instead.
     private var isPlain: Bool { contrast == .increased || reduceTransparency }
 }
 
 extension Color {
-    /// A `#rrggbb` string as a colour.
-    ///
-    /// The inverse of ``resolvedHex(in:)``, and the only way a colour derived from artwork
-    /// reaches a view: ``CoverAccent`` and ``DetailWash`` both answer in hex because both
-    /// are asserted by tests that have no SwiftUI to hand.
-    init(hex: String) {
-        let text = hex.hasPrefix("#") ? String(hex.dropFirst()) : hex
-        let value = Int(text, radix: 16) ?? 0
-        self = Color(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255
-        )
-    }
-
     /// This colour as `#rrggbb`, resolved against the environment it will be drawn in.
     ///
     /// The palette is a set of `Color`s and the contrast arithmetic works in hex, so

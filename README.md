@@ -97,7 +97,7 @@ steps that no simulator answers are in
 
 | Area | State |
 | --- | --- |
-| Capability specs | ✅ 17 capabilities, 426 scenarios, validating; the 411 of 2026-09-12 audited against both apps with `path:line` evidence |
+| Capability specs | ✅ 18 capabilities, 447 scenarios, validating; the 411 of 2026-09-12 audited against both apps with `path:line` evidence |
 | Design system | ✅ OKLCH token source generating Swift + Kotlin, WCAG-gated in CI; the mark and every icon rendered from one SVG |
 | Format layer | ✅ CBZ, CBR, CBT, PDF, EPUB and image folders open on both platforms — see below |
 | Test corpus | ✅ 26 archives, 2 PDFs, 6 EPUBs and 7 audiobooks, one manifest, asserted by both suites |
@@ -202,7 +202,7 @@ default. System, Light, Dark, OLED Dark, plus a textured Natural theme. Dynamic
 Type and font scale to maximum. VoiceOver
 and TalkBack. Reduce Motion and Reduce Transparency respected, not ignored.
 
-The full contract is in [`docs/openspec/specs/`](docs/openspec/specs) — 17 capabilities,
+The full contract is in [`docs/openspec/specs/`](docs/openspec/specs) — 18 capabilities,
 each written as user-observable behaviour with failure and offline paths.
 
 ## Repository layout
@@ -225,7 +225,7 @@ storyarc/
 ├── docs/
 │   ├── openspec/
 │   │   ├── project.md             product context
-│   │   ├── specs/<capability>/    17 capability specs — the contract
+│   │   ├── specs/<capability>/    18 capability specs — the contract
 │   │   ├── changes/               in-flight proposals, and archive/ for finished ones
 │   │   └── STATUS.md              what is built against what is specified
 │   ├── decisions/                 ADRs
@@ -587,9 +587,11 @@ appearance even when the capture fails, which is the part a person forgets.
 ## Contributing
 
 [`docs/openspec/STATUS.md`](docs/openspec/STATUS.md) says how much of each specified
-capability exists, scenario by scenario. Nothing is absent and nothing is finished:
-all seventeen capabilities are `partial`, and `sources` is still the keystone —
-five of the others wait on it. Nine changes are in flight and five are archived
+capability exists, scenario by scenario, and its "Completion audit, 2026-10-23" section
+is the current list of what is done and what is not. Every mobile capability is built on
+both platforms; what stays open is owner device steps, frames, and the desktop walks that
+need a Linux or a Windows desktop. Twelve changes are in flight (one of them,
+`foldables-and-iphone-duo`, is a plan with no code yet) and twenty-five are archived
 under `docs/openspec/changes/`.
 
 The rule that shapes everything else: **every behaviour is specified before it

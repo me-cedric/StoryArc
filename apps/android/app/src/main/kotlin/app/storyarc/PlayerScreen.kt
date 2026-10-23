@@ -2,6 +2,7 @@ package app.storyarc
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -166,10 +168,13 @@ internal fun PlayerScreen(
             )
         },
     ) { insets ->
+    // Measured, so the artwork can give up height where the transport would not fit under
+    // it: see [playerArtworkMax].
+    BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
+    val artworkMax = playerArtworkMax(maxHeight, LocalDensity.current.fontScale)
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(insets)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -183,6 +188,7 @@ internal fun PlayerScreen(
             publication = publication,
             cover = cover,
             onArtwork = onArtwork,
+            maxSize = artworkMax,
         )
 
         playing.chapter?.let {
@@ -252,6 +258,7 @@ internal fun PlayerScreen(
                 content = { Text(partName(part.title, index)) },
             )
         }
+    }
     }
     }
 }

@@ -73,6 +73,9 @@ internal object LibrarySyncHub {
             secrets = credentials,
         )
         val state = LibrarySyncState.open(context)
+        // Task 5.9: the conflicts earlier processes found wait here until the reader answers.
+        SyncConflicts.pending = state
+        SyncConflicts.restore()
         return LibrarySyncRunner(
             places = SyncPlaceStore.open(context),
             placeFor = { choice ->

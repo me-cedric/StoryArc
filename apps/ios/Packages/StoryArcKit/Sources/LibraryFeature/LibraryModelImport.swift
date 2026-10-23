@@ -30,4 +30,23 @@ extension LibraryModel {
         if let shelvesStore { shelves = shelvesStore.shelves() }
         await refreshProgress()
     }
+
+    /// Reloads recorded positions. Called when the library appears, so returning
+    /// from the reader shows the page you reached.
+    public func refreshProgress() async {
+        guard let progressStore else {
+            hasLoadedProgress = true
+            return
+        }
+        guard let records = try? await progressStore.recent(limit: 500) else { return }
+        hasLoadedProgress = true
+        var byID: [String: ReadingProgress] = [:]
+        for publication in publications {
+            if let match = records.first(where: { $0.identity.matches(publication.identity) }) {
+                byID[publication.id] = match
+            }
+        }
+        progress = byID
+        rebuild()
+    }
 }

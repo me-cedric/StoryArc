@@ -3663,8 +3663,8 @@ msgid "transfer.done.action"
 msgstr "Fertig"
 
 #, c-format
-msgid "transfer.done.conflict.item %s %s"
-msgstr "Behalten: %1$s, verworfen: %2$s"
+msgid "transfer.done.conflict.item %s %s %s"
+msgstr "%1$s: behalten %2$s, verworfen %3$s"
 
 #, c-format
 msgid "transfer.done.conflict.many %d"
@@ -3673,11 +3673,14 @@ msgstr[0] "Beide Geräte waren bei %d Titel weitergekommen. Die weitere Position
 msgstr[1] "Beide Geräte waren bei %d Titeln weitergekommen. Für jeden wurde die weitere Position behalten."
 
 #, c-format
-msgid "transfer.done.conflict.one %s %s"
-msgstr "Beide Geräte waren bei einem Titel weitergekommen. Die weitere Position wurde behalten (%1$s). Verworfen: %2$s."
+msgid "transfer.done.conflict.one %s %s %s"
+msgstr "Beide Geräte waren bei „%1$s“ weitergekommen. Die weitere Position wurde behalten (%2$s). Verworfen: %3$s."
 
 msgid "transfer.done.conflict.show"
 msgstr "Anzeigen"
+
+msgid "transfer.done.conflict.useOther"
+msgstr "Die andere Position verwenden"
 
 #, c-format
 msgid "transfer.done.secrets %d"

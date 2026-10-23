@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import app.storyarc.core.designsystem.theme.rememberHighContrast
+import app.storyarc.core.designsystem.theme.hexColour
 import app.storyarc.core.model.CoverAccent
 import app.storyarc.core.model.CoverColours
 import app.storyarc.core.model.ReadingContrast
@@ -49,12 +50,7 @@ internal fun onWashOf(wash: Color): Color {
  * output format is a contract between two modules, and a screen that silently drew black
  * for every cover would look like a colour bug rather than a parsing one.
  */
-internal fun parseHex(hex: String): Color? {
-    val text = hex.removePrefix("#")
-    if (text.length != 6) return null
-    val value = text.toLongOrNull(16) ?: return null
-    return Color(0xFF000000L.or(value))
-}
+internal fun parseHex(hex: String): Color? = hexColour(hex)
 
 /** The whole answer for one cover, or null when it has none to give. */
 internal fun detailAccentOf(colours: CoverColours): DetailAccent? {

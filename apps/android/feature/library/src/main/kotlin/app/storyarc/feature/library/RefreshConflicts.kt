@@ -32,5 +32,6 @@ object RefreshConflicts {
     /** The reader has answered -- kept the local position, or taken the server's. */
     fun clear() {
         _conflicts.value = emptyList()
+        SyncConflicts.answered()
     }
 }

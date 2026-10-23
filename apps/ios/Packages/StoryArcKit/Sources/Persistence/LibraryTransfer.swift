@@ -25,8 +25,9 @@ public struct LibraryImportPreview: Sendable, Equatable {
 
 /// What an import did, for the screen that tells the reader and the app that reloads.
 public struct LibraryImportOutcome: Sendable, Equatable {
-    /// Positions where both sides had moved. The further one was kept.
-    public let conflicts: [ProgressPull.Conflict]
+    /// Positions where both sides had moved. The further one was kept, until the reader takes
+    /// the other through ``LibraryTransfer/useOtherPosition(_:)``.
+    public var conflicts: [ProgressPull.Conflict]
 
     /// Sources, by name, that still ask for a sign-in.
     public let sourcesNeedingSignIn: [String]
@@ -36,6 +37,18 @@ public struct LibraryImportOutcome: Sendable, Equatable {
 
     /// The library as the import left it. The app reloads its in-memory copies from this.
     public let snapshot: LibrarySnapshot
+
+    public init(
+        conflicts: [ProgressPull.Conflict],
+        sourcesNeedingSignIn: [String],
+        secretsWritten: Int,
+        snapshot: LibrarySnapshot
+    ) {
+        self.conflicts = conflicts
+        self.sourcesNeedingSignIn = sourcesNeedingSignIn
+        self.secretsWritten = secretsWritten
+        self.snapshot = snapshot
+    }
 }
 
 /// Why an import stopped before it changed anything.
@@ -55,9 +68,27 @@ public struct LibraryTransfer: Sendable {
     private let archive: LibraryArchive
     private let secrets: any SourceSecretStore
 
-    public init(archive: LibraryArchive, secrets: any SourceSecretStore) {
+    /// The title of a publication the library holds, for a conflict named to the reader. A
+    /// document carries no titles, and this module sees no library, so the app hands it in.
+    public let title: @MainActor (PublicationIdentity) -> String?
+
+    public init(
+        archive: LibraryArchive,
+        secrets: any SourceSecretStore,
+        title: @escaping @MainActor (PublicationIdentity) -> String? = { _ in nil }
+    ) {
         self.archive = archive
         self.secrets = secrets
+        self.title = title
+    }
+
+    /// Writes back the position an import set aside: `reading-progress` offers the other one.
+    /// Returns the conflict with the two positions swapped, for the row that offered it.
+    public func useOtherPosition(_ conflict: ProgressPull.Conflict) async throws -> ProgressPull.Conflict {
+        var restored = conflict.resolved
+        restored.position = conflict.discarded
+        try await archive.save(restored)
+        return ProgressPull.Conflict(resolved: restored, discarded: conflict.resolved.position)
     }
 
     // MARK: Export

@@ -21,7 +21,13 @@ data class ProgressPull(
     /** The conflicts worth a sentence, with what was set aside so it can be offered back. */
     val conflicts: List<Conflict> = emptyList(),
 ) {
-    data class Conflict(val resolved: ReadingProgress, val discarded: ReadingPosition)
+    data class Conflict(val resolved: ReadingProgress, val discarded: ReadingPosition) {
+        /**
+         * The same conflict with the other position kept: what "use the other position" writes,
+         * and what the row then states. `library-portability` task 3.1b.
+         */
+        fun swapped(): Conflict = Conflict(resolved.copy(position = discarded), resolved.position)
+    }
 
     companion object {
         /**

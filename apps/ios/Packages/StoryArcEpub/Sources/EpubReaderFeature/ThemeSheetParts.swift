@@ -21,14 +21,14 @@ struct PresetCard: View {
         Button(action: onSelect) {
             VStack(spacing: StoryArcSpace.xs) {
                 ZStack {
-                    Color(hex: ReadingTheme(preset: preset).background)
+                    (Color(hex: ReadingTheme(preset: preset).background) ?? .black)
                     // Real letterforms in the preset's own face and colour.
                     // `reading-themes` asks each card to preview "its own colours and
                     // typeface", and a stack of grey rules — which is what this was —
                     // can show a colour but never a face.
                     Specimen(
                         typeface: preset.values.typeface,
-                        colour: Color(hex: ReadingTheme(preset: preset).foreground),
+                        colour: Color(hex: ReadingTheme(preset: preset).foreground) ?? .black,
                         isBold: preset.values.isBold
                     )
                     .padding(.horizontal, StoryArcSpace.sm)
@@ -85,8 +85,8 @@ struct CustomCard: View {
         Button(action: onSelect) {
             VStack(spacing: StoryArcSpace.xs) {
                 ZStack {
-                    Color(hex: palette.background)
-                    Specimen(typeface: typeface, colour: Color(hex: palette.foreground))
+                    (Color(hex: palette.background) ?? .black)
+                    Specimen(typeface: typeface, colour: Color(hex: palette.foreground) ?? .black)
                         .padding(.horizontal, StoryArcSpace.sm)
                 }
                 .frame(height: 44)
@@ -166,23 +166,6 @@ struct StepDots: View {
         }
         .frame(maxWidth: .infinity)
         .accessibilityHidden(true)
-    }
-}
-
-extension Color {
-    /// The tokens emit hex for Readium; the swatch reads the same string, so the
-    /// card and the page cannot show different colours.
-    init(hex: String) {
-        var value: UInt64 = 0
-        Scanner(string: hex.hasPrefix("#") ? String(hex.dropFirst()) : hex)
-            .scanHexInt64(&value)
-        self.init(
-            .sRGB,
-            red: Double((value >> 16) & 0xFF) / 255,
-            green: Double((value >> 8) & 0xFF) / 255,
-            blue: Double(value & 0xFF) / 255,
-            opacity: 1
-        )
     }
 }
 

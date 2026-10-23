@@ -75,6 +75,8 @@ struct ReadingContinuity: ViewModifier {
     /// A publication asked for by identifier, still waiting to be found.
     @State private var wanted: String?
 
+    @Environment(\.scenePhase) private var scenePhase
+
     /// How long to keep looking for a publication the library has not listed yet.
     ///
     /// `sources` restores the cached catalogue before it walks anything, so the usual
@@ -101,7 +103,16 @@ struct ReadingContinuity: ViewModifier {
 
     private var menu: Menu { Menu(actions: offered, language: InterfaceLanguage.tag) }
 
-    private var widgetSnapshot: ReadingSnapshot? { ReadingWidgetSnapshot.of(library) }
+    /// The widget's snapshot, and whether the library has read the positions it comes from.
+    /// Part of the key, so the first read writes even when the snapshot itself is unchanged.
+    private struct WidgetWrite: Equatable {
+        let snapshot: ReadingSnapshot?
+        let loaded: Bool
+    }
+
+    private var widgetWrite: WidgetWrite {
+        WidgetWrite(snapshot: ReadingWidgetSnapshot.of(library), loaded: library.hasLoadedProgress)
+    }
 
     func body(content: Content) -> some View {
         content
@@ -110,8 +121,19 @@ struct ReadingContinuity: ViewModifier {
             // closing a book is what refreshes progress, so the menu is right by the time
             // they are back on the home screen.
             .task(id: menu) { HomeScreenActions.publish(menu.actions) }
-            // The home-screen widget's snapshot, from the same first book (ADR-0011).
-            .task(id: widgetSnapshot) { await ReadingWidgetSnapshot.publish(widgetSnapshot, library: library) }
+            // The home-screen widget's snapshot, from the same first book (ADR-0011). Not
+            // before the first read of positions: a cold launch would clear it (task 20.1).
+            .task(id: widgetWrite) {
+                guard widgetWrite.loaded else { return }
+                await ReadingWidgetSnapshot.publish(widgetWrite.snapshot, library: library)
+            }
+            // Going home from inside a book. The library reads the positions again, so the
+            // snapshot above carries the page reached rather than the page the book was
+            // opened at (task 20.1).
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .background else { return }
+                Task { await library.refreshProgress() }
+            }
             .task(id: QuickActionInbox.shared.pending) { take(QuickActionInbox.shared.pending) }
             .userActivity(ReadingActivity.type, isActive: reading != nil) { activity in
                 guard let publication = reading?.publication else { return }

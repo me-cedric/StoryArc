@@ -3663,8 +3663,8 @@ msgid "transfer.done.action"
 msgstr "Done"
 
 #, c-format
-msgid "transfer.done.conflict.item %s %s"
-msgstr "Kept %1$s, set aside %2$s"
+msgid "transfer.done.conflict.item %s %s %s"
+msgstr "%1$s: kept %2$s, set aside %3$s"
 
 #, c-format
 msgid "transfer.done.conflict.many %d"
@@ -3673,11 +3673,14 @@ msgstr[0] "Both devices had moved on in %d title. The further position was kept.
 msgstr[1] "Both devices had moved on in %d titles. The further position was kept for each."
 
 #, c-format
-msgid "transfer.done.conflict.one %s %s"
-msgstr "Both devices had moved on in one title. The further position was kept (%1$s). Set aside: %2$s."
+msgid "transfer.done.conflict.one %s %s %s"
+msgstr "Both devices had moved on in “%1$s”. The further position was kept (%2$s). Set aside: %3$s."
 
 msgid "transfer.done.conflict.show"
 msgstr "Show"
+
+msgid "transfer.done.conflict.useOther"
+msgstr "Use the other position"
 
 #, c-format
 msgid "transfer.done.secrets %d"

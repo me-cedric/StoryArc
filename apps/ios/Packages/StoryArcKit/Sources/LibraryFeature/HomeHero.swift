@@ -25,6 +25,9 @@ struct HomeHero: View {
 
     @State private var available: CGFloat = 0
 
+    /// The card at rest. Nil until the carousel scrolls, which is the first card.
+    @State private var centred: Publication.ID?
+
     private var cardWidth: CGFloat { HomeHeroMetrics.cardWidth(inRoomOf: available) }
 
     private var soloWidth: CGFloat { HomeHeroMetrics.soloWidth(inRoomOf: available) }
@@ -37,7 +40,7 @@ struct HomeHero: View {
             // publication the reader is in the middle of, which is the thing this section
             // exists to never do.
             if publications.count == 1, let only = publications.first {
-                card(only, width: soloWidth)
+                card(only, width: soloWidth, isCentred: true)
                     .padding(.horizontal, StoryArcSpace.gutter)
             } else {
                 carousel
@@ -61,7 +64,9 @@ struct HomeHero: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: StoryArcSpace.md) {
                 ForEach(publications) { publication in
-                    card(publication, width: cardWidth)
+                    // Only the card at rest offers Resume (task 28.9): a side card is drawn
+                    // small and faint, so a control on it fails the 44 pt and contrast floors.
+                    card(publication, width: cardWidth, isCentred: publication.id == centredID)
                         // Depth as cards pass: the one in the middle is the one being
                         // offered, and the ones beside it say so by standing back.
                         .scrollTransition(axis: .horizontal) { content, phase in
@@ -74,6 +79,7 @@ struct HomeHero: View {
             .scrollTargetLayout()
         }
         .scrollIndicators(.hidden)
+        .scrollPosition(id: $centred)
         // Cards come to rest on their own edges rather than mid-cover.
         .scrollTargetBehavior(.viewAligned)
         // Margins on the scroll *content*, so the first card starts at the gutter and the
@@ -81,13 +87,17 @@ struct HomeHero: View {
         .contentMargins(.horizontal, StoryArcSpace.gutter, for: .scrollContent)
     }
 
-    private func card(_ publication: Publication, width: CGFloat) -> some View {
+    private var centredID: Publication.ID? { centred ?? publications.first?.id }
+
+    private func card(_ publication: Publication, width: CGFloat, isCentred: Bool) -> some View {
         HomeHeroCard(
             publication: publication,
             model: model,
             width: width,
             height: width * HomeHeroMetrics.cardAspect,
-            onOpen: onOpen
+            isCentred: isCentred,
+            onOpen: onOpen,
+            onFocus: { withAnimation { centred = publication.id } }
         )
     }
 }
@@ -100,7 +110,10 @@ private struct HomeHeroCard: View {
     let model: LibraryModel
     let width: CGFloat
     let height: CGFloat
+    /// At rest in the carousel. A side card offers no control; its tap brings it to rest.
+    let isCentred: Bool
     let onOpen: (Publication) -> Void
+    let onFocus: () -> Void
 
     /// Whether the reader could open it right now.
     ///
@@ -123,7 +136,10 @@ private struct HomeHeroCard: View {
             // One constant for Home and the shelf alike — see ``LibraryMarks/awayOpacity``.
             .opacity(isReadable ? 1 : LibraryMarks.awayOpacity)
             .contentShape(.rect)
-            .onTapGesture { if isReadable { onOpen(publication) } }
+            .onTapGesture {
+                guard isReadable else { return }
+                if isCentred { onOpen(publication) } else { onFocus() }
+            }
             .accessibilityElement(children: .combine)
             .accessibilityLabel(spoken)
             .accessibilityAddTraits(isReadable ? .isButton : [])
@@ -184,7 +200,7 @@ private struct HomeHeroCard: View {
                     .lineLimit(2)
             }
 
-            if isReadable {
+            if isReadable, isCentred {
                 actions
             }
         }
@@ -300,6 +316,9 @@ private struct HomeHeroCard: View {
     /// action; a nested button would be a second stop offering the same book the same way.
     /// The button is here to teach a *sighted* reader what the artwork does, which is the
     /// gap the scenario is about.
+    ///
+    /// XCUITest lists it all the same, on iOS 26.2 and 26.5 alike, as it lists every hidden
+    /// element; so no UI test may depend on it (task 28.10).
     private var resumeButton: some View {
         Button {
             onOpen(publication)

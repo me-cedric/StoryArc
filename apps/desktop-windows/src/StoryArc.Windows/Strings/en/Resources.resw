@@ -4626,9 +4626,9 @@
     <value>Done</value>
     <comment>transfer.done.action</comment>
   </data>
-  <data name="transfer_done_conflict_item______" xml:space="preserve">
-    <value>Kept {0}, set aside {1}</value>
-    <comment>transfer.done.conflict.item %@ %@</comment>
+  <data name="transfer_done_conflict_item_________" xml:space="preserve">
+    <value>{0}: kept {1}, set aside {2}</value>
+    <comment>transfer.done.conflict.item %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_many__lld_one" xml:space="preserve">
     <value>Both devices had moved on in {0} title. The further position was kept.</value>
@@ -4638,13 +4638,17 @@
     <value>Both devices had moved on in {0} titles. The further position was kept for each.</value>
     <comment>transfer.done.conflict.many %lld (other)</comment>
   </data>
-  <data name="transfer_done_conflict_one______" xml:space="preserve">
-    <value>Both devices had moved on in one title. The further position was kept ({0}). Set aside: {1}.</value>
-    <comment>transfer.done.conflict.one %@ %@</comment>
+  <data name="transfer_done_conflict_one_________" xml:space="preserve">
+    <value>Both devices had moved on in “{0}”. The further position was kept ({1}). Set aside: {2}.</value>
+    <comment>transfer.done.conflict.one %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_show" xml:space="preserve">
     <value>Show</value>
     <comment>transfer.done.conflict.show</comment>
+  </data>
+  <data name="transfer_done_conflict_useOther" xml:space="preserve">
+    <value>Use the other position</value>
+    <comment>transfer.done.conflict.useOther</comment>
   </data>
   <data name="transfer_done_secrets__lld_one" xml:space="preserve">
     <value>{0} password was saved in the secure store</value>

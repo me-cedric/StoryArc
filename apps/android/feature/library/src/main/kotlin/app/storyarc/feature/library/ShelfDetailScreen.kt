@@ -52,6 +52,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -506,7 +507,7 @@ private fun EntryRow(
                 onClick = onOpen,
                 onLongClick = if (actions != null) { { menuTarget = publication } } else null,
             )
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             // The row's own merged label: its place in the list, its title and its read
             // state in the library's own words -- including "Unread", the one state with
             // nothing drawn for a sighted reader to see either.

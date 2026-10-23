@@ -133,6 +133,8 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // ProcessLifecycleOwner: the widget snapshot is written when the whole app leaves the foreground.
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.activity.compose)
     // viewModel(), to hand the library screen its state holder. :feature:library
     // already depends on this; the app needs it to construct one.

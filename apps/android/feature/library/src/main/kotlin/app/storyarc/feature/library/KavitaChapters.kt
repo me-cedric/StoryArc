@@ -34,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PublicationIndexer
@@ -359,7 +360,7 @@ private fun ChapterRow(
                 onLongClick = { menuOpen = true },
                 onLongClickLabel = stringResource(R.string.kavita_chapter_actions),
             )
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs)
             .semantics(mergeDescendants = true) { contentDescription = spoken },
     ) {

@@ -4626,9 +4626,9 @@
     <value>Terminé</value>
     <comment>transfer.done.action</comment>
   </data>
-  <data name="transfer_done_conflict_item______" xml:space="preserve">
-    <value>Conservée : {0} ; écartée : {1}</value>
-    <comment>transfer.done.conflict.item %@ %@</comment>
+  <data name="transfer_done_conflict_item_________" xml:space="preserve">
+    <value>{0} : conservée {1} ; écartée {2}</value>
+    <comment>transfer.done.conflict.item %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_many__lld_one" xml:space="preserve">
     <value>Les deux appareils avaient avancé dans {0} titre. La position la plus avancée a été conservée.</value>
@@ -4638,13 +4638,17 @@
     <value>Les deux appareils avaient avancé dans {0} titres. La position la plus avancée a été conservée pour chacun.</value>
     <comment>transfer.done.conflict.many %lld (other)</comment>
   </data>
-  <data name="transfer_done_conflict_one______" xml:space="preserve">
-    <value>Les deux appareils avaient avancé dans un titre. La position la plus avancée a été conservée ({0}). Écartée : {1}.</value>
-    <comment>transfer.done.conflict.one %@ %@</comment>
+  <data name="transfer_done_conflict_one_________" xml:space="preserve">
+    <value>Les deux appareils avaient avancé dans « {0} ». La position la plus avancée a été conservée ({1}). Écartée : {2}.</value>
+    <comment>transfer.done.conflict.one %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_show" xml:space="preserve">
     <value>Afficher</value>
     <comment>transfer.done.conflict.show</comment>
+  </data>
+  <data name="transfer_done_conflict_useOther" xml:space="preserve">
+    <value>Utiliser l’autre position</value>
+    <comment>transfer.done.conflict.useOther</comment>
   </data>
   <data name="transfer_done_secrets__lld_one" xml:space="preserve">
     <value>{0} mot de passe a été enregistré dans le stockage sécurisé</value>

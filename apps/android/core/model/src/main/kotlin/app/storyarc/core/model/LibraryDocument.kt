@@ -3,6 +3,7 @@ package app.storyarc.core.model
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 
 /**
  * The reader's library, in one versioned JSON document they can open.
@@ -227,7 +228,51 @@ data class DocumentProgress(
     /** The device that wrote [updatedAt]. Absent in an export. */
     @EncodeDefault(EncodeDefault.Mode.NEVER)
     val changedBy: String? = null,
-)
+) {
+    constructor(progress: ReadingProgress) : this(
+        identity = DocumentIdentity(progress.identity),
+        position = DocumentPosition(progress.position),
+        isFinished = progress.isFinished,
+        finishedAt = progress.finishedAtEpochMillis?.let(::wireMoment),
+        updatedAt = wireMoment(progress.updatedAtEpochMillis),
+    )
+
+    /** The record as the store keeps it, or null when this build cannot read its position or time. */
+    fun progress(): ReadingProgress? = ReadingProgress(
+        identity = identity.identity(),
+        position = position.position() ?: return null,
+        isFinished = isFinished,
+        finishedAtEpochMillis = epochMillis(finishedAt),
+        updatedAtEpochMillis = epochMillis(updatedAt) ?: return null,
+    )
+}
+
+/**
+ * A conflict a sync found, kept until the reader answers it (`library-sync` task 5.9).
+ *
+ * A background sync runs in a process with no screen. Its conflicts were held in memory and
+ * went with the process, so the reader never saw the notice. This is the stored form.
+ */
+@Serializable
+data class DocumentConflict(val kept: DocumentProgress, val setAside: DocumentPosition) {
+    constructor(conflict: ProgressPull.Conflict) :
+        this(DocumentProgress(conflict.resolved), DocumentPosition(conflict.discarded))
+
+    fun conflict(): ProgressPull.Conflict? =
+        ProgressPull.Conflict(kept.progress() ?: return null, setAside.position() ?: return null)
+
+    companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+
+        fun encode(conflicts: List<ProgressPull.Conflict>): String =
+            json.encodeToString(conflicts.map(::DocumentConflict))
+
+        /** Empty for text this build cannot read: a notice is lost, nothing else is. */
+        fun decode(text: String): List<ProgressPull.Conflict> =
+            runCatching { json.decodeFromString<List<DocumentConflict>>(text) }
+                .getOrDefault(emptyList()).mapNotNull { it.conflict() }
+    }
+}
 
 /** When a record or a field last changed, and on which device. */
 @Serializable

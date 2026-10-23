@@ -71,16 +71,7 @@
     <string name="settings_cancel">Cancelar</string>
     <string name="reading_matte">Color detrás de una página de cómic</string>
     <string name="reading_matte_note">Solo el área alrededor de la página. El arte nunca se tiñe.</string>
-    <string name="reading_matte_white">Blanco</string>
-    <string name="reading_matte_cream">Crema</string>
-    <string name="reading_matte_sepia">Sepia</string>
-    <string name="reading_matte_sage">Verde pálido</string>
-    <string name="reading_matte_sky">Azul pálido</string>
-    <string name="reading_matte_charcoal">Gris oscuro</string>
-    <string name="reading_matte_navy">Azul noche</string>
-    <string name="reading_matte_trueblack">Negro puro</string>
     <string name="reading_matte_none">Negro</string>
-    <string name="reading_matte_swatch">Color %1$s</string>
     <string name="privacy_cache">Caché · %1$s</string>
     <string name="privacy_cache_note">Páginas que StoryArc deja preparadas para que se abran rápido. Se reconstruyen a medida que lees.</string>
     <string name="privacy_history">Historial de lectura · %1$s</string>
@@ -113,6 +104,7 @@
     <string name="sources_kavita_system_trust">Necesita un certificado en el que su dispositivo ya confíe.</string>
     <string name="sources_state_connecting">Conectando</string>
     <string name="sources_state_unreachable">Sin respuesta</string>
+    <string name="sources_state_not_tried">No se intenta en este dispositivo</string>
     <string name="sources_state_unauthorized">Requiere acceso</string>
     <string name="covers_lookup">Buscar portadas que faltan</string>
     <string name="covers_lookup_providers">Consulta: %1$s</string>
@@ -315,7 +307,8 @@
         <item quantity="other">Ambos dispositivos habían avanzado en %1$d títulos. Se conservó la posición más avanzada de cada uno.</item>
     </plurals>
     <string name="transfer_done_conflict_show">Mostrar</string>
-    <string name="transfer_done_conflict_item">Conservada: %1$s; descartada: %2$s</string>
+    <string name="transfer_done_conflict_item">%1$s: conservada %2$s, descartada %3$s</string>
+    <string name="transfer_done_conflict_use_other">Usar la otra posición</string>
     <string name="transfer_position_page">Página %1$d de %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Listo</string>

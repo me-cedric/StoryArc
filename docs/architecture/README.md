@@ -4,7 +4,7 @@
 
 ```
                     docs/openspec/specs/          ← the contract
-                    17 capability specs
+                    18 capability specs
                               │
                  ┌────────────┴────────────┐
                  │                         │

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The suggested matte backgrounds, named for TalkBack. Drawn by the reader's adjustments
+     sheet and by the reading defaults, so the two cannot name one colour two ways. -->
+<resources>
+    <string name="matte_white">White</string>
+    <string name="matte_cream">Cream</string>
+    <string name="matte_sepia">Sepia</string>
+    <string name="matte_sage">Pale green</string>
+    <string name="matte_sky">Pale blue</string>
+    <string name="matte_charcoal">Dark grey</string>
+    <string name="matte_navy">Deep navy</string>
+    <string name="matte_trueblack">True black</string>
+    <string name="matte_swatch">Colour %1$s</string>
+</resources>

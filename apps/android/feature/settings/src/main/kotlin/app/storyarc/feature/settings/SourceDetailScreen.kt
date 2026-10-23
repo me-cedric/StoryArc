@@ -41,6 +41,7 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Source
 import app.storyarc.core.model.SourceAction
 import app.storyarc.core.model.SourceDiagnosis
+import app.storyarc.core.model.reachesOnlyAnotherDevice
 import app.storyarc.core.model.SourceFailure
 import app.storyarc.core.model.SourceRemovalWording
 import app.storyarc.core.persistence.ImportedCopies
@@ -150,7 +151,7 @@ internal fun SourceDetailScreen(
         ) {
             Field(
                 label = stringResource(R.string.sources_detail_status),
-                value = stringResource(status(diagnosis.state)),
+                value = stringResource(if (source.reachesOnlyAnotherDevice) R.string.sources_state_not_tried else status(diagnosis.state)),
             )
             Field(
                 label = stringResource(R.string.sources_detail_last_sync),

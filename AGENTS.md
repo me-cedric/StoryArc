@@ -20,7 +20,7 @@ packages, and Windows and Linux share one Rust core with no UI in it.
 
 | Path | What lives there |
 | --- | --- |
-| `docs/openspec/specs/` | **The contract.** 17 capability specs describing user-observable behaviour. |
+| `docs/openspec/specs/` | **The contract.** 18 capability specs describing user-observable behaviour. |
 | `docs/openspec/changes/` | In-flight proposals. Created with `/opsx:propose`. |
 | `apps/ios/` | Swift + SwiftUI. XcodeGen spec, one SPM package with three targets. |
 | `apps/android/` | Kotlin + Compose. Gradle with a version catalog, four modules. |

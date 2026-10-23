@@ -8,6 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.QuickActionRequest
@@ -89,9 +93,26 @@ internal fun AppIntents(
     // move inside the same whole percent writes nothing.
     val reading = continueReading.firstOrNull()
     val fraction = reading?.let { host.library.readFraction(it) }
-    LaunchedEffect(reading, fraction) {
+    val progressLoaded by host.library.progressLoaded.collectAsStateWithLifecycle()
+    LaunchedEffect(reading, fraction, progressLoaded) {
+        // Task 20.1 (2): before the first read of the positions the list is empty for no
+        // reason, and a write then would clear the snapshot until they load.
+        if (!progressLoaded) return@LaunchedEffect
         ReadingWidgets.publish(activity, ReadingSnapshot.of(reading, fraction?.toDouble())) {
             reading?.let { host.library.cover(it, ReadingSnapshot.COVER_PIXELS) }
+        }
+    }
+    // Task 20.1 (1): a reader who goes home from inside a book. The library reads the
+    // positions on resume only, and a stopped composition redraws nothing, so the snapshot is
+    // read and written again when the whole app leaves the foreground.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP, ProcessLifecycleOwner.get()) {
+        activity.lifecycleScope.launch {
+            host.library.refreshProgress()?.join()
+            val latest = host.library.continueReading.value.firstOrNull()
+            val percent = latest?.let { host.library.readFraction(it) }?.toDouble()
+            ReadingWidgets.publish(activity, ReadingSnapshot.of(latest, percent)) {
+                latest?.let { host.library.cover(it, ReadingSnapshot.COVER_PIXELS) }
+            }
         }
     }
 

@@ -78,13 +78,19 @@ struct SkippedNotice: View {
     private func banner(sentence: Text, reason: SkipReason?) -> some View {
         Group {
             if dynamicTypeSize.isAccessibilitySize {
+                // The sentence takes the whole width beside the icon. With the close button on
+                // its row the sentence wrapped one word per line, the banner grew past the
+                // screen, and Show fell below it (task 28.4).
                 VStack(alignment: .leading, spacing: StoryArcSpace.xs) {
                     HStack(alignment: .top, spacing: StoryArcSpace.sm) {
                         warning
                         message(sentence, reason: reason)
+                    }
+                    HStack {
+                        show
+                        Spacer(minLength: 0)
                         close
                     }
-                    show
                 }
             } else {
                 HStack(spacing: StoryArcSpace.sm) {

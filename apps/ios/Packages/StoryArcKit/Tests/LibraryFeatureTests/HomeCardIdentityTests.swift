@@ -139,7 +139,8 @@ struct HomeHeroProgressWiringTests {
 
         #expect(text.contains("home.resume"))
         #expect(text.contains(".buttonStyle(.glassProminent)"))
-        #expect(text.contains("onTapGesture { if isReadable { onOpen(publication) } }"))
+        // The centred card only: a side card's tap brings it to rest instead (task 28.9).
+        #expect(text.contains("if isCentred { onOpen(publication) } else { onFocus() }"))
         #expect(text.contains("onOpen(publication)"))
     }
 
@@ -147,7 +148,7 @@ struct HomeHeroProgressWiringTests {
     func noActionWhereThereIsNoBook() throws {
         // The card stays on the shelf, dimmed — `home-screen` insists on that. What it must
         // not do is offer a button that fails, when the line above already says why.
-        #expect(try heroSource().contains("if isReadable {\n                actions"))
+        #expect(try heroSource().contains("if isReadable, isCentred {\n                actions"))
     }
 
     @Test("A book with a page or less left is offered finishing rather than reopening")

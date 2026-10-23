@@ -31,7 +31,11 @@ final class LibraryImportModel {
         case failed
     }
 
-    private(set) var phase: Phase = .idle
+    private(set) var phase: Phase
+
+    init(phase: Phase = .idle) {
+        self.phase = phase
+    }
 
     /// What the reader typed for the sealed passwords. Cleared when the import ends.
     var passphrase = ""
@@ -95,6 +99,20 @@ final class LibraryImportModel {
             passphrase = ""
             phase = .failed
         }
+    }
+
+    /// The reader says the set-aside position was theirs. The store takes it, the row shows the
+    /// swap, and the app reloads as after the import. A failed write leaves the row as it was.
+    func useOtherPosition(
+        at index: Int,
+        transfer: LibraryTransfer,
+        onImported: (LibraryImportOutcome) -> Void
+    ) async {
+        guard case var .done(outcome) = phase, outcome.conflicts.indices.contains(index) else { return }
+        guard let swapped = try? await transfer.useOtherPosition(outcome.conflicts[index]) else { return }
+        outcome.conflicts[index] = swapped
+        phase = .done(outcome)
+        onImported(outcome)
     }
 
     /// The sheet closed. Nothing of the file or the passphrase stays.

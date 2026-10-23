@@ -117,4 +117,7 @@ class Catalogue05cCoverChooserCandidatesTest {
 
     @Test
     fun dark() = draw(Look.Dark)
+
+    @Test
+    fun largest() = draw(Look.Largest)
 }

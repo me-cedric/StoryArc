@@ -167,6 +167,9 @@ class LibraryArchive(
      * write that bypassed it could unmark a publication the merge had just decided was
      * finished.
      */
+    /** One position the reader chose over the one an import kept (`library-portability` task 3.1b). */
+    suspend fun savePosition(record: ReadingProgress) = progress.save(record)
+
     private suspend fun writeProgress(records: List<ReadingProgress>) {
         for (record in records) {
             progress.save(record)

@@ -2,7 +2,6 @@ package app.storyarc.feature.epubreader
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.hexColour
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.CoverAccent
 import app.storyarc.core.model.CoverColours
@@ -145,9 +145,6 @@ internal fun endButtonColours(colours: CoverColours?, brand: Color): EndButtonCo
     val fill = colours?.accent?.let(::hexColour) ?: return EndButtonColours(brand, Color.White)
     return EndButtonColours(fill, colours.onAccent.let(::hexColour) ?: Color.White)
 }
-
-private fun hexColour(hex: String): Color? =
-    runCatching { Color(AndroidColor.parseColor(hex)) }.getOrNull()
 
 /**
  * The colours one EPUB's cover gives its end of book, or null for a book with no cover or a

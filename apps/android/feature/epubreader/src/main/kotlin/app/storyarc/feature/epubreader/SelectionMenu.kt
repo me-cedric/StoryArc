@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -64,7 +65,7 @@ internal fun SelectionMenu(
                     val name = stringResource(colour.labelRes)
                     Column(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(MIN_TOUCH_TARGET)
                             .clickable(onClickLabel = name) { onHighlight(colour) },
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center,

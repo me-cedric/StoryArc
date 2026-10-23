@@ -121,4 +121,14 @@ class AudiobookIndexingTest {
                 fail("refused as an unsupported container rather than as protected: ${wrong.format}")
             }
         }
+
+
+    /** Task 28.5: a folder's identity carries the folder's digest, so a position outlives its path. */
+    @Test
+    fun `a folder audiobook carries a content digest beside its path`() = runTest {
+        val folder = FixtureCorpus.file("audiobooks/folder-parts")
+        val publication = PublicationIndexer.index(folder)
+        assertEquals(AudiobookFolder.open(folder).contentDigest, publication.identity.contentDigest)
+        assertEquals(folder.absoluteFile.normalize().path, publication.identity.normalizedPath)
+    }
 }

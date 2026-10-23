@@ -38,6 +38,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.hexColour
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ReaderPalette
@@ -329,7 +330,7 @@ private fun Sample(palette: ReaderPalette, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(StoryArcRadius.sm))
-            .background(hexColour(palette.background))
+            .background(hexColour(palette.background) ?: Color.Unspecified)
             .border(
                 width = 1.dp,
                 color = tokens.borderSubtle,
@@ -345,7 +346,7 @@ private fun Sample(palette: ReaderPalette, modifier: Modifier = Modifier) {
             Text(
                 text = stringResource(R.string.theme_page_colour_sample),
                 style = MaterialTheme.typography.bodySmall,
-                color = hexColour(palette.foreground),
+                color = hexColour(palette.foreground) ?: Color.Unspecified,
                 maxLines = 1,
             )
         }
@@ -395,7 +396,7 @@ internal fun SwatchRow(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(hexColour(hex))
+                        .background(hexColour(hex) ?: Color.Unspecified)
                         .border(
                             width = if (isActive) 3.dp else 1.dp,
                             color = if (isActive) tokens.accent else tokens.borderSubtle,
@@ -460,16 +461,6 @@ internal fun hslHex(hue: Float, saturation: Float, lightness: Float): String {
     val channels = listOf(colour.red, colour.green, colour.blue)
         .map { (it * 255).roundToInt().coerceIn(0, 255) }
     return "#" + channels.joinToString("") { "%02X".format(it) }
-}
-
-private fun hexColour(hex: String): Color {
-    val text = hex.removePrefix("#")
-    val value = text.toLongOrNull(16) ?: return Color.Unspecified
-    return Color(
-        red = ((value shr 16) and 0xFF) / 255f,
-        green = ((value shr 8) and 0xFF) / 255f,
-        blue = (value and 0xFF) / 255f,
-    )
 }
 
 internal fun ratio(value: Double, locale: Locale): String =

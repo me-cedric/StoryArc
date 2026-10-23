@@ -279,20 +279,9 @@ public final class LibraryModel {
         return fraction > 0 ? fraction : nil
     }
 
-    /// Reloads recorded positions. Called when the library appears, so returning
-    /// from the reader shows the page you reached.
-    public func refreshProgress() async {
-        guard let progressStore else { return }
-        guard let records = try? await progressStore.recent(limit: 500) else { return }
-        var byID: [String: ReadingProgress] = [:]
-        for publication in publications {
-            if let match = records.first(where: { $0.identity.matches(publication.identity) }) {
-                byID[publication.id] = match
-            }
-        }
-        progress = byID
-        rebuild()
-    }
+    /// Set by the first ``refreshProgress()``. Before it, an empty `continueReading` says
+    /// nothing, and the widget snapshot must not be cleared from it (task 20.1).
+    public internal(set) var hasLoadedProgress = false
 
     /// Re-files the shelf in the language the reader has just chosen.
     ///

@@ -107,13 +107,14 @@ These draw states that a later task owed a frame for. Each has a light and a dar
 | No. | Screen | iOS snapshot test | iOS images |
 | --- | --- | --- | --- |
 | 19a to 19e | Publication page, provenance in French: title not downloaded, server stopped, library removed, second place; and 19e, the sentence a stale page route answers in an alert | `LocalisedCatalogueTests/testCatalogue19*` | `LocalisedCatalogueTests/19*` (no largest image: the page at that size shows no sentence, and the alert differs from run to run) |
-| 20a, 20b | Skipped notice for `protected.aax` in Spanish, and in English as the control | `LocalisedCatalogueTests/testCatalogue20*` | `LocalisedCatalogueTests/20a-*`, `20b-*`. Fault at the largest size, in English and in Spanish: the sentence wraps one word to a line, the banner overlaps the large title, and *Show* falls below the first screen. Entry 18 does not show it, because its sentence is shorter |
+| 20a, 20b | Skipped notice for `protected.aax` in Spanish, and in English as the control | `LocalisedCatalogueTests/testCatalogue20*` | `LocalisedCatalogueTests/20a-*`, `20b-*`. At the largest size the sentence takes the whole width beside the icon, and *Show* and the close button share the row under it, so *Show* stays on the first screen (task 28.4, fixed 2026-10-23) |
 | 21a, 21b | Alert for a refused `.txt` file in French, and in English as the control | `LocalisedCatalogueTests/testCatalogue21*` | `LocalisedCatalogueTests/21a-*`, `21b-*` (no largest image: the alert's dim layer differs from run to run at that size) |
 | 22 | Cover chooser with three candidates and their pictures | `EdgeStateCatalogueTests/testCatalogue22CoverCandidatesWithPictures` | `EdgeStateCatalogueTests/22-*` |
 | 23 | Home when an audiobook was read last | `EdgeStateCatalogueTests/testCatalogue23HomeWithAnAudiobookHero` | `EdgeStateCatalogueTests/23-*` |
 | 24 | Source detail at "1 of 1 title" | `EdgeStateCatalogueTests/testCatalogue24SourceDetailOneOfOneTitle` | `EdgeStateCatalogueTests/24-*` |
 | 25a, 25b | A tall comic page at Fit to Width, with Slide and with Page curl stored | `EdgeStateCatalogueTests/testCatalogue25*` | `EdgeStateCatalogueTests/25a-*`, `25b-*` (no largest image) |
 | 26 | The two pinned sections of Home: a collection and a reading list | `EdgeStateCatalogueTests/testCatalogue26HomeWithPinnedShelves` | `EdgeStateCatalogueTests/26-*` (no largest image) |
+| 27 | The import result with one position both devices had moved on in: the title, both positions, and *Use the other position* | `SettingsCatalogueTests/testCatalogue27ImportResultWithAConflict` | `SettingsCatalogueTests/27-*` |
 
 ## What a snapshot cannot show
 

@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.sp
  */
 class KnownFault(val check: Check, val label: String, val why: String, val look: Look? = null)
 
-/** The three rules a catalogue entry is held to. */
-enum class Check { TOUCH_TARGET, LABEL, CONTRAST }
+/** The four rules a catalogue entry is held to. */
+enum class Check { TOUCH_TARGET, LABEL, CONTRAST, WRAP }
 
 /** One thing that broke a rule, in words a person can act on. */
 class Fault(val check: Check, val label: String, val detail: String) {
@@ -47,12 +47,30 @@ class Fault(val check: Check, val label: String, val detail: String) {
  *   text (18 sp, or 14 sp bold). The background is the commonest colour in the text's box on the
  *   picture. The text colour is the declared one, or the pixel that differs most from the
  *   background when the style leaves it to the theme.
+ * - [Check.WRAP]: the text of a control keeps at least one word to a line. A button in a box
+ *   narrower than its shortest word breaks that word one letter to a line, and no other check
+ *   sees it: the target is tall enough and the letters have contrast (task 28.1).
  */
 object Accessibility {
     private val MIN_TARGET: Dp = 48.dp
 
     fun faults(root: SemanticsNode, unmergedRoot: SemanticsNode, picture: Bitmap): List<Fault> =
-        targetFaults(root) + contrastFaults(unmergedRoot, picture)
+        targetFaults(root) + contrastFaults(unmergedRoot, picture) + wrapFaults(unmergedRoot)
+
+    private fun wrapFaults(root: SemanticsNode): List<Fault> = root.walk()
+        .filter { node -> node.isShown(root) && node.inControl() }
+        .mapNotNull { node ->
+            val layouts = mutableListOf<TextLayoutResult>()
+            node.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action?.invoke(layouts)
+            val layout = layouts.firstOrNull() ?: return@mapNotNull null
+            val words = layout.layoutInput.text.text.split(Regex("\\s+")).count { it.isNotBlank() }
+            if (words == 0 || layout.lineCount <= words) return@mapNotNull null
+            Fault(Check.WRAP, node.label(), "$words word(s) laid out on ${layout.lineCount} lines")
+        }
+        .toList()
+
+    private fun SemanticsNode.inControl(): Boolean =
+        generateSequence(this) { it.parent }.any { it.config.contains(SemanticsActions.OnClick) }
 
     private fun SemanticsNode.walk(): Sequence<SemanticsNode> =
         sequenceOf(this) + children.asSequence().flatMap { it.walk() }

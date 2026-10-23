@@ -101,8 +101,9 @@ final class SweepWave6Tests: XCTestCase {
     func testCaptureHomeResume() throws {
         let app = sweepLaunch(grouping: "issues", pinDownloads: false)
         try w5Tab("Home", in: app)
-        let resume = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Resume'")).firstMatch
-        XCTAssertTrue(resume.waitForExistence(timeout: 15), "No Resume: \(labels(in: app))")
+        // Resume is hidden from the tree (task 28.10); the section heading says a hero is up.
+        let heading = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Continue reading'")).firstMatch
+        XCTAssertTrue(heading.waitForExistence(timeout: 15), "No Continue reading: \(labels(in: app))")
         hold(2)
         shutter(app, named: "home-resume")
     }

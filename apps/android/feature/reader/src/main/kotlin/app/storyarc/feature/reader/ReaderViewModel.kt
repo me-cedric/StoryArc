@@ -554,7 +554,15 @@ class ReaderViewModel(
                 PublicationAccess.openPdf(resolver, path)
             }
             pdf = reader
-            _pages.value = (0 until reader.pageCount).map { PageEntry("${'$'}{it + 1}", 0L) }
+            val pages = (0 until reader.pageCount).map { PageEntry("${'$'}{it + 1}", 0L) }
+            // Finished reopens at page one, as an archive does. Read before the pages are
+            // published: the pager seeds from `initialIndex` once it has a count (task 28.2).
+            val record = progress?.progress(publication.identity)
+            val recorded = record?.position?.takeUnless { record.isFinished }
+            if (recorded is ReadingPosition.Page && recorded.index in pages.indices) {
+                initialIndex = recorded.index
+            }
+            _pages.value = pages
             // The same file again, for what is written on it. Absent for a scan, and absent
             // on a device whose PDF module predates the text API -- both of which the reader
             // answers by offering nothing rather than by offering something broken.
@@ -565,12 +573,6 @@ class ReaderViewModel(
                 publication = publication,
                 pageCount = reader.pageCount,
             )
-            // Finished reopens at page one, exactly as an archive does.
-            val record = progress?.progress(publication.identity)
-            val recorded = record?.position?.takeUnless { record.isFinished }
-            if (recorded is ReadingPosition.Page && recorded.index in _pages.value.indices) {
-                initialIndex = recorded.index
-            }
         } catch (cause: Exception) {
             Log.w(TAG, "cannot open this ${publication.format}", cause)
             reportIfUnreachable(cause)

@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
@@ -388,7 +389,7 @@ private const val PLACEHOLDER_SERIES_CELLS = 10
 private fun LibraryRowPlaceholder() {
     val palette = LocalStoryArcPalette.current
     Box(
-        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)
+        modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs)
             .testTag(KAVITA_PLACEHOLDER_TAG),
         contentAlignment = Alignment.CenterStart,
@@ -428,7 +429,7 @@ private fun LibraryRow(name: String, onOpen: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onOpen)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs),
     ) {
         Text(

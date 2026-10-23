@@ -999,11 +999,14 @@ three walks are `docs/delivery/desktop-conformance-<os>-wave2.md`.
 Requirements of the new capability: 43, with 168 scenarios. None is built. The owner answered the three open questions on 2026-10-07:
 the chrome accent, the edge click zones default and the cold-launch budget (design.md Open Questions 1 to 3).
 
-## Releases: `shared-release-train`, 2026-10-21
+## Releases: `release-train`, archived 2026-10-23
 
 One `vX.Y.Z` tag builds every download into a **draft** GitHub release and gives the Android bundle to Play
 internal testing as a **draft**. A push that changes the release machinery runs a rehearsal that publishes nothing.
-The plan is `changes/shared-release-train/tasks.md`; the rules are §10 of `AGENTS.md`.
+The capability is `specs/release-train/spec.md` (7 requirements, 16 scenarios), archived from
+`shared-release-train` on 2026-10-23 after `docs/delivery/shared-release-train-verify.md` found no critical
+issue and two warnings (no recorded Play refusal; the disk image window and the Flatpak start are CI proofs, not a
+person's). The rules are §10 of `AGENTS.md`.
 
 | Lane | Download | State |
 | --- | --- | --- |

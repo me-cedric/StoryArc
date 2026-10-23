@@ -25,6 +25,15 @@ workflows build it and `pnpm libarchive:pin` digests it.
 Test tasks come before the implementation task they cover. Paths in later waves are proposals: an agent that finds a
 better place moves the file and says so in the task. Estimates are not written here.
 
+**Reconciled 2026-10-23 (completion audit).** 74 tasks stay open. Each one carries a dated note that
+names what blocks it, and none is work this Mac can do: a Linux desktop session (GNOME, KDE, Hyprland,
+COSMIC) for the walks, captures, the curl spike 1.17 and the screen reader; a Windows desktop for the
+walks, the Store dry run, the MSVC RAR build (1.7) and the spikes 1.19, 1.20 and 5.3; the owner for
+Flathub (1.25, 6.5), signing and notarisation (6.8, with 5.4 and 5.7), and the two parent edits under
+`apps/ios` (1.30, 5.12). The one Mac item still measurable here is the resize frame rate of 5.10, under
+60 fps on 2026-10-18. The verify report of 6.9 stands. The proposal, the delta and `design.md` did not
+change since 2026-10-18; this note reconciles the task list with them.
+
 ## 0. Wave 0: preparation
 
 - [x] 0.1 **Parity audit.** Every requirement of the 17 main specs and the changes in flight, classified per desktop.

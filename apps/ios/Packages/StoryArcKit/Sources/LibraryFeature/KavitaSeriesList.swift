@@ -126,6 +126,7 @@ struct KavitaSeriesList: View {
 /// One series, as a cover with its title and progress under it.
 struct KavitaSeriesCell: View {
     @Environment(\.theme) private var theme
+    @Environment(\.displayScale) private var displayScale
 
     let series: KavitaSeries
     let client: KavitaClient
@@ -182,18 +183,10 @@ struct KavitaSeriesCell: View {
         // key, and a loader has nowhere to put one.
         .task(id: series.id) {
             guard cover == nil, let data = try? await client.seriesCover(series.id) else { return }
-            cover = Self.image(from: data)
+            // A column is under twice the grid's 120 pt minimum, so a 2:3 cover's longer
+            // side is under 360 pt.
+            cover = await RemoteCover.image(from: data, maxPixelSize: Int(360 * displayScale))
         }
-    }
-
-    private static func image(from data: Data) -> Image? {
-        #if canImport(UIKit)
-        return UIImage(data: data).map(Image.init(uiImage:))
-        #elseif canImport(AppKit)
-        return NSImage(data: data).map(Image.init(nsImage:))
-        #else
-        return nil
-        #endif
     }
 }
 

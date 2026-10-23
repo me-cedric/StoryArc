@@ -3,6 +3,8 @@ package app.storyarc.feature.settings
 import android.content.Context
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.model.ImportPreviewLine
@@ -366,5 +368,42 @@ class LibraryImportSheetTest {
 
         assertTrue(isDrawn("Page 12 of 40"))
         assertTrue(isDrawn("38%"))
+    }
+
+
+    /** Task 3.1b: each conflict names its title, and "use the other position" swaps the two. */
+    @Test
+    fun `a conflict names its title, and using the other position swaps what the row states`() = runBlocking {
+        val identity = PublicationIdentity(contentDigest = "d1", normalizedPath = "/a/Bone 01.cbz")
+        val carried = TransferLibrary.library.copy(
+            progress = listOf(ReadingProgress(identity, ReadingPosition.Page(12, 40), updatedAtEpochMillis = 1_767_100_000_000L)),
+        )
+        val device = TransferDevice(context).holding(
+            LibrarySnapshot(
+                progress = listOf(
+                    ReadingProgress(
+                        identity = identity,
+                        position = ReadingPosition.Page(30, 40),
+                        updatedAtEpochMillis = 1_767_200_000_000L,
+                        syncedPosition = ReadingPosition.Page(1, 40),
+                    ),
+                ),
+            ),
+        )
+        val state = LibraryImportState()
+        state.load(MemoryFile(TransferLibrary.documentText(carried)), device.transfer)
+        state.confirm(device.transfer, skippingSecrets = true) {}
+        var taken: ReadingProgress? = null
+        compose.setContent {
+            StoryArcTheme { LibraryImportContent(state = state, onImport = {}, onClose = {}, onUseOther = { taken = it }) }
+        }
+        compose.waitForIdle()
+        assertTrue(isDrawn(string(R.string.transfer_done_conflict_item, "Bone 01", "Page 31 of 40", "Page 13 of 40")))
+
+        compose.onNodeWithText(string(R.string.transfer_done_conflict_use_other)).performClick()
+        compose.waitForIdle()
+
+        assertEquals(ReadingPosition.Page(12, 40), taken?.position)
+        assertTrue(isDrawn(string(R.string.transfer_done_conflict_item, "Bone 01", "Page 13 of 40", "Page 31 of 40")))
     }
 }

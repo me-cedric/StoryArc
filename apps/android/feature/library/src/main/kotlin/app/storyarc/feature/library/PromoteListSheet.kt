@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -105,7 +105,7 @@ internal fun PromoteListSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { chosen = server }
-                        .defaultMinSize(minHeight = 48.dp),
+                        .defaultMinSize(minHeight = MIN_TOUCH_TARGET),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

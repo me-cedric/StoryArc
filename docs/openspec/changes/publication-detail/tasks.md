@@ -1733,7 +1733,7 @@ phase's own:
 
       **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Android: `docs/designs/screenshots/frames-android-2026-10-09/pd-copy-1-absent{,-dark}.png`, frame 1 of 6.5.
 
-- [~] **6.2** The page draws the copy, and offers no read anywhere.
+- [x] **6.2** The page draws the copy, and offers no read anywhere.
 
       **Code and tests landed**, 2026-09-10. `DetailNeedsCopyTest` composes the page for an
       absent publication whose library answers and asserts the download as the primary action,
@@ -1753,6 +1753,8 @@ phase's own:
       **Wave 4 (close-all-yellow), 2026-10-09.** Reviewer: partial. **Left:** frames 1 and 2 of 6.5.
 
       **Wave 9 (close-all-yellow), 2026-10-10.** **Left:** frames 1 and 2 of 6.5. Frame 1 exists (`docs/designs/screenshots/frames-android-2026-10-09/pd-copy-1-absent*`). Frame 2 shows a defect: the page does not draw the transfer record while a copy travels (`docs/designs/screenshots/rescope-android-2026-10-10/detail-copy-travelling-no-progress-defect-light.png`; task 28.3 of `close-the-audited-gaps`). Tick after the page draws the record.
+
+      **2026-10-23 (completion audit).** The page draws the record. The main pane took the app's `transfer`, which the app looks up by the publication id, while a copy started from the page is keyed by its catalogue entry; it now takes `copy.record ?: transfer`. Frame 2 at the default and the largest size: `apps/android/feature/library/src/test/snapshots/05d-publication-copy-travelling-{light,dark,largest}.png` (`Catalogue05dPublicationCopyTravellingTest`), per the owner rule of 2026-10-09 in `AGENTS.md` section 6.
 
 - [x] **6.3** A download from this page is a queued download.
 
@@ -1827,6 +1829,8 @@ phase's own:
       **Wave 5 (close-all-yellow), 2026-10-09.** Android frames: `docs/designs/screenshots/frames-android-2026-10-09/` has frame 1 (`pd-copy-1-absent`), frame 3 (`pd-copy-3-landed`) and frame 4 (`pd-copy-4-shade`). **Left:** frame 2 (`pd-copy-2-travelling`) does not prove the task. The page shows Read, with no Downloading label and no fraction, while a copy travels (defect 3 in that README). Retake it after the page draws the transfer record.
 
       **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. Frames 1, 3 and 4 exist (`docs/designs/screenshots/frames-android-2026-10-09/pd-copy-{1-absent,3-landed,4-shade}*`, light and dark). **Left:** frame 2, because the page draws no transfer record while a copy travels (task 28.3 of `close-the-audited-gaps`). `docs/designs/screenshots/rescope-android-2026-10-10/detail-copy-travelling-no-progress-defect-light.png` shows the fault and does not prove the frame.
+
+      **2026-10-23 (completion audit).** Frame 2 exists as the snapshot `05d-publication-copy-travelling-{light,dark,largest}` (task 28.3 of `close-the-audited-gaps`), which composes a running record directly. Read stays offered in it: `offline-downloads` allows reading while the copy travels, so the "no read offered" of this list predates that rule. **Left:** frames 1, 3 and 4 at the largest text size, and frame 2 on a device through the real queue.
 
 - [x] **6.6** iOS: verify the same shape, then mirror or record why not.
 

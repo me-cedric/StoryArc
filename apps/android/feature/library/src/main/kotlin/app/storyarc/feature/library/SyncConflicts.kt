@@ -2,7 +2,8 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.model.PublicationIdentity
-import java.net.URLDecoder
+import app.storyarc.core.model.leafTitle
+import app.storyarc.core.persistence.LibrarySyncState
 
 /**
  * The conflicts a library sync found, handed to the notice a refresh already shows.
@@ -15,9 +16,31 @@ import java.net.URLDecoder
  */
 object SyncConflicts {
 
-    /** Adds what one sync found to the notice. None adds nothing. */
+    /**
+     * Where a sync's conflicts wait for the reader, or null in a process that wired none.
+     *
+     * Task 5.9: a background sync runs in a process with no screen, and a notice held only
+     * in [RefreshConflicts] went with that process. What a sync finds is written here too,
+     * [restore] shows it again in the next process, and the reader's answer clears it.
+     */
+    @Volatile
+    var pending: LibrarySyncState? = null
+
+    /** Adds what one sync found to the notice, and keeps it until the reader answers. None adds nothing. */
     fun report(found: List<ProgressPull.Conflict>) {
+        if (found.isEmpty()) return
+        pending?.let { it.savePendingConflicts(it.pendingConflicts() + found) }
         RefreshConflicts.report(found.map(::notice))
+    }
+
+    /** Shows what earlier processes found and nobody answered. Once, when the runner is built. */
+    fun restore() {
+        RefreshConflicts.report(pending?.pendingConflicts().orEmpty().map(::notice))
+    }
+
+    /** The reader kept or took a position: nothing waits any more. */
+    fun answered() {
+        pending?.savePendingConflicts(emptyList())
     }
 
     /**
@@ -30,11 +53,5 @@ object SyncConflicts {
         discarded = conflict.discarded,
     )
 
-    internal fun title(identity: PublicationIdentity): String {
-        val path = identity.normalizedPath.orEmpty()
-        val decoded = runCatching { URLDecoder.decode(path.replace("+", "%2B"), "UTF-8") }.getOrDefault(path)
-        val leaf = decoded.substringAfterLast('/').substringAfterLast(':')
-        val dot = leaf.lastIndexOf('.')
-        return if (dot > 0) leaf.substring(0, dot) else leaf
-    }
+    internal fun title(identity: PublicationIdentity): String = identity.leafTitle
 }

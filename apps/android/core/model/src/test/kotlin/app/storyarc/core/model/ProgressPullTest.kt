@@ -121,4 +121,17 @@ class ProgressPullTest {
 
         assertTrue(pull.toSave.isEmpty() && pull.toPush.isEmpty() && pull.conflicts.isEmpty())
     }
+
+
+    /** `library-portability` task 3.1b: "use the other position" keeps the set-aside one. */
+    @Test
+    fun `a swapped conflict keeps the set-aside position and sets the kept one aside`() {
+        val conflict = ProgressPull.Conflict(progress("one", 0.6), ReadingPosition.Reflowable(0.3, "{}"))
+
+        val swapped = conflict.swapped()
+
+        assertEquals(ReadingPosition.Reflowable(0.3, "{}"), swapped.resolved.position)
+        assertEquals(ReadingPosition.Reflowable(0.6, "{}"), swapped.discarded)
+        assertEquals(conflict, swapped.swapped())
+    }
 }

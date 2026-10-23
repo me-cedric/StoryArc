@@ -227,4 +227,35 @@ class LibrarySyncRunnerTest {
         assertEquals(2, second.conflicts.last().size)
         assertTrue(first.conflicts.isEmpty())
     }
+
+
+    /**
+     * Task 5.9: the hypothesis was that a later sync with no conflict drops the first's report.
+     * The runner hands each sync's conflicts over as they are found and never takes one back,
+     * so the notice is lost elsewhere: a process with no screen ends before the library shows.
+     */
+    @Test
+    fun `a later sync with no conflict does not take back what the first one reported`() = runTest {
+        val place = Place()
+        val first = Device(place)
+        val second = Device(place)
+        first.runner.choose(folder)
+        second.runner.choose(folder)
+        first.read("d1", 20)
+        assertTrue(first.runner.run(LibrarySyncRunner.Trigger.CHOSEN))
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.CHOSEN))
+        first.read("d1", 40)
+        assertTrue(first.runner.run(LibrarySyncRunner.Trigger.LEFT_PUBLICATION))
+        second.read("d1", 30)
+        second.now += LibrarySyncRunner.THROTTLE_MILLIS
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.FOREGROUND))
+        assertEquals(1, second.conflicts.size)
+
+        second.now += LibrarySyncRunner.THROTTLE_MILLIS
+        assertTrue(second.runner.run(LibrarySyncRunner.Trigger.FOREGROUND))
+
+        assertEquals(1, second.conflicts.size)
+        assertEquals(listOf(ReadingPosition.Page(30, 100)), second.conflicts.single().map { it.discarded })
+        assertEquals(ReadingPosition.Page(40, 100), second.progress.progress(book)?.position)
+    }
 }

@@ -295,7 +295,8 @@ struct LibraryImportSheetTests {
         let conflict = try #require(outcome.conflicts.first)
         #expect(outcome.conflicts.count == 1)
         let keys = lookups(in: sheet(model, device))
-        #expect(keys.contains("transfer.done.conflict.one %@ %@"), "the screen looked up \(keys.sorted())")
+        #expect(keys.contains("transfer.done.conflict.one %@ %@ %@"), "the screen looked up \(keys.sorted())")
+        #expect(keys.contains("transfer.done.conflict.useOther"), "the screen offers no other position")
         #expect(ConflictWords.kept(conflict) != ConflictWords.setAside(conflict))
     }
 

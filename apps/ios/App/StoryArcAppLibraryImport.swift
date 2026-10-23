@@ -14,7 +14,10 @@ extension StoryArcApp {
         progress.map {
             LibraryTransfer(
                 archive: LibraryArchive(progress: $0, covers: CoverOverrideStore()),
-                secrets: credentials
+                secrets: credentials,
+                title: { identity in
+                    library.publications.first { $0.identity.matches(identity) }?.displayTitle
+                }
             )
         }
     }

@@ -187,7 +187,7 @@ struct AdjustmentsSheet: View {
     private func matteSwatch(_ hex: String?, isActive: Bool) -> some View {
         Button { model.chooseMatte(hex) } label: {
             Circle()
-                .fill(hex.flatMap { Color(readerHex: $0) } ?? .black)
+                .fill(hex.flatMap { Color(hex: $0) } ?? .black)
                 .frame(height: 30)
                 .overlay { Circle().strokeBorder(theme.palette.borderSubtle, lineWidth: 1) }
                 .overlay {
@@ -195,8 +195,7 @@ struct AdjustmentsSheet: View {
                         Circle().strokeBorder(theme.accent, lineWidth: 3).padding(-4)
                     }
                 }
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
+                .hitRegion()
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)

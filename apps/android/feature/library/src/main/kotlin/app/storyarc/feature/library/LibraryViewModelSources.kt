@@ -92,7 +92,15 @@ internal fun LibraryViewModel.register(tree: Uri) {
  */
 fun LibraryViewModel.addSource(source: Source) {
     if (_registry.value[source.id] != null) return
-    _registry.update { it.adoptingOrReadding(source) }
+    val same = _registry.value.atSamePlace(source)
+    if (same != null) {
+        // Task 28.6: the same place again replaces the source, and the new sign-in replaces
+        // the old secret. iOS's `LibraryModel.add` is the same two lines.
+        same.credentialReference?.takeIf { it != source.credentialReference }?.let { credentials?.remove(it) }
+        _registry.update { it.replacing(source.copy(id = same.id)) }
+    } else {
+        _registry.update { it.adoptingOrReadding(source) }
+    }
     sourceStore?.save(_registry.value)
 }
 

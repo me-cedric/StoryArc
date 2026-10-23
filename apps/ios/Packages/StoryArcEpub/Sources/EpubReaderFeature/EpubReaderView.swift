@@ -190,7 +190,7 @@ public struct EpubReaderView: View {
             else { return }
             try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
-            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible = false }
+            withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) { isChromeVisible = false }
         }
         // Everything the five pills used to do. `comic-reader` allows two controls over the
         // page, and this is what the second one opens.
@@ -375,7 +375,7 @@ public struct EpubReaderView: View {
         if isShowingTheme {
             isShowingTheme = false
         } else {
-            withAnimation(.easeInOut(duration: 0.2)) { isChromeVisible.toggle() }
+            withAnimation(.easeInOut(duration: StoryArcDuration.chromeFade)) { isChromeVisible.toggle() }
         }
     }
 }

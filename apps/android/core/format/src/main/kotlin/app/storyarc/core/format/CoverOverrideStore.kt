@@ -59,7 +59,10 @@ class CoverOverrideStore(private val directory: File) : ChosenCoverStore {
         if (publication.identity.contentDigest == null) Key.STABLE_IDENTIFIER else Key.CONTENT_DIGEST
 
     /** The chosen cover's own file, or null where the reader has chosen none. */
-    fun file(publication: Publication): File? = location(publication).takeIf { it.isFile }
+    fun file(publication: Publication): File? =
+        location(publication).takeIf { it.isFile }
+            // Task 28.5: a cover chosen before the digest arrived was filed under the path.
+            ?: location(publication.identity.stableId).takeIf { it.isFile }
 
     /** The chosen cover's bytes, or null where the reader has chosen none. */
     fun bytes(publication: Publication): ByteArray? =
@@ -135,6 +138,7 @@ class CoverOverrideStore(private val directory: File) : ChosenCoverStore {
      */
     fun remove(publication: Publication) {
         remove(publication.identity.coverOverrideKey)
+        remove(publication.identity.stableId)
     }
 
     /** Every chosen cover, by byte count, for the storage page. */

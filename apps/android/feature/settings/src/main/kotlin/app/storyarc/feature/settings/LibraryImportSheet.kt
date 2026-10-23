@@ -34,6 +34,8 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.LibraryDocumentFailure
 import app.storyarc.core.model.ProgressPull
 import app.storyarc.core.model.ReadingPosition
+import app.storyarc.core.model.ReadingProgress
+import app.storyarc.core.model.leafTitle
 import app.storyarc.core.model.previewLines
 import app.storyarc.core.persistence.LibraryImportOutcome
 import app.storyarc.core.persistence.LibraryImportPreview
@@ -52,6 +54,7 @@ internal fun LibraryImportSheet(
     state: LibraryImportState,
     onImport: (skippingSecrets: Boolean) -> Unit,
     onDismiss: () -> Unit,
+    onUseOther: (ReadingProgress) -> Unit = {},
 ) {
     ModalBottomSheet(
         onDismissRequest = { if (!state.isBusy) onDismiss() },
@@ -60,7 +63,7 @@ internal fun LibraryImportSheet(
             setOf(SheetValue.Hidden, SheetValue.Expanded),
         ),
     ) {
-        LibraryImportContent(state = state, onImport = onImport, onClose = onDismiss)
+        LibraryImportContent(state = state, onImport = onImport, onClose = onDismiss, onUseOther = onUseOther)
     }
 }
 
@@ -74,6 +77,8 @@ internal fun LibraryImportContent(
     onImport: (skippingSecrets: Boolean) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Writes the position the reader chose over the one the import kept (task 3.1b). */
+    onUseOther: (ReadingProgress) -> Unit = {},
 ) {
     val palette = LocalStoryArcPalette.current
     Column(
@@ -96,7 +101,7 @@ internal fun LibraryImportContent(
                 CloseRow(stringResource(R.string.transfer_ok), onClose)
             }
             is ImportPhase.Done -> {
-                DoneBody(phase.outcome)
+                DoneBody(phase.outcome, onUseOther)
                 CloseRow(stringResource(R.string.transfer_done_action), onClose)
             }
             ImportPhase.Failed -> {
@@ -201,7 +206,7 @@ internal fun Refusal(refusal: ImportRefusal) {
 }
 
 @Composable
-private fun DoneBody(outcome: LibraryImportOutcome) {
+private fun DoneBody(outcome: LibraryImportOutcome, onUseOther: (ReadingProgress) -> Unit) {
     val palette = LocalStoryArcPalette.current
     Text(
         text = stringResource(R.string.transfer_done_title),
@@ -230,14 +235,24 @@ private fun DoneBody(outcome: LibraryImportOutcome) {
             Text(text = it, style = MaterialTheme.typography.labelLarge, color = palette.textSecondary)
         }
     }
-    if (outcome.conflicts.isNotEmpty()) ConflictRows(outcome.conflicts)
+    if (outcome.conflicts.isNotEmpty()) ConflictRows(outcome.conflicts, onUseOther)
 }
 
-/** D3's notice, once: one title names both positions, several give the count and a list. */
+/**
+ * D3's notice, once: one title names both positions, several give the count and a list. Every
+ * row names its title and offers the other position; taking it swaps what the row states, so
+ * the reader can take it back (task 3.1b).
+ */
 @Composable
-private fun ConflictRows(conflicts: List<ProgressPull.Conflict>) {
+private fun ConflictRows(found: List<ProgressPull.Conflict>, onUseOther: (ReadingProgress) -> Unit) {
     val palette = LocalStoryArcPalette.current
+    var conflicts by remember { mutableStateOf(found) }
     var listed by remember { mutableStateOf(false) }
+    val use: (Int) -> Unit = { index ->
+        val swapped = conflicts[index].swapped()
+        conflicts = conflicts.toMutableList().also { it[index] = swapped }
+        onUseOther(swapped.resolved)
+    }
     val only = conflicts.singleOrNull()
     if (only != null) {
         Text(
@@ -249,6 +264,7 @@ private fun ConflictRows(conflicts: List<ProgressPull.Conflict>) {
             style = MaterialTheme.typography.bodyMedium,
             color = palette.textPrimary,
         )
+        ConflictRow(only) { use(0) }
         return
     }
     Text(
@@ -257,21 +273,26 @@ private fun ConflictRows(conflicts: List<ProgressPull.Conflict>) {
         color = palette.textPrimary,
     )
     TextButton(onClick = { listed = !listed }) { Text(stringResource(R.string.transfer_done_conflict_show)) }
-    if (listed) conflicts.forEach { ConflictRow(it) }
+    if (listed) conflicts.forEachIndexed { index, conflict -> ConflictRow(conflict) { use(index) } }
 }
 
-/** One title both devices had moved on in: the position kept and the position set aside. */
+/** One title both devices had moved on in: its name, the position kept, the position set aside. */
 @Composable
-internal fun ConflictRow(conflict: ProgressPull.Conflict) {
-    Text(
-        text = stringResource(
-            R.string.transfer_done_conflict_item,
-            positionWords(conflict.resolved.position),
-            positionWords(conflict.discarded),
-        ),
-        style = MaterialTheme.typography.labelLarge,
-        color = LocalStoryArcPalette.current.textSecondary,
-    )
+internal fun ConflictRow(conflict: ProgressPull.Conflict, onUseOther: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(
+                R.string.transfer_done_conflict_item,
+                conflict.resolved.identity.leafTitle,
+                positionWords(conflict.resolved.position),
+                positionWords(conflict.discarded),
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = LocalStoryArcPalette.current.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onUseOther) { Text(stringResource(R.string.transfer_done_conflict_use_other)) }
+    }
 }
 
 /**

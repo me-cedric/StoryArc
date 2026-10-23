@@ -13,11 +13,28 @@ final class SweepWave5HomeTests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// The Continue reading section, which exists only with a hero to show. The hero's own
+    /// Resume, Finish and Next are hidden from the accessibility tree (task 28.10), so the
+    /// walks wait for the section heading and find the card by its title.
     private func showHome(in app: XCUIApplication) throws {
         try w5Tab("Home", in: app)
-        _ = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Resume' OR label CONTAINS 'Pale'"))
+        _ = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Continue reading'"))
             .firstMatch.waitForExistence(timeout: 15)
         hold(2)
+    }
+
+    /// The hero card of one title: one element, labelled title, byline, kicker and what is left.
+    /// Its height tells it from the same title's cover on a shelf below.
+    private func hero(_ title: String, in app: XCUIApplication) -> XCUIElement? {
+        app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", title))
+            .allElementsBoundByIndex.first { $0.frame.height > 200 }
+    }
+
+    /// Finish sits at the foot of the card's caption, 16 pt in from the left and bottom edges.
+    /// The button is not in the tree, so the tap lands by position on the card that is.
+    private func tapFinish(on card: XCUIElement) {
+        let box = card.frame
+        card.coordinate(withNormalizedOffset: CGVector(dx: 56 / box.width, dy: 1 - 33 / box.height)).tap()
     }
 
     func testSetupPale() throws {
@@ -95,26 +112,27 @@ final class SweepWave5HomeTests: XCTestCase {
         try readToLastPage(in: app)
     }
 
+    /// The frame shows Finish without Next in series; the tree says only that the card is up.
     func testCaptureFinishNoNext() throws {
         let app = sweepLaunch()
         try showHome(in: app)
         shutter(app, named: "home-finish-no-next")
-        XCTAssertTrue(app.buttons["Finish"].exists, "Home offers no Finish on a last page.")
-        XCTAssertFalse(app.buttons["Next in series"].exists, "A comic with no next issue offers one.")
+        XCTAssertNotNil(hero("Fine Print", in: app), "Home offers no card for the comic on its last page.")
     }
 
+    /// The frame shows Finish beside Next in series; the tree says only that the card is up.
     func testCaptureFinishAndNext() throws {
         let app = sweepLaunch()
         try showHome(in: app)
         shutter(app, named: "home-finish-and-next")
-        XCTAssertTrue(app.buttons["Finish"].exists, "Home offers no Finish on a last page.")
-        XCTAssertTrue(app.buttons["Next in series"].exists, "Home offers no Next in series.")
+        XCTAssertNotNil(hero("Tidal Reach", in: app), "Home offers no card for the issue on its last page.")
     }
 
     func testTapFinish() throws {
         let app = sweepLaunch()
         try showHome(in: app)
-        app.buttons["Finish"].firstMatch.tap()
+        let card = try XCTUnwrap(hero("Fine Print", in: app), "Home offers no card for the comic on its last page.")
+        tapFinish(on: card)
         hold(2)
     }
 

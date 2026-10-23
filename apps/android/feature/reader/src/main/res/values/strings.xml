@@ -98,16 +98,7 @@
     <string name="reader_adjust_crop_this_page">Trim this page</string>
     <string name="reader_matte">Colour behind a comic page</string>
     <string name="reader_matte_note">The area around the page only. Artwork is never tinted.</string>
-    <string name="reader_matte_white">White</string>
-    <string name="reader_matte_cream">Cream</string>
-    <string name="reader_matte_sepia">Sepia</string>
-    <string name="reader_matte_sage">Pale green</string>
-    <string name="reader_matte_sky">Pale blue</string>
-    <string name="reader_matte_charcoal">Dark grey</string>
-    <string name="reader_matte_navy">Deep navy</string>
-    <string name="reader_matte_trueblack">True black</string>
     <string name="reader_matte_none">Black</string>
-    <string name="reader_matte_swatch">Colour %1$s</string>
     <string name="reader_brightness">Screen brightness</string>
     <string name="reader_chapter_previous">Previous chapter</string>
     <string name="reader_chapter_next">Next chapter</string>

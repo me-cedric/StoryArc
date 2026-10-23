@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.hexColour
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.MemoryPressure
 import app.storyarc.core.model.Publication
@@ -228,15 +229,7 @@ internal fun Message(text: String) {
  * a page of art. Only a colour the reader chose explicitly applies, which is what
  * `reading-themes` means by "the area around the page and not the page itself".
  */
-internal fun matteColour(hex: String?): Color {
-    val text = hex?.removePrefix("#") ?: return Color.Black
-    val value = text.toLongOrNull(16) ?: return Color.Black
-    return Color(
-        red = ((value shr 16) and 0xFF) / 255f,
-        green = ((value shr 8) and 0xFF) / 255f,
-        blue = (value and 0xFF) / 255f,
-    )
-}
+internal fun matteColour(hex: String?): Color = hexColour(hex) ?: Color.Black
 
 /**
  * What one of Android's seven trim levels means in the three states the reader knows.

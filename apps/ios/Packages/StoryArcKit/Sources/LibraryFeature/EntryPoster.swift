@@ -25,6 +25,7 @@ struct EntryPoster: View {
     var serverID: String?
 
     @Environment(\.theme) private var theme
+    @Environment(\.displayScale) private var displayScale
     @State private var cover: Image?
 
     var body: some View {
@@ -48,12 +49,12 @@ struct EntryPoster: View {
             // cover is the ladder's top rung, and the only one a server row can reach. The
             // server's own cover only where the reader chose none.
             if let chosen = chosenCover(chapterID) {
-                cover = Self.image(from: chosen)
+                cover = await RemoteCover.image(from: chosen, maxPixelSize: Int(Self.height * displayScale))
                 return
             }
             guard let data = try? await KavitaClient(address: address).chapterCover(chapterID)
             else { return }
-            cover = Self.image(from: data)
+            cover = await RemoteCover.image(from: data, maxPixelSize: Int(Self.height * displayScale))
         }
     }
 
@@ -65,13 +66,5 @@ struct EntryPoster: View {
         )
         let chapter = Publication(identity: identity, format: .cbz, displayTitle: "", origin: .authoritative)
         return CoverOverrideStore().data(for: chapter)
-    }
-
-    private static func image(from data: Data) -> Image? {
-        #if canImport(UIKit)
-        return UIImage(data: data).map(Image.init(uiImage:))
-        #else
-        return nil
-        #endif
     }
 }

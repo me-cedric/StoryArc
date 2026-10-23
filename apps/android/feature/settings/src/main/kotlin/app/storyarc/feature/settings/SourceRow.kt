@@ -147,7 +147,7 @@ internal fun SourceRow(
                 color = palette.textPrimary,
             )
             Text(
-                text = stringResource(status(source.state)) + " · " +
+                text = stringResource(statusOf(source)) + " · " +
                     pluralStringResource(
                         if (isPartial) R.plurals.sources_detail_partial else R.plurals.sources_detail,
                         itemCount,

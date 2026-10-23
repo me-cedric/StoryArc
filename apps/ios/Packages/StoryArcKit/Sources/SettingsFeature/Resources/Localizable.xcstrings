@@ -6179,31 +6179,31 @@
         }
       }
     },
-    "transfer.done.conflict.item %@ %@": {
+    "transfer.done.conflict.item %@ %@ %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Behalten: %1$@, verworfen: %2$@"
+            "value": "%1$@: behalten %2$@, verworfen %3$@"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kept %1$@, set aside %2$@"
+            "value": "%1$@: kept %2$@, set aside %3$@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conservada: %1$@; descartada: %2$@"
+            "value": "%1$@: conservada %2$@; descartada %3$@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Conservée : %1$@ ; écartée : %2$@"
+            "value": "%1$@ : conservée %2$@ ; écartée %3$@"
           }
         }
       }
@@ -6285,31 +6285,31 @@
         }
       }
     },
-    "transfer.done.conflict.one %@ %@": {
+    "transfer.done.conflict.one %@ %@ %@": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Beide Geräte waren bei einem Titel weitergekommen. Die weitere Position wurde behalten (%1$@). Verworfen: %2$@."
+            "value": "Beide Geräte waren bei „%1$@“ weitergekommen. Die weitere Position wurde behalten (%2$@). Verworfen: %3$@."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Both devices had moved on in one title. The further position was kept (%1$@). Set aside: %2$@."
+            "value": "Both devices had moved on in “%1$@”. The further position was kept (%2$@). Set aside: %3$@."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ambos dispositivos habían avanzado en un título. Se conservó la posición más avanzada (%1$@). Descartada: %2$@."
+            "value": "Ambos dispositivos habían avanzado en «%1$@». Se conservó la posición más avanzada (%2$@). Descartada: %3$@."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les deux appareils avaient avancé dans un titre. La position la plus avancée a été conservée (%1$@). Écartée : %2$@."
+            "value": "Les deux appareils avaient avancé dans « %1$@ ». La position la plus avancée a été conservée (%2$@). Écartée : %3$@."
           }
         }
       }
@@ -6339,6 +6339,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Afficher"
+          }
+        }
+      }
+    },
+    "transfer.done.conflict.useOther": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die andere Position verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the other position"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar la otra posición"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utiliser l’autre position"
           }
         }
       }

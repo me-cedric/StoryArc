@@ -87,4 +87,27 @@ class AudiobookFolderTest {
     fun `a folder with no audio is not an audiobook`() {
         assertTrue(AudiobookFolder.of(emptyList()).parts.isEmpty())
     }
+
+
+    // Task 28.5: a folder's own digest, from its audio files alone
+
+    @Test
+    fun `a folder's digest comes from its audio files, so a cover beside them changes nothing`() {
+        val folder = AudiobookFolder.open(FixtureCorpus.file("audiobooks/mixed-folder"))
+        val listed = AudiobookFolder.of(
+            folder.parts.map { AudiobookFolder.Candidate(it.path, it.bytes) } +
+                AudiobookFolder.Candidate("cover.png", 99),
+        )
+        assertEquals(folder.contentDigest, listed.contentDigest)
+        assertEquals(64, folder.contentDigest!!.length)
+    }
+
+    @Test
+    fun `a folder's digest moves with a part's size and not with its own name or place`() {
+        val one = AudiobookFolder.of(listOf(AudiobookFolder.Candidate("01.mp3", 10)))
+        val grown = AudiobookFolder.of(listOf(AudiobookFolder.Candidate("01.mp3", 11)))
+        assertEquals(one.contentDigest, AudiobookFolder.of(listOf(AudiobookFolder.Candidate("01.mp3", 10))).contentDigest)
+        assertTrue(one.contentDigest != grown.contentDigest)
+        assertEquals(null, AudiobookFolder.of(listOf(AudiobookFolder.Candidate("cover.png", 10))).contentDigest)
+    }
 }

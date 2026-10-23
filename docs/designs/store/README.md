@@ -81,6 +81,21 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
 | `iphone-6.9` | iPhone 17 Pro Max | 1320 x 2868 |
 | `ipad-13` | iPad Pro 13-inch | 2064 x 2752 |
 
+### Planned: foldables
+
+Two buckets are planned and not built. The plan is the OpenSpec change
+`docs/openspec/changes/foldables-and-iphone-duo/` (tasks 3.1 to 3.5). The App Store slot sizes
+are from Apple's screenshot specifications, read on 2026-10-23.
+
+| Bucket | Device | Pixels | Store slot |
+| --- | --- | --- | --- |
+| `duo` | iPhone Duo simulator, closed | 1398 x 2034 | App Store, iPhone Duo outer |
+| `duo` | iPhone Duo simulator, open | 2007 x 2853 | App Store, iPhone Duo inner |
+| `fold` | Pixel Fold emulator profile, closed and open (841 x 701 dp) | 9:16, 1080 px or more | Play, the large screen slots (Play has no foldable slot) |
+
+The iPhone Duo set is optional today and **required from April 2027 for every app built with
+the iOS 27.1 SDK or later**.
+
 ## How a run works
 
 1. The run builds both apps once, then starts three lanes at the same time. Each lane has

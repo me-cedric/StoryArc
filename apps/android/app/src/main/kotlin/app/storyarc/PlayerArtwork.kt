@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.cover.CoverlessWell
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -39,6 +40,30 @@ private const val ARTWORK_PIXELS = 512
 
 /** How wide the artwork may be: iOS's `PlayerArtwork` is 320 pt, and the two players agree. */
 internal val ARTWORK_MAX_WIDTH = 320.dp
+
+/** The smallest square worth drawing, about a shelf cover. */
+private val ARTWORK_MIN_SIZE = 120.dp
+
+/** What sits under the artwork down to the end of the transport, at font scale 1: the paddings, the gaps, the slider and the play button. */
+private const val PLAYER_FIXED_DP = 192
+
+/** The text in that same stretch, which grows with the text size: the chapter name, the position labels and the skip labels. */
+private const val PLAYER_TEXT_DP = 56
+
+/**
+ * How large the artwork may be: [ARTWORK_MAX_WIDTH], or less where the chapter name, the
+ * position and the transport would not fit under it in [available].
+ *
+ * `audio-playback`: "no transport control is pushed off the screen". On a 411 x 731 dp phone
+ * the system bars, the top bar and the navigation bar leave about 515 dp, and a 320 dp square
+ * put the skip labels under the navigation bar (task 28.12 of `close-the-audited-gaps`). The
+ * reserve is an estimate at the given text size; `Catalogue07FullPlayerTest.shortPhone` is
+ * what checks it. Never below [ARTWORK_MIN_SIZE], so a landscape phone still gets a picture.
+ */
+internal fun playerArtworkMax(available: Dp, fontScale: Float): Dp {
+    val reserve = PLAYER_FIXED_DP.dp + (PLAYER_TEXT_DP * fontScale).dp
+    return minOf(ARTWORK_MAX_WIDTH, maxOf(available - reserve, ARTWORK_MIN_SIZE))
+}
 
 /**
  * The player's artwork: the cover, or the well every other surface draws when there is none.
@@ -92,6 +117,8 @@ internal fun PlayerArtwork(
     cover: suspend (Publication, Int) -> Bitmap?,
     onArtwork: ((Bitmap) -> Unit)?,
     modifier: Modifier = Modifier,
+    /** How large the square may be. The player lowers it where the transport would not fit. */
+    maxSize: Dp = ARTWORK_MAX_WIDTH,
 ) {
     val palette = LocalStoryArcPalette.current
     var art by remember(publication?.id) { mutableStateOf<Bitmap?>(null) }
@@ -120,7 +147,7 @@ internal fun PlayerArtwork(
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         Box(
             modifier = Modifier
-                .widthIn(max = ARTWORK_MAX_WIDTH)
+                .widthIn(max = maxSize)
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .then(recorded)

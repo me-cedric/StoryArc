@@ -25,12 +25,12 @@ struct EpubEndOfPublication: View {
 
     /// The cover's adjusted accent, or the brand's. Never the raw extracted colour.
     private var accent: Color {
-        colours.map { Color(hex: $0.accent) } ?? theme.palette.accent
+        colours.flatMap { Color(hex: $0.accent) } ?? theme.palette.accent
     }
 
     /// What is written on that accent, chosen for it rather than assumed to be white.
     private var onAccent: Color {
-        colours.map { Color(hex: $0.onAccent) } ?? .white
+        colours.flatMap { Color(hex: $0.onAccent) } ?? .white
     }
 
     var body: some View {

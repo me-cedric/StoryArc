@@ -1,7 +1,5 @@
 package app.storyarc.feature.library
 
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.combinedClickable
@@ -19,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +36,7 @@ import app.storyarc.core.catalogue.OpdsAcquisition
 import app.storyarc.core.catalogue.OpdsClient
 import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsEntry
+import app.storyarc.core.designsystem.cover.rememberRemoteCover
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -72,15 +70,11 @@ internal fun CatalogueEntryCell(
 ) {
     val palette = LocalStoryArcPalette.current
     var menu by remember { mutableStateOf(false) }
-    var cover by remember(entry.id) { mutableStateOf<Bitmap?>(null) }
-
     // Fetched through the same client the feed came from: a private catalogue's covers sit
-    // behind the same credential, and an image loader has nowhere to put one.
-    LaunchedEffect(entry.id) {
-        val href = entry.thumbnail ?: entry.cover ?: return@LaunchedEffect
-        val bytes = runCatching { client.bytes(href, credential) }.getOrNull()
-            ?: return@LaunchedEffect
-        cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
+    // behind the same credential, and an image loader has nowhere to put one. Decoded no
+    // larger than the widest cell.
+    val cover = rememberRemoteCover(entry.id, rememberCoverPixels()) {
+        (entry.thumbnail ?: entry.cover)?.let { client.bytes(it, credential) }
     }
 
     val describes = subtitle(entry, CatalogueAcquisition.readable(entry))

@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.theme.matteNameRes
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.ThemeScope

@@ -2,7 +2,6 @@ package app.storyarc.feature.library
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,11 +48,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
+import app.storyarc.core.designsystem.cover.rememberRemoteCover
+import app.storyarc.core.designsystem.grid.coverMaximumWidth
 import app.storyarc.core.designsystem.grid.rememberCoverColumns
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcColor
@@ -457,7 +460,7 @@ internal fun EntryRow(
             // A pending entry cannot be opened from here: the server is what would hand the
             // file over, and it has not heard of this entry yet.
             .clickable(enabled = !isFetching && !row.isPending, onClick = onOpen)
-            .defaultMinSize(minHeight = 48.dp)
+            .defaultMinSize(minHeight = MIN_TOUCH_TARGET)
             .padding(vertical = StoryArcSpace.xs)
             .semantics(mergeDescendants = true) { contentDescription = spoken },
     ) {
@@ -655,13 +658,20 @@ private fun chapterPublication(serverId: String, chapterId: Int) = Publication(
 
 @Composable
 internal fun rememberChapterCover(chapterId: Int?, load: suspend (Int) -> ByteArray): Bitmap? {
-    var cover by remember(chapterId) { mutableStateOf<Bitmap?>(null) }
-    LaunchedEffect(chapterId) {
-        val id = chapterId ?: return@LaunchedEffect
-        val bytes = runCatching { load(id) }.getOrNull() ?: return@LaunchedEffect
-        cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
-    }
-    return cover
+    val posterPixels = with(LocalDensity.current) { POSTER_HEIGHT.roundToPx() }
+    return rememberRemoteCover(chapterId, posterPixels) { chapterId?.let { load(it) } }
+}
+
+/**
+ * The longer side of the widest cover cell, in pixels: what a server cover is decoded to.
+ *
+ * The grids draw a 2:3 cover across a column no wider than [coverMaximumWidth], so this
+ * is that width and a half, at this window's density and text size.
+ */
+@Composable
+internal fun rememberCoverPixels(): Int {
+    val density = LocalDensity.current
+    return with(density) { (coverMaximumWidth(density.fontScale) * 1.5f).roundToPx() }
 }
 
 /**

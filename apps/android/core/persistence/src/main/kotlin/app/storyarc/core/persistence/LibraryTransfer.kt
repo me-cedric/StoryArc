@@ -185,6 +185,9 @@ class LibraryTransfer(
         return outcome
     }
 
+    /** The position the reader chose over the one an import kept (`library-portability` task 3.1b). */
+    suspend fun savePosition(record: ReadingProgress) = archive.savePosition(record)
+
     /**
      * A record as [ProgressStore] reads it back, which keeps only the fraction of a watermark.
      * Compared whole, every record the merge stamped would differ from the stored one.

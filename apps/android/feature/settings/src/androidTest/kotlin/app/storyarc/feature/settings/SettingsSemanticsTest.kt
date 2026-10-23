@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.platform.app.InstrumentationRegistry
 import app.storyarc.core.designsystem.theme.StoryArcTheme
+import app.storyarc.core.designsystem.theme.matteNameRes
 import app.storyarc.core.model.AppSettings
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
 import app.storyarc.core.persistence.ReaderPreferences

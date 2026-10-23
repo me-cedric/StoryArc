@@ -171,4 +171,27 @@ final class SettingsCatalogueTests: XCTestCase {
             Root { self.settingsView($0, opensAtDownloads: true, downloads: downloads, bytesOnDisk: 79_000_000) }
         }
     }
+
+    /// The import result with one position both devices had moved on in: the title, both
+    /// positions, and the other position offered (`library-portability` 3.1b).
+    func testCatalogue27ImportResultWithAConflict() throws {
+        let transfer = LibraryTransfer(
+            archive: LibraryArchive(defaults: defaults(), progress: try ProgressStore.inMemory()),
+            secrets: NoSecrets(),
+            title: { _ in "The Long Field" }
+        )
+        let identity = PublicationIdentity(contentDigest: "d1", normalizedPath: "/Comics/The Long Field.cbz")
+        let conflict = ProgressPull.Conflict(
+            resolved: ReadingProgress(identity: identity, position: .page(index: 30, of: 40), updatedAt: Self.moment),
+            discarded: .page(index: 12, of: 40)
+        )
+        let outcome = LibraryImportOutcome(
+            conflicts: [conflict], sourcesNeedingSignIn: [], secretsWritten: 0, snapshot: LibrarySnapshot()
+        )
+        assertCatalogue("27-import-result-with-a-conflict") {
+            LibraryImportSheet(
+                model: LibraryImportModel(phase: .done(outcome)), transfer: transfer, onImported: { _ in }, onClose: {}
+            )
+        }
+    }
 }

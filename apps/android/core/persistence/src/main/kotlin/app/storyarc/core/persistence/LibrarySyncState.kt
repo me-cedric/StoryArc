@@ -2,6 +2,8 @@ package app.storyarc.core.persistence
 
 import android.content.Context
 import android.content.SharedPreferences
+import app.storyarc.core.model.DocumentConflict
+import app.storyarc.core.model.ProgressPull
 import java.util.UUID
 
 /**
@@ -20,6 +22,7 @@ class LibrarySyncState internal constructor(private val preferences: SharedPrefe
 
         private const val DEVICE = "deviceId"
         private const val MERGED_COPIES = "mergedCopies"
+        private const val PENDING_CONFLICTS = "pendingConflicts"
     }
 
     /** This install's id, made on first use. */
@@ -32,5 +35,18 @@ class LibrarySyncState internal constructor(private val preferences: SharedPrefe
 
     fun saveMergedCopies(copies: Set<String>) {
         preferences.edit().putStringSet(MERGED_COPIES, copies).apply()
+    }
+
+    /**
+     * The conflicts syncs found and the reader has not answered (task 5.9).
+     *
+     * A background sync runs in a process with no screen, and a notice held in memory went
+     * with that process. These stay until the reader keeps or takes a position.
+     */
+    fun pendingConflicts(): List<ProgressPull.Conflict> =
+        preferences.getString(PENDING_CONFLICTS, null)?.let(DocumentConflict::decode).orEmpty()
+
+    fun savePendingConflicts(conflicts: List<ProgressPull.Conflict>) {
+        preferences.edit().putString(PENDING_CONFLICTS, DocumentConflict.encode(conflicts)).apply()
     }
 }

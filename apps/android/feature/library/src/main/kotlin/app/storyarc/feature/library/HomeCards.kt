@@ -366,21 +366,26 @@ internal fun HomeKeepReadingCard(
         // page and the book is done, and the card was the only thing between them and the
         // next one. Finish keeps the filled emphasis even beside a next issue -- the reader
         // is on the last page of *this* book, and finishing is what they came to do.
+        //
+        // Finish and Next in series are stacked: the card is about 205 dp wide, and the two
+        // side by side left the second one letter to a line (task 28.1).
         if (entry.isReadableNow) {
             Row(horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
                 if (entry.isAtTheEnd) {
-                    Button(onClick = onFinish) {
-                        Icon(
-                            imageVector = Icons.Filled.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(ButtonDefaults.IconSize),
-                        )
-                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                        Text(stringResource(R.string.home_finish))
-                    }
-                    entry.nextInSeries?.let { next ->
-                        OutlinedButton(onClick = { onOpenNext(next) }) {
-                            Text(stringResource(R.string.home_next_in_series))
+                    Column(verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm)) {
+                        Button(onClick = onFinish) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(ButtonDefaults.IconSize),
+                            )
+                            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                            Text(stringResource(R.string.home_finish))
+                        }
+                        entry.nextInSeries?.let { next ->
+                            OutlinedButton(onClick = { onOpenNext(next) }) {
+                                Text(stringResource(R.string.home_next_in_series))
+                            }
                         }
                     }
                 } else {

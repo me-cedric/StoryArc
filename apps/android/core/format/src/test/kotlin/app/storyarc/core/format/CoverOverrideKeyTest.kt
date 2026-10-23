@@ -77,4 +77,21 @@ class CoverOverrideKeyTest {
         assertTrue(store.chosen(emptyList()).isEmpty())
         assertTrue(directory.listFiles()!!.isEmpty())
     }
+
+
+    // Task 28.5: a folder audiobook gains its digest after the reader chose a cover
+
+    @Test
+    fun `a cover chosen before the digest arrived is still the publication's cover after it`() {
+        val store = CoverOverrideStore(folder())
+        val before = publication(digest = null, path = "/audiobooks/sea-room")
+        store.store(byteArrayOf(4), before)
+
+        val after = publication(digest = "folder-d1", path = "/audiobooks/sea-room")
+
+        assertArrayEquals(byteArrayOf(4), store.bytes(after))
+        store.remove(after)
+        assertEquals(null, store.bytes(after))
+        assertEquals(null, store.bytes(before))
+    }
 }

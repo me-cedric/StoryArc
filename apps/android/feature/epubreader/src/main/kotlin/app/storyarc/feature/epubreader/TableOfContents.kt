@@ -19,11 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import app.storyarc.core.designsystem.control.MIN_TOUCH_TARGET
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import org.readium.r2.shared.publication.Link
@@ -138,7 +138,7 @@ private fun ContentsRow(
             // Material's 48dp touch-target floor, per `native-experience`. Stated, not
             // composed from two spacing tokens: 32 plus 16 happens to be 48 today, and a
             // change to either would drop the floor without anything saying so.
-            .heightIn(min = 48.dp)
+            .heightIn(min = MIN_TOUCH_TARGET)
             .clickable(role = Role.Button, onClick = onGo)
             // Without the merge a screen reader reads the title and the place marker as
             // two unrelated pieces of text on the way past.

@@ -42,12 +42,12 @@ struct EndOfPublication: View {
     /// The cover's accent, or the brand's. Never the raw extracted colour — what
     /// ``CoverColours`` carries has already been adjusted to clear the floor.
     private var accent: Color {
-        colours.flatMap { Color(readerHex: $0.accent) } ?? theme.palette.accent
+        colours.flatMap { Color(hex: $0.accent) } ?? theme.palette.accent
     }
 
     /// What is written on that accent, chosen for it rather than assumed to be white.
     private var onAccent: Color {
-        colours.flatMap { Color(readerHex: $0.onAccent) } ?? .white
+        colours.flatMap { Color(hex: $0.onAccent) } ?? .white
     }
 
     var body: some View {
@@ -56,7 +56,7 @@ struct EndOfPublication: View {
             // visible behind it, which is what says this screen is over the book rather
             // than after it.
             LinearGradient(
-                colors: [colours.flatMap { Color(readerHex: $0.wash) } ?? .black, .black],
+                colors: [colours.flatMap { Color(hex: $0.wash) } ?? .black, .black],
                 startPoint: .top,
                 endPoint: .bottom
             )

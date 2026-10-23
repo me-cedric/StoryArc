@@ -89,6 +89,14 @@ An agent ran the steps marked "Done 2026-10-10" on the OnePlus 7T Pro (debug bui
 
 - Put StoryArc in Split View beside another app. Drag the divider narrow, then wide. One pane, then the same publication in both. Task: `one-library-three-destinations` 4.1, 4.3; `publication-detail` 4.1.
 
+## Foldables (planned, not scheduled)
+
+The change `foldables-and-iphone-duo` is a plan only (owner decision of 2026-10-23). When it
+starts, these two steps need a device that no simulator profile replaces:
+
+- On an iPhone Duo: open and close the device with a comic open, half-open it on a table, hold it like a book, and put StoryArc beside another app on the inner display. Task: `foldables-and-iphone-duo` 4.2.
+- On a Pixel Fold or a Galaxy Z Fold: the same four postures, with a right-to-left spread in book posture. Task: `foldables-and-iphone-duo` 4.2.
+
 ## Apple Developer team
 
 - Set `DEVELOPMENT_TEAM` in `apps/ios/project.yml` and install. Add the widget, read a book, check cover, title and part read. Task: `close-the-audited-gaps` 20.1.

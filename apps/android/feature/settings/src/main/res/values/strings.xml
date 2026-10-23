@@ -75,18 +75,9 @@
     <string name="settings_cancel">Cancel</string>
     <string name="reading_matte">Colour behind a comic page</string>
     <string name="reading_matte_note">The area around the page only. Artwork is never tinted.</string>
-    <string name="reading_matte_white">White</string>
-    <string name="reading_matte_cream">Cream</string>
-    <string name="reading_matte_sepia">Sepia</string>
-    <string name="reading_matte_sage">Pale green</string>
-    <string name="reading_matte_sky">Pale blue</string>
-    <string name="reading_matte_charcoal">Dark grey</string>
-    <string name="reading_matte_navy">Deep navy</string>
-    <string name="reading_matte_trueblack">True black</string>
     <string name="reading_matte_none">Black</string>
     <!-- What a screen reader calls one swatch. Same convention as the reader's own
          colour row: the hex inside a labelled template, never a bare code. -->
-    <string name="reading_matte_swatch">Colour %1$s</string>
     <string name="privacy_cache">Cache · %1$s</string>
     <string name="privacy_cache_note">Pages StoryArc kept ready so they open fast. Rebuilt as you read.</string>
     <string name="privacy_history">Reading history · %1$s</string>
@@ -124,6 +115,7 @@
     <string name="sources_kavita_system_trust">Needs a certificate your device already trusts.</string>
     <string name="sources_state_connecting">Connecting</string>
     <string name="sources_state_unreachable">Not answering</string>
+    <string name="sources_state_not_tried">Not tried on this device</string>
     <string name="sources_state_unauthorized">Needs sign-in</string>
     <string name="covers_lookup">Look up missing covers</string>
     <string name="covers_lookup_providers">Asks: %1$s</string>
@@ -333,7 +325,8 @@
         <item quantity="other">Both devices had moved on in %1$d titles. The further position was kept for each.</item>
     </plurals>
     <string name="transfer_done_conflict_show">Show</string>
-    <string name="transfer_done_conflict_item">Kept %1$s, set aside %2$s</string>
+    <string name="transfer_done_conflict_item">%1$s: kept %2$s, set aside %3$s</string>
+    <string name="transfer_done_conflict_use_other">Use the other position</string>
     <string name="transfer_position_page">Page %1$d of %2$d</string>
     <string name="transfer_position_percent">%1$d%%</string>
     <string name="transfer_done_action">Done</string>

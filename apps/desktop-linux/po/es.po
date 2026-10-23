@@ -3663,8 +3663,8 @@ msgid "transfer.done.action"
 msgstr "Listo"
 
 #, c-format
-msgid "transfer.done.conflict.item %s %s"
-msgstr "Conservada: %1$s; descartada: %2$s"
+msgid "transfer.done.conflict.item %s %s %s"
+msgstr "%1$s: conservada %2$s; descartada %3$s"
 
 #, c-format
 msgid "transfer.done.conflict.many %d"
@@ -3673,11 +3673,14 @@ msgstr[0] "Ambos dispositivos habían avanzado en %d título. Se conservó la po
 msgstr[1] "Ambos dispositivos habían avanzado en %d títulos. Se conservó la posición más avanzada de cada uno."
 
 #, c-format
-msgid "transfer.done.conflict.one %s %s"
-msgstr "Ambos dispositivos habían avanzado en un título. Se conservó la posición más avanzada (%1$s). Descartada: %2$s."
+msgid "transfer.done.conflict.one %s %s %s"
+msgstr "Ambos dispositivos habían avanzado en «%1$s». Se conservó la posición más avanzada (%2$s). Descartada: %3$s."
 
 msgid "transfer.done.conflict.show"
 msgstr "Mostrar"
+
+msgid "transfer.done.conflict.useOther"
+msgstr "Usar la otra posición"
 
 #, c-format
 msgid "transfer.done.secrets %d"

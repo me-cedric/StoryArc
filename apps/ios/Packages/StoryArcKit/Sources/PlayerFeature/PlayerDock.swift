@@ -245,8 +245,7 @@ public struct PlayerDock: View {
             Image(systemName: symbol)
                 // A glyph is smaller than a finger. Chrome this compact still owes a target
                 // somebody can hit while walking.
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
+                .hitRegion()
         }
         .buttonStyle(.plain)
         .foregroundStyle(tint ?? theme.palette.textPrimary)

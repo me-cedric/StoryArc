@@ -187,13 +187,13 @@ struct PageColourSection: View {
             ForEach(0..<3, id: \.self) { _ in
                 Text("theme.pageColour.sample", bundle: .module)
                     .textRole(.footnote)
-                    .foregroundStyle(Color(hex: palette.foreground))
+                    .foregroundStyle(Color(hex: palette.foreground) ?? .black)
                     .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(StoryArcSpace.sm)
-        .background(Color(hex: palette.background), in: .rect(cornerRadius: StoryArcRadius.sm))
+        .background(Color(hex: palette.background) ?? .black, in: .rect(cornerRadius: StoryArcRadius.sm))
         .overlay {
             RoundedRectangle(cornerRadius: StoryArcRadius.sm)
                 .strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
@@ -347,7 +347,7 @@ private struct Swatch: View {
     var body: some View {
         Button(action: onSelect) {
             Circle()
-                .fill(Color(hex: hex))
+                .fill(Color(hex: hex) ?? .black)
                 .frame(height: 32)
                 .overlay {
                     Circle().strokeBorder(theme.palette.borderSubtle, lineWidth: 1)
@@ -361,8 +361,7 @@ private struct Swatch: View {
                 }
                 // The circle stays 32 pt; the target does not. `contentShape` is what
                 // widens the tap area — a bare frame leaves it the circle's own path.
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
+                .hitRegion()
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)

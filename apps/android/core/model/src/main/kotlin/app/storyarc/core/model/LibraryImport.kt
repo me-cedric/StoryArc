@@ -343,15 +343,7 @@ object LibraryImport {
      * `LibraryImport.readableProgress` is the same step, and drops the same records for an unreadable position.
      */
     internal fun readableProgress(document: LibraryDocument): List<ReadingProgress> =
-        document.library.progress.mapNotNull { record ->
-            ReadingProgress(
-                identity = record.identity.identity(),
-                position = record.position.position() ?: return@mapNotNull null,
-                isFinished = record.isFinished,
-                finishedAtEpochMillis = epochMillis(record.finishedAt),
-                updatedAtEpochMillis = epochMillis(record.updatedAt) ?: return@mapNotNull null,
-            )
-        }
+        document.library.progress.mapNotNull { it.progress() }
 
     private fun heldProgress(identity: PublicationIdentity, device: LibrarySnapshot):
         ReadingProgress? = device.progress.firstOrNull { it.identity.matches(identity) }

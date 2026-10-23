@@ -1,7 +1,6 @@
 package app.storyarc.feature.library
 
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +21,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import app.storyarc.core.designsystem.control.OutlinedButton
+import app.storyarc.core.designsystem.cover.rememberRemoteCover
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
@@ -97,14 +97,11 @@ fun CatalogueDetailScreen(
     val isDownloaded = downloads.finished.any { it.id == queue.downloadId(entry.id, sourceId) }
     val active = downloads.pending
     val scope = rememberCoroutineScope()
-    var cover by remember(entry.id) { mutableStateOf<Bitmap?>(null) }
-
-    // The full-size cover, not the thumbnail the grid settled for.
-    LaunchedEffect(entry.id) {
-        val href = entry.cover ?: entry.thumbnail ?: return@LaunchedEffect
-        val bytes = runCatching { client.bytes(href, credential) }.getOrNull()
-            ?: return@LaunchedEffect
-        cover = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
+    // The full-size cover, not the thumbnail the grid settled for -- decoded no larger
+    // than the artwork it fills.
+    val coverPixels = with(LocalDensity.current) { (ARTWORK_WIDTH * 1.5f).roundToPx() }
+    val cover = rememberRemoteCover(entry.id, coverPixels) {
+        (entry.cover ?: entry.thumbnail)?.let { client.bytes(it, credential) }
     }
 
     // The download the reader is being asked to spend mobile data on, if one is.
@@ -232,7 +229,7 @@ private fun Artwork(entry: OpdsEntry, cover: Bitmap?) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .widthIn(max = 240.dp)
+                .widthIn(max = ARTWORK_WIDTH)
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(StoryArcRadius.lg))
                 // Decorative: the title is read out of the headline below, and a screen
@@ -504,3 +501,6 @@ private suspend fun openStreamed(
     onOpen(publication, address)
     return true
 }
+
+/** How wide the artwork is drawn; the cover is decoded for this and no more. */
+private val ARTWORK_WIDTH = 240.dp

@@ -1,11 +1,5 @@
 internal import SwiftUI
 
-#if canImport(UIKit)
-internal import UIKit
-#elseif canImport(AppKit)
-internal import AppKit
-#endif
-
 internal import Catalogue
 internal import DesignSystem
 internal import Formats
@@ -22,6 +16,7 @@ internal import StoryArcCore
 /// size worth looking at, and the metadata under it in the order a reader asks for it.
 struct CatalogueDetailView: View {
     @Environment(\.theme) private var theme
+    @Environment(\.displayScale) private var displayScale
 
     let entry: OpdsEntry
     let credential: OpdsCredential?
@@ -228,13 +223,8 @@ struct CatalogueDetailView: View {
     private func loadCover() async {
         guard cover == nil, let url = entry.cover ?? entry.thumbnail else { return }
         guard let data = try? await client.data(at: url, credential: credential) else { return }
-        #if canImport(UIKit)
-        guard let image = UIImage(data: data) else { return }
-        cover = Image(uiImage: image)
-        #elseif canImport(AppKit)
-        guard let image = NSImage(data: data) else { return }
-        cover = Image(nsImage: image)
-        #endif
+        // The artwork is capped at `huge * 4` wide, so a 2:3 cover is `huge * 6` tall.
+        cover = await RemoteCover.image(from: data, maxPixelSize: Int(StoryArcSpace.huge * 6 * displayScale))
     }
 }
 

@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.control.MenuRow
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -183,18 +184,18 @@ internal fun ReaderMenuSheet(
             // simpler `ComicBookmarkSheet`) depends on `hasPdfText`. Search stays
             // text-dependent: `ebook-reader` hides a text-dependent control rather than
             // disabling it, and there is no text layer to search in a comic or a scan.
-            MenuRow(ReaderMenuEntry.BOOKMARKS, Icons.Filled.Bookmark) {
+            MenuRow(stringResource(ReaderMenuEntry.BOOKMARKS.labelRes), Icons.Filled.Bookmark) {
                 actions.onOpenText(PdfTextTab.MARKS)
             }
             if (facts.hasPdfText) {
-                MenuRow(ReaderMenuEntry.SEARCH, Icons.AutoMirrored.Filled.ManageSearch) {
+                MenuRow(stringResource(ReaderMenuEntry.SEARCH.labelRes), Icons.AutoMirrored.Filled.ManageSearch) {
                     actions.onOpenText(PdfTextTab.SEARCH)
                 }
             } else {
                 BookmarkThisPageRow(actions.onBookmarkThisPage)
             }
 
-            MenuRow(ReaderMenuEntry.THEMES, Icons.Filled.Tune, actions.onAdjust)
+            MenuRow(stringResource(ReaderMenuEntry.THEMES.labelRes), Icons.Filled.Tune, actions.onAdjust)
 
             ChapterRows(
                 previous = facts.previousInSeries,
@@ -444,15 +445,6 @@ private fun SkippedNotice(count: Int) {
             vertical = StoryArcSpace.sm,
         ),
     )
-}
-
-/** One of the five doors, named by the entry rather than by this file. */
-@Composable
-private fun MenuRow(entry: ReaderMenuEntry, icon: ImageVector, onClick: () -> Unit) {
-    ListItem(
-        leadingContent = { Icon(imageVector = icon, contentDescription = null) },
-        modifier = Modifier.fillMaxWidth().clickableRow(onClick),
-    ) { Text(stringResource(entry.labelRes)) }
 }
 
 /**

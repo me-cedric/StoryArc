@@ -262,7 +262,8 @@ object PublicationIndexer {
         fallback: FilenameMetadata,
         looseCover: String? = null,
     ): Publication = Publication(
-        identity = identity,
+        // Task 28.5: the folder's own digest, so a position outlives the path.
+        identity = identity.recordingDigest(folder.contentDigest),
         format = PublicationFormat.AUDIO_FOLDER,
         displayTitle = title(null, fallback, name),
         series = fallback.series,
@@ -393,7 +394,7 @@ object PublicationIndexer {
             if (kind == FolderKind.AUDIOBOOK) {
                 return audiobookFolder(
                     AudiobookFolder.open(file),
-                    // No file, so no digest. A folder keys on its path alone.
+                    // No file, so no file digest. `audiobookFolder` records the folder's own.
                     identityFor(file),
                     filename,
                     fallback,

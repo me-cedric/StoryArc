@@ -1,11 +1,5 @@
 public import SwiftUI
 
-#if canImport(UIKit)
-internal import UIKit
-#elseif canImport(AppKit)
-internal import AppKit
-#endif
-
 internal import Catalogue
 internal import DesignSystem
 internal import StoryArcCore
@@ -18,6 +12,7 @@ internal import StoryArcCore
 /// unreadable, naming the formats offered", which is a state a local publication never has.
 struct CatalogueEntryCell: View {
     @Environment(\.theme) private var theme
+    @Environment(\.displayScale) private var displayScale
 
     let entry: OpdsEntry
     let credential: OpdsCredential?
@@ -146,12 +141,8 @@ struct CatalogueEntryCell: View {
     private func loadCover() async {
         guard cover == nil, let url = entry.thumbnail ?? entry.cover else { return }
         guard let data = try? await client.data(at: url, credential: credential) else { return }
-        #if canImport(UIKit)
-        guard let image = UIImage(data: data) else { return }
-        cover = Image(uiImage: image)
-        #elseif canImport(AppKit)
-        guard let image = NSImage(data: data) else { return }
-        cover = Image(nsImage: image)
-        #endif
+        // A column is under twice the grid's minimum of `huge * 2`, so a 2:3 cover's longer
+        // side is under `huge * 6`.
+        cover = await RemoteCover.image(from: data, maxPixelSize: Int(StoryArcSpace.huge * 6 * displayScale))
     }
 }

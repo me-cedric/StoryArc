@@ -181,7 +181,7 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/library-away-ios-2026-10-09/` (`ios-home-card-library-away`) shows the dimmed card with no Resume button, and the pale-cover frame of 0b.1 shows the button over the scrim. **Left:** the Android frame of a card whose source is away. Nobody took it in wave 5.
 
       **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/library-away-ios-2026-10-09/` (no Resume under the dimmed card) and the snapshot `apps/ios/SnapshotTests/__Snapshots__/EdgeStateCatalogueTests/23-home-with-an-audiobook-hero.{light,dark}.png` (Resume on the hero). Android: the snapshot `apps/android/feature/library/src/test/snapshots/01d-home-source-away-{light,dark}.png` (no button under a card whose source is away). The frames owed above are met by this proof (`AGENTS.md` section 6, owner rule of 2026-10-09).
-- [~] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
+- [x] 0b.3 Both: a publication with a page or less left offers to **finish** it and offers the
       next in its series, rather than offering to reopen its last page. Finishing removes it
       from Keep reading by the same rule finishing normally does.
 
@@ -241,6 +241,8 @@ kicker is series-or-publisher), and is its own only tap target. It is 4:5 at up 
       **Wave 5 (close-all-yellow), 2026-10-09.** iOS frames: `docs/designs/screenshots/finish-and-next-ios-2026-10-09/` shows Finish with Next in series, Finish alone, the Home after Finish, and the Finished section. **Left:** the three Android frames (Finish with Next in series, Finish alone, after Finish). The Android frames lane did not take them.
 
       **Wave 9 (close-all-yellow), 2026-10-10.** Proof now. iOS: `docs/designs/screenshots/finish-and-next-ios-2026-10-09/`. Android: the snapshots `apps/android/feature/library/src/test/snapshots/01b-home-finish-and-next`, `01c-home-finish-alone` and `01e-home-after-finish`, light and dark. **Left:** `01b` records a fault. "Next in series" wraps one letter per line on the hero card (task 28.1 of `close-the-audited-gaps`). Tick this task after the fix, when `01b` is recorded again and looked at in both appearances.
+
+      **2026-10-23 (completion audit).** Fixed in task 28.1 of `close-the-audited-gaps`: the two buttons are stacked in a `Column`, and `01b-home-finish-and-next` is recorded again in light, dark and largest and looked at. The Android frames are the snapshots `01b` to `01e` in `apps/android/feature/library/src/test/snapshots/`, and `Check.WRAP` in `Accessibility` guards the fault.
 - [x] 0b.4 Both: the next section's heading is visible without scrolling on a phone at the
       default text size, while the card stays the surface's one emphasis.
 

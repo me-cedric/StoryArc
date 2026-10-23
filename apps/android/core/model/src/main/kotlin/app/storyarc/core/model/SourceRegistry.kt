@@ -216,6 +216,17 @@ data class SourceRegistry(
      * never matches anything, because `null == null` would match every such source to the
      * first tombstone of its kind.
      */
+    /**
+     * The source already at the same place as [source], by kind and locator, or null.
+     *
+     * Task 28.6: adding a place again replaces that source instead of adding a second row.
+     * The same match as [tombstone], and a `null` locator matches nothing for the same reason.
+     */
+    fun atSamePlace(source: Source): Source? {
+        val locator = source.locator ?: return null
+        return sources.firstOrNull { it.kind == source.kind && it.locator == locator }
+    }
+
     fun tombstone(forSource: Source): SourceTombstone? {
         val locator = forSource.locator ?: return null
         return tombstones.firstOrNull { it.kind == forSource.kind && it.locator == locator }

@@ -3663,8 +3663,8 @@ msgid "transfer.done.action"
 msgstr "Terminé"
 
 #, c-format
-msgid "transfer.done.conflict.item %s %s"
-msgstr "Conservée : %1$s ; écartée : %2$s"
+msgid "transfer.done.conflict.item %s %s %s"
+msgstr "%1$s : conservée %2$s ; écartée %3$s"
 
 #, c-format
 msgid "transfer.done.conflict.many %d"
@@ -3673,11 +3673,14 @@ msgstr[0] "Les deux appareils avaient avancé dans %d titre. La position la plus
 msgstr[1] "Les deux appareils avaient avancé dans %d titres. La position la plus avancée a été conservée pour chacun."
 
 #, c-format
-msgid "transfer.done.conflict.one %s %s"
-msgstr "Les deux appareils avaient avancé dans un titre. La position la plus avancée a été conservée (%1$s). Écartée : %2$s."
+msgid "transfer.done.conflict.one %s %s %s"
+msgstr "Les deux appareils avaient avancé dans « %1$s ». La position la plus avancée a été conservée (%2$s). Écartée : %3$s."
 
 msgid "transfer.done.conflict.show"
 msgstr "Afficher"
+
+msgid "transfer.done.conflict.useOther"
+msgstr "Utiliser l’autre position"
 
 #, c-format
 msgid "transfer.done.secrets %d"

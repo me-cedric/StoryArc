@@ -304,6 +304,13 @@ internal fun status(state: SourceConnectionState): Int = when (state) {
 }
 
 /**
+ * `library-sync` task 5.10: the state a row states. A source whose address names another device
+ * is never tried here, so it is not *Not answering*; its state says what the sentence says.
+ */
+internal fun statusOf(source: Source): Int =
+    if (source.reachesOnlyAnotherDevice) R.string.sources_state_not_tried else status(source.state)
+
+/**
  * `library-sync` task 5.8: the mark of a source a sync brought from another device, or null. A
  * source whose address names that device also says that this device does not try it.
  */

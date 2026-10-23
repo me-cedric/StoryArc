@@ -133,22 +133,43 @@ struct LibraryImportSheet: View {
     }
 
     /// D3's notice, once: one title names both positions, several give the count and a list.
+    /// Each conflict names its title and offers the other position (`reading-progress`).
     @ViewBuilder
     private func conflictsSection(_ conflicts: [ProgressPull.Conflict]) -> some View {
         Section {
             if let only = conflicts.first, conflicts.count == 1 {
-                Text(
-                    "transfer.done.conflict.one \(ConflictWords.kept(only)) \(ConflictWords.setAside(only))",
-                    bundle: .module
-                )
+                let kept = ConflictWords.kept(only)
+                let setAside = ConflictWords.setAside(only)
+                Text("transfer.done.conflict.one \(title(of: only)) \(kept) \(setAside)", bundle: .module)
+                useOther(0)
             } else {
                 Text("transfer.done.conflict.many \(conflicts.count)", bundle: .module)
                 DisclosureGroup {
-                    ForEach(Array(conflicts.enumerated()), id: \.offset) { ConflictRow(conflict: $1) }
+                    ForEach(Array(conflicts.enumerated()), id: \.offset) { index, conflict in
+                        ConflictRow(title: title(of: conflict), conflict: conflict)
+                        useOther(index)
+                    }
                 } label: {
                     Text("transfer.done.conflict.show", bundle: .module)
                 }
             }
+        }
+    }
+
+    /// The library's title, or the file's name for a publication the library no longer lists.
+    private func title(of conflict: ProgressPull.Conflict) -> String {
+        let identity = conflict.resolved.identity
+        return transfer.title(identity)
+            ?? identity.normalizedPath.map { URL(filePath: $0).lastPathComponent }
+            ?? identity.contentDigest
+            ?? ""
+    }
+
+    private func useOther(_ index: Int) -> some View {
+        Button {
+            Task { await model.useOtherPosition(at: index, transfer: transfer, onImported: onImported) }
+        } label: {
+            Text("transfer.done.conflict.useOther", bundle: .module)
         }
     }
 
@@ -189,11 +210,12 @@ struct LibraryImportSheet: View {
 
 /// One title both devices had moved on in: the position kept and the position set aside.
 struct ConflictRow: View {
+    let title: String
     let conflict: ProgressPull.Conflict
 
     var body: some View {
         Text(
-            "transfer.done.conflict.item \(ConflictWords.kept(conflict)) \(ConflictWords.setAside(conflict))",
+            "transfer.done.conflict.item \(title) \(ConflictWords.kept(conflict)) \(ConflictWords.setAside(conflict))",
             bundle: .module
         )
     }

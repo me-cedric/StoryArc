@@ -1,16 +1,11 @@
 package app.storyarc.feature.reader
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Tune
@@ -27,21 +22,18 @@ import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.MatteSwatch
+import app.storyarc.core.designsystem.theme.matteNameRes
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ImageAdjustments
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
-import app.storyarc.core.model.SUGGESTED_BACKGROUND_NAMES
 import kotlin.math.roundToInt
 
 /** Opens the adjustment controls, and shows whether anything is applied. */
@@ -269,61 +261,21 @@ internal fun MatteSwatches(current: String?, onChoose: (String?) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
             verticalArrangement = Arrangement.spacedBy(StoryArcSpace.sm),
         ) {
-            MatteSwatch(hex = null, isActive = current == null, onChoose = onChoose)
+            MatteSwatch(
+                hex = null,
+                isActive = current == null,
+                description = stringResource(R.string.reader_matte_none),
+                onChoose = { onChoose(null) },
+            )
             SUGGESTED_BACKGROUNDS.forEach { hex ->
                 MatteSwatch(
                     hex = hex,
                     isActive = current?.equals(hex, ignoreCase = true) == true,
-                    onChoose = onChoose,
+                    description = stringResource(matteNameRes(hex), hex),
+                    onChoose = { onChoose(hex) },
                 )
             }
         }
     }
 }
 
-@Composable
-private fun MatteSwatch(hex: String?, isActive: Boolean, onChoose: (String?) -> Unit) {
-    val palette = LocalStoryArcPalette.current
-    val description = hex?.let { matteDescription(it) } ?: stringResource(R.string.reader_matte_none)
-
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .selectable(selected = isActive, role = Role.RadioButton, onClick = { onChoose(hex) })
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(CircleShape)
-                .background(matteColour(hex))
-                .border(
-                    width = if (isActive) 3.dp else 1.dp,
-                    color = if (isActive) palette.accent else palette.borderSubtle,
-                    shape = CircleShape,
-                ),
-        )
-    }
-}
-
-/**
- * A suggested background's name, or its hex read out as a template if the list ever gains
- * one the catalogue has no word for -- never a bare code, which TalkBack reads one
- * character at a time.
- */
-@Composable
-internal fun matteDescription(hex: String): String {
-    val res = when (SUGGESTED_BACKGROUND_NAMES[hex.uppercase()]) {
-        "white" -> R.string.reader_matte_white
-        "cream" -> R.string.reader_matte_cream
-        "sepia" -> R.string.reader_matte_sepia
-        "sage" -> R.string.reader_matte_sage
-        "sky" -> R.string.reader_matte_sky
-        "charcoal" -> R.string.reader_matte_charcoal
-        "navy" -> R.string.reader_matte_navy
-        "trueBlack" -> R.string.reader_matte_trueblack
-        else -> return stringResource(R.string.reader_matte_swatch, hex)
-    }
-    return stringResource(res)
-}

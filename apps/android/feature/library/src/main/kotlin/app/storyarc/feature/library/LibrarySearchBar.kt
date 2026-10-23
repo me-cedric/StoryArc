@@ -421,7 +421,7 @@ internal fun SearchAnswerList(
         if (listing.term.isEmpty()) {
             if (recents.terms.isNotEmpty()) {
                 item { Heading(stringResource(R.string.library_search_recent)) }
-                items(recents.terms) { term ->
+                items(recents.terms, key = { it }) { term ->
                     RecentSearchRow(term) { onUseRecent(term) }
                 }
                 item {

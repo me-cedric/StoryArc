@@ -280,7 +280,7 @@ fun PublicationDetailScreen(
         (where != null && (ReadingAddress.isStreamed(where) || PublicationAccess.isRemote(where)))
 
     val provenance = provenanceOf(publication, registry, isHere, library)
-    val hasProgress = viewModel.readFraction(publication) != null
+    val hasProgress = viewModel.continuesInPlace(publication)
     val action = primaryActionOf(publication, provenance, isHere, hasProgress, readsWhereItLies)
     val series = remember(publication.id, library) { restOfSeries(publication, library) }
 
@@ -391,7 +391,10 @@ fun PublicationDetailScreen(
                 action = action,
                 provenance = provenance,
                 readAloudVoice = readAloudVoice,
-                transfer = transfer,
+                // The queue's record for a copy started from this page, which the app layer
+                // cannot look up: it is keyed by the catalogue entry, not by the publication
+                // (task 28.3 of `close-the-audited-gaps`). The same choice `where` makes above.
+                transfer = copy.record ?: transfer,
                 chapters = chapters,
                 stoppedIn = stoppedIn,
                 offsetMillis = offsetMillis,

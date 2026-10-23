@@ -217,6 +217,10 @@ class LibraryViewModel(
     private val _continueReading = MutableStateFlow<List<Publication>>(emptyList())
     val continueReading: StateFlow<List<Publication>> = _continueReading.asStateFlow()
 
+    /** True once the positions were read: before that, an empty list says nothing (task 20.1). */
+    private val _progressLoaded = MutableStateFlow(false)
+    val progressLoaded: StateFlow<Boolean> = _progressLoaded.asStateFlow()
+
     /**
      * Search results, grouped by why each one matched. Empty when nothing is being searched
      * for, and the caller draws the flat shelf then.
@@ -589,8 +593,20 @@ class LibraryViewModel(
         return if (fraction > 0f) fraction else null
     }
 
-    fun refreshProgress() {
-        val store = progressStore ?: return
+    /**
+     * Whether the title page offers *Continue*: a position past the start of a publication
+     * that is not finished. A finished one reopens at its start (`reading-progress`, *Finished
+     * state*), so its action says *Read* or *Listen*. Task 28.6; iOS's `continuesInPlace` is
+     * the same line.
+     */
+    fun continuesInPlace(publication: Publication): Boolean {
+        val record = progress[publication.id] ?: return false
+        return !record.isFinished && record.position.fraction > 0
+    }
+
+    /** Reads the positions again. The job, so a caller can wait for the read (task 20.1). */
+    fun refreshProgress(): Job? {
+        val store = progressStore ?: return null
         progressJob?.cancel()
         progressJob = viewModelScope.launch {
             val records = runCatching { store.recent(limit = 500) }.getOrDefault(emptyList())
@@ -600,7 +616,9 @@ class LibraryViewModel(
                     ?.let { progress[publication.id] = it }
             }
             rebuild()
+            _progressLoaded.value = true
         }
+        return progressJob
     }
 
     /** Where a publication lives, as a path or a document `Uri`. */

@@ -1,6 +1,7 @@
 package app.storyarc.core.format
 
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * A directory of ordered audio files, read as one audiobook.
@@ -30,6 +31,16 @@ class AudiobookFolder private constructor(
      * cover image is not counted — it was never a part.
      */
     val skippedPartCount: Int,
+    /**
+     * The digest of the folder: the name and the size of each audio file, in play order.
+     *
+     * A folder has no bytes of its own, so its path was its only key, and a position written
+     * before a reinstall or a move was not found (task 28.5). A cover image beside the parts
+     * does not change it. The input starts with a tag, so a folder digest cannot equal the
+     * digest of a file. iOS's `ContentDigest.folderAudiobookDigest` hashes the same input.
+     * Null for a folder with no audio file.
+     */
+    val contentDigest: String?,
 ) {
 
     /** One audio file of the folder. */
@@ -76,6 +87,7 @@ class AudiobookFolder private constructor(
         /** The parts a list of entries makes. Split out so the rules assert without a disk. */
         fun of(candidates: List<Candidate>, root: File? = null): AudiobookFolder {
             val parts = mutableListOf<Part>()
+            val audio = mutableListOf<Candidate>()
             var skipped = 0
 
             for (candidate in candidates) {
@@ -85,6 +97,7 @@ class AudiobookFolder private constructor(
                 val name = candidate.path.substringAfterLast('/')
                 val extension = name.substringAfterLast('.', "").lowercase()
                 if (extension !in FolderKind.AUDIO_EXTENSIONS) continue
+                audio += candidate
 
                 // A zero-length file is a part that will never decode. Counted rather than
                 // dropped, so the player can say "played 9, could not play 1".
@@ -101,7 +114,16 @@ class AudiobookFolder private constructor(
                     PageOrdering.naturalCompare(lhs.path, rhs.path)
                 },
                 skippedPartCount = skipped,
+                contentDigest = digestOf(audio.sortedWith { lhs, rhs -> PageOrdering.naturalCompare(lhs.path, rhs.path) }),
             )
+        }
+
+        private fun digestOf(audio: List<Candidate>): String? {
+            if (audio.isEmpty()) return null
+            val digest = MessageDigest.getInstance("SHA-256")
+            digest.update("audio-folder\u0000".toByteArray())
+            for (file in audio) digest.update("${file.path}\u0000${file.bytes}\n".toByteArray())
+            return digest.digest().joinToString("") { "%02x".format(it) }
         }
 
         /**

@@ -5,8 +5,8 @@ import Testing
 ///
 /// Task 12.6, owner answer O13. This project has no Apple development team, so a device build
 /// that asks for `com.apple.developer.carplay-audio` cannot be signed. The simulator build
-/// carries the entitlement and the scene manifest so the CarPlay Simulator can prove the scene.
-/// Every other build carries neither.
+/// carries the entitlement and the car scene so the CarPlay Simulator can prove the scene.
+/// Every other build carries neither: the device manifest declares the window role only.
 ///
 /// Files, not a build: this package cannot run `xcodebuild`. `xcodebuild -showBuildSettings
 /// -sdk iphoneos` and `-sdk iphonesimulator` answer which file each SDK takes, and the task
@@ -48,9 +48,14 @@ struct CarSimulatorOnlyTests {
             try plist("App/StoryArc.entitlements")[Self.carEntitlement] == nil,
             "the device entitlements ask for CarPlay, which no team can grant yet"
         )
+        let manifest = try #require(
+            try plist("App/Info.plist")[Self.manifestKey] as? [String: Any],
+            "Info.plist declares no scene manifest, so an iPad cannot open a second window"
+        )
+        let roles = try #require(manifest["UISceneConfigurations"] as? [String: Any])
         #expect(
-            try plist("App/Info.plist")[Self.manifestKey] == nil,
-            "Info.plist declares a scene manifest, so the device build carries the car scene"
+            roles["CPTemplateApplicationSceneSessionRoleApplication"] == nil,
+            "Info.plist declares the car scene, so the device build carries it"
         )
     }
 
@@ -85,9 +90,11 @@ struct CarSimulatorOnlyTests {
             "the car role does not name CarSceneDelegate"
         )
 
+        var device = try plist("App/Info.plist")
+        device[Self.manifestKey] = nil
         simulator[Self.manifestKey] = nil
         #expect(
-            NSDictionary(dictionary: simulator).isEqual(to: try plist("App/Info.plist")),
+            NSDictionary(dictionary: simulator).isEqual(to: device),
             "Info.simulator.plist differs from Info.plist in more than the manifest — run xcodegen generate"
         )
     }
@@ -100,7 +107,7 @@ struct CarSimulatorOnlyTests {
             project.contains("\"CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*]\": App/StoryArc.simulator.entitlements")
         )
         #expect(project.contains("\"INFOPLIST_FILE[sdk=iphonesimulator*]\": App/Info.simulator.plist"))
-        #expect(project.contains("plutil -insert UIApplicationSceneManifest"), "nothing writes Info.simulator.plist")
+        #expect(project.contains("plutil -replace UIApplicationSceneManifest"), "nothing writes Info.simulator.plist")
         #expect(
             !project.contains("[sdk=iphoneos"),
             "a device-only override exists; the car keys must reach no device build"

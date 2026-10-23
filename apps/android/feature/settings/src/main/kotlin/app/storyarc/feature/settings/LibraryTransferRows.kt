@@ -125,6 +125,7 @@ internal fun LibraryTransferRows(
                 importState.reset()
                 isImporting = false
             },
+            onUseOther = { record -> scope.launch { transfer.savePosition(record) } },
         )
     }
 }

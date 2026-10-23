@@ -4626,9 +4626,9 @@
     <value>Fertig</value>
     <comment>transfer.done.action</comment>
   </data>
-  <data name="transfer_done_conflict_item______" xml:space="preserve">
-    <value>Behalten: {0}, verworfen: {1}</value>
-    <comment>transfer.done.conflict.item %@ %@</comment>
+  <data name="transfer_done_conflict_item_________" xml:space="preserve">
+    <value>{0}: behalten {1}, verworfen {2}</value>
+    <comment>transfer.done.conflict.item %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_many__lld_one" xml:space="preserve">
     <value>Beide Geräte waren bei {0} Titel weitergekommen. Die weitere Position wurde behalten.</value>
@@ -4638,13 +4638,17 @@
     <value>Beide Geräte waren bei {0} Titeln weitergekommen. Für jeden wurde die weitere Position behalten.</value>
     <comment>transfer.done.conflict.many %lld (other)</comment>
   </data>
-  <data name="transfer_done_conflict_one______" xml:space="preserve">
-    <value>Beide Geräte waren bei einem Titel weitergekommen. Die weitere Position wurde behalten ({0}). Verworfen: {1}.</value>
-    <comment>transfer.done.conflict.one %@ %@</comment>
+  <data name="transfer_done_conflict_one_________" xml:space="preserve">
+    <value>Beide Geräte waren bei „{0}“ weitergekommen. Die weitere Position wurde behalten ({1}). Verworfen: {2}.</value>
+    <comment>transfer.done.conflict.one %@ %@ %@</comment>
   </data>
   <data name="transfer_done_conflict_show" xml:space="preserve">
     <value>Anzeigen</value>
     <comment>transfer.done.conflict.show</comment>
+  </data>
+  <data name="transfer_done_conflict_useOther" xml:space="preserve">
+    <value>Die andere Position verwenden</value>
+    <comment>transfer.done.conflict.useOther</comment>
   </data>
   <data name="transfer_done_secrets__lld_one" xml:space="preserve">
     <value>{0} Passwort wurde im sicheren Speicher abgelegt</value>

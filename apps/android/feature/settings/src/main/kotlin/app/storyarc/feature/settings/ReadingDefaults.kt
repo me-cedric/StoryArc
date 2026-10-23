@@ -1,17 +1,12 @@
 package app.storyarc.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -22,18 +17,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.theme.MatteSwatch
+import app.storyarc.core.designsystem.theme.matteNameRes
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.ShelfMemory
 import app.storyarc.core.model.SUGGESTED_BACKGROUNDS
-import app.storyarc.core.model.SUGGESTED_BACKGROUND_NAMES
 import app.storyarc.core.model.ReaderPalette
 import app.storyarc.core.model.ReadingTheme
 import app.storyarc.core.model.ShelfSettings
@@ -145,106 +136,35 @@ private fun ComicMatte(memory: ShelfMemory, store: ReaderPreferences, onSaved: (
         ) {
             // Black first and unlabelled as a swatch of its own: it is the default, and
             // "none" has to be reachable or a reader who tries a colour is stuck with one.
+            // The colour's name, not its hex. TalkBack read "Colour #E8EFE6" one character
+            // at a time, which is not a colour a reader can pick out of a row of eight.
             MatteSwatch(
                 hex = null,
                 isActive = current == null,
-                store = store,
-                memory = memory,
-                onSaved = onSaved,
-            )
+                description = stringResource(R.string.reading_matte_none),
+                diameter = 32.dp,
+            ) { choose(null, store, memory, onSaved) }
             SUGGESTED_BACKGROUNDS.forEach { hex ->
                 MatteSwatch(
                     hex = hex,
                     isActive = current?.equals(hex, ignoreCase = true) == true,
-                    store = store,
-                    memory = memory,
-                    onSaved = onSaved,
-                )
+                    description = stringResource(matteNameRes(hex), hex),
+                    diameter = 32.dp,
+                ) { choose(hex, store, memory, onSaved) }
             }
         }
     }
 }
 
-@Composable
-private fun MatteSwatch(
-    hex: String?,
-    isActive: Boolean,
-    store: ReaderPreferences,
-    memory: ShelfMemory,
-    onSaved: (ShelfMemory) -> Unit,
-) {
-    val palette = LocalStoryArcPalette.current
-    // The colour's name, not its hex. TalkBack read "Colour #E8EFE6" one character at a
-    // time, which is not a colour a reader can pick out of a row of eight.
-    val description = hex?.let { stringResource(matteNameRes(it)) }
-        ?: stringResource(R.string.reading_matte_none)
-
-    Box(
-        // 48dp for the finger, 32dp for the eye. The swatch was 32dp both ways, and a
-        // 32dp target is below every platform minimum — including the one Compose
-        // enforces on its own controls.
-        modifier = Modifier
-            .size(48.dp)
-            .selectable(
-                selected = isActive,
-                role = Role.RadioButton,
-                onClick = {
-                    val existing = memory.default(ThemeScope.FIXED_LAYOUT)
-                    val updated = store.themes().settingDefault(
-                        existing.copy(theme = matting(hex, existing.theme)),
-                        ThemeScope.FIXED_LAYOUT,
-                    )
-                    store.save(updated)
-                    onSaved(updated)
-                },
-            )
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(matteSwatchColour(hex))
-                .border(
-                    width = if (isActive) 3.dp else 1.dp,
-                    color = if (isActive) palette.accent else palette.borderSubtle,
-                    shape = CircleShape,
-                ),
-        )
-    }
-}
-
-/**
- * The string for a suggested background, or its hex if the list ever gains one.
- *
- * Not `@Composable`: it reads no composition, it only maps a hex to a resource id. The
- * annotation was there because the function was written beside the swatch that calls it, and
- * it kept `SettingsSemanticsTest` from asking the same question the screen asks.
- */
-internal fun matteNameRes(hex: String): Int = when (SUGGESTED_BACKGROUND_NAMES[hex.uppercase()]) {
-    "white" -> R.string.reading_matte_white
-    "cream" -> R.string.reading_matte_cream
-    "sepia" -> R.string.reading_matte_sepia
-    "sage" -> R.string.reading_matte_sage
-    "sky" -> R.string.reading_matte_sky
-    "charcoal" -> R.string.reading_matte_charcoal
-    "navy" -> R.string.reading_matte_navy
-    "trueBlack" -> R.string.reading_matte_trueblack
-    // A colour added to the list without a name still announces something a reader can
-    // act on, rather than nothing.
-    else -> R.string.reading_matte_swatch
-}
-
-/** Black stands for "no colour", which is what a comic is read against. */
-private fun matteSwatchColour(hex: String?): Color {
-    val text = hex?.removePrefix("#") ?: return Color.Black
-    val value = text.toLongOrNull(16) ?: return Color.Black
-    return Color(
-        red = ((value shr 16) and 0xFF) / 255f,
-        green = ((value shr 8) and 0xFF) / 255f,
-        blue = (value and 0xFF) / 255f,
+/** Stores [hex] as the comic default and hands the saved memory back. */
+private fun choose(hex: String?, store: ReaderPreferences, memory: ShelfMemory, onSaved: (ShelfMemory) -> Unit) {
+    val existing = memory.default(ThemeScope.FIXED_LAYOUT)
+    val updated = store.themes().settingDefault(
+        existing.copy(theme = matting(hex, existing.theme)),
+        ThemeScope.FIXED_LAYOUT,
     )
+    store.save(updated)
+    onSaved(updated)
 }
 
 /**
