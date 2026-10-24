@@ -80,6 +80,15 @@ jobs:
         with:
           node-version: 24
 
+      # The `xcode-27` image makes iOS 27.0 simulators for the iPhone 17, 18 Pro and Air, and
+      # none called iPhone 17 Pro, which every iOS script names; its iOS 27.1 runtime runs the
+      # iPhone Duo only. So make the device when the image has none (2026-10-24).
+      - name: Make the iPhone 17 Pro simulator
+        run: >-
+          xcrun simctl list devices available | grep -q 'iPhone 17 Pro ('
+          || xcrun simctl create 'iPhone 17 Pro' com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro
+          com.apple.CoreSimulator.SimRuntime.iOS-27-0
+
       # Boot the simulator, and wait for the boot to finish, before `xcodebuild`
       # starts testing. `xcodebuild` boots it too, but it begins the run as soon as
       # the device answers rather than once its services are up — and the egress
@@ -150,6 +159,15 @@ jobs:
       - name: Generate project
         working-directory: apps/ios
         run: xcodegen generate
+
+      # The `xcode-27` image makes iOS 27.0 simulators for the iPhone 17, 18 Pro and Air, and
+      # none called iPhone 17 Pro, which every iOS script names; its iOS 27.1 runtime runs the
+      # iPhone Duo only. So make the device when the image has none (2026-10-24).
+      - name: Make the iPhone 17 Pro simulator
+        run: >-
+          xcrun simctl list devices available | grep -q 'iPhone 17 Pro ('
+          || xcrun simctl create 'iPhone 17 Pro' com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro
+          com.apple.CoreSimulator.SimRuntime.iOS-27-0
 
       # `build-for-testing` against the device the audit runs on, rather than a generic
       # build. It catches the same compile errors and it leaves behind the two things the

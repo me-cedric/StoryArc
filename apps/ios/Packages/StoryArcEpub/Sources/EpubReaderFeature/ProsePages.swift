@@ -116,8 +116,12 @@ enum ProsePages {
     }
 
     /// The resource view Readium has laid out at `x` in its paging scroll view.
+    ///
+    /// Only a subview with a web view counts. On the iOS 26.4 and later simulators the paging
+    /// scroll view also holds full-width views of its own at x 0, and the first of them came
+    /// before the resource view, so every turn across a chapter end found no page ahead.
     static func spread(in paging: UIScrollView, at x: CGFloat) -> UIView? {
-        paging.subviews.first { abs($0.frame.minX - x) < 1 && $0.frame.width > 0 }
+        paging.subviews.first { abs($0.frame.minX - x) < 1 && $0.frame.width > 0 && webView(in: $0) != nil }
     }
 
     /// The web view inside a resource view.
