@@ -146,7 +146,8 @@ const selfTest = async () => {
   checks.push(['the openspec package resolves', existsSync(join(packageRoot(), 'package.json'))])
   checks.push(['the workflow template directory exists', existsSync(workflowDir())])
   const modules = readdirSync(workflowDir()).filter((f) => f.endsWith('.js') && !f.endsWith('.d.ts'))
-  const unmapped = modules.filter((f) => !SLUGS[f] && !['store-selection.js', 'feedback.js'].includes(f))
+  // Shared helpers, not workflows: project-root.js arrived with CLI 1.14 and is interpolated into every workflow.
+  const unmapped = modules.filter((f) => !SLUGS[f] && !['store-selection.js', 'feedback.js', 'project-root.js'].includes(f))
   checks.push([`every workflow module has a slug (unmapped: ${unmapped.join(', ') || 'none'})`, unmapped.length === 0])
   const missing = Object.keys(SLUGS).filter((f) => !modules.includes(f))
   checks.push([`every slug has a module (missing: ${missing.join(', ') || 'none'})`, missing.length === 0])
