@@ -97,6 +97,14 @@ final class DetailAndPlayerCatalogueTests: XCTestCase {
         }
     }
 
+    /// `foldables-and-iphone-duo` 2.5: the outer display of an iPhone Duo.
+    func testCatalogue07FullPlayerDuoOuter() {
+        let playing = playing()
+        assertCatalogue("07-full-player-duo-outer", delay: 1.5, largest: false, size: duoOuter) {
+            FullPlayerView(centre: playing.centre, coverLookup: { _, _ in playing.cover })
+        }
+    }
+
     /// The dock is the content of the tab bar's bottom accessory, which supplies its glass
     /// capsule, so it is drawn there and not on a bare screen.
     ///

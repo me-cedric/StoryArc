@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-import UIKit
 
+import DesignSystem
 import StoryArcCore
 @testable import EpubReaderFeature
 
@@ -77,10 +77,11 @@ struct BrightnessValueTests {
         let reader = model()
 
         #expect(
-            ThemeAxesSheet.brightnessInForce(reader) == Double(UIScreen.main.brightness),
+            ThemeAxesSheet.brightnessInForce(reader) == ReaderBrightness.deviceBrightness,
             """
             Omitting `device:` must still read the real screen, which is what every call site \
-            in `ThemeAxisSliders.swift` does.
+            in `ThemeAxisSliders.swift` does: the screen of the reader's own scene, never \
+            `UIScreen.main` (`foldables-and-iphone-duo` D6).
             """
         )
     }

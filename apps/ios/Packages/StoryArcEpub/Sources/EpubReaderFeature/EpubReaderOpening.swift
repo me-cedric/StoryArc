@@ -77,9 +77,7 @@ extension EpubReaderModel {
             self.navigator = navigator
             // `effective`: a book opening with Reduce Motion already on and Slide chosen
             // has to open in Fast fade's own turn, not Readium's animated one.
-            navigator.submitPreferences(
-                theme.preferences(values: values, transition: transitions(reduceMotion: reduceMotion).effective)
-            )
+            navigator.submitPreferences(readiumPreferences)
             locator = resumed
             readingOrder = opened.readingOrder.map(\.href)
             progression = resumed.map(totalProgression(of:)) ?? 0

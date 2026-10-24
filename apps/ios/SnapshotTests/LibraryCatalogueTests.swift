@@ -25,6 +25,13 @@ final class LibraryCatalogueTests: XCTestCase {
         }
     }
 
+    /// `foldables-and-iphone-duo` 2.5: the outer display of an iPhone Duo.
+    func testCatalogue03LibraryGridDuoOuter() {
+        assertCatalogue("03-library-grid-duo-outer", delay: 1.5, largest: false, size: duoOuter) {
+            LibraryView(model: CatalogueLibrary.model())
+        }
+    }
+
     func testCatalogue04LibraryList() {
         assertCatalogue("04-library-list", delay: 1.5) {
             LibraryView(model: CatalogueLibrary.model(layout: .list))

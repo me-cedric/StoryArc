@@ -65,6 +65,9 @@ public struct EpubReaderView: View {
     @State private var noteText = ""
     /// What the device's brightness was before the reader touched it.
     @State private var deviceBrightness: Double?
+    /// The fold a test hands in, and the one the device reports. See `DesignSystem/FoldSensing.swift`.
+    @Environment(\.deviceFold) private var injectedFold
+    @State private var sensedFold: DeviceFold?
 
     /// What the reader chose in Settings, or `nil` for a reader built without them.
     ///
@@ -361,6 +364,13 @@ public struct EpubReaderView: View {
         // Reader-local screen brightness, across arrival, departure, a slider move and a
         // return from the background. Shared with the comic reader: `DesignSystem/ReaderBrightness.swift`.
         .readerBrightness($model.brightness, scenePhase: scenePhase, captured: $deviceBrightness)
+        // `foldables-and-iphone-duo` D4: two columns while the device is held like a book.
+        .sensingFold(into: $sensedFold)
+        .onChange(of: FoldPosture.of(sensedFold ?? injectedFold) == .book, initial: true) { _, isBook in
+            guard model.isBookPosture != isBook else { return }
+            model.isBookPosture = isBook
+            model.applyTheme(remembering: false)
+        }
         // `ebook-reader`: the reading theme follows the appearance "then and there rather
         // than at the next open", and only for the reader who linked the two. This fires when
         // the device switches while the book is open. See ``EpubReaderModel/follow(_:)``.

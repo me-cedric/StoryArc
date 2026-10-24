@@ -24,59 +24,75 @@ internal import DesignSystem
 // file, and a `private` member of an extension cannot be reached from it.
 extension ReaderView {
     /// The controls. One gesture away, and gone while reading.
-    var chrome: some View {
-        VStack {
-            HStack {
-                Button { dismiss() } label: {
-                    Label {
-                        Text("reader.close", bundle: .module)
-                    } icon: {
-                        Image(systemName: "xmark")
-                    }
-                    .labelStyle(.iconOnly)
-                    .frame(minWidth: 20, minHeight: 20)
-                }
-                // The platform's own glass button, and **untinted**. `.tint` on a glass
-                // button tints the *material*, not the glyph — which is why these
-                // photographed as flat white pills with no page showing through them, and
-                // why they did not look like the system's own floating controls.
-                // `DesignSystem/Glass.swift` had already written the rule down: "Untinted,
-                // deliberately: the spec wants the glass to pick up the page beneath it,
-                // and a tint is precisely what stops it doing that", and "a fixed colour
-                // cannot sit on this material" — found once before, on a device, and then
-                // reintroduced here.
-                //
-                // `storyArcGlassButton` carries the hierarchical foreground that follows
-                // the material, and swaps both to the app's own opaque pair under Reduce
-                // Transparency or Increase Contrast — task 9.8.
-                .storyArcGlassButton(in: Circle())
-                // Large, which is the scale the system draws floating chrome at — the
-                // controls in Photos' own overlay are half again the size of a toolbar
-                // button, because a control floating over content has no bar to sit in and
-                // has to carry its own presence. At the default size these read as small
-                // pale dots on a page rather than as the platform's own chrome.
-                .controlSize(.large)
-
+    ///
+    /// Kept clear of the camera and of the fold (``DeviceFold/controlArea(in:)``). Half open on
+    /// a table they take the lower half, which scrolls at the largest text size so that nothing
+    /// is cut off. `reader` is the reader's own frame, in global coordinates.
+    func chrome(in reader: CGRect) -> some View {
+        let area = fold?.controlArea(in: reader) ?? reader
+        return VStack(spacing: 0) {
+            if posture == .tabletop {
+                ScrollView { controls }
+                    .scrollBounceBehavior(.basedOnSize)
+            } else {
+                controls
                 Spacer()
-
-                Button { isShowingMenu = true } label: {
-                    Label {
-                        Text("reader.menu", bundle: .module)
-                    } icon: {
-                        Image(systemName: "ellipsis")
-                    }
-                    .labelStyle(.iconOnly)
-                    // 20 points of glyph room and the glass button's own 25 of padding make 45, over the
-                    // 44 a finger needs. An ellipsis is 7 points tall, which left this button 35.
-                    .frame(minWidth: 20, minHeight: 20)
-                }
-                .storyArcGlassButton(in: Circle())
-                .controlSize(.large)
             }
-            .padding(StoryArcSpace.md)
+        }
+        .padding(.top, area.minY - reader.minY)
+        .padding(.bottom, reader.maxY - area.maxY)
+        .transition(.opacity)
+    }
+
+    /// The two buttons, along the top of the area they are given.
+    private var controls: some View {
+        HStack {
+            Button { dismiss() } label: {
+                Label {
+                    Text("reader.close", bundle: .module)
+                } icon: {
+                    Image(systemName: "xmark")
+                }
+                .labelStyle(.iconOnly)
+                .frame(minWidth: 20, minHeight: 20)
+            }
+            // The platform's own glass button, and **untinted**. `.tint` on a glass
+            // button tints the *material*, not the glyph — which is why these
+            // photographed as flat white pills with no page showing through them, and
+            // why they did not look like the system's own floating controls.
+            // `DesignSystem/Glass.swift` had already written the rule down: "Untinted,
+            // deliberately: the spec wants the glass to pick up the page beneath it,
+            // and a tint is precisely what stops it doing that", and "a fixed colour
+            // cannot sit on this material" — found once before, on a device, and then
+            // reintroduced here.
+            //
+            // `storyArcGlassButton` carries the hierarchical foreground that follows
+            // the material, and swaps both to the app's own opaque pair under Reduce
+            // Transparency or Increase Contrast — task 9.8.
+            .storyArcGlassButton(in: Circle())
+            // Large, which is the scale the system draws floating chrome at — the
+            // controls in Photos' own overlay are half again the size of a toolbar
+            // button, because a control floating over content has no bar to sit in and
+            // has to carry its own presence. At the default size these read as small
+            // pale dots on a page rather than as the platform's own chrome.
+            .controlSize(.large)
 
             Spacer()
+
+            Button { isShowingMenu = true } label: {
+                Label {
+                    Text("reader.menu", bundle: .module)
+                } icon: {
+                    Image(systemName: "ellipsis")
+                }
+                .labelStyle(.iconOnly)
+                // 20 points of glyph room and the glass button's own 25 of padding make 45, over the
+                // 44 a finger needs. An ellipsis is 7 points tall, which left this button 35.
+                .frame(minWidth: 20, minHeight: 20)
+            }
+            .storyArcGlassButton(in: Circle())
+            .controlSize(.large)
         }
-        .transition(.opacity)
+        .padding(StoryArcSpace.md)
     }
 }

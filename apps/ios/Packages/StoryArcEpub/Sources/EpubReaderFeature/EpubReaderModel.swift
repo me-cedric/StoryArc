@@ -253,6 +253,9 @@ public final class EpubReaderModel {
     /// ``ownsTheTurn`` in `ReflowableTurn.swift`.
     var reduceMotion = false
 
+    /// Whether the device is half open and held like a book. Mirrored from the view.
+    var isBookPosture = false
+
     /// Always reflowable. See the note in `init`.
     static let scope = ThemeScope.reflowable
 
@@ -365,9 +368,7 @@ public final class EpubReaderModel {
         // inside the same chapter. Going to the stored locator afterwards puts them
         // where the text was.
         let locator = navigator.currentLocation
-        navigator.submitPreferences(
-            theme.preferences(values: values, transition: transitions(reduceMotion: reduceMotion).effective)
-        )
+        navigator.submitPreferences(readiumPreferences)
 
         guard let locator else { return }
         // ponytail: after the reflow, not during it. `submitPreferences` has no

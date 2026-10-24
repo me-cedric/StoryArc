@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 
 import ReadiumNavigator
@@ -116,5 +117,28 @@ struct ReadiumMappingTests {
         #expect(preferences.lineHeight == 2.4)
         #expect(theme.preset == .paper)
         #expect(theme.isModified)
+    }
+}
+
+/// `foldables-and-iphone-duo` D4: held like a book, a paged ebook shows a spread.
+@MainActor
+@Suite("Readium mapping in a book posture")
+struct BookPostureMappingTests {
+    @Test("Held like a book, a paged ebook takes two columns; flat, Readium decides")
+    func bookPostureTakesTwoColumns() {
+        let url = URL(fileURLWithPath: "/fixtures/two-columns.epub")
+        let model = EpubReaderModel(
+            publication: Publication(
+                identity: PublicationIdentity(normalizedPath: url.path),
+                format: .epub,
+                displayTitle: "Two Columns",
+                origin: .embedded
+            ),
+            url: url
+        )
+
+        #expect(model.readiumPreferences.columnCount == nil)
+        model.isBookPosture = true
+        #expect(model.readiumPreferences.columnCount == .two)
     }
 }

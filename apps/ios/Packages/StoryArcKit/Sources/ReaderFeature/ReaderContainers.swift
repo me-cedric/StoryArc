@@ -264,18 +264,29 @@ extension ReaderView {
     /// reading direction". Reading order is the publication's own either way — a manga
     /// spread reads 4 then 5 exactly as a western one does — so only the screen order
     /// flips, and it flips here rather than anywhere the pages are counted.
+    ///
+    /// **A vertical fold** (``foldSplit``) puts a spread's gutter on the fold, one page on each
+    /// side, and moves a lone page to the wider side at that side's width. With no fold the
+    /// frames below change nothing.
     @ViewBuilder
     func page(at displayIndex: Int) -> some View {
         let spread = layout[slotIndex(forDisplay: displayIndex)]
+        let split = foldSplit
         if let spread, let trailing = spread.trailing {
             let onScreen = isRightToLeft ? [trailing, spread.leading] : [spread.leading, trailing]
-            HStack(spacing: 0) {
+            HStack(spacing: split?.gap ?? 0) {
                 ForEach(Array(onScreen.enumerated()), id: \.offset) { position, index in
-                    half(at: index, isFirstOnScreen: position == 0)
+                    half(at: index, isFirstOnScreen: position == 0, split: split)
                 }
             }
         } else {
+            let inset = split.flatMap(hingeInset)
             singlePage(at: spread?.leading ?? 0, onTap: tapHandler())
+                .frame(width: inset?.width)
+                .frame(
+                    maxWidth: inset == nil ? nil : .infinity,
+                    alignment: inset?.atStart == false ? .trailing : .leading
+                )
         }
     }
 
@@ -283,18 +294,22 @@ extension ReaderView {
     ///
     /// The halves are equal, so a tap in one is a tap in the same place on a screen twice
     /// as wide. Without this the edge zones would be measured against half the screen and
-    /// the middle of a spread would turn the page.
-    private func half(at index: Int, isFirstOnScreen: Bool) -> some View {
+    /// the middle of a spread would turn the page. Across a fold the halves are the two sides
+    /// of `split`, and the second starts past the fold.
+    private func half(at index: Int, isFirstOnScreen: Bool, split: HingeSpreadSplit?) -> some View {
         singlePage(
             at: index,
             onTap: tapHandler { location, size in
-                (
-                    CGPoint(x: isFirstOnScreen ? location.x : location.x + size.width, y: location.y),
-                    CGSize(width: size.width * 2, height: size.height)
+                let offset = isFirstOnScreen ? 0 : split.map { $0.leadingWidth + $0.gap } ?? size.width
+                let width = split.map { $0.leadingWidth + $0.gap + $0.trailingWidth } ?? size.width * 2
+                return (
+                    CGPoint(x: location.x + offset, y: location.y),
+                    CGSize(width: width, height: size.height)
                 )
             }
         )
-        .frame(maxWidth: .infinity)
+        .frame(width: split.map { isFirstOnScreen ? $0.leadingWidth : $0.trailingWidth })
+        .frame(maxWidth: split == nil ? .infinity : nil)
     }
 
     @ViewBuilder

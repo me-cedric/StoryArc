@@ -57,6 +57,8 @@ let package = Package(
             name: "EpubReaderFeatureTests",
             dependencies: [
                 "EpubReaderFeature",
+                // `BrightnessValueTests` compares with the scene's screen, which this module reads.
+                .product(name: "DesignSystem", package: "StoryArcKit"),
                 .product(name: "Formats", package: "StoryArcKit"),
                 .product(name: "ReadiumShared", package: "swift-toolkit"),
                 .product(name: "ReadiumStreamer", package: "swift-toolkit"),

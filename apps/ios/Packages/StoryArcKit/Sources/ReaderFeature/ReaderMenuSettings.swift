@@ -53,7 +53,7 @@ extension ReaderView {
     /// a disabled segment cannot carry a reason.
     @ViewBuilder
     private var transitionRow: some View {
-        let choices = model.transitions(reduceMotion: reduceMotion)
+        let choices = transitions
         Menu {
             ForEach(choices.offered, id: \.self) { mode in
                 Button {

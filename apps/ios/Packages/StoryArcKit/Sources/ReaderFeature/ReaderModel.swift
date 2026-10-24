@@ -164,12 +164,14 @@ public final class ReaderModel {
     ///   `page-transitions` requires turning it off mid-session to restore the chosen
     ///   mode without reopening the reader, which is exactly what an environment read
     ///   gives for free.
-    public func transitions(reduceMotion: Bool) -> TransitionChoices {
+    /// - Parameter isBookPosture: a half-open fold held upright. A curl across it draws a crease
+    ///   the shader cannot model, so Curl is withheld there (`foldables-and-iphone-duo` D4).
+    public func transitions(reduceMotion: Bool, isBookPosture: Bool = false) -> TransitionChoices {
         TransitionChoices(
             chosen: settings.transition,
             axis: settings.scrollAxis ?? impliedAxis,
             reduceMotion: reduceMotion,
-            canCurl: canCurl
+            canCurl: canCurl && !isBookPosture
         )
     }
 

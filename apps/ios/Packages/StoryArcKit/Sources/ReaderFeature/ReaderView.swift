@@ -24,6 +24,12 @@ public struct ReaderView: View {
     @Environment(\.turnPagesByTappingTheEdges) var tapTurnsPages
     /// Read here rather than in `ReaderChrome.swift`: an extension cannot hold state.
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    /// A fold handed in by a test or a snapshot. The device's own is ``sensedFold``. See `ReaderFold.swift`.
+    @Environment(\.deviceFold) var injectedFold
+    /// The fold iOS 27.1 reports, in global coordinates, or `nil` on a flat display.
+    @State var sensedFold: DeviceFold?
+    /// Where the pages are drawn, in global coordinates, so that a fold is put in their terms.
+    @State var surface: CGRect = .zero
 
     @State var model: ReaderModel
     /// `comic-reader`: nothing is on screen while the user is reading. The chrome
@@ -39,7 +45,7 @@ public struct ReaderView: View {
     /// publication that failed to open has no pager — so a reader who let the chrome time
     /// out had a black screen, an error message, and no way back to the library except
     /// force-quitting the app.
-    var isChromeVisible: Bool { wantsChrome || model.isBlocked }
+    var isChromeVisible: Bool { wantsChrome || model.isBlocked || posture == .tabletop }
     /// The pager's own position, which it owns outright.
     ///
     /// A two-way `Binding` into the model was tried twice and fights the gesture:
@@ -112,6 +118,13 @@ public struct ReaderView: View {
             initialValue: preferences?.themes().theme(for: .fixedLayout, shelf: shelf).adjustments
                 ?? ImageAdjustments()
         )
+    }
+
+    /// A reader over a model of the caller's own, so `ReaderResizeTests` can watch it.
+    init(model: ReaderModel, isShowingMenu: Bool = false) {
+        self.init(publication: model.publication, url: model.url)
+        _model = State(initialValue: model)
+        _isShowingMenu = State(initialValue: isShowingMenu)
     }
 
     /// The series these adjustments belong to. `comic-reader` requires them to apply "to the
@@ -280,16 +293,20 @@ public struct ReaderView: View {
                 model.matte.ignoresSafeArea()
 
                 statusOrPages(in: geometry.size)
+                    // Half open on a table, the page takes the upper half. See `ReaderFold.swift`.
+                    .frame(height: fold?.pageHeight(in: geometry.frame(in: .global)))
+                    .frame(maxHeight: .infinity, alignment: posture == .tabletop ? .top : .center)
 
                 // Grouped, so overlapping glass shapes morph as one rather than
                 // stacking their edges — `native-experience`'s requirement, and
                 // something only the container can do.
                 if isChromeVisible {
-                    GlassEffectContainer(spacing: StoryArcSpace.md) { chrome }
+                    GlassEffectContainer(spacing: StoryArcSpace.md) { chrome(in: geometry.frame(in: .global)) }
                 }
 
                 if hasReachedEnd { endOfPublication }
             }
+            .modifier(ReaderFoldTracking(sensed: $sensedFold, posture: posture))
             // `comic-reader`: the chrome fades out again "after 4 seconds of no
             // interaction". Keyed on the index too, so turning a page while the
             // chrome is up restarts the countdown rather than hiding mid-swipe.

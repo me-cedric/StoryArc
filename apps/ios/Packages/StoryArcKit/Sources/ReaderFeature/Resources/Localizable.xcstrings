@@ -3061,6 +3061,36 @@
         }
       }
     },
+    "reader.tabletop.controlsBelow": {
+      "comment": "Said once by VoiceOver when the device is half open on a table and the reader's controls move to the lower half.",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Steuerelemente unten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controls below"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Controles abajo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Commandes en bas"
+          }
+        }
+      }
+    },
     "reader.thumbnail %lld": {
       "extractionState": "manual",
       "localizations": {

@@ -39,15 +39,20 @@ public enum ReaderBrightness {
     }
     #endif
 
-    /// The device's own level, or full brightness where no window is up.
+    /// The store over the key window's screen, asked again at each moment because the reader
+    /// can move to the other display of an iPhone Duo while it is open.
     @MainActor
-    public static var deviceBrightness: Double {
+    static var store: BrightnessStore {
         #if os(iOS)
-        Double(screen?.brightness ?? 1)
+        BrightnessStore(screen: screen)
         #else
-        1
+        BrightnessStore(screen: nil)
         #endif
     }
+
+    /// The device's own level, or full brightness where no window is up.
+    @MainActor
+    public static var deviceBrightness: Double { store.level }
 
     /// What `onDisappear` should write back, or `nil` to leave the system alone.
     ///
@@ -70,6 +75,48 @@ public enum ReaderBrightness {
     }
 }
 
+/// A display whose brightness the reader sets: the scene's `UIScreen`, or a test's own.
+@MainActor
+protocol BrightnessScreen: AnyObject {
+    var level: Double { get set }
+}
+
+#if os(iOS)
+extension UIScreen: BrightnessScreen {
+    var level: Double {
+        get { Double(brightness) }
+        set { brightness = CGFloat(newValue) }
+    }
+}
+#endif
+
+/// The four moments of ``ReaderBrightness``, each read or written through one screen.
+///
+/// `BrightnessStoreTests` hands in a screen of its own, so the reads and the writes are
+/// asserted on the host, with no device and no `UIScreen.main`.
+@MainActor
+struct BrightnessStore {
+    let screen: (any BrightnessScreen)?
+
+    /// The screen's level, or full brightness where there is no screen.
+    var level: Double { screen?.level ?? 1 }
+
+    /// A slider move, applied at once.
+    func apply(_ readerBrightness: Double?) {
+        if let readerBrightness { screen?.level = readerBrightness }
+    }
+
+    /// Leaving the reader. See ``ReaderBrightness/onDeparture(readerBrightness:captured:)``.
+    func depart(readerBrightness: Double?, captured: Double?) {
+        apply(ReaderBrightness.onDeparture(readerBrightness: readerBrightness, captured: captured))
+    }
+
+    /// A scene-phase change. See ``ReaderBrightness/onScenePhaseChange(to:readerBrightness:)``.
+    func sceneChanged(to phase: ScenePhase, readerBrightness: Double?) {
+        apply(ReaderBrightness.onScenePhaseChange(to: phase, readerBrightness: readerBrightness))
+    }
+}
+
 extension View {
     /// Applies `brightness` to the screen while this view is up, and puts `captured` back
     /// on leaving. `captured` is written on arrival; the caller only holds it.
@@ -80,25 +127,16 @@ extension View {
     ) -> some View {
         #if os(iOS)
         self
-            .onAppear { captured.wrappedValue = ReaderBrightness.deviceBrightness }
+            .onAppear { captured.wrappedValue = ReaderBrightness.store.level }
             .onDisappear {
-                if let restored = ReaderBrightness.onDeparture(
+                ReaderBrightness.store.depart(
                     readerBrightness: brightness.wrappedValue,
                     captured: captured.wrappedValue
-                ) {
-                    ReaderBrightness.screen?.brightness = CGFloat(restored)
-                }
+                )
             }
-            .onChange(of: brightness.wrappedValue) { _, new in
-                if let new { ReaderBrightness.screen?.brightness = CGFloat(new) }
-            }
+            .onChange(of: brightness.wrappedValue) { _, new in ReaderBrightness.store.apply(new) }
             .onChange(of: scenePhase) { _, phase in
-                if let toApply = ReaderBrightness.onScenePhaseChange(
-                    to: phase,
-                    readerBrightness: brightness.wrappedValue
-                ) {
-                    ReaderBrightness.screen?.brightness = CGFloat(toApply)
-                }
+                ReaderBrightness.store.sceneChanged(to: phase, readerBrightness: brightness.wrappedValue)
             }
         #else
         self

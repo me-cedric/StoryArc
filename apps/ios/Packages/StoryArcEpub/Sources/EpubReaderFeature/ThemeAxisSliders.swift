@@ -1,7 +1,6 @@
 internal import SwiftUI
 
 internal import DesignSystem
-internal import UIKit
 
 internal import StoryArcCore
 
@@ -167,7 +166,7 @@ extension ThemeAxesSheet {
     /// simulator's own brightness happening to differ from the old hardcoded 0.5.
     static func brightnessInForce(
         _ model: EpubReaderModel,
-        device: Double = Double(UIScreen.main.brightness)
+        device: Double = ReaderBrightness.deviceBrightness
     ) -> Double {
         model.brightness ?? device
     }

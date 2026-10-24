@@ -125,3 +125,18 @@ private extension ReaderTextAlignment {
         }
     }
 }
+
+extension EpubReaderModel {
+    /// What the navigator is handed: the theme, the transition in force, and two columns in a
+    /// book posture.
+    ///
+    /// `foldables-and-iphone-duo` D4: held like a book, a paged ebook shows a spread, one page on
+    /// each half of the fold. Readium centres its two columns, and the fold is the middle of the
+    /// display, so the gutter falls on the fold.
+    var readiumPreferences: EPUBPreferences {
+        let transition = transitions(reduceMotion: reduceMotion).effective
+        var preferences = theme.preferences(values: values, transition: transition)
+        if isBookPosture { preferences.columnCount = .two }
+        return preferences
+    }
+}

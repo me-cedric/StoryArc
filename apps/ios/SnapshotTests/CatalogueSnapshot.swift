@@ -6,7 +6,11 @@ import UIKit
 import XCTest
 
 /// The iPhone 17 Pro and the iPhone 17 share one size: 402 by 874 points, drawn at scale 2.
-private let phoneSize = CGSize(width: 402, height: 874)
+let phoneSize = CGSize(width: 402, height: 874)
+
+/// The two displays of an iPhone Duo, in points: closed (the outer one) and open (the inner one).
+let duoOuter = CGSize(width: 466, height: 678)
+let duoInner = CGSize(width: 669, height: 951)
 
 /// How long a screen has to settle. Glass animates its edge and its highlight for about two
 /// seconds after it appears, and an image drawn earlier differs from run to run in that edge.
@@ -26,7 +30,8 @@ private func draw(
     mode: AppearanceMode,
     style: UIUserInterfaceStyle,
     for seconds: TimeInterval,
-    textSize: UIContentSizeCategory? = nil
+    textSize: UIContentSizeCategory? = nil,
+    size: CGSize = phoneSize
 ) -> UIImage {
     guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first else {
         fatalError("The snapshot tests run hosted in the app, which has a window scene.")
@@ -37,7 +42,15 @@ private func draw(
     )
     let host = UIHostingController(rootView: screen.storyArcTheme(appearance: mode))
     let window = UIWindow(windowScene: scene)
-    window.frame = CGRect(origin: .zero, size: phoneSize)
+    window.frame = CGRect(origin: .zero, size: size)
+    // A window larger than the phone's screen is shrunk to fit on it. Liquid Glass samples what is
+    // on the display, so a part of the window off the screen drew its glass without the material.
+    // The image is still drawn at the window's own size.
+    let fit = min(phoneSize.width / size.width, phoneSize.height / size.height, 1)
+    if fit < 1 {
+        window.transform = CGAffineTransform(scaleX: fit, y: fit)
+        window.center = CGPoint(x: phoneSize.width / 2, y: phoneSize.height / 2)
+    }
     window.windowLevel = .alert + 1
     window.overrideUserInterfaceStyle = style
     if let textSize {
@@ -53,7 +66,7 @@ private func draw(
     // Standard range keeps the file 8-bit sRGB. The default is the display's extended range, a
     // 16-bit PNG that is four times the size and says no more about a screen drawn in sRGB.
     format.preferredRange = .standard
-    let image = UIGraphicsImageRenderer(size: phoneSize, format: format).image { _ in
+    let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
         window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
     }
     window.isHidden = true
@@ -68,12 +81,16 @@ private func draw(
 /// number and name in `docs/designs/screen-catalogue.md` find the file. The largest size is the
 /// last accessibility size, AX5 (`lighter-visual-check`, "Both appearances"). Setting
 /// `TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all` records again, which `pnpm snap:ios:record` does.
+///
+/// `size` draws the screen in a window of another size on the same phone, for the two displays
+/// of an iPhone Duo (`foldables-and-iphone-duo` 2.5).
 @MainActor
 func assertCatalogue<Screen: View>(
     _ slug: String,
     delay: TimeInterval = 0,
     precision: Float = 0.99,
     largest: Bool = true,
+    size: CGSize = phoneSize,
     file: StaticString = #filePath,
     line: UInt = #line,
     @ViewBuilder _ screen: () -> Screen
@@ -88,7 +105,8 @@ func assertCatalogue<Screen: View>(
             mode: isDark ? .dark : .light,
             style: isDark ? .dark : .light,
             for: max(delay, settleSeconds),
-            textSize: textSize
+            textSize: textSize,
+            size: size
         )
         assertSnapshot(
             of: image,

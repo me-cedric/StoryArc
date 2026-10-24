@@ -65,3 +65,37 @@ struct ReaderBrightnessTests {
         )
     }
 }
+
+/// `foldables-and-iphone-duo` D6: the store reads and writes the screen it is handed, never
+/// `UIScreen.main`. On an iPhone Duo that is the screen of the reader's own scene.
+@MainActor
+@Suite("Brightness goes through the reader's own screen")
+struct BrightnessStoreTests {
+    private final class Screen: BrightnessScreen {
+        var level: Double { didSet { writes.append(level) } }
+        private(set) var writes: [Double] = []
+        init(level: Double) { self.level = level }
+    }
+
+    @Test("The level is read from the injected screen, and every write lands on it")
+    func readsAndWritesTheInjectedScreen() {
+        let screen = Screen(level: 0.7)
+        let store = BrightnessStore(screen: screen)
+
+        #expect(store.level == 0.7)
+        store.apply(0.3)
+        store.sceneChanged(to: .active, readerBrightness: 0.4)
+        store.depart(readerBrightness: 0.4, captured: 0.7)
+        store.depart(readerBrightness: nil, captured: 0.7)
+
+        #expect(screen.writes == [0.3, 0.4, 0.7], "the writes were \(screen.writes)")
+    }
+
+    @Test("With no screen the level is full and nothing is written")
+    func noScreen() {
+        let store = BrightnessStore(screen: nil)
+
+        #expect(store.level == 1)
+        store.apply(0.3)
+    }
+}

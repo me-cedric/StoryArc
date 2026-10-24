@@ -65,8 +65,11 @@ extension ReaderView {
     /// **Curl is in, since D14.** The shader takes one texture, so the slot's two pages are
     /// composited into one before it ever sees them (``SpreadTexture``). Which modes pair is
     /// ``PageTransition/pairsPages``, so the two platforms answer it once.
+    ///
+    /// **And a book posture pairs, whatever the shape** (`foldables-and-iphone-duo` D4): a fold
+    /// held upright is a spread with its gutter on the fold, one page on each half.
     var isPairing: Bool {
-        isLandscape && model.transitions(reduceMotion: reduceMotion).effective.pairsPages
+        (isLandscape || posture == .book) && transitions.effective.pairsPages
     }
 
     /// What the page grouping depends on, so it is rebuilt when one of them moves and

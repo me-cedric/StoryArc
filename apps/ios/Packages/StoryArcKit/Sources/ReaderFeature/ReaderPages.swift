@@ -28,7 +28,7 @@ extension ReaderView {
     /// contact with the gesture recogniser.
     @ViewBuilder
     func pages(in size: CGSize) -> some View {
-        let choices = model.transitions(reduceMotion: reduceMotion)
+        let choices = transitions
         let container = Group {
             switch choices.effective {
             case .verticalScroll: stitched(.vertical)
@@ -39,6 +39,9 @@ extension ReaderView {
             }
         }
         container
+            // The surface a fold is measured against: the container, not a page, because a page
+            // in a pager moves with each frame of a swipe. See `ReaderFold.swift`.
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { surface = $0 }
             // D13: a refused tap or key gives a little and springs back, beside its haptic.
             .modifier(RefusalResistance(
                 trigger: refusals,
