@@ -43,6 +43,20 @@ public struct PlayerArtwork: View {
     }
 }
 
+extension PlayerArtwork {
+    /// How tall the artwork may be: whatever keeps the transport on the first screen, never
+    /// below 120 points, and `nil` before the screen is measured.
+    ///
+    /// `audio-playback`: "no transport control is pushed off the screen". On the outer display of
+    /// an iPhone Duo (678 points tall) a 480-point cover put the transport under the bottom edge.
+    /// Android's `playerArtworkMax` holds the same rule. The two `xl`s are the padding above the
+    /// cover and the gap below it.
+    static func maxHeight(viewport: CGFloat, underneath: CGFloat) -> CGFloat? {
+        guard viewport > 0 else { return nil }
+        return max(viewport - underneath - 2 * StoryArcSpace.xl, 120)
+    }
+}
+
 @MainActor
 public enum PlayerArtworkImage {
 

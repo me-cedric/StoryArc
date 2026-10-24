@@ -16,6 +16,13 @@ internal import StoryArcCore
 // - Held like a book, the spread is forced on and Curl is withheld (D4).
 // - The controls keep clear of the camera and of the fold (``DeviceFold/controlArea(in:)``).
 //
+// Nothing here moves a sheet. Every sheet and alert the reader presents (the menu, the
+// adjustments, the PDF find and note sheets) is the system's own `.sheet` or `.alert`, and Apple
+// states that iOS 27.1 lays those out clear of the fold and the camera itself ("Prepare your app
+// for iPhone Duo"). A sheet of the reader's own drawing would need ``DeviceFold/controlArea(in:)``
+// too. The three notices over the page (`NetworkNotice`, the voice-stopped banner, the return
+// offer) are overlays, not sheets, and are centred: a vertical fold can still run through them.
+//
 // Plain layout rather than `ArrangementView`: the page and the controls are already two layers
 // of one `ZStack`, and two frames move them without a second container that only iOS 27.1 has.
 //

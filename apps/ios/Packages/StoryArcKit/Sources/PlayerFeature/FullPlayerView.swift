@@ -45,6 +45,10 @@ public struct FullPlayerView: View {
     @State private var showingChapters = false
     @State private var showingSpeed = false
     @State private var showingSleep = false
+    /// The scroll view's height, and the height from the title to the
+    /// transport. See ``PlayerArtwork/maxHeight(viewport:underneath:)``.
+    @State private var viewport: CGFloat = 0
+    @State private var underneath: CGFloat = 0
     /// The scrub in progress, so dragging does not fight the clock ticking underneath it.
     @State private var scrubbing: TimeInterval?
     @State private var resolvedCover: CGImage?
@@ -81,10 +85,13 @@ public struct FullPlayerView: View {
                         )
                     } else {
                         cover
-                        names
-                        wayBack
-                        position
-                        transport
+                        VStack(spacing: StoryArcSpace.xl) {
+                            names
+                            wayBack
+                            position
+                            transport
+                        }
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { underneath = $0 }
                         settings
                         damage
                     }
@@ -93,6 +100,9 @@ public struct FullPlayerView: View {
                 .padding(.vertical, StoryArcSpace.xl)
                 .frame(maxWidth: .infinity)
             }
+            // The scroll view's own height is the part between the bars; its insets are not
+            // taken off again.
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewport = $0 }
             .background(theme.palette.surfaceCanvas)
         }
         // **No Close button, and the grabber in its place.** `named-failures-and-quieter-chrome`
@@ -129,7 +139,7 @@ public struct FullPlayerView: View {
     private var cover: some View {
         if let book = centre.book {
             PlayerArtwork(format: book.publication.format, cover: resolvedCover)
-                .frame(maxWidth: 320)
+                .frame(maxWidth: 320, maxHeight: PlayerArtwork.maxHeight(viewport: viewport, underneath: underneath))
                 // Decoration. The publication is named in words directly below, and a screen
                 // reader that stopped on the format first would hear the kind of thing before
                 // the thing.
