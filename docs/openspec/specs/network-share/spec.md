@@ -71,7 +71,7 @@ downloading whole files to display one page.
 
 ### Requirement: Discovery
 
-The app SHOULD offer to discover SMB hosts on the local network to reduce manual entry.
+The app SHALL offer to discover SMB hosts on the local network to reduce manual entry, where the platform permits it.
 
 #### Scenario: Discovering hosts
 - **WHEN** a user adds an SMB source

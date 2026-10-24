@@ -1361,6 +1361,8 @@ creep — see [`design.md`](design.md).
 > **8.2 and 8.3 carry the identical defect** — duplicated entries, and 8.3's first copy holds
 > a body about the skip and speed controls that belongs to 8.1/8.2. Left alone here: §8 is
 > another agent's and both entries are already `[x]`.
+> **Merged on 2026-10-24:** each second copy now sits inside its first, so 8.2 and 8.3 are
+> declared once, which `openspec validate --strict` requires.
 
 - [x] 7.2 Both: a publication both read and listened to has **one** position, and
       returning never offers a choice of two.
@@ -1512,6 +1514,11 @@ creep — see [`design.md`](design.md).
       are separate functions for exactly that reason and `PlayerLabelsTests` pins both. The two
       ends of the slider are `accessibilityHidden`, so the time is announced once rather than
       three times.
+      **The second copy of this entry, merged here on 2026-10-24:** Android half. A `Slider` is already an adjustable; what it announces
+      by default is a percentage, and the `stateDescription` replaces that with
+      "0:42 of 5:00". iOS half outstanding.
+      **And now asserted rather than described** — `PlayerSemanticsTest` finds a node whose
+      state description is exactly that, in a real composition.
 - [x] 8.3 Both. **Android half.** `mergeDescendants` makes the bar one element;
       **Now asserted in a composition, and the sleep timer exists to announce.**
       `PlayerSemanticsTest` reads the rendered semantics rather than the source: the skip
@@ -1520,12 +1527,7 @@ creep — see [`design.md`](design.md).
       states "Sleep in 12:34". Robolectric with `GraphicsMode.NATIVE`, for `CompactPlayerTest`'s
       reason: legacy graphics measure a glyph at about a pixel wide and would pass against a
       control drawn off the window. Still not verified by an accessibility *scan*.
-- [x] 8.2 Both — Android half. A `Slider` is already an adjustable; what it announces
-      by default is a percentage, and the `stateDescription` replaces that with
-      "0:42 of 5:00". iOS half outstanding.
-      **And now asserted rather than described** — `PlayerSemanticsTest` finds a node whose
-      state description is exactly that, in a real composition.
-- [x] 8.3 Both — Android half. `mergeDescendants` makes the bar one element;
+      **The second copy of this entry, merged here on 2026-10-24:** Android half. `mergeDescendants` makes the bar one element;
       `CustomAccessibilityAction`s keep play/pause and open reachable separately. Not
       stealing focus is what *not asking for it* is — nothing in the bar requests focus,
       which is the whole of the requirement and is why there is no code to point at.

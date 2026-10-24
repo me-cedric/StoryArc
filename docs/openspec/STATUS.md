@@ -17,7 +17,7 @@ The counts on this day, from the task lists (done, partial, open):
 | Change | Done | Partial | Open | What the open items need |
 | --- | --- | --- | --- | --- |
 | `close-the-audited-gaps` | 278 | 8 | 2 | 26.1 and 26.2 (test corpora); 15.10, 26.3 (frames); 20.1 (owner: signing team, device); 21.1 (owner: a trace on the phone that froze); 25.5 (a shared-simulator cause not found); 28.2, 28.3, 28.12 (device frames) |
-| `audiobooks-and-playback` | 83 | 7 | 1 | owner device steps (3.9 headphones, 4.4b, 6.1 a call, 7.3, 8.1 TalkBack, 12.6 CarPlay); 9.5 is the verify and sync that waits on them |
+| `audiobooks-and-playback` | 81 | 7 | 1 | owner device steps (3.9 headphones, 4.4b, 6.1 a call, 7.3, 8.1 TalkBack, 12.6 CarPlay); 9.5 is the verify and sync that waits on them |
 | `reader-theming-and-page-transitions` | 54 | 4 | 1 | 3.5 (emulator run), 4.3b (Android raster ahead), 7.6 (VoiceOver and TalkBack by ear), 7.8 (a finer locator, owner decision O15); 7.7 is the sync |
 | `one-library-three-destinations` | 33 | 3 | 1 | 4.1 (iPad settings measure), 4.2 (a foldable at half-open: now planned in `foldables-and-iphone-duo`), 4.3 (true Split View); 6.5 is the screenshot set |
 | `publication-detail` | 25 | 3 | 1 | 2.3, 4.1, 6.5 (device frames); 5.5 is the screenshot set |

@@ -47,6 +47,7 @@ An agent ran the steps marked "Done 2026-10-10" on the OnePlus 7T Pro (debug bui
 - Kavita: reorder a reading list, and check the order on the server. Task: `close-the-audited-gaps` 7.4.
 - Kavita: add a publication to a server collection. Task: none.
 - Kavita: send a cover to a list you own, and check the web interface. A list of another user shows no button. Task: `cover-for-every-publication` 5.3.
+- SMB: sign in to your own server with an account and open a book. Since 2026-10-24 an account session requires signing; the four fixture servers of `scripts/smb-server.sh` pass, and SMB 2 and 3 servers always offer signing, so a refusal here is a defect to report. Task: none.
 - SMB: add a share by a bare host name. The message does not say that the share is missing. Task: none.
 - SMB: cut the network while a page loads. See the 2 s and 60 s notices, then the read resumes. Task: `close-the-audited-gaps` 5.4.
 - SMB: scan a share with 10000 files. The scan finishes and the list stays responsive. Task: `close-the-audited-gaps` 22.1.

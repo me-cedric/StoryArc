@@ -215,7 +215,7 @@ outline is the one part of it that only one platform exposes, which
 
 ### Requirement: Reading aloud
 
-The app SHOULD read a publication aloud using the platform speech engine.
+The app SHALL read a publication aloud using the platform speech engine.
 
 #### Scenario: Starting playback
 - **WHEN** a user starts read-aloud on a reflowable publication
