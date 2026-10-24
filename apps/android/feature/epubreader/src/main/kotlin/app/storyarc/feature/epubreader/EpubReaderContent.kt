@@ -14,8 +14,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.designsystem.navigation.ReaderPosture
 import app.storyarc.core.designsystem.navigation.currentPosture
+import app.storyarc.core.designsystem.navigation.windowHinge
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Annotation
@@ -99,7 +101,10 @@ internal fun EpubReaderActivity.EpubReaderContent() {
         // `reading-themes`: visible immediately. Reduce Motion is a key too,
         // so turning it off mid-session applies at once, not on the next turn.
         // `native-experience`, *Held like a book* (D4): two columns, and no curl across the fold.
-        val isBookPosture = ReaderPosture.of(currentPosture()) == ReaderPosture.BOOK
+        val posture = currentPosture()
+        val isBookPosture = ReaderPosture.of(posture) == ReaderPosture.BOOK
+        // The fold the controls keep off (1.4). This content fills the window from its origin.
+        val hinge = posture.windowHinge
         LaunchedEffect(theme, values, transition, reduceMotion, isBookPosture) {
             inBookPosture = isBookPosture
             applyTheme(reduceMotion)
@@ -125,7 +130,7 @@ internal fun EpubReaderActivity.EpubReaderContent() {
         // platform's own in-place, and it leaves the page it was tapped on
         // visible behind it.
         note?.let { text ->
-            ModalBottomSheet(onDismissRequest = { model.dismissNote() }) {
+            ModalBottomSheet(onDismissRequest = { model.dismissNote() }, modifier = sheetOffFold()) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium,
@@ -291,6 +296,7 @@ internal fun EpubReaderActivity.EpubReaderContent() {
             isVisible = isVisible,
             onClose = { finish() },
             onOpenMenu = { isShowingMenu = true },
+            hinge = hinge,
         )
 
         // Not the chrome, and on screen on their own terms: `EpubReaderOverlays.kt`.
@@ -302,6 +308,7 @@ internal fun EpubReaderActivity.EpubReaderContent() {
             onToggleReadAloud = ReadAloudHost::toggle,
             onSkipSentence = ReadAloudHost::skip,
             onStopReadAloud = ReadAloudHost::end,
+            hinge = hinge,
         )
         EpubEndOfBookOffer(this@EpubReaderContent, failure, progression) // Task 7.2.
     }

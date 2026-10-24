@@ -18,6 +18,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.designsystem.control.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -90,7 +91,7 @@ internal fun AdjustmentsSheet(
 ) {
     val palette = LocalStoryArcPalette.current
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, modifier = sheetOffFold()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

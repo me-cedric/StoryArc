@@ -608,7 +608,7 @@ internal fun Pager(
                     onJump = ::jump,
                 )
             }
-            ReaderChrome(onClose = onClose, onOpenMenu = { isReaderMenuOpen = true })
+            ReaderChrome(onClose = onClose, onOpenMenu = { isReaderMenuOpen = true }, isOnSurface = true)
         }
     } else if (usesThumbnailPane) {
         // `comic-reader` asks for a browser of every page; a window this wide can put it

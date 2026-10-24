@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
+import app.storyarc.core.designsystem.navigation.HingeInsetPage
+import app.storyarc.core.designsystem.navigation.SurfaceHinge
 import app.storyarc.core.designsystem.theme.readerChromeBorder
 import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -67,6 +69,8 @@ internal fun EpubChrome(
     onClose: () -> Unit,
     onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The fold the capsule keeps off (`native-experience`, 1.4): it moves to the wider side. */
+    hinge: SurfaceHinge? = null,
 ) {
     val palette = LocalStoryArcPalette.current
 
@@ -95,7 +99,7 @@ internal fun EpubChrome(
     // nothing unless Natural is on, contrast is standard, and the device is API 33 or later.
     PaperGrainOverlay()
 
-    AnimatedVisibility(visible = isVisible, enter = fadeIn(), exit = fadeOut()) {
+    AnimatedVisibility(visible = isVisible, enter = fadeIn(), exit = fadeOut()) { HingeInsetPage(hinge) {
         Box(modifier = modifier.fillMaxSize().safeDrawingPadding()) {
             HorizontalFloatingToolbar(
                 expanded = true,
@@ -119,5 +123,5 @@ internal fun EpubChrome(
                 }
             }
         }
-    }
+    } }
 }

@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.navigation.HingeInsetPage
+import app.storyarc.core.designsystem.navigation.SurfaceHinge
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcRadius
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -56,6 +58,8 @@ internal fun EpubReaderOverlays(
     onSkipSentence: (Boolean) -> Unit,
     onStopReadAloud: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The fold these keep off (`native-experience`, 1.4): they move to the wider side. */
+    hinge: SurfaceHinge? = null,
     /**
      * The authority that arms the word a displaced voice owes. The app's one, except in a test
      * — and a parameter here rather than a read of the singleton inside, so a test can arm it.
@@ -66,7 +70,7 @@ internal fun EpubReaderOverlays(
     val snackbars = remember { SnackbarHostState() }
     VoiceStoppedWord(spokenAudio, snackbars)
 
-    Column(
+    HingeInsetPage(hinge) { Column(
         // Clear of the two-control capsule, which sits at the very foot of the page.
         modifier = modifier
             .fillMaxSize()
@@ -111,7 +115,7 @@ internal fun EpubReaderOverlays(
                 onStop = onStopReadAloud,
             )
         }
-    }
+    } }
 }
 
 /**

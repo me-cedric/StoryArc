@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.format.PdfTextSelection
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.AnnotationExport
@@ -94,7 +95,7 @@ internal fun PdfTextLayers(
     }
 
     if (isFindingText && text != null) {
-        ModalBottomSheet(onDismissRequest = { isFindingText = false }) {
+        ModalBottomSheet(onDismissRequest = { isFindingText = false }, modifier = sheetOffFold()) {
             PdfTextSheet(
                 opensOn = pdfTextTab,
                 state = text,
@@ -126,7 +127,7 @@ internal fun PdfTextLayers(
     } else if (isFindingText) {
         // D8: no text layer to search or an outline to browse, so this is the marks panel
         // alone -- a comic's or a scan's page bookmarks.
-        ModalBottomSheet(onDismissRequest = { isFindingText = false }) {
+        ModalBottomSheet(onDismissRequest = { isFindingText = false }, modifier = sheetOffFold()) {
             ComicBookmarkSheet(
                 annotations = comicBookmarks.annotations,
                 onGo = { page -> jump(page); isFindingText = false },

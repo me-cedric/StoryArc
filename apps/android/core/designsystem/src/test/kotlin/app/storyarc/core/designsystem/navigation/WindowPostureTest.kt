@@ -72,4 +72,24 @@ class WindowPostureTest {
         assertNull(fold(across, isVertical = false).avoidedVerticalFold())
         assertNull(fold(down).tabletopFold())
     }
+
+    /** A sheet takes the wider side of a vertical fold. Ties go to the start, as a lone page's do. */
+    @Test
+    fun `a sheet keeps to the wider side of a vertical fold`() {
+        assertEquals(SheetMargins(right = 841f), fold(Rect(841f, 0f, 841f, 1402f)).sheetMargins(1682f))
+        assertEquals(SheetMargins(left = 800f), fold(Rect(760f, 0f, 800f, 1402f)).sheetMargins(1682f))
+        assertEquals(SurfaceHinge(760f, 800f), fold(Rect(760f, 0f, 800f, 1402f)).windowHinge)
+    }
+
+    @Test
+    fun `in tabletop a sheet starts below the fold`() {
+        assertEquals(SheetMargins(top = 842f), fold(Rect(0f, 841f, 1402f, 841f), isVertical = false).sheetMargins(1402f))
+    }
+
+    @Test
+    fun `with no fold a sheet keeps its place`() {
+        assertEquals(SheetMargins(), Posture().sheetMargins(1402f))
+        assertEquals(SheetMargins(), fold(across, isFlat = true, isVertical = false, isSeparating = false).sheetMargins(1402f))
+        assertNull(Posture().windowHinge)
+    }
 }

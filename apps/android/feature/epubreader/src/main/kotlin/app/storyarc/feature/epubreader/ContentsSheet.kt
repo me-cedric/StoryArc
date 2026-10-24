@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.model.Annotation
 import app.storyarc.core.model.AnnotationExport
 import app.storyarc.core.model.Bookmark
@@ -57,7 +58,7 @@ internal fun ContentsBottomSheet(
 ) {
     var tab by remember(opensOn) { mutableStateOf(opensOn) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
+    ModalBottomSheet(onDismissRequest = onDismiss, modifier = sheetOffFold()) {
         PrimaryTabRow(selectedTabIndex = ContentsTab.entries.indexOf(tab)) {
             ContentsTab.entries.forEach { candidate ->
                 Tab(

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material3.FloatingToolbarDefaults
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +67,9 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  *
  * [hinge] is the fold the capsule keeps off (`native-experience`, 1.4). The capsule moves to the
  * wider side of it, as a lone page does.
+ *
+ * [isOnSurface] is the capsule on tabletop's control half rather than over artwork: Material's
+ * own toolbar colours, because the scrim is there for a page that can be white.
  */
 @Composable
 internal fun ReaderChrome(
@@ -73,15 +77,16 @@ internal fun ReaderChrome(
     onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
     hinge: SurfaceHinge? = null,
+    isOnSurface: Boolean = false,
 ) = HingeInsetPage(hinge) {
     Box(modifier.fillMaxSize().safeDrawingPadding()) {
         HorizontalFloatingToolbar(
             expanded = true,
-            colors = readerChromeColours(),
+            colors = if (isOnSurface) FloatingToolbarDefaults.standardFloatingToolbarColors() else readerChromeColours(),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(StoryArcSpace.md)
-                .then(readerChromeBorder()),
+                .then(if (isOnSurface) Modifier else readerChromeBorder()),
         ) {
             IconButton(onClick = onClose) {
                 Icon(

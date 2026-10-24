@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.designsystem.control.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SheetState
@@ -237,7 +238,7 @@ internal fun ThemeBottomSheet(
         enabledValues = setOf(SheetValue.Hidden, SheetValue.PartiallyExpanded, SheetValue.Expanded),
     )
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, modifier = sheetOffFold()) {
         ThemeSheet(
             sheetState = sheetState,
             onDismiss = onDismiss,

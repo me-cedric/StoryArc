@@ -47,6 +47,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.designsystem.control.MenuRow
 import app.storyarc.core.designsystem.control.StoryArcSliderTrack
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
@@ -138,7 +139,7 @@ internal fun ReaderMenuSheet(
     actions: ReaderMenuActions,
     scrubbing: Int?,
 ) {
-    ModalBottomSheet(onDismissRequest = actions.onDismiss) {
+    ModalBottomSheet(onDismissRequest = actions.onDismiss, modifier = sheetOffFold()) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             ContentsRow(
                 pageIndex = scrubbing ?: facts.pageIndex,

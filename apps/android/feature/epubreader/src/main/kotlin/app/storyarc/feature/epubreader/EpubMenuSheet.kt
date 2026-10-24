@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import app.storyarc.core.designsystem.navigation.sheetOffFold
 import app.storyarc.core.designsystem.control.MenuRow
 import app.storyarc.core.designsystem.theme.LocalStoryArcPalette
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -87,7 +88,7 @@ internal data class EpubMenuActions(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun EpubMenuSheet(facts: EpubMenuFacts, actions: EpubMenuActions) {
-    ModalBottomSheet(onDismissRequest = actions.onDismiss) {
+    ModalBottomSheet(onDismissRequest = actions.onDismiss, modifier = sheetOffFold()) {
         EpubMenuBody(facts, actions)
     }
 }
