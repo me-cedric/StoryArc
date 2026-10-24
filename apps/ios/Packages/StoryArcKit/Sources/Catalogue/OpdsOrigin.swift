@@ -59,6 +59,22 @@ public struct OpdsOrigin: Sendable, Equatable {
     }
 }
 
+/// The redirect rule alone, for a session that has no trust delegate to carry it.
+///
+/// Kavita's session has no pins (see `KavitaClient.init`), but it sends a bearer token,
+/// so a 302 to another host must drop it and a step down to `http` must stop, as it does
+/// for a catalogue.
+public final class OpdsRedirectDelegate: NSObject, URLSessionTaskDelegate, Sendable {
+    public func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest
+    ) async -> URLRequest? {
+        OpdsRedirect.following(request, from: task.originalRequest)
+    }
+}
+
 /// What to do with a redirect the server chose.
 ///
 /// `URLSession` follows redirects on its own and carries every header across, so a 302 to

@@ -68,10 +68,16 @@ enum PublicationEgress {
     /// because compilation is asynchronous and ``deny(_:)`` is not: a spread view that
     /// asked for its scripts before the list existed would render its first resource
     /// unguarded, which is the one page a beacon would be on.
-    static func prepare() async {
-        guard compiled == nil else { return }
-        compiled = try? await WKContentRuleListStore.default()
-            .compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: rules)
+    ///
+    /// Returns whether the list exists. False only when WebKit refuses to compile it, and
+    /// then the caller does not open the book.
+    @discardableResult
+    static func prepare() async -> Bool {
+        if compiled == nil {
+            compiled = try? await WKContentRuleListStore.default()
+                .compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: rules)
+        }
+        return compiled != nil
     }
 
     /// Installs the list on one spread's content controller.

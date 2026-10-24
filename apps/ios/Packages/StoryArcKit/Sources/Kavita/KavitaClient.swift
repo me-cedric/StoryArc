@@ -1,5 +1,7 @@
 public import Foundation
 
+internal import Catalogue
+
 /// A Kavita server, and what StoryArc asks it.
 ///
 /// Kavita already speaks OPDS, and a reader can add one as a catalogue today. This exists
@@ -30,8 +32,9 @@ public actor KavitaClient {
     /// No `pins`, and no trust delegate.
     ///
     /// It used to take a `CertificatePins` and store it, and nothing ever read it: the
-    /// session below is built with no delegate, so there was no `urlSession(_:didReceive:)`
-    /// hook for a pin to reach. Rank 15 of the 30 August security review — a parameter that
+    /// session below had no delegate, so there was no `urlSession(_:didReceive:)`
+    /// hook for a pin to reach. Its delegate now applies only the redirect rule.
+    /// Rank 15 of the 30 August security review — a parameter that
     /// claims a defence it does not provide is worse than an absent one, because the next
     /// change weakens the delegate rather than wiring it. Kavita therefore needs a
     /// certificate the system already trusts, and the sources screen says so plainly.
@@ -49,7 +52,8 @@ public actor KavitaClient {
             configuration.timeoutIntervalForRequest = 20
             return configuration
         }()
-        session = URLSession(configuration: configured)
+        // Installed whatever configuration a caller passes, so a test session has it too.
+        session = URLSession(configuration: configured, delegate: OpdsRedirectDelegate(), delegateQueue: nil)
     }
 
     /// One GET against an endpoint, as bytes.

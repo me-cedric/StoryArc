@@ -210,6 +210,9 @@ public final class EpubReaderModel {
     /// The finger-driven curl over prose. See ``ProseCurlDriver``.
     @ObservationIgnored let proseCurl = ProseCurlDriver()
 
+    /// Whether the egress rule list exists. Variable only so a test can make it fail.
+    @ObservationIgnored var egressReady: @MainActor () async -> Bool = { await PublicationEgress.prepare() }
+
     /// - Parameter preferences: the store the theme is read from and written back
     ///   to. Passing `nil` gives a reader that forgets, which is what a test wants
     ///   and what the app had before themes persisted.

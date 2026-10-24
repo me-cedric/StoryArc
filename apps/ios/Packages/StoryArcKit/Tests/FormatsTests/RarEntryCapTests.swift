@@ -3,9 +3,9 @@ import Testing
 
 @testable import Formats
 
-/// The 512 MB ceiling on one unpacked entry, which `SECURITY.md` publishes.
+/// The 128 MB ceiling on one unpacked entry, under the 512 MB `SECURITY.md` publishes.
 ///
-/// Android has enforced it since the decoder was written (`rar_decoder.c`,
+/// Android has enforced 512 MB since the decoder was written (`rar_decoder.c`,
 /// `MAX_ENTRY_BYTES`); iOS reserved capacity against it and then let the loop
 /// run. The published claim was therefore true on one platform only.
 ///
@@ -47,10 +47,25 @@ struct RarEntryCapTests {
         #expect(read == payload)
     }
 
-    @Test("The cap iOS enforces is the one Android enforces and SECURITY.md publishes")
-    func theCapMatchesTheOtherPlatform() {
+    @Test("The cap is 128 MB, inside the 512 MB Android enforces and SECURITY.md publishes")
+    func theCapIsInsideTheOtherPlatforms() {
         // `rar_decoder.c`: `#define MAX_ENTRY_BYTES (512L * 1024L * 1024L)`.
-        #expect(RarDecoder.maxEntryBytes == 512 * 1024 * 1024)
+        #expect(RarDecoder.maxEntryBytes == 128 * 1024 * 1024)
+    }
+
+    @Test("A page one byte over 128 MB is refused on its header")
+    func aPageOneByteOverTheCapIsRefused() throws {
+        let declared = 128 * 1024 * 1024 + 1
+        let url = try writeArchive(
+            name: "page-01.jpg", declaredSize: declared, payload: Data("far short of it".utf8)
+        )
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        #expect(throws: RarDecoder.DecodeError.tooLarge(
+            path: "page-01.jpg", declared: declared, cap: RarDecoder.maxEntryBytes
+        )) {
+            try RarDecoder.data(forEntryAt: "page-01.jpg", inArchiveAt: url)
+        }
     }
 
     // MARK: - A RAR5 store-mode writer, ported from `scripts/generate.py`

@@ -1,3 +1,4 @@
+import Compression
 import Foundation
 import Testing
 
@@ -154,6 +155,30 @@ struct ZipReaderTests {
             _ = try ZipReader.inflate(Data([0x00]), expectedSize: -1)
         }
         #expect(try ZipReader.inflate(Data(), expectedSize: 0).isEmpty)
+    }
+
+    @Test("One entry inflates to at most 128 MB, declared size or not")
+    func inflateStopsAtTheCap() throws {
+        // One byte past the cap, as zeros, which deflate to a few hundred kilobytes.
+        let cap = ZipReader.maxInflateBytes
+        let plain = Data(count: cap + 1)
+        var packed = Data(count: 1024 * 1024)
+        let packedCount = packed.withUnsafeMutableBytes { destination in
+            plain.withUnsafeBytes { origin in
+                guard let destinationBase = destination.bindMemory(to: UInt8.self).baseAddress,
+                      let originBase = origin.bindMemory(to: UInt8.self).baseAddress
+                else { return 0 }
+                return compression_encode_buffer(
+                    destinationBase, destination.count, originBase, origin.count, nil, COMPRESSION_ZLIB
+                )
+            }
+        }
+        let compressed = packed.prefix(packedCount)
+        try #require(packedCount > 0)
+
+        #expect(try ZipReader.inflate(compressed, expectedSize: cap + 1).count == cap)
+        // No declared size: the buffer doubles, and stops at the same ceiling.
+        #expect(try ZipReader.inflate(compressed, expectedSize: 0).count == cap)
     }
 }
 

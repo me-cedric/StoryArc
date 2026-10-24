@@ -41,14 +41,13 @@ public enum RarDecoder {
     /// A ceiling on one entry's unpacked size.
     ///
     /// The size in a RAR header is untrusted: without a cap, a crafted archive
-    /// claiming a petabyte drives the loop until jetsam kills the app. 512 MB is
+    /// claiming a petabyte drives the loop until jetsam kills the app. 128 MB is
     /// far past any real comic page.
     ///
-    /// The same number as Android's `MAX_ENTRY_BYTES` in `rar_decoder.c`, and the
-    /// one `SECURITY.md` publishes — which was true on one platform only until
-    /// this existed, because the declared size seeded the buffer here and never
-    /// bounded the loop.
-    public static let maxEntryBytes = 512 * 1024 * 1024
+    /// Lower than Android's `MAX_ENTRY_BYTES` in `rar_decoder.c` (512 MB), so the
+    /// 512 MB that `SECURITY.md` publishes is still a ceiling here. Before this
+    /// existed, the declared size seeded the buffer and never bounded the loop.
+    public static let maxEntryBytes = 128 * 1024 * 1024
 
     /// Unpacked bytes for one entry, found by its path inside the archive.
     ///

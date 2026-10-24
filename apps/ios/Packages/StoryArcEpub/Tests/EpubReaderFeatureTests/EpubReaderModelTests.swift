@@ -81,6 +81,18 @@ struct EpubReaderModelTests {
         #expect(reader.navigator == nil)
     }
 
+    @Test("A book does not open when the egress rule list could not be compiled")
+    func refusesWithoutEgressRules() async {
+        // ADR-0015: a reflowable page with no rule list can reach the network, so it
+        // fails closed rather than rendering unguarded.
+        let reader = model("fixture.epub")
+        reader.egressReady = { false }
+        await reader.open()
+
+        #expect(reader.failure != nil)
+        #expect(reader.navigator == nil)
+    }
+
     @Test("A finished book reopens at its start, not at the page it was marked finished on")
     func finishedBookReopensAtStart() async throws {
         let base = model("fixture.epub")

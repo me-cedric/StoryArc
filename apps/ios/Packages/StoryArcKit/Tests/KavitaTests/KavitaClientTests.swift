@@ -155,6 +155,55 @@ struct KavitaClientTests {
         }
     }
 
+    @Test("A redirect to another host arrives with no bearer token")
+    func aRedirectToAnotherHostDropsTheToken() async throws {
+        // The session follows a 302 by itself and carries every header across, so without
+        // the redirect rule the token would reach whatever host the server named.
+        let sent = KavitaSent()
+        let elsewhere = "\(UUID().uuidString).example"
+        _ = KavitaStub.session(host: elsewhere) { request in
+            sent.record(request)
+            return self.json("{}")
+        }
+        let target = try #require(URL(string: "https://\(elsewhere)/collect"))
+        let client = try client { request in
+            request.url?.path().contains("authenticate") == true
+                ? self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+                : .redirect(to: target)
+        }
+
+        _ = try await client.get("Library/libraries")
+
+        let request = try #require(sent.request)
+        #expect(request.url?.host() == elsewhere)
+        #expect(request.value(forHTTPHeaderField: "Authorization") == nil)
+    }
+
+    @Test("A redirect within the server keeps the bearer token")
+    func aRedirectWithinTheServerKeepsTheToken() async throws {
+        let sent = KavitaSent()
+        let host = "\(UUID().uuidString).example"
+        let moved = try #require(URL(string: "https://\(host)/api/moved"))
+        let configuration = KavitaStub.session(host: host) { request in
+            if request.url?.path().contains("authenticate") == true {
+                return self.json(#"{"username":"ada","token":"t","apiKey":"key"}"#)
+            }
+            guard request.url?.path() == "/api/moved" else {
+                return .redirect(to: moved)
+            }
+            sent.record(request)
+            return self.json("{}")
+        }
+        let address = try #require(KavitaAddress.from(base: "https://\(host)", apiKey: "key"))
+        let client = KavitaClient(address: address, configuration: configuration)
+
+        _ = try await client.get("Library/libraries")
+
+        let request = try #require(sent.request)
+        #expect(request.url?.path() == "/api/moved")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer t")
+    }
+
     /// A box, because the stub runs on the session's queue.
     private final class Counter: @unchecked Sendable {
         var value = 0
@@ -225,6 +274,9 @@ final class KavitaSent: @unchecked Sendable {
 final class KavitaStub: URLProtocol {
     enum Answer {
         case response(status: Int, body: Data)
+
+        /// A 302 the session is asked to follow, so the delegate's redirection hook runs.
+        case redirect(to: URL)
     }
 
     private static let lock = NSLock()
@@ -257,9 +309,20 @@ final class KavitaStub: URLProtocol {
     override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
+        let answer = request.url?.host().flatMap { host in Self.lock.withLock { Self.answers[host] } }?(request)
+        if case let .redirect(to) = answer, let from = request.url,
+           let response = HTTPURLResponse(
+               url: from, statusCode: 302, httpVersion: "HTTP/1.1",
+               headerFields: ["Location": to.absoluteString]
+           ) {
+            // The headers come across, as `URLSession` itself carries them on a redirect.
+            var next = request
+            next.url = to
+            client?.urlProtocol(self, wasRedirectedTo: next, redirectResponse: response)
+            return
+        }
         guard let url = request.url,
-              let host = url.host(),
-              let answer = Self.lock.withLock({ Self.answers[host] })?(request),
+              let answer,
               case let .response(status, body) = answer,
               let response = HTTPURLResponse(
                   url: url,

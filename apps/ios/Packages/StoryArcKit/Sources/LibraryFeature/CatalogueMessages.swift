@@ -52,7 +52,12 @@ enum CatalogueMessages {
     }
 
     private static func logged(unreachable error: any Error) -> DownloadFailure {
-        catalogueMessagesLog.error("catalogue unreachable: \(error, privacy: .public)")
+        // The description holds the failing URL, which can carry `?apikey=`: only the code is public.
+        let failure = error as NSError
+        catalogueMessagesLog.error("""
+            catalogue unreachable: \(failure.domain, privacy: .public) \(failure.code, privacy: .public) \
+            \(error, privacy: .private)
+            """)
         return .unreachable
     }
 }

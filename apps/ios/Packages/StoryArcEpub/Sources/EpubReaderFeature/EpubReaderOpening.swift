@@ -49,8 +49,12 @@ extension EpubReaderModel {
 
     private func start(_ opened: ReadiumShared.Publication) async {
         // Before the navigator exists, because installing the rule list is synchronous
-        // and compiling it is not. ADR-0015.
-        await PublicationEgress.prepare()
+        // and compiling it is not. ADR-0015. With no list, the book does not open: a page
+        // with no egress block can reach the network.
+        guard await egressReady() else {
+            failure = String(localized: "epub.failure.unreadable", bundle: .module.inChosenLanguage, locale: .storyArc)
+            return
+        }
 
         // Set here, ahead of the rest of this function's own assignment below, so
         // `recordedLocator()` can read it back through the `nonisolated(unsafe)` stored

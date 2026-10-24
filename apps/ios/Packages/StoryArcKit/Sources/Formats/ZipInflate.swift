@@ -10,6 +10,10 @@ internal import Compression
 // in the package and neither half easier to read.
 
 extension ZipReader {
+    /// A ceiling on one entry's inflated size. A real comic page is far smaller; Android
+    /// allows 512 MB, which one page on a phone does not need.
+    static let maxInflateBytes = 128 * 1024 * 1024
+
     /// Raw DEFLATE, via the platform. We parse the container; we do not implement
     /// compression (ADR-0008).
     static func inflate(_ compressed: Data, expectedSize: Int) throws -> Data {
@@ -25,7 +29,7 @@ extension ZipReader {
 
         // `expectedSize` comes from the central directory, so it is attacker
         // controlled. Capped so a lying header cannot make us allocate the world.
-        let capacity = min(expectedSize, 512 * 1024 * 1024)
+        let capacity = min(expectedSize, maxInflateBytes)
         var output = Data(count: capacity)
 
         let written: Int = output.withUnsafeMutableBytes { destination in
@@ -53,7 +57,7 @@ extension ZipReader {
     /// while the result exactly fills it, which is the signal that it was clipped.
     private static func inflateUnknownSize(_ compressed: Data) throws -> Data {
         var capacity = max(compressed.count * 8, 64 * 1024)
-        let ceiling = 512 * 1024 * 1024
+        let ceiling = maxInflateBytes
         while true {
             var output = Data(count: capacity)
             let written: Int = output.withUnsafeMutableBytes { destination in
