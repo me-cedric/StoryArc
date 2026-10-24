@@ -297,7 +297,7 @@ private fun ContentsRow(pageIndex: Int, pageCount: Int, onOpen: () -> Unit) {
  * the page.
  */
 @Composable
-private fun PageSlider(
+internal fun PageSlider(
     viewModel: ReaderViewModel,
     index: Int,
     count: Int,

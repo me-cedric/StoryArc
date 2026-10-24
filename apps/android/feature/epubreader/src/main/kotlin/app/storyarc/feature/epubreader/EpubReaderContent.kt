@@ -14,6 +14,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.storyarc.core.designsystem.navigation.ReaderPosture
+import app.storyarc.core.designsystem.navigation.currentPosture
 import app.storyarc.core.designsystem.theme.StoryArcTheme
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.model.Annotation
@@ -96,7 +98,12 @@ internal fun EpubReaderActivity.EpubReaderContent() {
 
         // `reading-themes`: visible immediately. Reduce Motion is a key too,
         // so turning it off mid-session applies at once, not on the next turn.
-        LaunchedEffect(theme, values, transition, reduceMotion) { applyTheme(reduceMotion) }
+        // `native-experience`, *Held like a book* (D4): two columns, and no curl across the fold.
+        val isBookPosture = ReaderPosture.of(currentPosture()) == ReaderPosture.BOOK
+        LaunchedEffect(theme, values, transition, reduceMotion, isBookPosture) {
+            inBookPosture = isBookPosture
+            applyTheme(reduceMotion)
+        }
 
         // `ebook-reader`: the reading theme follows the appearance "then and
         // there rather than at the next open", and only for the reader who
@@ -109,7 +116,7 @@ internal fun EpubReaderActivity.EpubReaderContent() {
         // `page-transitions`: the reader picks a page turn *after* the book is
         // open, and Reduce Motion can turn a Slide into Fast fade's own turn, so
         // ownership follows `effective` and the swipe is armed, not one mode.
-        val drawnTurn = model.transitions(reduceMotion).drawnTurn
+        val drawnTurn = model.transitions(reduceMotion, isBookPosture).drawnTurn
         LaunchedEffect(drawnTurn) {
             interceptor.arm(drawnTurn, turns)
         }
@@ -239,7 +246,7 @@ internal fun EpubReaderActivity.EpubReaderContent() {
                 onLeavePublisherStyles = model::leavePublisherStyles,
                 onAdoptColours = model::adoptColours,
                 onDiscardColours = model::discardCustomColours,
-                choices = model.transitions(reduceMotion),
+                choices = model.transitions(reduceMotion, isBookPosture),
                 onChooseTransition = model::choose,
                 onClose = { isCustomisingTheme = false },
                 chapter = chapter,

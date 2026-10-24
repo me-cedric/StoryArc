@@ -85,6 +85,16 @@ class ReflowableCurlTest {
         assertEquals(PageTransition.SLIDE, choices.effective)
     }
 
+    /** D4: held like a book, a curl would cross the fold, so the row is absent as above. */
+    @Test
+    @Config(sdk = [34])
+    fun `book posture is offered no curl`() {
+        val choices = reader().transitions(reduceMotion = false, inBookPosture = true)
+
+        assertTrue(PageTransition.PAGE_CURL !in choices.offered)
+        assertTrue(choices.curlIsAbsent)
+    }
+
     private companion object {
         // Nothing is opened: `transitions` answers from the chosen mode and the device, and
         // a path that resolves to nothing is what the reader holds before a book is parsed.

@@ -12,6 +12,7 @@ import app.storyarc.core.model.ThemeValues
 import app.storyarc.core.model.values
 import org.readium.r2.navigator.epub.EpubPreferences
 import org.readium.r2.navigator.preferences.Color
+import org.readium.r2.navigator.preferences.ColumnCount
 import org.readium.r2.navigator.preferences.FontFamily
 import org.readium.r2.navigator.preferences.TextAlign
 import org.readium.r2.shared.ExperimentalReadiumApi
@@ -38,7 +39,11 @@ import org.readium.r2.shared.ExperimentalReadiumApi
 internal fun ReadingTheme.preferences(
     values: ThemeValues,
     transition: PageTransition = PageTransition.SLIDE,
+    /** D4: held like a book, a paged EPUB takes two columns, one on each half of the fold. */
+    inBookPosture: Boolean = false,
 ): EpubPreferences {
+    val columnCount = if (inBookPosture) ColumnCount.TWO else null
+
     // The one axis that always applies, under every preset including Original.
     val fontSize = values.fontSize.fraction
 
@@ -67,11 +72,13 @@ internal fun ReadingTheme.preferences(
             pageMargins = values.pageMargins,
             publisherStyles = true,
             scroll = scroll,
+            columnCount = columnCount,
         )
     }
 
     return EpubPreferences(
         scroll = scroll,
+        columnCount = columnCount,
         backgroundColor = Color(AndroidColor.parseColor(background)),
         textColor = Color(AndroidColor.parseColor(foreground)),
         fontFamily = values.typeface.readium,

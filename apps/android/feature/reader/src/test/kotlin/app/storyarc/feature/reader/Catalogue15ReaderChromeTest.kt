@@ -71,7 +71,10 @@ class Catalogue15ReaderChromeTest {
             look,
             act = {
                 waitUntil(timeoutMillis = 10_000) { model.pages.value.isNotEmpty() }
-                onRoot().performClick()
+                // A centre tap toggles the chrome, and it is up until the auto-hide. Whether the
+                // open outran the auto-hide depends on how warm the JVM is, so tap only while it is down.
+                if (!shows("Menu")) onRoot().performClick()
+                waitUntil(timeoutMillis = 5_000) { shows("Menu") }
             },
         ) { ReaderScreen(viewModel = model, onClose = {}) }
     }

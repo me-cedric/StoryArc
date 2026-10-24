@@ -2,13 +2,14 @@ package app.storyarc.core.designsystem.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
-import androidx.compose.material3.adaptive.separatingVerticalHingeBounds
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -43,10 +44,9 @@ class HingeSurface {
     /** Records the surface's left edge in the window. */
     val modifier: Modifier = Modifier.onGloballyPositioned { left = it.positionInWindow().x }
 
-    /** The window's separating vertical hinge in this surface's coordinates, or `null`. */
+    /** The window's vertical fold in this surface's coordinates, or `null`. See [avoidedVerticalFold]. */
     val hinge: SurfaceHinge?
-        @Composable get() = currentWindowAdaptiveInfoV2().windowPosture.separatingVerticalHingeBounds
-            .firstOrNull()?.let { SurfaceHinge(it.left - left, it.right - left) }
+        @Composable get() = currentPosture().avoidedVerticalFold()?.let { SurfaceHinge(it.left - left, it.right - left) }
 }
 
 @Composable
@@ -107,6 +107,30 @@ fun HingeSpread(hinge: SurfaceHinge?, half: @Composable (Int) -> Unit) {
                     contentAlignment = Alignment.Center,
                 ) { half(index) }
             }
+        }
+    }
+}
+
+/**
+ * Tabletop posture (D3): [page] above the fold and [controls] below it, in that reading order.
+ *
+ * [foldTop] and [foldBottom] are the fold's edges in this container's own coordinates, in
+ * pixels. The split is [hingeSpreadSplit] turned on its side: the same arithmetic, over a height.
+ */
+@Composable
+fun TabletopSplit(
+    foldTop: Float,
+    foldBottom: Float,
+    page: @Composable () -> Unit,
+    controls: @Composable () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val split = hingeSpreadSplit(constraints.maxHeight.toFloat(), foldTop, foldBottom)
+        val density = LocalDensity.current
+        Column(Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxWidth().height(with(density) { split.leadingWidth.toDp() })) { page() }
+            Spacer(Modifier.height(with(density) { split.gap.toDp() }))
+            Box(Modifier.fillMaxWidth().weight(1f)) { controls() }
         }
     }
 }

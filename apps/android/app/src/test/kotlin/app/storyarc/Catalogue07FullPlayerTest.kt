@@ -18,6 +18,7 @@ import app.storyarc.core.playback.PlaybackPart
 import app.storyarc.core.playback.PlaybackSession
 import app.storyarc.core.playback.PlaybackSpeed
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
+import app.storyarc.core.snapshots.FOLD_OUTER_QUALIFIERS
 import app.storyarc.core.snapshots.Fixtures
 import app.storyarc.core.snapshots.Look
 import app.storyarc.core.snapshots.catalogue
@@ -60,7 +61,7 @@ class Catalogue07FullPlayerTest {
         speed = PlaybackSpeed.of(1.25),
     )
 
-    private fun draw(look: Look) = compose.catalogue("07-full-player", look) { Player() }
+    private fun draw(look: Look, entry: String = "07-full-player") = compose.catalogue(entry, look) { Player() }
 
     /**
      * Entry 7b: the player on a short phone, 411 x 731 dp, inside the chrome the app draws
@@ -111,6 +112,15 @@ class Catalogue07FullPlayerTest {
 
     @Test
     fun largest() = draw(Look.Largest)
+
+    /** 2.5: the Pixel Fold's outer display. Light and dark only: new images take the default text size. */
+    @Test
+    @Config(qualifiers = FOLD_OUTER_QUALIFIERS)
+    fun foldOuterLight() = draw(Look.Light, "07-full-player-fold-outer")
+
+    @Test
+    @Config(qualifiers = FOLD_OUTER_QUALIFIERS)
+    fun foldOuterDark() = draw(Look.Dark, "07-full-player-fold-outer")
 
     private companion object {
         /** The navigation bar over the system's own bar, in dp. */

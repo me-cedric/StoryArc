@@ -2,6 +2,8 @@
 <resources>
     <string name="reader_page">%1$d de %2$d</string>
     <string name="reader_close">Cerrar</string>
+    <!-- Said once by TalkBack when the device is half open on a table and the controls move to the lower half. -->
+    <string name="reader_tabletop_controls">Controles abajo</string>
     <string name="reader_menu">Menú</string>
     <string name="reader_menu_contents">Contenido</string>
     <string name="reader_menu_bookmarks">Marcadores</string>

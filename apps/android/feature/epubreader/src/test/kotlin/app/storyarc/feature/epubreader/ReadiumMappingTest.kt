@@ -11,6 +11,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.readium.r2.navigator.preferences.ColumnCount
+import org.readium.r2.shared.ExperimentalReadiumApi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -82,6 +84,18 @@ class ReadiumMappingTest {
             assertNotNull("$preset needs a background", preferences.backgroundColor)
             assertNotNull("$preset needs a text colour", preferences.textColor)
             assertEquals(preset.values.pageMargins, preferences.pageMargins!!, 0.0)
+        }
+    }
+
+    /** D4, `native-experience` *Held like a book*: two columns, one on each half; one column otherwise. */
+    // Readium marks the column count experimental, as it does the whole preferences API.
+    @OptIn(ExperimentalReadiumApi::class)
+    @Test
+    fun `book posture asks for two columns, under every preset`() {
+        for (preset in ThemePreset.entries) {
+            val theme = ReadingTheme(preset = preset)
+            assertEquals(ColumnCount.TWO, theme.preferences(theme.preset.values, inBookPosture = true).columnCount)
+            assertNull("$preset sets a column count when flat.", theme.preferences(theme.preset.values).columnCount)
         }
     }
 }

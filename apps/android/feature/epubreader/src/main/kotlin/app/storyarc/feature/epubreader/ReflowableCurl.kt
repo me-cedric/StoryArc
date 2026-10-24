@@ -223,13 +223,14 @@ internal val TransitionChoices.drawnTurn: PageTransition?
  * [reduceMotion] is a parameter rather than read here, so a recomposition on the reader's
  * `reduceMotionFlow` recomputes this too.
  */
-internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean): TransitionChoices =
+internal fun EpubReaderViewModel.transitions(reduceMotion: Boolean, inBookPosture: Boolean = false): TransitionChoices =
     TransitionChoices(
         chosen = transition.value,
         // Reflowing text scrolls the way it is read; the axis is not a choice here.
         axis = ScrollAxis.VERTICAL,
         reduceMotion = reduceMotion,
-        canCurl = canCurl,
+        // D4: a curl across a fold draws a crease the shader cannot model.
+        canCurl = canCurl && !inBookPosture,
         // The activity takes the turn over from Readium for both: `TurnInterceptor` steals
         // the drag, `FadeTurn` draws the dip, and `ProseCurlDriver` lets the finger roll a
         // raster of the page off a raster of the next one (task 8.12). Either was false until its

@@ -3,6 +3,7 @@ package app.storyarc.feature.library
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import app.storyarc.core.model.LibraryLayout
 import app.storyarc.core.snapshots.CATALOGUE_QUALIFIERS
+import app.storyarc.core.snapshots.FOLD_OUTER_QUALIFIERS
 import app.storyarc.core.snapshots.Look
 import app.storyarc.core.snapshots.catalogue
 import org.junit.Rule
@@ -21,7 +22,7 @@ class Catalogue03LibraryGridTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun draw(look: Look) = compose.catalogue("03-library-grid", look) {
+    private fun draw(look: Look, entry: String = "03-library-grid") = compose.catalogue(entry, look) {
         val model = CatalogueShelf.viewModel(CatalogueShelf.publications)
         model.setLayout(LibraryLayout.GRID)
         LibraryScreen(viewModel = model)
@@ -35,4 +36,13 @@ class Catalogue03LibraryGridTest {
 
     @Test
     fun largest() = draw(Look.Largest)
+
+    /** 2.5: the Pixel Fold's outer display. Light and dark only: new images take the default text size. */
+    @Test
+    @Config(qualifiers = FOLD_OUTER_QUALIFIERS)
+    fun foldOuterLight() = draw(Look.Light, "03-library-grid-fold-outer")
+
+    @Test
+    @Config(qualifiers = FOLD_OUTER_QUALIFIERS)
+    fun foldOuterDark() = draw(Look.Dark, "03-library-grid-fold-outer")
 }

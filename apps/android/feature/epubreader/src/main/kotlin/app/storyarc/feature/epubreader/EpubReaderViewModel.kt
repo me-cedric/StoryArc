@@ -185,8 +185,8 @@ class EpubReaderViewModel(
      * with Reduce Motion on and Slide chosen gets Fast fade's own turn, and Readium has
      * to agree which mode is running.
      */
-    fun preferences(reduceMotion: Boolean) =
-        _theme.value.preferences(_values.value, transitions(reduceMotion).effective)
+    fun preferences(reduceMotion: Boolean, inBookPosture: Boolean = false) =
+        _theme.value.preferences(_values.value, transitions(reduceMotion, inBookPosture).effective, inBookPosture)
 
     /** What an unrecorded [adopt] or [choose] is putting in force, until it settles. */
     private var notRecorded: ShelfSettings? = null

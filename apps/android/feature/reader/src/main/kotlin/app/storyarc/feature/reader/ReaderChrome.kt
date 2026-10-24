@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import app.storyarc.core.designsystem.navigation.HingeInsetPage
+import app.storyarc.core.designsystem.navigation.SurfaceHinge
 import app.storyarc.core.designsystem.theme.readerChromeBorder
 import app.storyarc.core.designsystem.theme.readerChromeColours
 import app.storyarc.core.designsystem.tokens.StoryArcSpace
@@ -61,13 +63,17 @@ import app.storyarc.core.designsystem.tokens.StoryArcSpace
  * without this the row sat under the status bar's own gesture strip — the system took the
  * touch and the buttons were all but unreachable. Measured on an emulator, where only the
  * lowest sliver of each button worked.
+ *
+ * [hinge] is the fold the capsule keeps off (`native-experience`, 1.4). The capsule moves to the
+ * wider side of it, as a lone page does.
  */
 @Composable
 internal fun ReaderChrome(
     onClose: () -> Unit,
     onOpenMenu: () -> Unit,
     modifier: Modifier = Modifier,
-) {
+    hinge: SurfaceHinge? = null,
+) = HingeInsetPage(hinge) {
     Box(modifier.fillMaxSize().safeDrawingPadding()) {
         HorizontalFloatingToolbar(
             expanded = true,

@@ -329,7 +329,7 @@ internal fun ReaderPageSurface(
             ) {
                 // Two controls, and everything the other nine used to do is one tap behind
                 // the second of them. See `ReaderChrome.kt` and `ReaderMenuSheet.kt`.
-                ReaderChrome(onClose = onClose, onOpenMenu = onOpenMenu)
+                ReaderChrome(onClose = onClose, onOpenMenu = onOpenMenu, hinge = hingeSurface.hinge)
             }
 
             // The way back from a jump, over the page.
@@ -343,7 +343,7 @@ internal fun ReaderPageSurface(
             //
             // It names the page rather than saying "Back", because by the time a reader
             // notices they have lost their place they no longer remember what it was.
-            pageReturn.mark?.let { mark ->
+            pageReturn.mark?.let { mark -> HingeInsetPage(hingeSurface.hinge) { Box(Modifier.fillMaxSize()) {
                 TextButton(
                     onClick = returnFromJump,
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White),
@@ -359,7 +359,7 @@ internal fun ReaderPageSurface(
                     )
                     Text(stringResource(R.string.reader_return, mark + 1))
                 }
-            }
+            } } }
         }
     }
 

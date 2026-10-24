@@ -251,7 +251,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
             dipIndex = DIP_INDEX,
             pageColour = { AndroidColor.parseColor(model.theme.value.background) },
             reduceMotion = { model.reduceMotionFlow.value },
-            drawnTurn = { model.transitions(model.reduceMotionFlow.value).drawnTurn },
+            drawnTurn = { model.transitions(model.reduceMotionFlow.value, inBookPosture).drawnTurn },
         )
     }
 
@@ -261,6 +261,9 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
      * outlives this screen.
      */
     private var speakable: Publication? = null
+
+    /** Whether the device is held like a book (D4). `EpubReaderContent` keeps it current. */
+    internal var inBookPosture = false
 
     /**
      * Whether the control belongs on screen. Its own flow, because the chrome is composed
@@ -446,7 +449,7 @@ class EpubReaderActivity : FragmentActivity(), EpubNavigatorFragment.Listener {
         // inside the same chapter. Going to the stored locator afterwards puts them
         // where the text was.
         val locator = navigator.currentLocator.value
-        navigator.submitPreferences(model.preferences(reduceMotion))
+        navigator.submitPreferences(model.preferences(reduceMotion, inBookPosture))
 
         // ponytail: after the reflow, not during it. `submitPreferences` has no
         // completion, so this waits a frame's worth rather than observing the

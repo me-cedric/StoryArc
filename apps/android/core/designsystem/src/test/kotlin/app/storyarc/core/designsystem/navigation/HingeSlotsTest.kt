@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.adaptive.HingeInfo
+import androidx.compose.material3.adaptive.Posture
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -46,6 +48,12 @@ class HingeSlotsTest {
     }
 
     private fun bounds(tag: String): Rect = compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+
+    private fun assertRows(tag: String, top: Float, bottom: Float) {
+        val bounds = bounds(tag)
+        assertEquals("$tag top", top, bounds.top, 0.5f)
+        assertEquals("$tag bottom", bottom, bounds.bottom, 0.5f)
+    }
 
     private fun assertSpan(tag: String, left: Float, right: Float) {
         val bounds = bounds(tag)
@@ -93,5 +101,36 @@ class HingeSlotsTest {
         }
 
         assertSpan("page", 0f, 80f)
+    }
+
+    /** D3: in tabletop the page is the upper half and the controls the lower, with the fold between. */
+    @Test
+    fun `tabletop puts the page above the fold and the controls below it`() {
+        show {
+            TabletopSplit(
+                foldTop = 90f,
+                foldBottom = 100f,
+                page = { Box(Modifier.fillMaxSize().testTag("page")) },
+                controls = { Box(Modifier.fillMaxSize().testTag("controls")) },
+            )
+        }
+
+        assertRows("page", 0f, 90f)
+        assertRows("controls", 100f, 200f)
+    }
+
+    /** The seam a snapshot fakes a posture through, read where the readers read the hinge. */
+    @Test
+    fun `a page surface reads the posture a test provides`() {
+        val posture = Posture(hingeList = listOf(HingeInfo(Rect(120f, 0f, 120f, 200f), false, true, true, false)))
+        var hinge: SurfaceHinge? = null
+        show {
+            CompositionLocalProvider(LocalPostureOverride provides posture) {
+                hinge = rememberHingeSurface().hinge
+            }
+        }
+
+        compose.waitForIdle()
+        assertEquals(SurfaceHinge(120f, 121f), hinge)
     }
 }

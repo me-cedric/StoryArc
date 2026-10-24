@@ -162,11 +162,11 @@ class ReaderViewModel(
      * [reduceMotionFlow] recomputes this too. The next device may also be able to curl,
      * which `page-transitions` requires a stored Curl to survive.
      */
-    fun transitions(settings: ShelfSettings, reduceMotion: Boolean): TransitionChoices = TransitionChoices(
+    fun transitions(settings: ShelfSettings, reduceMotion: Boolean, inBookPosture: Boolean = false) = TransitionChoices(
         chosen = settings.transition,
         axis = settings.scrollAxis ?: impliedAxis,
         reduceMotion = reduceMotion,
-        canCurl = canCurl,
+        canCurl = canCurl && !inBookPosture, // D4: a curl across a fold draws a crease the shader cannot model.
     )
 
     /**

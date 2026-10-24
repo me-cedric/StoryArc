@@ -20,6 +20,7 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - The audiobook player keeps every control on screen on a short phone.
 - Resume on the Home page opens a PDF at the page you left.
 - An audiobook folder that holds one file with chapters keeps its chapters.
+- On a foldable or an iPhone Duo, pages stay off the fold, a half-open device held like a book shows a spread, and on a table the controls move below the fold.
 
 ### de-DE
 
@@ -31,6 +32,7 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Der Hörbuch-Player behält auf einem kurzen Telefon alle Bedienelemente auf dem Bildschirm.
 - „Weiterlesen“ auf der Startseite öffnet ein PDF auf der Seite, auf der du aufgehört hast.
 - Ein Hörbuch-Ordner mit einer Datei, die Kapitel enthält, behält seine Kapitel.
+- Auf einem faltbaren Gerät oder einem iPhone Duo bleiben Seiten vom Falz fern, halb geöffnet wie ein Buch gehalten zeigt es eine Doppelseite, und auf dem Tisch rücken die Bedienelemente unter den Falz.
 
 ### es-ES
 
@@ -42,6 +44,7 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - El reproductor de audiolibros mantiene todos los controles en pantalla en un teléfono corto.
 - «Continuar» en la página de inicio abre un PDF en la página donde lo dejaste.
 - Una carpeta de audiolibro con un solo archivo con capítulos conserva sus capítulos.
+- En un plegable o un iPhone Duo, las páginas no tocan el pliegue, medio abierto como un libro muestra una doble página, y sobre una mesa los controles pasan bajo el pliegue.
 
 ### fr-FR
 
@@ -53,6 +56,7 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Le lecteur de livres audio garde toutes ses commandes à l'écran sur un téléphone court.
 - « Reprendre » sur la page d'accueil ouvre un PDF à la page où vous vous êtes arrêté.
 - Un dossier de livre audio qui contient un seul fichier avec des chapitres garde ses chapitres.
+- Sur un appareil pliable ou un iPhone Duo, les pages évitent le pli, à demi ouvert comme un livre il montre une double page, et posé sur une table les commandes passent sous le pli.
 
 ## 0.2.2
 

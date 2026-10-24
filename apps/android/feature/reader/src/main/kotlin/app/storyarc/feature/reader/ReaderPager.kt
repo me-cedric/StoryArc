@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,10 +35,14 @@ import androidx.compose.ui.unit.IntSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.storyarc.core.designsystem.feedback.StoryArcFeedback
 import app.storyarc.core.designsystem.feedback.rememberHaptics
+import app.storyarc.core.designsystem.navigation.ReaderPosture
+import app.storyarc.core.designsystem.navigation.currentPosture
+import app.storyarc.core.designsystem.navigation.tabletopFold
 import app.storyarc.core.designsystem.navigation.StoryArcSupportingPanes
 import app.storyarc.core.designsystem.theme.rememberWindowClass
 import app.storyarc.core.designsystem.theme.LocalTapTurnsPages
 import app.storyarc.core.designsystem.theme.LocalVolumeTurns
+import app.storyarc.core.designsystem.tokens.StoryArcSpace
 import app.storyarc.core.format.PageEntry
 import app.storyarc.core.format.PdfTextPoint
 import app.storyarc.core.model.Annotation
@@ -74,7 +79,13 @@ internal fun Pager(
     val direction = viewModel.readingDirection(settings)
     val isRightToLeft = direction == ReadingDirection.RIGHT_TO_LEFT
     val reduceMotion by viewModel.reduceMotionFlow.collectAsStateWithLifecycle()
-    val choices = viewModel.transitions(settings, reduceMotion)
+
+    // `native-experience`, *Foldable devices*: tabletop splits the reader at the fold (D3), and
+    // book posture forces the spread and withholds the curl (D4). Anything else is flat (2.7).
+    val posture = currentPosture()
+    val isBookPosture = ReaderPosture.of(posture) == ReaderPosture.BOOK
+    val tabletopFold = posture.tabletopFold()?.takeIf { ReaderPosture.of(posture) == ReaderPosture.TABLETOP }
+    val choices = viewModel.transitions(settings, reduceMotion, inBookPosture = isBookPosture)
 
     /**
      * Whether two pages can share the screen.
@@ -82,8 +93,9 @@ internal fun Pager(
      * `comic-reader` scopes the pairing to landscape itself. Which modes pair is
      * [pairsPages], so the two platforms answer it once. Curl is in since D14 -- the slot's
      * two pages are composited into one texture before the shader sees them ([SpreadTexture]).
+     * Book posture pairs in any orientation, with the gutter on the fold (D4).
      */
-    val isPairing = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE &&
+    val isPairing = (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE || isBookPosture) &&
         choices.effective.pairsPages
 
     /**
@@ -360,7 +372,9 @@ internal fun Pager(
             hasReachedEnd = true
             return@LaunchedEffect
         }
-        readingPage = modelIndex(position)
+        // A regroup lands on the slot that holds the page being read, and that page stays the
+        // one being read (D5): a fold that pairs page 2 with page 1 hands page 2 back on closing.
+        if (readingPage !in layout.slotAt(slotIndex(position))?.pages.orEmpty()) readingPage = modelIndex(position)
         // Reading back to where a jump started retires the offer to go there.
         pageReturn = pageReturn.moved(readingPage)
         viewModel.warm(readingPage)
@@ -553,7 +567,8 @@ internal fun Pager(
         settings = settings,
         resistance = resistance,
         keyboard = keyboard,
-        isChromeVisible = isChromeVisible,
+        // In tabletop the controls have a half of their own, so none is drawn over the page.
+        isChromeVisible = isChromeVisible && tabletopFold == null,
         hasReachedEnd = hasReachedEnd,
         pageReturn = pageReturn,
         scope = scope,
@@ -570,7 +585,32 @@ internal fun Pager(
         endScreen = { EndScreen() },
     )
 
-    if (usesThumbnailPane) {
+    if (tabletopFold != null) {
+        // The same strip, slider and capsule the menu and the chrome draw, on the flat half.
+        ReaderTabletop(tabletopFold, page = { PageSurface() }) {
+            ThumbnailStrip(
+                viewModel = viewModel,
+                pageCount = count,
+                currentIndex = modelIndex(paging.current),
+                scrubbing = scrubbing,
+                isRightToLeft = isRightToLeft,
+                onSelect = ::jump,
+                modifier = Modifier.padding(horizontal = StoryArcSpace.gutter),
+            )
+            if (count > 1) {
+                PageSlider(
+                    viewModel = viewModel,
+                    index = scrubbing ?: modelIndex(paging.current),
+                    count = count,
+                    scrubbing = scrubbing,
+                    isRightToLeft = isRightToLeft,
+                    onScrub = { scrubbing = it },
+                    onJump = ::jump,
+                )
+            }
+            ReaderChrome(onClose = onClose, onOpenMenu = { isReaderMenuOpen = true })
+        }
+    } else if (usesThumbnailPane) {
         // `comic-reader` asks for a browser of every page; a window this wide can put it
         // *beside* the artwork rather than over it, which is what a supporting pane is for —
         // a second view of the same publication, not a second place. Below this width the

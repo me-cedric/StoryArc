@@ -26,6 +26,14 @@ import org.robolectric.RuntimeEnvironment
 const val CATALOGUE_QUALIFIERS = "w411dp-h891dp-xhdpi"
 
 /**
+ * The Pixel Fold's outer display at xhdpi: 1080 x 2092 px at 420 dpi is 411 x 797 dp.
+ *
+ * `native-experience`, *The outer display* (2.5): the phone layout, on a display shorter than
+ * [CATALOGUE_QUALIFIERS]. An entry drawn here is named `<entry>-fold-outer`.
+ */
+const val FOLD_OUTER_QUALIFIERS = "w411dp-h797dp-xhdpi"
+
+/**
  * The looks every catalogue entry is drawn in: light and dark at the default text size, and
  * light at the largest text size the system offers (font scale 2.0, `lighter-visual-check` 5.2).
  */
