@@ -2400,6 +2400,9 @@ msgstr "This comic uses solid compression, which StoryArc cannot open."
 msgid "reader.spreads.offset"
 msgstr "Line up the two-page view differently"
 
+msgid "reader.tabletop.controlsBelow"
+msgstr "Controls below"
+
 #, c-format
 msgid "reader.thumbnail %d"
 msgstr "Page %d"

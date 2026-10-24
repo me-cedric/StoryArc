@@ -68,7 +68,9 @@ export const IOS_BUCKETS = {
   // iPhone Duo, closed and open. App Store Connect takes these from the iOS 27.1 SDK on, and
   // requires them from April 2027 (`requiredFrom`). Xcode's Device Hub is the only thing that
   // opens the simulated device, so the inner display is a step for the owner (`opened`).
-  'duo-outer': { device: 'iPhone Duo', size: [1398, 2034], scale: 3, menuRow: [0.33, 0.93], requiredFrom: DUO_REQUIRED_FROM, onRequest: true },
+  // The outer display is short: *Reading themes* sits below the menu sheet's first height, so
+  // the walk drags the sheet to its full height first (`menuExpand`).
+  'duo-outer': { device: 'iPhone Duo', size: [1398, 2034], scale: 3, menuExpand: [[0.5, 0.415], [0.5, 0.05]], menuRow: [0.33, 0.68], requiredFrom: DUO_REQUIRED_FROM, onRequest: true },
   'duo-inner': { device: 'iPhone Duo', size: [2007, 2853], scale: 3, menuRow: [0.35, 0.779], split: true, opened: true, requiredFrom: DUO_REQUIRED_FROM, onRequest: true },
 }
 
@@ -237,6 +239,7 @@ export function walk({ platform, bucket, library: lib, labels: L, frames }) {
   const themes = ios
     ? [
         { pause: 1000, why: 'the menu sheet is not in the accessibility snapshot' },
+        ...(bucket.menuExpand ? [{ swipe: bucket.menuExpand }, { pause: 1000, why: 'the sheet settles at its full height' }] : []),
         { point: bucket.menuRow },
         { pause: 3000, why: 'the themes sheet and its preview are not in the accessibility snapshot' },
       ]
@@ -419,13 +422,13 @@ export function textProblems(markdown, limits) {
 }
 
 /** Every asset a selection should have produced, checked against its store. */
-export function verify({ locales, frames, androidBuckets, iosBuckets, today = new Date().toISOString().slice(0, 10) }) {
+export function verify({ locales, frames, androidBuckets, iosBuckets, today = new Date().toISOString().slice(0, 10), exists = existsSync }) {
   const failures = []
   const warnings = []
   let counted = 0
   const check = (file, problemsOf, requiredFrom) => {
     const name = file.slice(OUT.length + 1)
-    if (!existsSync(file)) {
+    if (!exists(file)) {
       if (requiredFrom && today < requiredFrom) return warnings.push(`${name} is missing, and is required from ${requiredFrom}`)
       return failures.push(`${name} is missing`)
     }
@@ -481,8 +484,8 @@ function selfTest() {
     ['the App Store refuses a frame of the wrong size', () => appStoreProblems([1290, 2796], IOS_BUCKETS['iphone-6.9']).length > 0],
     ['the Duo slots are the App Store sizes', () => IOS_BUCKETS['duo-outer'].size.join('x') === '1398x2034' && IOS_BUCKETS['duo-inner'].size.join('x') === '2007x2853'],
     ['the App Store refuses an outer frame in the inner slot', () => appStoreProblems([1398, 2034], IOS_BUCKETS['duo-inner']).length > 0],
-    ['a missing Duo set warns before the deadline', () => { const v = verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: '2027-02-28' }); return v.warnings.length === 1 && !v.failures.some((f) => f.includes('duo')) }],
-    ['a missing Duo set fails from the deadline', () => verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: DUO_REQUIRED_FROM }).failures.some((f) => f.includes('duo-outer'))],
+    ['a missing Duo set warns before the deadline', () => { const v = verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: '2027-02-28', exists: () => false }); return v.warnings.length === 1 && !v.failures.some((f) => f.includes('duo')) }],
+    ['a missing Duo set fails from the deadline', () => verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: DUO_REQUIRED_FROM, exists: () => false }).failures.some((f) => f.includes('duo-outer'))],
     ['a padded fold frame passes Play', () => ['fold-open', 'fold-closed'].every((b) => playProblems(ANDROID_BUCKETS[b].pad, 1, ANDROID_BUCKETS[b]).length === 0)],
     ['an unpadded open fold frame fails Play', () => playProblems(ANDROID_BUCKETS['fold-open'].size, 1, ANDROID_BUCKETS['fold-open']).length > 0],
     ['fold frames do not overwrite each other', () => shotPath('android', 'fold-open', 'en', '01') !== shotPath('android', 'fold-closed', 'en', '01')],

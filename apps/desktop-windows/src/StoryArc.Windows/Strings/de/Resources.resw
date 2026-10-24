@@ -3018,6 +3018,10 @@
     <value>Die Doppelseite anders ausrichten</value>
     <comment>reader.spreads.offset</comment>
   </data>
+  <data name="reader_tabletop_controlsBelow" xml:space="preserve">
+    <value>Steuerelemente unten</value>
+    <comment>reader.tabletop.controlsBelow</comment>
+  </data>
   <data name="reader_thumbnail__lld" xml:space="preserve">
     <value>Seite {0}</value>
     <comment>reader.thumbnail %lld</comment>

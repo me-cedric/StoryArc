@@ -3018,6 +3018,10 @@
     <value>Line up the two-page view differently</value>
     <comment>reader.spreads.offset</comment>
   </data>
+  <data name="reader_tabletop_controlsBelow" xml:space="preserve">
+    <value>Controls below</value>
+    <comment>reader.tabletop.controlsBelow</comment>
+  </data>
   <data name="reader_thumbnail__lld" xml:space="preserve">
     <value>Page {0}</value>
     <comment>reader.thumbnail %lld</comment>

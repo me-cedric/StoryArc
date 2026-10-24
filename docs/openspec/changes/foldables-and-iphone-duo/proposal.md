@@ -13,10 +13,10 @@ holds one Android foldable scenario (`native-experience`, *Foldables*) and the A
 already keeps a page off a separating hinge. Nothing names iPhone Duo, the outer-to-inner
 hand-over, the half-open postures, or the store assets each store now asks for.
 
-**This change is planned and not built.** The owner decided on 2026-10-23 that foldables
-are supported later. The plan exists so that no decision taken now closes the door, and so
-that the store listing work (a Duo screenshot set is required for every app built with the
-iOS 27.1 SDK from April 2027) is scheduled before it is overdue.
+**Built on 2026-10-24.** The owner decided on 2026-10-23 that foldables are supported later,
+and on 2026-10-24 told us to build them. What stays open needs a person: Xcode's Device Hub
+to open the simulated iPhone Duo, and a foldable device in hand (`tasks.md`). A Duo
+screenshot set is required for every app built with the iOS 27.1 SDK from April 2027.
 
 ## What Changes
 
@@ -56,7 +56,6 @@ emulator's foldable profiles. The desktop clients are not affected.
 
 ## Non-goals
 
-- No build or code change in this change until the owner says to start it.
 - No rear-display or dual-screen mode (content on both displays at once). Scene
   accessories on iPhone Duo and Android's rear display mode are camera features.
 - No new reading mode. A spread on a book-posture foldable is the existing double-page

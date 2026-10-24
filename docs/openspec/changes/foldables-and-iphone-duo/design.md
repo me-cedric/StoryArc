@@ -1,8 +1,8 @@
 ## Context
 
-The owner decided on 2026-10-23 that StoryArc supports foldables, and that the work starts
-later. This document records the facts found on that day, the decisions that follow from
-them, and what the code already does. A later wave implements `tasks.md` from here.
+The owner decided on 2026-10-23 that StoryArc supports foldables, and on 2026-10-24 that the
+work starts. This document records the facts found on those days, the decisions that follow
+from them, and what the code already did before the change.
 
 What exists today:
 
@@ -60,6 +60,25 @@ App Store Connect screenshot specifications).**
 - Play has no foldable screenshot slot. Foldable frames go in the large screen slots
   (16:9 or 9:16, 1080 to 7680 px, at least four frames to be featured).
 
+**Checked on 2026-10-24, in the Xcode 27.1 SDK and on the iPhone Duo simulator (iOS 27.1).**
+
+- The Assumed names are real: SwiftUI `GeometryProxy.reservedRegions(kind:options:layoutDirectionBehavior:)`
+  returns `ReservedRegion` values (`frame`, `margins`, `isActive`, kinds `.occlusion` and
+  `.division`); `ArrangementView(primary:secondary:)` with `.arrangementViewStyle(.split)`; and
+  `View.onHingeChange` with `DeviceHingeContext.hinge?.status` (`.closed`, `.partiallyOpen`,
+  `.fullyOpen`) and `.angle`. UIKit has `UIView.reservedRegions(kind:options:)`. All are iOS 27.1.
+  `ReservedRegion` has no public initializer, so the app turns it into its own fold value at
+  the edge, and tests inject that value.
+- The simulator has two screens: `primary` (outer, 1398 x 2034) and `primary-1` (inner,
+  2007 x 2853), both at scale 3. `simctl io --display` captures either. Only Xcode's Device
+  Hub opens or folds the device: `simctl` has no hinge command.
+- Built with the iOS 27.1 SDK, the app runs edge to edge on the outer display, with the
+  status bar and the tab bar drawn as a vertical column on the right edge. No letterbox.
+- GitHub's `macos-26` image tops out at Xcode 26.6; the `xcode-27` image carries Xcode 27.1
+  at `/Applications/Xcode_27.1.app`.
+- Play's large screen slots take 9:16 or 16:9 only, and eight images each. A Pixel Fold
+  frame is neither ratio (2208 x 1840 open).
+
 ## Decisions
 
 ### D1. Size classes decide, on both platforms
@@ -76,6 +95,10 @@ holds. iOS gets the same arithmetic over `ReservedRegion` of kind `.division`. T
 arrangement container is used only for the two states that put two things on two halves:
 the spread (one page per half) and tabletop (page above, controls below). No other screen
 uses it.
+
+As built, iOS draws both states with plain layout over the injected fold value, not with
+`ArrangementView`: the container splits by itself from the device's own region, which no
+test and no snapshot can supply, and the plain layout already gives the same two halves.
 
 ### D3. Tabletop puts the page on the upright half
 
@@ -106,10 +129,14 @@ outer to the inner size and back and asserts the page, the sheet and the voice a
 ### D7. Store captures get two buckets
 
 `duo` on iOS: the `iPhone Duo` simulator, outer and inner display, portrait, six frames,
-four languages, written to the App Store layout at 1398 x 2034 and 2007 x 2853. `fold` on
-Android: the Pixel Fold profile at 841 x 701 dp open and the outer size closed, six frames,
-written to the Play large screen slot. The walk of `store-walk.mjs` is reused; a frame on the
-open display shows the wide layout the `tablet10` and `ipad-13` buckets already show.
+four languages, written to the App Store layout at 1398 x 2034 (`duo-outer`) and 2007 x 2853
+(`duo-inner`). The inner lane runs after the owner opens the device in Device Hub
+(`--duo-open`). `fold` on Android: the Pixel Fold sizes, open (841 x 701 dp) and closed, six
+frames, padded with black to 16:9 or 9:16 and written to `foldScreenshots`, a folder Play does
+not read, because Play takes neither ratio and eight images per slot; the owner moves the
+chosen frames into the large screen slot. The walk of `store-walk.mjs` is reused; a frame on
+the open display shows the wide layout the `tablet10` and `ipad-13` buckets already show.
+All four buckets run only when a run names them.
 
 ### D8. Build with the iOS 27.1 SDK before April 2027
 
@@ -126,14 +153,20 @@ date in this change with a cost outside the app.
 
 ## Risks
 
-- The iPhone Duo arrangement and hinge API names are from secondary sources until the
-  Apple documentation is read (Assumed, marked above).
+- The arrangement and hinge API names are confirmed in the SDK (2026-10-24). That
+  `ReservedRegion.frame` is in the asking view's coordinates is assumed, and only a run on
+  the opened Duo checks it.
 - No foldable device is in the owner's device list. The Pixel Fold emulator profile and the
   iPhone Duo simulator are the proof; the device checklist gains two owner steps.
 - A spread forced in book posture changes the page count the slider shows; the comic reader
   already handles a spread's numbering.
 
 ## Open Questions
+
+Defaults applied on 2026-10-24 until the owner answers: question 1, the Flip is a phone with
+tabletop (the layout decision reads only the fold's orientation, so any horizontal half-open
+fold is tabletop); question 2, the badge waits for a device.
+
 
 1. Does the owner want the Flip form factor (a tall outer display, a square half-open
    posture) treated as a phone with tabletop, or excluded? The plan assumes tabletop only.

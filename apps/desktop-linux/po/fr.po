@@ -2400,6 +2400,9 @@ msgstr "Cette bande dessinée utilise une compression solide, que StoryArc ne pe
 msgid "reader.spreads.offset"
 msgstr "Aligner autrement la vue sur deux pages"
 
+msgid "reader.tabletop.controlsBelow"
+msgstr "Commandes en bas"
+
 #, c-format
 msgid "reader.thumbnail %d"
 msgstr "Page %d"

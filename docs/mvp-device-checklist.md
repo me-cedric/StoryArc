@@ -89,13 +89,14 @@ An agent ran the steps marked "Done 2026-10-10" on the OnePlus 7T Pro (debug bui
 
 - Put StoryArc in Split View beside another app. Drag the divider narrow, then wide. One pane, then the same publication in both. Task: `one-library-three-destinations` 4.1, 4.3; `publication-detail` 4.1.
 
-## Foldables (planned, not scheduled)
+## Foldables
 
-The change `foldables-and-iphone-duo` is a plan only (owner decision of 2026-10-23). When it
-starts, these two steps need a device that no simulator profile replaces:
+The change `foldables-and-iphone-duo` is built (2026-10-24). Snapshots with an injected fold and
+posture prove the layouts; these steps need a person or a device that no test replaces:
 
-- On an iPhone Duo: open and close the device with a comic open, half-open it on a table, hold it like a book, and put StoryArc beside another app on the inner display. Task: `foldables-and-iphone-duo` 4.2.
-- On a Pixel Fold or a Galaxy Z Fold: the same four postures, with a right-to-left spread in book posture. Task: `foldables-and-iphone-duo` 4.2.
+- In Xcode's Device Hub (Window, Devices), open the iPhone Duo simulator with a comic open, half-open it, and fold it back. The page and the menu stay; tabletop puts the controls below the fold; held like a book shows a spread. Then run `pnpm store:capture --buckets duo-inner --duo-open` and `pnpm store:verify --buckets duo`. Task: `foldables-and-iphone-duo` 2.3, 3.1. `simctl` has no hinge command, so an agent cannot open the device.
+- On an iPhone Duo: open and close the device with a comic open, half-open it on a table, hold it like a book, and put StoryArc beside another app on the inner display. Listen with VoiceOver for "Controls below" once. Task: `foldables-and-iphone-duo` 4.2.
+- On a Pixel Fold or a Galaxy Z Fold: the same four postures, with a right-to-left spread in book posture. Listen with TalkBack for "Controls below" once. Task: `foldables-and-iphone-duo` 4.2.
 
 ## Apple Developer team
 

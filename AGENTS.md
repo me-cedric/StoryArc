@@ -261,8 +261,11 @@ the whole config fails to parse, and the CLI's answer is the misleading
 | Windows | 11 24H2 (build 26100) | latest Windows App SDK 2.x |
 | Linux | GTK 4.14 + libadwaita 1.5 (Ubuntu 24.04, Pop!_OS 24.04) | the current GNOME runtime |
 
-iOS has **no compatibility shims** — Liquid Glass is used directly. Android has
-one conditional, `dynamicColorScheme`, available on every supported version.
+iOS has **no compatibility shims** — Liquid Glass is used directly. One availability
+check exists: the iPhone Duo fold and hinge APIs are iOS 27.1, so the reader reads them
+behind `#available(iOS 27.1, *)` and draws the flat layout below it. CI builds with Xcode
+27.1 for that reason. Android has one conditional, `dynamicColorScheme`, available on
+every supported version.
 ([ADR-0003](docs/decisions/0003-platform-floors.md))
 
 ## 5. Validation

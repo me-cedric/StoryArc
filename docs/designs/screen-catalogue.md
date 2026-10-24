@@ -116,6 +116,31 @@ These draw states that a later task owed a frame for. Each has a light and a dar
 | 26 | The two pinned sections of Home: a collection and a reading list | `EdgeStateCatalogueTests/testCatalogue26HomeWithPinnedShelves` | `EdgeStateCatalogueTests/26-*` (no largest image) |
 | 27 | The import result with one position both devices had moved on in: the title, both positions, and *Use the other position* | `SettingsCatalogueTests/testCatalogue27ImportResultWithAConflict` | `SettingsCatalogueTests/27-*` |
 
+### Foldable postures (2026-10-24)
+
+`foldables-and-iphone-duo` task 4.1. The posture is the state the entry draws: **flat** (open,
+with a fold that separates the display), **tabletop** (half open, fold horizontal), **book** (half
+open, fold vertical) or **outer** (closed, the outer display). Each has a light and a dark image,
+at the default text size. The fold and the posture are injected: `LocalPostureOverride` on
+Android, a fold value on iOS. iOS draws at the iPhone Duo sizes (inner 669 x 951 points, outer
+466 x 678 points); Android draws at the Pixel Fold sizes (841 x 701 dp open, 701 x 841 dp for
+tabletop, the closed size for outer).
+
+| No. | Screen | Posture | iOS images | Android images |
+| --- | --- | --- | --- | --- |
+| 15b | Comic reader, one page beside the fold | flat | `ReaderCatalogueTests/15b-reader-fold-inner` | drawn by `HingeSlotsTest` and `HingeWiringTest`, no image |
+| 15c | Comic reader, page above and controls below | tabletop | `ReaderCatalogueTests/15c-reader-tabletop` | `:feature:reader` `Catalogue15cReaderTabletopTest`, `15c-reader-tabletop` |
+| 15d | Comic reader, right-to-left spread with the gutter on the fold | book | `ReaderCatalogueTests/15d-reader-book-rtl` | `:feature:reader` `Catalogue15dReaderBookTest`, `15d-reader-book-rtl` |
+| 15e, 15f | Comic reader in Split View, each side, with a left inset | flat | `ReaderCatalogueTests/15e-reader-split-left`, `15f-reader-split-right` | not applicable: Android has no Split View with a side inset |
+| 15 | Comic reader chrome | outer | `ReaderCatalogueTests/15-comic-reader-chrome-duo-outer` | `:feature:reader` `Catalogue15eReaderChromeFoldOuterTest`, `15-reader-chrome-fold-outer` |
+| 07 | Full player | outer | `DetailAndPlayerCatalogueTests/07-full-player-duo-outer` | `:app` `Catalogue07FullPlayerTest`, `07-full-player-fold-outer` |
+| 03 | Library grid | outer | `LibraryCatalogueTests/03-library-grid-duo-outer` | `:feature:library` `Catalogue03LibraryGridTest`, `03-library-grid-fold-outer` |
+
+A snapshot cannot show the hand-over itself, a real hinge angle or a reserved region that the
+device reports. `ReaderResizeTests` (iOS) and `ReaderFoldResizeTest` (Android) prove the
+hand-over keeps the page, the open menu and the voice. A person with a device proves the rest
+(`docs/mvp-device-checklist.md`).
+
 ## What a snapshot cannot show
 
 A screen in this list can still need one device screenshot, taken from a booted simulator, for the

@@ -2400,6 +2400,9 @@ msgstr "Dieser Comic verwendet durchgehende Komprimierung, die StoryArc nicht ö
 msgid "reader.spreads.offset"
 msgstr "Die Doppelseite anders ausrichten"
 
+msgid "reader.tabletop.controlsBelow"
+msgstr "Steuerelemente unten"
+
 #, c-format
 msgid "reader.thumbnail %d"
 msgstr "Seite %d"

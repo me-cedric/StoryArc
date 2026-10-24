@@ -112,7 +112,7 @@ device steps that no simulator answers are in
 | Desktop: Linux | 🟡 Reads EPUB and PDF, plays audiobooks with MPRIS, reads aloud through speech-dispatcher; 291 crate tests and headless walks; Flatpak and AUR builds install in CI |
 | Releases | ✅ One tag builds every download into a draft GitHub release and a Play internal draft; the owner publishes. A push to the release files rehearses it all without publishing. Specified by `release-train`, archived 2026-10-23 |
 | Interface audit | ✅ [`docs/designs/reviews/ui-audit-2026-10-23.md`](docs/designs/reviews/ui-audit-2026-10-23.md): every catalogue screen read against the iOS 26 and Material 3 Expressive guidelines, the design system and the reuse rules; 32 rows, applied in two waves on 2026-10-23 |
-| Foldables | 📝 Planned, not built: [`foldables-and-iphone-duo`](docs/openspec/changes/foldables-and-iphone-duo/proposal.md) covers iPhone Duo, Android postures and the store screenshot sets |
+| Foldables | 🟡 Built 2026-10-24 on both: pages keep off the fold, tabletop puts the controls below it, a book-held device shows a spread, and the reader keeps its place when the device opens or closes. iOS builds with Xcode 27.1. The iPhone Duo outer store set is captured; the inner set and the device checks need a person ([`foldables-and-iphone-duo`](docs/openspec/changes/foldables-and-iphone-duo/tasks.md)) |
 
 Tests: **about 3,570 on iOS** across 485 host suites, plus 144 more in
 `StoryArcEpub` that need a simulator; on Android, **about 4,070 JVM plus 170
@@ -593,8 +593,8 @@ appearance even when the capture fails, which is the part a person forgets.
 capability exists, scenario by scenario, and its "Completion audit, 2026-10-23" section
 is the current list of what is done and what is not. Every mobile capability is built on
 both platforms; what stays open is owner device steps, frames, and the desktop walks that
-need a Linux or a Windows desktop. Twelve changes are in flight (one of them,
-`foldables-and-iphone-duo`, is a plan with no code yet) and twenty-five are archived
+need a Linux or a Windows desktop. Twelve changes are in flight (`foldables-and-iphone-duo`, built on
+2026-10-24, waits on owner steps) and twenty-five are archived
 under `docs/openspec/changes/`.
 
 The rule that shapes everything else: **every behaviour is specified before it

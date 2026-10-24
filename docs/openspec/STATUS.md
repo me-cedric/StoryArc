@@ -27,7 +27,7 @@ The counts on this day, from the task lists (done, partial, open):
 | `library-sync` | 28 | 0 | 2 | 2.5 and 4.5 (owner: a cloud folder and a locked phone on two devices) |
 | `library-portability` | 31 | 0 | 1 | 3.1c (an Android frame and one real export between two devices) |
 | `desktop-clients` | 110 | 0 | 74 | a Linux desktop session, a Windows desktop, Flathub's answer, signing and notarisation, two parent edits under `apps/ios` (the dated note at the head of its task list names each) |
-| `foldables-and-iphone-duo` | 0 | 0 | 26 | the owner's go: a plan with no code, by decision of 2026-10-23 |
+| `foldables-and-iphone-duo` | 21 | 2 | 3 | built 2026-10-24; 2.3 and 3.1 need Xcode's Device Hub to open the simulated iPhone Duo, 0.6 the owner's answers, 4.3 the verify after them; 1.4 is the last code item |
 
 **What this audit closed** (wave 1, commit `02f4255a4`): `close-the-audited-gaps` 28.1, 28.4,
 28.5, 28.6, 28.8, 28.9, 28.10 and the iOS half of 20.1; `library-sync` 5.9 and 5.10; `library-portability`
@@ -44,12 +44,15 @@ thread at the cell size, one hex parser, one menu row, one matte swatch, one voi
 the chrome fade token, the touch target tokens, a device scene manifest for multiple windows). Wave
 2 applies the rows that move pixels, with the snapshot references recorded again.
 
-**Foldables are planned and not built.** `changes/foldables-and-iphone-duo/` holds the proposal,
-the `native-experience` delta (nine scenarios: the hand-over, the fold, the camera, tabletop, book,
-the outer display, Split View, no posture, store listings), the design (the iOS 27.1 SDK and Xcode
-27.1, size classes over orientation, the fold as a reserved region, the App Store iPhone Duo slots
-at 1398 x 2034 and 2007 x 2853 that become **required in April 2027**, Play's large screen slots
-for a Pixel Fold set) and 26 tasks in four waves. Nothing starts before the owner says so.
+**Foldables are built (2026-10-24).** `changes/foldables-and-iphone-duo/` is built on both
+platforms: a page keeps off the fold, a spread puts its gutter on it, tabletop puts the controls
+and every sheet below it, book posture forces the spread and withholds Curl, and a resize from the
+outer to the inner display keeps the page, the menu and the voice. iOS reads the fold and the hinge
+through the iOS 27.1 APIs (confirmed in the SDK) and CI builds with Xcode 27.1 on the `xcode-27`
+image; `pnpm release:check` fails from 2027-03-01 if the pin falls back. The store gains the iPhone
+Duo and Pixel Fold sets: the Duo outer set (24 frames) and the fold sets (48) are captured. Open:
+the Duo inner set and the half-open VoiceOver order, because only Xcode's Device Hub opens the
+simulated device, and the device steps of `docs/mvp-device-checklist.md`.
 
 **What no agent can close on this Mac.** Owner device steps (`docs/mvp-device-checklist.md`), a
 Linux and a Windows desktop for the desktop walks, signing and notarisation, a live Kavita upload,
