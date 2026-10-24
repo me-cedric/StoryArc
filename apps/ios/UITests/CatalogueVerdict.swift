@@ -63,22 +63,6 @@ struct KnownContrastFault {
     }
 }
 
-private let footer = """
-    A system section footer or header: the system's secondary label on the grouped background \
-    of the sheet, about 3.9 to 1 on the drawn frame. One text style for the 21 footers and 25 \
-    headers of the app is a change of its own.
-    """
-
-private let glassProminent = """
-    The onAccent label on the accent fill of a glass-prominent button, about 4.9 to 1 on the \
-    drawn frame. The audit measures the glass highlight of the fill.
-    """
-
-private let aboveTheTabBar = """
-    About 6 to 1 on the drawn frame. The audit names it in the band just above the tab \
-    bar, where the scroll edge effect changes what is behind the text.
-    """
-
 private let showOnTheNotice = """
     The accent text of the skipped notice on its opaque surface, about 6 to 1 on the drawn \
     frame. The audit names it on some runs and not on others: on 2026-10-10 two clean runs \
@@ -102,76 +86,11 @@ private let underTheCheckedNotice = """
 /// Each entry was measured on two clean runs on 2026-10-10 (iPhone 17 Pro, iOS 26.2, with the
 /// seed and the corpus that `pnpm test:ios:audit` writes). The entries for "Foreign Codec" and
 /// for "Harbour Lights" on Search were measured on 2026-10-10 in the order of the CI job (iPhone
-/// 17 Pro, iOS 26.5): the seed, the UI audit walks, then the corpus.
+/// 17 Pro, iOS 26.5): the seed, the UI audit walks, then the corpus. On 2026-10-24 CI moved to
+/// iOS 27.0, where the sixteen steady faults (the footers, the prominent glass buttons, the text
+/// above the tab bar and the destructive red) no longer occur, so their entries are gone.
 let knownContrastFaults: [KnownContrastFault] = [
     KnownContrastFault(screen: "01 Home", element: "Broken Transfer", why: coverAndTitle, isSteady: false),
-    KnownContrastFault(
-        screen: "05 Publication page", element: "On this device, readable with no network", why: aboveTheTabBar
-    ),
-    KnownContrastFault(screen: "06 Publication page without a cover", element: "Read", why: glassProminent),
-    KnownContrastFault(screen: "08 Compact player bar", element: "Listen", why: glassProminent),
-    KnownContrastFault(
-        screen: "09 Settings root",
-        element: "Reset settings",
-        why: """
-            The system's destructive red on a white row, about 3.6 to 1. The system draws the \
-            destructive role of the button.
-            """
-    ),
-    KnownContrastFault(
-        screen: "10 Sources list",
-        element: "Move your libraries, shelves, settings and reading positions to another device as one file.",
-        why: footer
-    ),
-    KnownContrastFault(screen: "10 Sources list", element: "Sync", why: footer),
-    KnownContrastFault(
-        screen: "10 Sources list",
-        element: "Keep your reading positions, shelves and settings the same on all your devices, "
-            + "through a place you choose.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "10 Sources list",
-        element: "Every device you want to keep the same must be able to reach this place.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "10 Sources list",
-        element: "StoryArc syncs when you open the app and when you close a book. In the background, "
-            + "iOS can let StoryArc sync from time to time, or never.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "12 Sync section",
-        element: "Move your libraries, shelves, settings and reading positions to another device as one file.",
-        why: footer
-    ),
-    KnownContrastFault(screen: "12 Sync section", element: "Sync", why: footer),
-    KnownContrastFault(
-        screen: "12 Sync section",
-        element: "Keep your reading positions, shelves and settings the same on all your devices, "
-            + "through a place you choose.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "12 Sync section",
-        element: "Every device you want to keep the same must be able to reach this place.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "12 Sync section",
-        element: "StoryArc syncs when you open the app and when you close a book. In the background, "
-            + "iOS can let StoryArc sync from time to time, or never.",
-        why: footer
-    ),
-    KnownContrastFault(
-        screen: "13 Downloads and storage",
-        element: "This counts what StoryArc downloaded or imported. A folder you added is readable without "
-            + "a network too, and its files are not counted here. Everything on this device, and anything "
-            + "still arriving, is in Downloads.",
-        why: footer
-    ),
-    KnownContrastFault(screen: "14 Search at rest", element: "M4B", why: aboveTheTabBar),
     KnownContrastFault(
         screen: "03 Library grid, with the rail when the shelf has one",
         element: "Show",
