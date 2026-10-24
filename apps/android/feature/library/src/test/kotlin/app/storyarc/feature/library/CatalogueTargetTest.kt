@@ -1,5 +1,6 @@
 package app.storyarc.feature.library
 
+import app.storyarc.core.catalogue.OpdsCredential
 import app.storyarc.core.catalogue.OpdsDocument
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -88,5 +89,33 @@ class CatalogueTargetTest {
             CatalogueTarget.embeddedCredential("https://reader:hunter2@books.example/opds"),
         )
         assertNull(CatalogueTarget.embeddedCredential("https://books.example/opds"))
+    }
+
+    @Test
+    fun aLocatorNeverCarriesAKeyTypedIntoTheQuery() {
+        val url = "https://reader:hunter2@books.example/opds?shelf=comics&ApiKey=k1&token=t2"
+
+        assertEquals(
+            "https://books.example/opds?shelf=comics",
+            CatalogueTarget.storableLocator(url),
+        )
+        assertEquals("ApiKey=k1&token=t2", CatalogueTarget.secretQuery(url))
+        assertNull(CatalogueTarget.secretQuery("https://books.example/opds?shelf=comics"))
+        assertNull(CatalogueTarget.secretQuery("https://books.example/opds"))
+    }
+
+    @Test
+    fun theKeyComesBackFromTheSecureStoreForTheRequest() {
+        val url = "https://books.example/opds?apikey=k1"
+        val stored = OpdsCredential.stored(null, CatalogueTarget.secretQuery(url))!!
+        val locator = CatalogueTarget.storableLocator(url)
+
+        assertEquals("https://books.example/opds", locator)
+        assertEquals(url, CatalogueTarget.withQuery(locator, OpdsCredential.query(stored)))
+        assertEquals(
+            "https://books.example/opds?shelf=comics&apikey=k1#top",
+            CatalogueTarget.withQuery("https://books.example/opds?shelf=comics#top", "apikey=k1"),
+        )
+        assertEquals(locator, CatalogueTarget.withQuery(locator, null))
     }
 }

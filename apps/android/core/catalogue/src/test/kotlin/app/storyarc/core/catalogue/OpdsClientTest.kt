@@ -61,6 +61,20 @@ class OpdsClientTest {
     }
 
     @Test
+    fun aFeedOverTheCapIsRefusedNotHeldInMemory() = runBlocking {
+        body = " ".repeat(MAX_RESPONSE_BYTES + 1)
+        val error = runCatching { OpdsClient().feed(base) }.exceptionOrNull()
+        assertTrue("expected Malformed, got $error", error is OpdsError.Malformed)
+    }
+
+    @Test
+    fun aStreamIsReadUpToItsLimitAndNoFurther() {
+        val bytes = ByteArray(100_000) { it.toByte() }
+        assertTrue(bytes.contentEquals(bytes.inputStream().readAtMost(100_000)))
+        assertNull(bytes.inputStream().readAtMost(99_999))
+    }
+
+    @Test
     fun aCredentialBecomesAnAuthorizationHeader() = runBlocking {
         OpdsClient().feed(base, OpdsCredential.Basic("ada", "lovelace"))
         // base64("ada:lovelace")

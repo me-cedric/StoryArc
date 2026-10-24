@@ -25,6 +25,20 @@ class OpenSearchTest {
         OpenSearchDescription.template(xml.toByteArray(), document)
 
     @Test
+    fun `a description that declares a DOCTYPE offers nothing`() {
+        val found = template(
+            """
+            <!DOCTYPE OpenSearchDescription [ <!ENTITY q "{searchTerms}"> ]>
+            <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+              <Url type="application/atom+xml;profile=opds-catalog"
+                   template="https://library.example/search?q={searchTerms}"/>
+            </OpenSearchDescription>
+            """.trimIndent(),
+        )
+        assertNull(found)
+    }
+
+    @Test
     fun `an absolute template is taken as written`() {
         val found = template(
             """

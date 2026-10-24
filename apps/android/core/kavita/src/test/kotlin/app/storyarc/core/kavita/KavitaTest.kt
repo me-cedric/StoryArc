@@ -1,5 +1,6 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.catalogue.MAX_RESPONSE_BYTES
 import app.storyarc.core.model.KavitaHit
 import com.sun.net.httpserver.HttpServer
 import java.net.InetSocketAddress
@@ -126,6 +127,9 @@ class KavitaClientTest {
     /** Whether the token route answers 404, which is that route missing and not a listing. */
     private var authIsMissing = false
 
+    /** Whether the library list answers with more bytes than any API answer may hold. */
+    private var librariesAreHuge = false
+
     /** Every path this server was asked for, in order, so a test can count the questions. */
     private val asked = mutableListOf<String>()
 
@@ -163,6 +167,10 @@ class KavitaClientTest {
                     status = 401
                     body = """{"message":"refused"}"""
                 }
+                path.endsWith("/Library/libraries") && librariesAreHuge ->
+                    body = " ".repeat(MAX_RESPONSE_BYTES + 1)
+                path.endsWith("/Download/chapter") ->
+                    body = " ".repeat(MAX_RESPONSE_BYTES + 1)
                 path.endsWith("/Library/libraries") ->
                     body = """[{"id":1,"name":"Comics"},{"id":2,"name":"Books"}]"""
                 path.endsWith("/Series/all-v2") -> {
@@ -237,6 +245,18 @@ class KavitaClientTest {
     @After
     fun stop() {
         server.stop(0)
+    }
+
+    @Test
+    fun anApiAnswerOverTheCapIsRefusedNotHeldInMemory() = runBlocking {
+        librariesAreHuge = true
+        val error = runCatching { client().libraries() }.exceptionOrNull()
+        assertEquals(KavitaError.UnexpectedResponse, error)
+    }
+
+    @Test
+    fun aChapterIsAWholePublicationAndIsNotCapped() = runBlocking {
+        assertEquals(MAX_RESPONSE_BYTES + 1, client().chapter(1).bytes.size)
     }
 
     @Test

@@ -57,9 +57,26 @@ sealed class OpdsCredential {
                     if (pair.size != 2) null else Basic(pair[0], pair[1])
                 }
                 "bearer" -> Bearer(head[1])
+                "query" -> of(head[1].substringAfter('\n', ""))
                 else -> null
             }
         }
+
+        /**
+         * One secure-store value for a sign-in and for the secret query items of a feed
+         * address, or null when there is neither.
+         *
+         * `?apikey=...` is a credential written into an address. It goes to the secure store
+         * in front of the sign-in, so [of] still reads the sign-in from the same value.
+         */
+        fun stored(credential: OpdsCredential?, query: String?): String? =
+            if (query.isNullOrEmpty()) credential?.stored else "query\n$query\n" + credential?.stored.orEmpty()
+
+        /** The secret query items that [stored] wrote, or null. */
+        fun query(stored: String): String? = stored.split("\n", limit = 3)
+            .takeIf { it.size == 3 && it[0] == "query" }
+            ?.get(1)
+            ?.ifEmpty { null }
     }
 
     /**
@@ -81,6 +98,26 @@ sealed class OpdsCredential {
                 .encodeToString("$user:$password".toByteArray())
             is Bearer -> "Bearer $token"
         }
+}
+
+/**
+ * The most a feed, a cover or an API answer read into memory may hold.
+ *
+ * A real feed page is kilobytes. A server that sends more is broken or hostile, and the
+ * whole body is held in memory. A publication goes to disk through [OpdsClient.download].
+ */
+const val MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+
+/** The stream's bytes, or null when it holds more than [limit]. */
+fun InputStream.readAtMost(limit: Int): ByteArray? {
+    val out = java.io.ByteArrayOutputStream()
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    while (true) {
+        val read = read(buffer)
+        if (read < 0) return out.toByteArray()
+        if (out.size().toLong() + read > limit) return null
+        out.write(buffer, 0, read)
+    }
 }
 
 /**
@@ -416,7 +453,8 @@ class OpdsClient(
                 return Hop.Done(Fetched(ByteArray(0), connection.contentType, url))
             }
 
-            val body = connection.inputStream.use { it.readBytes() }
+            val body = connection.inputStream.use { it.readAtMost(MAX_RESPONSE_BYTES) }
+                ?: throw OpdsError.Malformed("answer over $MAX_RESPONSE_BYTES bytes")
             if (body.isEmpty()) throw OpdsError.Empty
             return Hop.Done(Fetched(body, connection.contentType, url))
         } finally {

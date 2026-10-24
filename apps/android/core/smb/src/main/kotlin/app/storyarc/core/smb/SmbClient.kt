@@ -17,6 +17,7 @@ import com.hierynomus.smbj.SMBClient
 import com.hierynomus.smbj.SmbConfig
 import com.hierynomus.smbj.auth.AuthenticationContext
 import com.hierynomus.smbj.connection.Connection
+import com.hierynomus.smbj.session.SMB2GuestSigningRequiredException
 import com.hierynomus.smbj.session.Session
 import com.hierynomus.smbj.share.DiskShare
 import java.net.URI
@@ -46,15 +47,18 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
          *
          * - SMB 1 is never offered. `network-share` requires the app to refuse it rather than
          *   fall back to it, and smbj sends no SMB 1 negotiate unless asked to.
-         * - Signing is enabled and not required. smbj signs every request of a session that
-         *   has a key and checks the signature of every response. Not required, because
-         *   `network-share` requires a guest share to work, and a guest session is unsigned.
+         * - Signing is enabled, and required for an account. smbj signs every request of a
+         *   session that has a key, but it checks a response only when the response says it
+         *   is signed, unless signing is required. So an account session requires it, as the
+         *   desktop client does: otherwise a response with its signature removed is accepted.
+         *   Not required for a guest, because `network-share` requires a guest share to work,
+         *   and a guest session is unsigned.
          * - Encryption is offered. smbj's `encryptData` advertises the capability and the
          *   ciphers, and then encrypts every message of a session that agreed SMB 3 with a
          *   cipher in common. It demands nothing: an SMB 2 server, or a guest session with no
          *   key, still connects, unencrypted, and says so.
          */
-        internal fun clientConfig(): SmbConfig = SmbConfig.builder()
+        internal fun clientConfig(guest: Boolean): SmbConfig = SmbConfig.builder()
             .withDialects(
                 SMB2Dialect.SMB_3_1_1,
                 SMB2Dialect.SMB_3_0_2,
@@ -64,7 +68,7 @@ class SmbClient(private val address: SmbAddress) : AutoCloseable {
             )
             .withMultiProtocolNegotiate(false)
             .withSigningEnabled(true)
-            .withSigningRequired(false)
+            .withSigningRequired(!guest)
             .withEncryptData(true)
             .withTimeout(RESPONSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .withSoTimeout(RESPONSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -276,14 +280,16 @@ internal class SmbTree private constructor(
      * The dialect is the one the two ends agreed. "Encrypted" is smbj's own decision for every
      * message it sends on this session, so it is the fact rather than a claim about it.
      * "Signed" is true for an encrypted session too: SMB 3 encryption authenticates every
-     * message, and it replaces the signature.
+     * message, and it replaces the signature. Otherwise it is smbj's own decision to refuse an
+     * unsigned response, because a session that signs its requests and accepts unsigned
+     * answers is not signed in any sense a reader would rely on.
      */
     fun identity(): SmbIdentity {
         val isEncrypted = session.shouldEncryptData()
         return SmbIdentity(
             dialect = SmbClient.nameOf(connection.negotiatedProtocol.dialect),
             isEncrypted = isEncrypted,
-            isSigned = isEncrypted || (!session.isGuest && !session.isAnonymous),
+            isSigned = isEncrypted || session.isSigningRequired,
         )
     }
 
@@ -297,7 +303,7 @@ internal class SmbTree private constructor(
     companion object {
         fun open(address: SmbAddress): SmbTree {
             validate(address)
-            val client = SMBClient(SmbClient.clientConfig())
+            val client = SMBClient(SmbClient.clientConfig(guest = address.isGuest))
             try {
                 val connection = client.connect(address.host, address.port)
                 val session = connection.authenticate(credentials(address))
@@ -394,6 +400,9 @@ internal fun fromCauseChain(error: Throwable): SmbError? {
             is java.net.SocketTimeoutException,
             -> return SmbError.HostUnreachable
             is SMB1NotSupportedException -> return SmbError.ProtocolUnsupported
+            // The server let the account in as a guest, which is how Samba answers a
+            // password it does not accept.
+            is SMB2GuestSigningRequiredException -> return SmbError.AuthenticationRejected
         }
         val message = current.message.orEmpty()
         if (PROTOCOL_REFUSAL_PHRASES.any { message.contains(it, ignoreCase = true) }) {

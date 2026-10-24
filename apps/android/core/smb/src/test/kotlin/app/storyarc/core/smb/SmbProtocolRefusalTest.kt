@@ -30,6 +30,14 @@ class SmbProtocolRefusalTest {
     }
 
     @Test
+    fun `an account the server let in only as a guest is a refused sign-in`() {
+        assertEquals(
+            SmbError.AuthenticationRejected,
+            translate(SMBRuntimeException(com.hierynomus.smbj.session.SMB2GuestSigningRequiredException())),
+        )
+    }
+
+    @Test
     fun `a missing share is named from its NT status, and a missing file is not`() {
         assertEquals(SmbError.ShareNotFound, meaning(0xC00000CCL))
         assertEquals(SmbError.ShareNotFound, meaning(0xC000003AL))

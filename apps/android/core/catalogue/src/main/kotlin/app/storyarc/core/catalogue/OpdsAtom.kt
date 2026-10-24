@@ -9,6 +9,22 @@ import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
 
 /**
+ * Moves the parser to the root element, and refuses a document that declares a DOCTYPE.
+ *
+ * A feed has no use for one. Its internal entities are how a small hostile body expands to
+ * gigabytes ("billion laughs"), and whether a platform parser expands them is not this
+ * code's to assume.
+ */
+internal fun XmlPullParser.refusingDocType(): Int {
+    var event = eventType
+    while (event != XmlPullParser.START_TAG && event != XmlPullParser.END_DOCUMENT) {
+        if (event == XmlPullParser.DOCDECL) throw XmlPullParserException("DOCTYPE refused")
+        event = nextToken()
+    }
+    return event
+}
+
+/**
  * OPDS 1.2, which is an Atom feed with a handful of extra relations.
  *
  * Parsed with the platform's `XmlPullParser` rather than a dependency. Atom is a small
@@ -48,7 +64,7 @@ internal object OpdsAtom {
         var pendingLinkIsIndirect = false
 
         try {
-            var event = parser.eventType
+            var event = parser.refusingDocType()
             while (event != XmlPullParser.END_DOCUMENT) {
                 when (event) {
                     XmlPullParser.START_TAG -> {

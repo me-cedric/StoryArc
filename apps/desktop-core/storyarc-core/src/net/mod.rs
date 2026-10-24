@@ -32,6 +32,9 @@ pub use trust::{TrustStore, UntrustedCertificate, fingerprint};
 const MAX_REDIRECTS: usize = 10;
 /// The user agent every request names, so a server's log can tell StoryArc apart.
 const USER_AGENT: &str = concat!("StoryArc-desktop/", env!("CARGO_PKG_VERSION"));
+/// The most a body held in memory may hold. A feed or an API answer is kilobytes, and a
+/// publication goes to disk through [`HttpClient::stream`]. Android's `MAX_RESPONSE_BYTES`.
+pub const MAX_BODY_BYTES: usize = 32 * 1024 * 1024;
 
 /// Scheme, host and port: what a credential is bound to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -322,6 +325,9 @@ impl HttpClient {
                 &CancelToken::new(),
                 |_| Ok(()),
                 |chunk| {
+                    if body.len() + chunk.len() > MAX_BODY_BYTES {
+                        return Err(format!("the answer is larger than {MAX_BODY_BYTES} bytes"));
+                    }
                     body.extend_from_slice(chunk);
                     Ok(())
                 },
@@ -542,6 +548,31 @@ mod tests {
         );
         let elsewhere = client.headers(&request, &home, &url("http://cdn.example/x"));
         assert!(elsewhere.get(header::AUTHORIZATION).is_none());
+    }
+
+    #[test]
+    fn a_body_over_the_cap_is_refused_rather_than_held() {
+        use std::io::{Read, Write};
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            let _ = stream.read(&mut [0; 4096]);
+            let size = MAX_BODY_BYTES + 1;
+            let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Length: {size}\r\n\r\n");
+            let chunk = vec![b' '; 64 * 1024];
+            let mut left = size;
+            while left > 0 {
+                let n = left.min(chunk.len());
+                if stream.write_all(&chunk[..n]).is_err() {
+                    break;
+                }
+                left -= n;
+            }
+        });
+        let client = HttpClient::new(&Runtime::new().unwrap(), TrustStore::new()).unwrap();
+        let answer = client.send(Request::get(url(&format!("http://127.0.0.1:{port}/feed"))));
+        assert!(matches!(answer, Err(HttpError::Sink(_))));
     }
 
     #[test]

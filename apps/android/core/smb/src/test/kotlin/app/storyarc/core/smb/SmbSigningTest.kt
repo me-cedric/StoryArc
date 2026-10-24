@@ -10,14 +10,15 @@ import org.junit.Test
  * What the client asks for before it knows anything about the server.
  *
  * The security review's rank 16 was a client that signed only where the server insisted.
- * smbj signs every request of a session that has a key and checks every response, so the
- * setting to guard is that signing stays enabled. Configuration rather than a live
+ * smbj signs every request of a session that has a key, and checks a response that says it
+ * is signed, so the settings to guard are that signing stays enabled and that an account
+ * requires it. Configuration rather than a live
  * connection, because `SmbClientTest`'s server-backed suite skips itself when no server is
  * running, which is exactly when a lost setting would go unnoticed.
  */
 class SmbSigningTest {
 
-    private val config = SmbClient.clientConfig()
+    private val config = SmbClient.clientConfig(guest = true)
 
     @Test
     fun `signing is enabled, so a server that merely supports it gets a signed session`() {
@@ -33,6 +34,19 @@ class SmbSigningTest {
     @Test
     fun `signing is not enforced, because a guest share cannot sign at all`() {
         assertFalse("signing required", config.isSigningRequired)
+    }
+
+    /**
+     * Enforced for an account, as on desktop.
+     *
+     * smbj checks a response that says it is signed. Only a session that requires signing
+     * refuses a response whose signature was removed on the way.
+     */
+    @Test
+    fun `signing is enforced for an account, so an unsigned answer is refused`() {
+        val account = SmbClient.clientConfig(guest = false)
+        assertTrue("signing enabled", account.isSigningEnabled)
+        assertTrue("signing required", account.isSigningRequired)
     }
 
     /**

@@ -1,5 +1,7 @@
 package app.storyarc.core.kavita
 
+import app.storyarc.core.catalogue.MAX_RESPONSE_BYTES
+import app.storyarc.core.catalogue.readAtMost
 import app.storyarc.core.model.KavitaHit
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -524,7 +526,8 @@ class KavitaClient(val address: KavitaAddress) {
     /** The same, keeping the media type the server declared. */
     private suspend fun fetch(url: String): Pair<ByteArray, String?> {
         var type: String? = null
-        val body = request(url) { type = it }
+        // A chapter is a whole publication, so the cap on an API answer does not apply.
+        val body = request(url, limit = Int.MAX_VALUE) { type = it }
         return body to type
     }
 
@@ -541,10 +544,11 @@ class KavitaClient(val address: KavitaAddress) {
         method: String = "GET",
         authenticated: Boolean = true,
         body: String? = null,
+        limit: Int = MAX_RESPONSE_BYTES,
         onType: ((String?) -> Unit)? = null,
     ): ByteArray {
         if (authenticated && token == null) authenticate()
-        val first = attempt(url, method, if (authenticated) token else null, body)
+        val first = attempt(url, method, if (authenticated) token else null, body, limit)
         if (first.status != 401 || !authenticated) {
             onType?.invoke(first.type)
             return first.orThrow()
@@ -552,7 +556,7 @@ class KavitaClient(val address: KavitaAddress) {
 
         token = null
         authenticate()
-        val retried = attempt(url, method, token, body)
+        val retried = attempt(url, method, token, body, limit)
         // Still refused after a fresh token: the key itself is no longer valid.
         if (retried.status == 401) throw KavitaError.KeyRejected
         onType?.invoke(retried.type)
@@ -572,6 +576,7 @@ class KavitaClient(val address: KavitaAddress) {
         method: String,
         bearer: String?,
         body: String? = null,
+        limit: Int = MAX_RESPONSE_BYTES,
     ): Answer =
         withContext(Dispatchers.IO) {
             val connection = URL(url).openConnection() as HttpURLConnection
@@ -595,7 +600,7 @@ class KavitaClient(val address: KavitaAddress) {
                 }
                 Answer(
                     status,
-                    stream?.use { it.readBytes() } ?: ByteArray(0),
+                    stream?.use { it.readAtMost(limit) ?: throw KavitaError.UnexpectedResponse } ?: ByteArray(0),
                     connection.contentType?.substringBefore(';')?.trim(),
                 )
             } finally {

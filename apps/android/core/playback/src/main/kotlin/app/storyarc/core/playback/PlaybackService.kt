@@ -17,6 +17,7 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
 import app.storyarc.core.persistence.chosenLanguage
@@ -346,25 +347,16 @@ class PlaybackService : MediaLibraryService() {
                         .add(Player.COMMAND_SEEK_TO_NEXT)
                         .build(),
                 )
-                // The two the buttons above need. A session command left undeclared is a
-                // button whose press is refused, which looks exactly like a button that
-                // does nothing.
-                //
-                // **`DEFAULT_SESSION_AND_LIBRARY_COMMANDS`, not `DEFAULT_SESSION_COMMANDS`.**
-                // The shorter constant carries no library command, so declaring it on a
-                // `MediaLibrarySession` withdrew every browse command this session exists to
-                // answer. `onGetLibraryRoot` and `onGetChildren` were then refused before they
-                // ran, and a browser read `RESULT_ERROR_PERMISSION_DENIED`. A car found the app
-                // in its launcher, was handed an error for the root, and could browse nothing.
-                //
-                // Nothing on this machine could see it: the callbacks return the right values,
-                // so every host test passed. `PlayerBrowseTreeTest` connects a real
-                // `MediaBrowser` and caught it on the first device run, on 2026-09-07.
+                // The service is exported, so any app can connect. Only the app itself, the
+                // system and a car may browse the shelf: it lists titles and cover paths. Every
+                // other controller keeps the player commands that media buttons use.
                 .setAvailableSessionCommands(
-                    MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
-                        .add(SessionCommand(COMMAND_SKIP_BACK, Bundle.EMPTY))
-                        .add(SessionCommand(COMMAND_SKIP_FORWARD, Bundle.EMPTY))
-                        .build(),
+                    sessionCommands(
+                        browses = controller.isTrusted ||
+                            session.isMediaNotificationController(controller) ||
+                            session.isAutomotiveController(controller) ||
+                            session.isAutoCompanionController(controller),
+                    ),
                 )
                 .setMediaButtonPreferences(buttons)
                 .build()
@@ -676,4 +668,35 @@ class PlaybackService : MediaLibraryService() {
         val startIndex: Int,
         val startPositionMs: Long,
     )
+}
+
+/**
+ * The session commands one controller may use.
+ *
+ * The two skip commands the shade buttons need. A session command left undeclared is a
+ * button whose press is refused, which looks exactly like a button that does nothing.
+ *
+ * **`DEFAULT_SESSION_AND_LIBRARY_COMMANDS`, not `DEFAULT_SESSION_COMMANDS`, for a browser.**
+ * The shorter constant carries no library command, so declaring it on a
+ * `MediaLibrarySession` withdrew every browse command this session exists to answer.
+ * `onGetLibraryRoot` and `onGetChildren` were then refused before they ran, and a browser
+ * read `RESULT_ERROR_PERMISSION_DENIED`. A car found the app in its launcher, was handed an
+ * error for the root, and could browse nothing.
+ *
+ * Nothing on this machine could see it: the callbacks return the right values, so every
+ * host test passed. `PlayerBrowseTreeTest` connects a real `MediaBrowser` and caught it on
+ * the first device run, on 2026-09-07. A controller that may not browse gets the shorter
+ * constant on purpose.
+ */
+@OptIn(UnstableApi::class)
+internal fun sessionCommands(browses: Boolean): SessionCommands {
+    val base = if (browses) {
+        MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+    } else {
+        MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS
+    }
+    return base.buildUpon()
+        .add(SessionCommand(PlaybackService.COMMAND_SKIP_BACK, Bundle.EMPTY))
+        .add(SessionCommand(PlaybackService.COMMAND_SKIP_FORWARD, Bundle.EMPTY))
+        .build()
 }

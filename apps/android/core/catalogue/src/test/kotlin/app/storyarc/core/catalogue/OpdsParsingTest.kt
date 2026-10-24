@@ -31,6 +31,20 @@ class OpdsParsingTest {
     """.trimIndent()
 
     @Test
+    fun aFeedThatDeclaresEntitiesIsRefusedBeforeAnyIsExpanded() {
+        val laughs = (1..9).joinToString("\n") { level ->
+            val inner = if (level == 1) "lol" else "&lol${level - 1};"
+            "  <!ENTITY lol$level \"${inner.repeat(10)}\">"
+        }
+        val feed = "<?xml version=\"1.0\"?>\n<!DOCTYPE feed [\n$laughs\n]>\n" +
+            "<feed xmlns=\"http://www.w3.org/2005/Atom\"><title>&lol9;</title></feed>"
+
+        val error = runCatching { OpdsDocument.parse(feed.toByteArray(), baseUrl = base) }
+            .exceptionOrNull()
+        assertEquals(OpdsError.Malformed("DOCTYPE refused"), error)
+    }
+
+    @Test
     fun atomNavigationFeedYieldsSections() {
         val feed = OpdsDocument.parse(atomNavigation.toByteArray(), baseUrl = base)
         assertEquals("Example Library", feed.title)
@@ -727,6 +741,23 @@ class OpdsCredentialStorageTest {
         assertNull(OpdsCredential.of("ada\nlovelace"))
         assertNull(OpdsCredential.of(""))
         assertNull(OpdsCredential.of("digest\na\nb"))
+    }
+
+    @Test
+    fun secretQueryItemsAndASignInShareOneValue() {
+        val credential = OpdsCredential.Basic("ada", "love:lace\nx")
+        val stored = OpdsCredential.stored(credential, "apikey=k1&token=t2")!!
+        assertEquals(credential, OpdsCredential.of(stored))
+        assertEquals("apikey=k1&token=t2", OpdsCredential.query(stored))
+    }
+
+    @Test
+    fun secretQueryItemsAloneAreNoSignIn() {
+        val stored = OpdsCredential.stored(null, "apikey=k1")!!
+        assertNull(OpdsCredential.of(stored))
+        assertEquals("apikey=k1", OpdsCredential.query(stored))
+        assertNull(OpdsCredential.stored(null, null))
+        assertNull(OpdsCredential.query(OpdsCredential.Bearer("abc").stored))
     }
 }
 

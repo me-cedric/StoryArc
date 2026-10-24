@@ -295,19 +295,22 @@ class ZipReader private constructor(
             if (expectedSize == 0L) return inflateUnknownSize(compressed)
 
             val capacity = minOf(expectedSize, MAX_INFLATE_BYTES.toLong()).toInt()
-            val output = ByteArray(capacity)
+            // The declared size is the archive's claim, so the buffer grows as data arrives:
+            // a tiny entry that declares 500 MB must not allocate 500 MB.
+            var output = ByteArray(minOf(capacity, 64 * 1024))
             // `true` selects raw DEFLATE — ZIP stores no zlib header.
             val inflater = Inflater(true)
             try {
                 inflater.setInput(compressed)
                 var written = 0
                 while (written < capacity && !inflater.finished()) {
-                    val produced = inflater.inflate(output, written, capacity - written)
+                    if (written == output.size) output = output.copyOf(minOf(capacity, output.size * 2))
+                    val produced = inflater.inflate(output, written, output.size - written)
                     if (produced == 0 && (inflater.needsInput() || inflater.needsDictionary())) break
                     written += produced
                 }
                 if (written == 0) throw ZipException.InflateFailed()
-                return if (written == capacity) output else output.copyOf(written)
+                return if (written == output.size) output else output.copyOf(written)
             } finally {
                 inflater.end()
             }

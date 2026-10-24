@@ -257,14 +257,16 @@ class CatalogueConnection(
         // with `accepted` still null and the password went to the registry as part of the
         // locator. It is a working secret, so it moves to the secure store and the locator
         // loses it.
-        val secret = accepted ?: CatalogueTarget.embeddedCredential(url)
+        val credential = accepted ?: CatalogueTarget.embeddedCredential(url)
             ?.let { (user, password) -> OpdsCredential.Basic(user, password) }
+        // `?apikey=...` is the same case in the query, and goes to the same place.
+        val secret = OpdsCredential.stored(credential, CatalogueTarget.secretQuery(url))
         if (secret != null) {
             // Null when the secret cannot be stored, and the step says so. A catalogue whose
             // sign-in was accepted and then dropped is a row that fails on the next launch
             // with nothing to explain why.
             val stored = replacing?.credentialReference ?: CredentialStore.reference(id)
-            if (credentials == null || !credentials.save(secret.stored, stored)) {
+            if (credentials == null || !credentials.save(secret, stored)) {
                 _step.value = Step.Failed(
                     readersLanguage.getString(R.string.catalogue_error_secret_not_stored),
                 )

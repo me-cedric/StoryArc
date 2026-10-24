@@ -64,7 +64,7 @@ object OpenSearchDescription {
 
         val urls = mutableListOf<Offer>()
         try {
-            var event = parser.eventType
+            var event = parser.refusingDocType()
             while (event != XmlPullParser.END_DOCUMENT) {
                 if (event == XmlPullParser.START_TAG && parser.name == "Url") {
                     urls.add(

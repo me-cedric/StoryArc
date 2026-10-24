@@ -2,6 +2,7 @@ package app.storyarc.feature.library
 
 import app.storyarc.core.catalogue.OpdsDocument
 import app.storyarc.core.kavita.KavitaAddress
+import app.storyarc.core.model.ExportableAddress
 import java.net.URI
 
 /**
@@ -53,15 +54,31 @@ internal sealed interface CatalogueTarget {
          * in the clear. `https://user:password@host/feed` is a working credential written as
          * an address, and `HttpURLConnection` authenticates from it — so the caller moves it
          * into the secure store and saves what this returns, which is the same address with
-         * the secret taken out of it.
+         * the secret taken out of it. `?apikey=...` is the same case in the query: [secretQuery]
+         * goes to the secure store, and [ExportableAddress] removes it here.
          */
         fun storableLocator(url: String): String {
             val uri = runCatching { URI(url) }.getOrNull() ?: return url
-            if (uri.userInfo.isNullOrEmpty()) return url
+            if (uri.userInfo.isNullOrEmpty()) return ExportableAddress.withoutSecret(url)
             return runCatching {
                 URI(uri.scheme, null, uri.host, uri.port, uri.path, uri.query, uri.fragment)
                     .toString()
-            }.getOrDefault(url)
+            }.map(ExportableAddress::withoutSecret).getOrDefault(url)
+        }
+
+        /** The query items of [url] that name a secret, as typed, or null when there is none. */
+        fun secretQuery(url: String): String? = runCatching { URI(url).rawQuery }.getOrNull()
+            ?.split('&')
+            ?.filter { it.substringBefore('=').lowercase() in ExportableAddress.SECRET_NAMES }
+            ?.joinToString("&")
+            ?.ifEmpty { null }
+
+        /** The stored [locator] with the [secretQuery] put back, for the request only. */
+        fun withQuery(locator: String, query: String?): String {
+            if (query == null) return locator
+            val hash = locator.indexOf('#').takeIf { it >= 0 } ?: locator.length
+            val head = locator.substring(0, hash)
+            return head + (if ('?' in head) "&" else "?") + query + locator.substring(hash)
         }
 
         /**

@@ -158,6 +158,30 @@ class ZipReaderTest {
         }
         assertEquals(0, ZipReader.inflate(ByteArray(0), 0).size)
     }
+
+    @Test
+    fun `a tiny entry that declares half a gigabyte inflates without allocating it`() = runTest {
+        val page = ByteArray(100_000) { (it % 7).toByte() }
+        val zip = java.io.ByteArrayOutputStream().also { bytes ->
+            java.util.zip.ZipOutputStream(bytes).use {
+                it.putNextEntry(java.util.zip.ZipEntry("001.png"))
+                it.write(page)
+            }
+        }.toByteArray()
+        // The central directory's uncompressed size, at +24, now lies: 512 MiB less one.
+        val central = (zip.size - 4 downTo 0).first {
+            zip[it] == 0x50.toByte() && zip[it + 1] == 0x4B.toByte() &&
+                zip[it + 2] == 0x01.toByte() && zip[it + 3] == 0x02.toByte()
+        }
+        java.nio.ByteBuffer.wrap(zip, central + 24, 4)
+            .order(java.nio.ByteOrder.LITTLE_ENDIAN).putInt(512 * 1024 * 1024 - 1)
+
+        val reader = ZipReader.open(DataSource(zip))
+        val entry = reader.entry("001.png")!!
+
+        assertEquals(512L * 1024 * 1024 - 1, entry.uncompressedSize)
+        assertTrue(reader.data(entry).contentEquals(page))
+    }
 }
 
 class RandomAccessSourceTest {

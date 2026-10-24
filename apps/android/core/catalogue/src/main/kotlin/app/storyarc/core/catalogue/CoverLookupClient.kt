@@ -3,8 +3,6 @@ package app.storyarc.core.catalogue
 import app.storyarc.core.model.CoverIdentifier
 import app.storyarc.core.model.CoverImageHosts
 import app.storyarc.core.model.CoverLookupRequest
-import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlinx.coroutines.Dispatchers
@@ -96,24 +94,13 @@ object PlatformCoverTransport : CoverTransport {
                 }
                 val stream =
                     if (status in 200..299) connection.inputStream else connection.errorStream
-                val body = stream?.use { it.readAtMost(MAX_BYTES) } ?: ByteArray(0)
+                val body = stream?.use { checkNotNull(it.readAtMost(MAX_BYTES)) { "answer over $MAX_BYTES bytes" } }
+                    ?: ByteArray(0)
                 Answered(CoverFetched(status, body, request.url), redirect = null)
             } finally {
                 connection.disconnect()
             }
         }.getOrNull()
-
-    /** The stream's bytes; an answer over [limit] throws, and the caller reads that as none. */
-    private fun InputStream.readAtMost(limit: Int): ByteArray {
-        val out = ByteArrayOutputStream()
-        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-        while (true) {
-            val read = read(buffer)
-            if (read < 0) return out.toByteArray()
-            check(out.size() + read <= limit) { "answer over $limit bytes" }
-            out.write(buffer, 0, read)
-        }
-    }
 }
 
 /**

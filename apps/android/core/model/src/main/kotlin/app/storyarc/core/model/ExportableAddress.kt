@@ -85,9 +85,10 @@ object ExportableAddress {
      *
      * A list rather than a shape test, because a parameter's *value* is opaque by definition
      * and only its name says what it is. Kept in step with iOS's `ExportableAddress`, which
-     * holds the same words.
+     * holds the same words. Public because a catalogue moves these same items into the
+     * secure store before it saves a locator.
      */
-    private val SECRET_NAMES = setOf(
+    val SECRET_NAMES = setOf(
         "token", "password", "passwd", "pwd", "secret", "key", "apikey", "api_key", "api-key",
         "x-api-key", "auth", "authorization", "bearer", "accesstoken", "access_token",
         "refresh_token", "refreshtoken", "session", "sessionid", "session_id", "sid",

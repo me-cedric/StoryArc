@@ -296,10 +296,10 @@ data class CataloguePage(
          */
         fun of(source: Source, credentials: CredentialStore?): CataloguePage? {
             if (source.kind != SourceKind.OPDS_CATALOG || source.reachesOnlyAnotherDevice) return null
-            val url = source.locator ?: return null
-            val credential = source.credentialReference
-                ?.let { credentials?.secret(it) }
-                ?.let(OpdsCredential::of)
+            val locator = source.locator ?: return null
+            val stored = source.credentialReference?.let { credentials?.secret(it) }
+            val url = CatalogueTarget.withQuery(locator, stored?.let(OpdsCredential::query))
+            val credential = stored?.let(OpdsCredential::of)
             return CataloguePage(source.displayName, url, credential, sourceId = source.id)
         }
     }

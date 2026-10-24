@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- `offline-downloads`: downloaded publications are re-downloadable and would
-     otherwise dominate a backup. Reading progress is small and worth restoring. -->
+     otherwise dominate a backup. Reading progress is small and worth restoring.
+     `sources`: the source registry stays on the device, because a locator saved by an
+     older version can still hold a secret. -->
 <full-backup-content>
     <exclude domain="file" path="downloads/" />
     <exclude domain="file" path="cache/" />
+    <exclude domain="sharedpref" path="app.storyarc.sources.xml" />
 </full-backup-content>
