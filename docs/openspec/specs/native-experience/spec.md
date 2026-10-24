@@ -276,13 +276,6 @@ A mode is temporary and a reader has to be able to leave it. So the way out SHAL
 present and SHALL NOT be one of the mode's own actions, which are inert until something is
 picked.
 
-> **This requirement is written after the behaviour, and that is worth saying.** The
-> selection chrome shipped as a full-bleed bar stacked above the tab bar, and nothing in the
-> specs made that wrong — `collections-and-reading-lists` says a reader may select in bulk,
-> and `native-experience` asks for the platform's conventions in general terms. Neither
-> reaches the shape. The owner reported it twice before it was fixed, which is what a missing
-> requirement costs.
-
 #### Scenario: The mode replaces its surface rather than stacking on it
 - **WHEN** a reader is selecting publications
 - **THEN** the mode's actions occupy the place the destination's own primary navigation held, and the two are never drawn at once
@@ -309,3 +302,10 @@ picked.
 - **THEN** it is announced by name whatever the action draws
 - **AND** an action drawn as a glyph alone is one whose meaning the platform already establishes **on this screen** — a mark another control in the same frame already uses for something else is not established here, whatever it means elsewhere
 - **AND** where the width will not hold a name, the action moves into a named menu rather than being reduced to a glyph a reader cannot read, so narrowing costs a reader taps and never meaning
+
+> **This requirement is written after the behaviour, and that is worth saying.** The
+> selection chrome shipped as a full-bleed bar stacked above the tab bar, and nothing in the
+> specs made that wrong — `collections-and-reading-lists` says a reader may select in bulk,
+> and `native-experience` asks for the platform's conventions in general terms. Neither
+> reaches the shape. The owner reported it twice before it was fixed, which is what a missing
+> requirement costs.

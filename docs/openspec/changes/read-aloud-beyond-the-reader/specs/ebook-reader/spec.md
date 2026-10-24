@@ -70,37 +70,6 @@ While a read-aloud session is running and its publication is not open, the app
 SHALL offer a transport that says what is being spoken, controls it, and returns
 to it — and SHALL offer nothing when no session is running.
 
-That transport SHALL be the compact bar
-[`audio-playback`](../audio-playback/spec.md) already requires, on every platform
-that draws one. A read-aloud session SHALL take that bar on the same terms as a
-narrated one, and the app SHALL NOT draw a second bar for the voice, nor withhold
-the one it has from it.
-
-> **This requirement forbade that bar on Android until 2026-09-05, and the owner reversed
-> it.** *The transport on Android* used to end "no docked bar is added inside the app". The
-> reasoning for reversing it is the justification and not a preference, so it is recorded
-> here rather than only in a task list:
->
-> The clause was written when the voice had no bar to appear in. Material had no persistent
-> slot above a navigation bar, so the only in-app bar Android could have grown would have
-> been a control invented to make two screenshots match. `audiobooks-and-playback` then built
-> the slot — `AdaptiveNavigationShell`'s `aboveNavigation`, carrying `CompactPlayerBar` —
-> because `audio-playback` requires a compact bar "above the navigation control" whenever
-> something plays. **The clause therefore encoded an implementation accident, not an intent
-> about readers.** A listener who has left the reader wants the same transport whether the
-> words come from a narrator or a synthesiser, which is this change's own premise.
->
-> **The timing is the point.** The two requirements are reconciled on Android today only by
-> the engine split: the bar reads `PlaybackHost.nowPlaying`, and a voice runs on
-> `ReadAloudHost` behind Readium. `audiobooks-and-playback` task 6.1 collapses those engines,
-> and on the day it lands a read-aloud session starts arriving in that bar — reversing this
-> requirement by a merge nobody read as a product change, with every gate green. Amending it
-> **before** 6.1 lands is what makes that merge compliance rather than a violation.
->
-> **What Android does not lose.** The media notification and the lock-screen controls stay.
-> They are not the bar's alternative; they are what survives the app being backgrounded,
-> which a bar cannot. The scenario below now asks for both.
-
 #### Scenario: Getting back to the book
 - **WHEN** a listener chooses the transport while the voice is speaking
 - **THEN** the publication opens at the sentence being spoken, without the voice stopping
@@ -157,3 +126,41 @@ the one it has from it.
 - **WHEN** a listener uses a screen reader, a keyboard or a switch
 - **THEN** the transport is reachable in the reading order, states what it controls and what is playing, and each of its actions is labelled by what it does
 - **AND** it does not take focus when it appears, because a session starting must not interrupt what the listener is doing
+
+### Requirement: The transport is the compact bar
+
+That transport SHALL be the compact bar
+[`audio-playback`](../audio-playback/spec.md) already requires, on every platform
+that draws one. A read-aloud session SHALL take that bar on the same terms as a
+narrated one, and the app SHALL NOT draw a second bar for the voice, nor withhold
+the one it has from it.
+
+#### Scenario: A read-aloud session takes the compact bar
+- **WHEN** a read-aloud session is running and its publication is not open, on a platform that draws the compact bar
+- **THEN** the transport outside the reader is that bar, taken on the same terms as a narrated session takes it
+- **AND** no second bar is drawn for the voice, and the bar is not withheld from it
+
+> **This requirement forbade that bar on Android until 2026-09-05, and the owner reversed
+> it.** *The transport on Android* used to end "no docked bar is added inside the app". The
+> reasoning for reversing it is the justification and not a preference, so it is recorded
+> here rather than only in a task list:
+>
+> The clause was written when the voice had no bar to appear in. Material had no persistent
+> slot above a navigation bar, so the only in-app bar Android could have grown would have
+> been a control invented to make two screenshots match. `audiobooks-and-playback` then built
+> the slot — `AdaptiveNavigationShell`'s `aboveNavigation`, carrying `CompactPlayerBar` —
+> because `audio-playback` requires a compact bar "above the navigation control" whenever
+> something plays. **The clause therefore encoded an implementation accident, not an intent
+> about readers.** A listener who has left the reader wants the same transport whether the
+> words come from a narrator or a synthesiser, which is this change's own premise.
+>
+> **The timing is the point.** The two requirements are reconciled on Android today only by
+> the engine split: the bar reads `PlaybackHost.nowPlaying`, and a voice runs on
+> `ReadAloudHost` behind Readium. `audiobooks-and-playback` task 6.1 collapses those engines,
+> and on the day it lands a read-aloud session starts arriving in that bar — reversing this
+> requirement by a merge nobody read as a product change, with every gate green. Amending it
+> **before** 6.1 lands is what makes that merge compliance rather than a violation.
+>
+> **What Android does not lose.** The media notification and the lock-screen controls stay.
+> They are not the bar's alternative; they are what survives the app being backgrounded,
+> which a bar cannot. The scenario *The transport on Android* now asks for both.

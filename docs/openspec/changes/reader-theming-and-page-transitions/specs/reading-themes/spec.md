@@ -18,6 +18,10 @@ in [`native-experience`](../native-experience/spec.md).
 The app SHALL offer six named reading-theme presets, each setting a background
 colour, a text colour, a typeface, and a spacing character.
 
+#### Scenario: The six presets
+- **WHEN** a reader opens the list of presets
+- **THEN** it offers these six, each with the character this table gives it:
+
 | Preset | Character |
 | --- | --- |
 | **Original** | The publication as its publisher styled it. Publisher styles on; StoryArc overrides nothing but size. |
@@ -51,6 +55,10 @@ colour, a text colour, a typeface, and a spacing character.
 
 A reading theme SHALL be defined by exactly these axes, and each SHALL be
 independently adjustable.
+
+#### Scenario: The axes and their controls
+- **WHEN** a reader opens the theme controls
+- **THEN** they find exactly these axes, each adjusted by the control this table names:
 
 | Axis | Control | Notes |
 | --- | --- | --- |

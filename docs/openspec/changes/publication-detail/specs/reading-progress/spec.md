@@ -7,15 +7,9 @@ app, and SHALL keep the two verbs a publication answers to distinct: a **resume
 affordance** opens the book at the stored position, and a **cover** leads to that
 publication's page, whose primary action continues from the same position.
 
-Both are resuming. The difference is that one is an offer to carry on and the
-other is an offer to look first, and a reader who chose to look should not be
-dropped into the book.
-
 This requirement SHALL state what each of the two verbs costs the reader in
 actions, because the two costs differ and the cheaper one is what "the shortest
-path" above means. The counts hold for a publication the app can open now. A
-publication whose source is away, whose access is refused, or which must be
-downloaded first draws no continue action, so no count applies to it.
+path" above means.
 
 #### Scenario: Continue from a resume affordance
 - **WHEN** a reader chooses a partially read publication from Keep reading, or from any other affordance that offers to resume it
@@ -35,3 +29,12 @@ downloaded first draws no continue action, so no count applies to it.
 - **THEN** a "Start from the beginning" action is available from the publication's own cover in the library — the same long press that offers to file it in a collection — and it clears progress only after confirmation
 - **AND** it is offered only on a publication that has progress to clear, and only on one at a time, because a set of publications has no single beginning to return to
 - **AND** it is on that menu because the menu is on every cover on every browse surface, so starting over never needs a screen opened first — and it is never a publication page's primary action, which continues from the stored position
+
+#### Scenario: A publication the app cannot open now
+- **WHEN** a publication's source is away, its access is refused, or it must be downloaded first
+- **THEN** it draws no continue action, so no count applies to it
+- **AND** the counts above hold for a publication the app can open now
+
+> Both are resuming. The difference is that one is an offer to carry on and the
+> other is an offer to look first, and a reader who chose to look should not be
+> dropped into the book.

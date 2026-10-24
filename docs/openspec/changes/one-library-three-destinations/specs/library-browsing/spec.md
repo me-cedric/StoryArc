@@ -9,10 +9,6 @@ contribute its publications to that library, whatever kind of source it is, and 
 publication SHALL be treated the same in the grid whether it is a file on the
 device or a title on a server.
 
-Narrowing to one source survives as a filter, described under *Filtering*. It is
-no longer a scope, because a scope is a mode a reader can be stuck in and it
-silently narrowed search as well.
-
 #### Scenario: Default view
 - **WHEN** a reader opens the library
 - **THEN** publications from every configured source are shown together, ranked, sorted and filtered as one library
@@ -60,6 +56,11 @@ silently narrowed search as well.
 - **AND** the reader is told the count is partial rather than being shown a number that looks complete
 - **AND** they are rendered by the same grid, the same cells and the same publication page as everything else
 - **AND** they are never a destination in navigation, per [`navigation-shell`](../navigation-shell/spec.md)
+
+#### Scenario: One source is a filter, not a scope
+- **WHEN** a reader narrows the library to one source
+- **THEN** that narrowing survives as a filter, described under *Filtering*, and is no longer a scope
+- **AND** it is not a scope because a scope is a mode a reader can be stuck in, and it silently narrowed search as well
 
 ### Requirement: Search
 
@@ -187,27 +188,6 @@ The controls that change what the shelf shows SHALL be grouped rather than laid 
 of similar icons. A reader who cannot tell two adjacent controls apart has as many controls as
 they can name.
 
-> **The grouping rule and the last three scenarios are carried from
-> `named-failures-and-quieter-chrome`, which syncs first.** A MODIFIED requirement replaces
-> the whole block, so two changes holding disjoint blocks on one requirement means whichever
-> syncs second deletes the other's scenarios. `pnpm delta:drop` now refuses that pair unless
-> the earlier block is a subset of this one, which is what these additions make true. Do not
-> remove them to "keep this delta about the destinations" — that reopens the drop.
-
-> **The two scenarios below keep every clause the main spec already holds.** An earlier
-> draft of this delta reworded them and lost two: *Switching layout* dropped "per scope …
-> does not force it everywhere", and *Adaptive columns* dropped "an iPad in Split View".
-> `pnpm delta:drop` did not see either, because it compares scenarios by **name** — a
-> scenario that keeps its name and loses a clause passes the check. Restored 2026-09-05 by
-> reading the two blocks against `specs/library-browsing/spec.md` by hand.
-
-> **The series-or-issues choice and the index are carried into every sibling delta that
-> holds this requirement, word for word.** A MODIFIED requirement replaces the whole block,
-> so `every-source-is-the-library`, `one-library-three-destinations` and
-> `a-shelf-of-issues-and-a-rail-to-scan-it` all hold one identical Presentation block and the
-> order they sync in cannot matter. `pnpm delta:drop` reports nothing while they agree, and
-> reports the pair the moment one of them drifts. Merge into all three, never into one.
-
 #### Scenario: Switching layout
 - **WHEN** a reader switches between grid and list
 - **THEN** the choice persists per scope, so a dense list for one library does not force it everywhere
@@ -301,6 +281,27 @@ they can name.
 - **WHEN** the current sort is shown on a control
 - **THEN** it reads as an ordering rather than as a value — a reader seeing the field name alone cannot tell a sort from a filter
 - **AND** the same holds for grouping, which is neither
+
+> **The grouping rule and the last three scenarios are carried from
+> `named-failures-and-quieter-chrome`, which syncs first.** A MODIFIED requirement replaces
+> the whole block, so two changes holding disjoint blocks on one requirement means whichever
+> syncs second deletes the other's scenarios. `pnpm delta:drop` now refuses that pair unless
+> the earlier block is a subset of this one, which is what these additions make true. Do not
+> remove them to "keep this delta about the destinations" — that reopens the drop.
+
+> **The two scenarios *Switching layout* and *Adaptive columns* keep every clause the main spec already holds.** An earlier
+> draft of this delta reworded them and lost two: *Switching layout* dropped "per scope …
+> does not force it everywhere", and *Adaptive columns* dropped "an iPad in Split View".
+> `pnpm delta:drop` did not see either, because it compares scenarios by **name** — a
+> scenario that keeps its name and loses a clause passes the check. Restored 2026-09-05 by
+> reading the two blocks against `specs/library-browsing/spec.md` by hand.
+
+> **The series-or-issues choice and the index are carried into every sibling delta that
+> holds this requirement, word for word.** A MODIFIED requirement replaces the whole block,
+> so `every-source-is-the-library`, `one-library-three-destinations` and
+> `a-shelf-of-issues-and-a-rail-to-scan-it` all hold one identical Presentation block and the
+> order they sync in cannot matter. `pnpm delta:drop` reports nothing while they agree, and
+> reports the pair the moment one of them drifts. Merge into all three, never into one.
 
 ## REMOVED Requirements
 

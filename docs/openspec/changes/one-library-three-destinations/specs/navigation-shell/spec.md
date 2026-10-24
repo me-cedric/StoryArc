@@ -59,29 +59,6 @@ convention rather than a translation of the other's — but on both, the control
 offers search SHALL still be there after search opens, so a reader can see where they
 came from.
 
-> **This requirement's first draft said something else, and the app disproved it.** It asked
-> that iOS offer search "set apart from" the destinations rather than listed among them, and
-> that Android's be "a field at the top … not a destination in the navigation control". The
-> iOS half was then built as `Tab(role: .search)`, which morphs the tab into a field in place
-> — confirmed on a device on 2026-08-31 — and that is the shape-changing the text above now
-> forbids: the bar moves under the reader's thumb and there is nowhere to land. Both halves
-> are replaced by an outcome rather than a control.
->
-> **The rewrite was carried here from `quiet-shell-and-search` on 2026-09-01**, which is
-> where it was written and where it shipped. It could not stay there. It was a MODIFIED delta
-> against a requirement that has no main spec — *this* change is what creates
-> `navigation-shell` — so it had nothing to merge into, and archiving that change would have
-> carried the requirement off without it ever reaching the contract. That change's own
-> proposal set the trigger for reconciling: "this one adds a destination and removes a role;
-> it touches no requirement that change wrote. If that stops being true, the two must be
-> reconciled before either syncs, not after." **It was never true** — both deltas named
-> *Reaching search* — so the trigger was already met when it was written. Reconciled by
-> moving the newer statement to the change that creates the capability.
->
-> The behaviour is shipped on both platforms and its tasks are in `quiet-shell-and-search`,
-> not here. `quiet-shell-and-search`'s design.md carries each platform's answer with the
-> guidance behind it. No task in *this* list builds it, which is why none changed with it.
-
 #### Scenario: Search is a destination, not a shape
 - **WHEN** a reader looks for search on either platform
 - **THEN** it is reachable in one action from the home surface and from the library
@@ -109,6 +86,29 @@ came from.
 - **THEN** local results appear immediately and are usable
 - **AND** the unreachable source is named once, in the results, as something that could not answer — not as an error that replaces the results
 - **AND** no result and no empty state waits on it
+
+> **This requirement's first draft said something else, and the app disproved it.** It asked
+> that iOS offer search "set apart from" the destinations rather than listed among them, and
+> that Android's be "a field at the top … not a destination in the navigation control". The
+> iOS half was then built as `Tab(role: .search)`, which morphs the tab into a field in place
+> — confirmed on a device on 2026-08-31 — and that is the shape-changing the text above now
+> forbids: the bar moves under the reader's thumb and there is nowhere to land. Both halves
+> are replaced by an outcome rather than a control.
+>
+> **The rewrite was carried here from `quiet-shell-and-search` on 2026-09-01**, which is
+> where it was written and where it shipped. It could not stay there. It was a MODIFIED delta
+> against a requirement that has no main spec — *this* change is what creates
+> `navigation-shell` — so it had nothing to merge into, and archiving that change would have
+> carried the requirement off without it ever reaching the contract. That change's own
+> proposal set the trigger for reconciling: "this one adds a destination and removes a role;
+> it touches no requirement that change wrote. If that stops being true, the two must be
+> reconciled before either syncs, not after." **It was never true** — both deltas named
+> *Reaching search* — so the trigger was already met when it was written. Reconciled by
+> moving the newer statement to the change that creates the capability.
+>
+> The behaviour is shipped on both platforms and its tasks are in `quiet-shell-and-search`,
+> not here. `quiet-shell-and-search`'s design.md carries each platform's answer with the
+> guidance behind it. No task in *this* list builds it, which is why none changed with it.
 
 ### Requirement: Where a source can be reached
 

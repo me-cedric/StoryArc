@@ -13,6 +13,10 @@ model.
 
 The app SHALL open the following formats:
 
+#### Scenario: The formats opened
+- **WHEN** a publication in one of these formats is opened
+- **THEN** the app opens it:
+
 | Format | Container | Notes |
 | --- | --- | --- |
 | CBZ | ZIP | Primary comic format |
@@ -21,15 +25,6 @@ The app SHALL open the following formats:
 | EPUB | ZIP | EPUB 2 and EPUB 3, reflowable and fixed-layout |
 | PDF | — | Including scanned, image-only PDFs |
 | Plain folder | — | A directory of ordered images treated as one publication |
-
-CB7 is **not** opened. It receives the same named refusal as any other container
-the app does not read. Whether to add it is a product decision that has not been
-made — see the Open Questions below.
-
-**Solid RAR4 is not supported either**, and unlike CB7 that is a decoder limit
-rather than a choice. The only RAR decoder with an OSI-approved licence does not
-implement solid RAR4 at all, so no amount of downloading makes such a file
-readable. Solid RAR5 *is* fully supported; it simply cannot be streamed.
 
 #### Scenario: Detecting format
 - **WHEN** a publication is opened
@@ -41,11 +36,22 @@ readable. Solid RAR5 *is* fully supported; it simply cannot be streamed.
 - **THEN** the app names the container it detected and states which formats it does support
 - **AND** it never reports a generic failure, because "7-Zip is not supported" tells the user what to do and "could not open file" does not
 
+#### Scenario: CB7 is not opened
+- **WHEN** a user opens a CB7
+- **THEN** it is **not** opened, and it receives the same named refusal as any other container the app does not read
+- **AND** whether to add it is a product decision that has not been made — see the Open Questions below
+
 #### Scenario: A solid RAR4 is refused before any page is shown
 - **WHEN** a solid RAR4 is opened
 - **THEN** the app states that the comic uses solid compression and cannot be opened, naming that as the reason
 - **AND** it does not present the first page, because only the first entry of a solid archive is readable and a one-page comic that fails on the second turn is worse than a clear refusal
 - **AND** the refusal is distinct from an unsupported container, because RAR *is* supported and this particular file is not
+
+#### Scenario: Solid RAR4 is a decoder limit, not a choice
+- **WHEN** a solid RAR4 is on the device, or has been downloaded
+- **THEN** it is **not supported either**, and unlike CB7 that is a decoder limit rather than a choice
+- **AND** the only RAR decoder with an OSI-approved licence does not implement solid RAR4 at all, so no amount of downloading makes such a file readable
+- **AND** solid RAR5 *is* fully supported; it simply cannot be streamed
 
 #### Scenario: A damaged archive is not reported as an unsupported one
 - **WHEN** a file carries a recognised container signature but nothing parseable behind it
@@ -71,6 +77,10 @@ Capability has **three** states, not two. A format that cannot be streamed is
 not necessarily a format that cannot be read, and one that cannot be read is not
 merely slow.
 
+#### Scenario: The state of each format
+- **WHEN** a publication is read from a remote source
+- **THEN** its format puts it in one of the three states, as this table sets out:
+
 | Format | Remote reading | State |
 | --- | --- | --- |
 | CBZ, EPUB | Index at the end, entries stored independently | Streams |
@@ -80,11 +90,6 @@ merely slow.
 | Plain folder | Each page is its own file | Streams |
 | CBR, solid RAR5 | Every entry before the target must be decompressed | Download only |
 | CBR, solid RAR4 | No available decoder reads one, local or remote | Refused |
-
-The **index** is streamable in every case, including the two that are not. A CBR's
-page names, page count, sizes and cover all come from its headers, which are read
-with ranged reads and no decompression — so the library can catalogue a remote
-comic, and decide which of the three states it is in, without transferring it.
 
 #### Scenario: Opening a streamable publication from a remote source
 - **WHEN** a user opens a streamable publication on a network share or a server
@@ -104,6 +109,11 @@ comic, and decide which of the three states it is in, without transferring it.
 - **WHEN** a CBR is indexed from a network share or a server
 - **THEN** its page count, page order, sizes and cover are read from its headers alone, with no entry decompressed
 - **AND** its streaming state is determined at the same time, from the same headers
+
+#### Scenario: The index streams in every case
+- **WHEN** a publication's format is download-only or refused
+- **THEN** its **index** is still streamable, as it is in every case
+- **AND** a CBR's page names, page count, sizes and cover all come from its headers, which are read with ranged reads and no decompression — so the library can catalogue a remote comic, and decide which of the three states it is in, without transferring it
 
 #### Scenario: Streaming capability is known before the first page is requested
 - **WHEN** a publication is indexed

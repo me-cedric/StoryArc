@@ -4,6 +4,15 @@
 
 The app SHALL open the following formats:
 
+**Encrypted audiobooks are not opened.** An Audible `.aax` or `.aaxc`, or any other
+audio behind a content protection, is refused by name. That is a deliberate limit
+and not a decoder one: StoryArc does not implement, circumvent or advise on removing
+a protection, so the refusal will not change.
+
+#### Scenario: The formats opened
+- **WHEN** a publication in one of these formats is opened
+- **THEN** the app opens it:
+
 | Format | Container | Notes |
 | --- | --- | --- |
 | CBZ | ZIP | Primary comic format |
@@ -15,20 +24,6 @@ The app SHALL open the following formats:
 | M4B | MPEG-4 | Chaptered audiobook. Chapters from the container's own markers |
 | Audio folder | — | A directory of ordered audio files treated as one audiobook |
 | Single audio file | — | MP3, M4A, AAC, FLAC, Opus or Vorbis as a one-part audiobook |
-
-CB7 is **not** opened. It receives the same named refusal as any other container
-the app does not read. Whether to add it is a product decision that has not been
-made — see the Open Questions below.
-
-**Solid RAR4 is not supported either**, and unlike CB7 that is a decoder limit
-rather than a choice. The only RAR decoder with an OSI-approved licence does not
-implement solid RAR4 at all, so no amount of downloading makes such a file
-readable. Solid RAR5 *is* fully supported; it simply cannot be streamed.
-
-**Encrypted audiobooks are not opened.** An Audible `.aax` or `.aaxc`, or any other
-audio behind a content protection, is refused by name. That is a deliberate limit
-and not a decoder one: StoryArc does not implement, circumvent or advise on removing
-a protection, so the refusal will not change.
 
 #### Scenario: Detecting format
 - **WHEN** a publication is opened
@@ -67,11 +62,22 @@ a protection, so the refusal will not change.
 - **THEN** the app names the container it detected and states which formats it does support
 - **AND** it never reports a generic failure, because "7-Zip is not supported" tells the user what to do and "could not open file" does not
 
+#### Scenario: CB7 is not opened
+- **WHEN** a user opens a CB7
+- **THEN** it is **not** opened, and it receives the same named refusal as any other container the app does not read
+- **AND** whether to add it is a product decision that has not been made — see the Open Questions below
+
 #### Scenario: A solid RAR4 is refused before any page is shown
 - **WHEN** a solid RAR4 is opened
 - **THEN** the app states that the comic uses solid compression and cannot be opened, naming that as the reason
 - **AND** it does not present the first page, because only the first entry of a solid archive is readable and a one-page comic that fails on the second turn is worse than a clear refusal
 - **AND** the refusal is distinct from an unsupported container, because RAR *is* supported and this particular file is not
+
+#### Scenario: Solid RAR4 is a decoder limit, not a choice
+- **WHEN** a solid RAR4 is on the device, or has been downloaded
+- **THEN** it is **not supported either**, and unlike CB7 that is a decoder limit rather than a choice
+- **AND** the only RAR decoder with an OSI-approved licence does not implement solid RAR4 at all, so no amount of downloading makes such a file readable
+- **AND** solid RAR5 *is* fully supported; it simply cannot be streamed
 
 #### Scenario: A damaged archive is not reported as an unsupported one
 - **WHEN** a file carries a recognised container signature but nothing parseable behind it

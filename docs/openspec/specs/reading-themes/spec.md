@@ -20,6 +20,13 @@ in [`native-experience`](../native-experience/spec.md).
 The app SHALL offer six named reading-theme presets, each setting a background
 colour, a text colour, a typeface, and a spacing character.
 
+A preset a reader has deviated from SHALL be restorable **by name**, to the values
+this table describes, without touching any other preset or any other setting.
+
+#### Scenario: The six presets
+- **WHEN** a reader opens the list of presets
+- **THEN** it offers these six, each with the character this table gives it:
+
 | Preset | Character |
 | --- | --- |
 | **Original** | The publication as its publisher styled it. Publisher styles on; StoryArc overrides nothing but size. |
@@ -28,9 +35,6 @@ colour, a text colour, a typeface, and a spacing character.
 | **Bold** | High contrast, heavier weight, wider spacing. For low vision without leaving the aesthetic. |
 | **Calm** | Warm dim. Cream-on-brown, generous line height. Long evening sessions. |
 | **Focus** | Narrow measure, high contrast, minimal decoration. Fewest words per line. |
-
-A preset a reader has deviated from SHALL be restorable **by name**, to the values
-this table describes, without touching any other preset or any other setting.
 
 #### Scenario: Applying a preset
 - **WHEN** a user taps a preset
@@ -75,6 +79,10 @@ independently adjustable.
 Every axis control SHALL state its current value beside it. A slider is a position
 on a track and a reader cannot report, repeat or reason about a position; "line
 spacing 1.4" is a value they can.
+
+#### Scenario: The axes and their controls
+- **WHEN** a reader opens the theme controls
+- **THEN** they find exactly these axes, each adjusted by the control this table names:
 
 | Axis | Control | Notes |
 | --- | --- | --- |

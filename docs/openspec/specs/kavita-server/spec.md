@@ -15,8 +15,7 @@ The app SHALL connect to a Kavita server using its base URL and a user API key,
 and SHALL manage session tokens without exposing them to the user.
 
 The app SHALL NOT ask a server for its version, and SHALL NOT refuse a server for
-the version it reports. No Kavita states its version to a reader's API key, so a
-version floor cannot be checked and would refuse nobody. The app SHALL instead
+the version it reports. The app SHALL instead
 read a route the server does not know as the signal that the server is too old
 for that request, SHALL say so at the screen that made the request, and SHALL
 read no other failure as an old server.
@@ -37,6 +36,11 @@ read no other failure as an old server.
 #### Scenario: API key revoked
 - **WHEN** re-authentication fails because the API key is no longer valid
 - **THEN** the source is marked `unauthorized` with an explanation and an action to enter a new key
+
+#### Scenario: No version floor
+- **WHEN** a user adds a Kavita server, or the app sends one a request
+- **THEN** the app neither asks the server for its version nor refuses it for the version it reports
+- **AND** this is because no Kavita states its version to a reader's API key, so a version floor cannot be checked and would refuse nobody
 
 ### Requirement: Library structure
 

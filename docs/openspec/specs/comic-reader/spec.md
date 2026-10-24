@@ -77,11 +77,6 @@ Revealed chrome SHALL consist of **a way out and a way in, and nothing else**: a
 affordance that closes the publication, and one menu affordance that leads to
 everything the reader can do with it. No third control appears over the page.
 
-> **Why this is now a count.** The previous text specified a top bar, a bottom bar
-> and a page slider, and each of the eleven controls between them was added on its
-> own justification. Naming the two that may be over the page is the only form of
-> this rule that holds: any other wording invites a twelfth.
-
 #### Scenario: Entering the reader
 - **WHEN** a publication opens
 - **THEN** the page fills the screen, the system status and home indicators dim per platform convention, and the two controls are shown once and then withdraw themselves within a few seconds without being asked
@@ -127,6 +122,11 @@ everything the reader can do with it. No third control appears over the page.
 #### Scenario: Fewer controls is not fewer ways in
 - **WHEN** a user uses any gesture the reader supported before this change — edge tap, swipe, pinch, drag to zoom, or the mirrored equivalents in right-to-left mode
 - **THEN** it behaves exactly as it did, because moving controls into a menu must not make the reader harder to drive
+
+> **Why this is now a count.** The previous text specified a top bar, a bottom bar
+> and a page slider, and each of the eleven controls between them was added on its
+> own justification. Naming the two that may be over the page is the only form of
+> this rule that holds: any other wording invites a twelfth.
 
 ### Requirement: Navigation within a publication
 
