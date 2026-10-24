@@ -102,4 +102,18 @@ public struct CredentialStore: @unchecked Sendable {
         ]
         return SecItemCopyMatching(query as CFDictionary, nil) == errSecSuccess
     }
+
+    /// Whether the Keychain says there is no item, as distinct from one it cannot read now.
+    ///
+    /// ``secret(for:)`` answers nil for both, and a locked device is the second case. A caller
+    /// that would write over a missing item must not write over a locked one.
+    public func isAbsent(_ reference: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: reference,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        return SecItemCopyMatching(query as CFDictionary, nil) == errSecItemNotFound
+    }
 }

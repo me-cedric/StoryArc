@@ -121,6 +121,9 @@ struct StoryArcApp: App {
     @State var reconnecting: Source?
 
     init() {
+        // First, so no reader of the registry below sees a catalogue key in the clear.
+        CatalogueKeyMigration.run(SourceStore(), credentials: CredentialStore())
+
         // `offline-downloads`' *Reading while downloading*. Without this line the ranged
         // reader is built, tested and unreachable: nothing else registers `http`, so an
         // acquisition URL handed to `ComicArchiveOpener` would be opened as a local file.
