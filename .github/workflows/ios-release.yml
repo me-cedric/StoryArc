@@ -30,10 +30,17 @@ on:
 permissions:
   contents: read
 
+# Xcode 27.1, the iOS 27.1 SDK: built with it, the app runs edge to edge on iPhone Duo, and the
+# App Store asks for Duo screenshots from April 2027 (`foldables-and-iphone-duo`, D8). The
+# `xcode-27` image carries it beside its default 27.0. `pnpm release:check` fails from
+# 2027-03-01 when this pin is older than 27.1.
+env:
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+
 jobs:
   ios:
     name: ${{ inputs.rehearsal && 'Archive and export' || 'Archive, export, upload to TestFlight' }}
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
 

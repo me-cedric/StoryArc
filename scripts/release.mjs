@@ -6,7 +6,8 @@
 //        node scripts/release.mjs --notes 0.4.0   print the en-US notes of one release
 //        node scripts/release.mjs --play-notes 0.4.0 12 <dir>   write <dir>/<language>/changelogs/12.txt
 //        node scripts/release.mjs --release-body 0.4.0 [<dir>] [--notes-from Unreleased]   print the GitHub release text
-//        node scripts/release.mjs --check         fail when a client's version disagrees
+//        node scripts/release.mjs --check         fail when a client's version disagrees, or when
+//                                                 the iOS Xcode pin is too old for the App Store
 //        node scripts/release.mjs --self-test
 //
 // **What it does here.** Writes the new version into `apps/android/gradle.properties` and
@@ -293,6 +294,26 @@ export function disagreements(readFile) {
   })
 }
 
+// The App Store needs iPhone Duo screenshots from April 2027 for any app built with the iOS 27.1
+// SDK or later, and an app built with an older SDK runs letterboxed on the Duo's inner display.
+// So from this date the iOS workflows must build with Xcode 27.1 or later
+// (`foldables-and-iphone-duo`, D8).
+export const XCODE_PIN_DEADLINE = '2027-03-01'
+export const XCODE_PIN_FLOOR = [27, 1]
+export const IOS_WORKFLOWS = ['.github/workflows/ios.yml', '.github/workflows/ios-release.yml']
+
+/** The problems with the Xcode each iOS workflow selects, on `today` (YYYY-MM-DD). */
+export function xcodePinProblems(read, today) {
+  if (today < XCODE_PIN_DEADLINE) return []
+  return IOS_WORKFLOWS.flatMap((file) => {
+    const pin = /Xcode_(\d+)\.(\d+)\.app/.exec(read(file))
+    if (!pin) return [`${file} selects no Xcode, and from ${XCODE_PIN_DEADLINE} it must select Xcode ${XCODE_PIN_FLOOR.join('.')} or later`]
+    const [major, minor] = [Number(pin[1]), Number(pin[2])]
+    const old = major < XCODE_PIN_FLOOR[0] || (major === XCODE_PIN_FLOOR[0] && minor < XCODE_PIN_FLOOR[1])
+    return old ? [`${file} selects Xcode ${major}.${minor}, and from ${XCODE_PIN_DEADLINE} it must select ${XCODE_PIN_FLOOR.join('.')} or later`] : []
+  })
+}
+
 function git(...args) {
   return execFileSync('git', args, { encoding: 'utf8' }).trim()
 }
@@ -395,6 +416,14 @@ function selfTest() {
   const one = disagreements((file) => files[file])
   assert(one.length === 1 && one[0].startsWith('apps/ios/project.yml has 0.2.1 (5)'), 'a wrong build number is named by file')
 
+  const workflows = (pin) => (file) => (pin ? `env:\n  DEVELOPER_DIR: /Applications/Xcode_${pin}.app/Contents/Developer\n` : `runs-on: macos-26 # ${file}\n`)
+  assert(xcodePinProblems(workflows('26.6'), '2027-02-28').length === 0, 'an old pin passes before the deadline')
+  assert(xcodePinProblems(workflows('26.6'), '2027-03-01').length === IOS_WORKFLOWS.length, 'an old pin fails from the deadline')
+  assert(xcodePinProblems(workflows('27.0'), '2027-03-01').length === IOS_WORKFLOWS.length, 'Xcode 27.0 is older than 27.1')
+  assert(xcodePinProblems(workflows(''), '2027-03-01')[0].includes('selects no Xcode'), 'a workflow with no pin fails from the deadline')
+  assert(xcodePinProblems(workflows('27.1'), '2027-03-01').length === 0, 'Xcode 27.1 passes')
+  assert(xcodePinProblems(workflows('28.0'), '2028-01-01').length === 0, 'a later major passes')
+
   console.log('release.mjs self-test: all pass')
 }
 
@@ -433,6 +462,11 @@ function main() {
     const found = disagreements((file) => readFileSync(file, 'utf8'))
     if (found.length) {
       console.error(`The client versions disagree. Run pnpm release, or set them by hand to the gradle.properties values:\n${found.join('\n')}`)
+      process.exitCode = 1
+    }
+    const pins = xcodePinProblems((file) => readFileSync(file, 'utf8'), new Date().toISOString().slice(0, 10))
+    if (pins.length) {
+      console.error(`The iOS workflows build with an Xcode the App Store no longer takes for iPhone Duo:\n${pins.join('\n')}`)
       process.exitCode = 1
     }
     return

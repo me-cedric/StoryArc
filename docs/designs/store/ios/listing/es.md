@@ -83,7 +83,7 @@ Sin nivel de pago, sin compras dentro de la app, sin publicidad. La aplicación 
 
 HECHO PARA IPHONE Y IPAD
 
-Todo en SwiftUI. En el iPad la biblioteca y una publicación comparten la ventana en dos columnas, y la barra lateral lleva tus estanterías. El tema claro y el oscuro siguen al sistema. Cada pantalla funciona con el mayor tamaño de Dynamic Type y con VoiceOver. Inglés, francés, alemán y español, y el idioma de la aplicación se ajusta por separado del del sistema.
+Todo en SwiftUI. En el iPhone Duo, la página no toca el pliegue, y medio abierto muestra una doble página. En el iPad la biblioteca y una publicación comparten la ventana en dos columnas, y la barra lateral lleva tus estanterías. El tema claro y el oscuro siguen al sistema. Cada pantalla funciona con el mayor tamaño de Dynamic Type y con VoiceOver. Inglés, francés, alemán y español, con el idioma de la aplicación aparte del sistema.
 
 Requiere iOS o iPadOS 26.1.
 ```

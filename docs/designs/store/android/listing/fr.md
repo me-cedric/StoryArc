@@ -74,7 +74,7 @@ Aucune offre payante, aucune publicité, aucune incitation à payer. L'applicati
 
 FAIT POUR ANDROID
 
-Material 3 Expressive partout, avec les couleurs dynamiques de votre fond d'écran. Le thème clair et le thème sombre suivent le système. Chaque écran fonctionne à la plus grande taille de texte d'accessibilité et avec TalkBack. Anglais, français, allemand et espagnol, et la langue de l'application se règle séparément de celle du système.
+Material 3 Expressive partout, avec les couleurs dynamiques de votre fond d'écran. Sur un pliable, la page évite le pli, et à demi ouvert il montre une double page. Le thème clair et le thème sombre suivent le système. Chaque écran fonctionne à la plus grande taille de texte d'accessibilité et avec TalkBack. Anglais, français, allemand et espagnol, la langue de l'application réglable à part.
 
 Nécessite Android 12 ou une version plus récente.
 ```

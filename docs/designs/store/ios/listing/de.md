@@ -83,7 +83,7 @@ Keine Bezahlstufe, keine In-App-Käufe, keine Werbung. Die App ist Open Source, 
 
 FÜR IPHONE UND IPAD GEMACHT
 
-Durchgehend SwiftUI. Auf dem iPad teilen sich die Bibliothek und eine Publikation das Fenster in zwei Spalten, und die Seitenleiste trägt Ihre Regale. Hell und dunkel folgen dem System. Jeder Bildschirm funktioniert bei der größten Dynamic-Type-Größe und mit VoiceOver. Englisch, Französisch, Deutsch und Spanisch, und die Sprache der App lässt sich unabhängig von der des Systems setzen.
+Durchgehend SwiftUI. Auf dem iPhone Duo bleibt die Seite vom Falz fern. Auf dem iPad teilen sich die Bibliothek und eine Publikation das Fenster in zwei Spalten, und die Seitenleiste trägt Ihre Regale. Hell und dunkel folgen dem System. Jeder Bildschirm funktioniert mit größter Dynamic-Type-Größe und VoiceOver. Englisch, Französisch, Deutsch und Spanisch, die App-Sprache auch abweichend vom System.
 
 Erfordert iOS oder iPadOS 26.1.
 ```

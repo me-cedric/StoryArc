@@ -76,7 +76,7 @@ No paid tier, no advertising, no upsell. The app is open source, and the full li
 
 MADE TO FEEL LIKE ANDROID
 
-Material 3 Expressive throughout, with dynamic colour from your wallpaper. Light and dark follow the system. Every screen works at the largest accessibility text size and with TalkBack. English, French, German and Spanish, and the app's language can be set on its own without changing the system's.
+Material 3 Expressive throughout, with dynamic colour from your wallpaper. On a foldable, the page stays off the fold, and a half-open device shows a spread. Light and dark follow the system. Every screen works at the largest accessibility text size and with TalkBack. English, French, German and Spanish, and the app's language can be set on its own without changing the system's.
 
 Requires Android 12 or later.
 ```

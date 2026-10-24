@@ -19,8 +19,14 @@
  *   node scripts/store-capture.mjs --no-build                use the app builds already there
  *   node scripts/store-capture.mjs --keep-devices            leave booted what this run booted
  *   node scripts/store-capture.mjs --verify                  check the files against the stores
+ *   node scripts/store-capture.mjs --buckets duo-outer       iPhone Duo, closed
+ *   node scripts/store-capture.mjs --buckets duo-inner --duo-open   iPhone Duo, opened in Device Hub
+ *   node scripts/store-capture.mjs --buckets fold            a Pixel Fold, open and closed
  *
- * Buckets: phone, tablet7, tablet10 (Play) and iphone-6.9, ipad-13 (App Store).
+ * Buckets: phone, tablet7, tablet10 (Play) and iphone-6.9, ipad-13 (App Store), which a run
+ * takes when it names none; and on request fold-open, fold-closed (`fold`) and duo-outer,
+ * duo-inner (`duo`). `--verify` with no buckets also checks the Duo set, and only warns while
+ * it is missing before 2027-03-01.
  */
 import { execFile, execFileSync, spawn } from 'node:child_process'
 import { constants, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -31,7 +37,7 @@ import { promisify } from 'node:util'
 import { resolveAdb } from './adb.mjs'
 import { LIBRARY as SHOWCASE_DIR } from './store-showcase.mjs'
 import {
-  ANDROID_BUCKETS, FRAMES, IOS_BUCKETS, LIBRARIES, LOCALES, OUT, ROOT,
+  ANDROID_BUCKETS, BUCKET_GROUPS, DEFAULT_BUCKETS, FRAMES, IOS_BUCKETS, LIBRARIES, LOCALES, OUT, ROOT,
   labels, pngFileSize, shotPath, verify, walk,
 } from './store-walk.mjs'
 
@@ -40,7 +46,8 @@ const argv = process.argv.slice(2)
 const flag = (name) => (argv.includes(`--${name}`) ? argv[argv.indexOf(`--${name}`) + 1] : null)
 const list = (name, all) => (flag(name) ? flag(name).split(',').map((v) => v.trim()).filter(Boolean) : all)
 
-const buckets = list('buckets', [...Object.keys(ANDROID_BUCKETS), ...Object.keys(IOS_BUCKETS)])
+const buckets = list('buckets', argv.includes('--verify') ? [...DEFAULT_BUCKETS, ...BUCKET_GROUPS.duo] : DEFAULT_BUCKETS)
+  .flatMap((name) => BUCKET_GROUPS[name] ?? [name])
 const locales = list('locales', Object.keys(LOCALES))
 const frames = list('frames', FRAMES.map((f) => f.id))
   .flatMap((w) => FRAMES.filter((f) => f.id === w || f.name.includes(w)).map((f) => f.id))
@@ -54,14 +61,15 @@ const unknown = [
   ...(libraryName in LIBRARIES ? [] : [libraryName]),
 ]
 if (unknown.length > 0 || frames.length === 0) {
-  console.error(`Unknown: ${unknown.join(', ') || 'frames'}. Buckets: ${[...Object.keys(ANDROID_BUCKETS), ...Object.keys(IOS_BUCKETS)].join(', ')}. Locales: ${Object.keys(LOCALES).join(', ')}. Libraries: ${Object.keys(LIBRARIES).join(', ')}.`)
+  console.error(`Unknown: ${unknown.join(', ') || 'frames'}. Buckets: ${[...Object.keys(ANDROID_BUCKETS), ...Object.keys(IOS_BUCKETS), ...Object.keys(BUCKET_GROUPS)].join(', ')}. Locales: ${Object.keys(LOCALES).join(', ')}. Libraries: ${Object.keys(LIBRARIES).join(', ')}.`)
   process.exit(2)
 }
 
 if (argv.includes('--verify')) {
-  const { counted, failures } = verify({ locales, frames, androidBuckets, iosBuckets })
+  const { counted, failures, warnings } = verify({ locales, frames, androidBuckets, iosBuckets })
+  for (const warning of warnings) console.warn(`  warning: ${warning}`)
   for (const failure of failures) console.error(`  ${failure}`)
-  console.log(`store verify: ${counted} asset(s) checked, ${failures.length} problem(s).`)
+  console.log(`store verify: ${counted} asset(s) checked, ${failures.length} problem(s), ${warnings.length} warning(s).`)
   process.exit(failures.length === 0 ? 0 : 1)
 }
 
@@ -388,6 +396,13 @@ async function androidLane(failures) {
       await shell(`wm size ${size[0]}x${size[1]}; wm density ${density}`)
       Object.assign(lane, { bucketName: name, bucket: ANDROID_BUCKETS[name], size, points: size })
       await walkAll(lane, failures)
+      const { pad } = ANDROID_BUCKETS[name]
+      for (const locale of pad ? locales : []) {
+        for (const id of frames) {
+          const file = shotPath('android', name, locale, id)
+          if (existsSync(file)) await exec('sips', ['--padToHeightWidth', String(pad[1]), String(pad[0]), '--padColor', '000000', file])
+        }
+      }
     }
   } catch (error) {
     failures.push(`[android] ${error.message}`)
@@ -538,6 +553,9 @@ async function iosLane(name, failures) {
     },
   }
   try {
+    if (bucket.opened && !argv.includes('--duo-open')) {
+      throw new Error(`open the ${bucket.device} in Xcode's Device Hub first, then run again with --duo-open`)
+    }
     device = await simulator(bucket.device)
     lane.device = ['--platform', 'ios', '--udid', device.udid]
     if (booted()) {
@@ -603,7 +621,10 @@ console.log(`store capture: ${libraryName} library, ${buckets.join(', ')}; ${loc
 const failures = []
 await Promise.all([
   ...(androidBuckets.length > 0 ? [androidLane(failures)] : []),
-  ...iosBuckets.map((name) => iosLane(name, failures)),
+  // Lanes on one simulator, the two Duo displays, run one after the other.
+  ...Object.values(Object.groupBy(iosBuckets, (name) => IOS_BUCKETS[name].device)).map(async (names) => {
+    for (const name of names) await iosLane(name, failures)
+  }),
 ])
 for (const failure of failures) console.error(`  ${failure}`)
 console.log(`store capture: ${failures.length} failure(s) in ${seconds()}. Files under ${OUT}.`)

@@ -7,7 +7,7 @@ The listing texts live here. The screenshots and the Play graphics are generated
 
 ```bash
 pnpm store:showcase      # copy the showcase library in (the owner's share must be mounted)
-pnpm store:capture       # every screenshot: 6 frames, 5 device sizes, 4 languages
+pnpm store:capture       # every screenshot: 6 frames, 5 device sizes, 4 languages (foldables on request)
 pnpm store:graphics      # the Play icon and one feature graphic per language
 pnpm store:verify        # check every file and every listing text against both stores
 ```
@@ -81,20 +81,36 @@ App Store Connect takes two sizes, and each is a simulator's native resolution:
 | `iphone-6.9` | iPhone 17 Pro Max | 1320 x 2868 |
 | `ipad-13` | iPad Pro 13-inch | 2064 x 2752 |
 
-### Planned: foldables
+### Foldables
 
-Two buckets are planned and not built. The plan is the OpenSpec change
-`docs/openspec/changes/foldables-and-iphone-duo/` (tasks 3.1 to 3.5). The App Store slot sizes
-are from Apple's screenshot specifications, read on 2026-10-23.
+Four buckets run only when a run names them (`--buckets duo`, `--buckets fold`, or one of
+the four). A run that names no bucket takes the five above. The plan is the OpenSpec change
+`foldables-and-iphone-duo` (design D7, tasks 3.1 to 3.5). The App Store slot sizes are from
+Apple's screenshot specifications, read on 2026-10-23.
 
-| Bucket | Device | Pixels | Store slot |
+| Bucket | Device | Pixels | Written to |
 | --- | --- | --- | --- |
-| `duo` | iPhone Duo simulator, closed | 1398 x 2034 | App Store, iPhone Duo outer |
-| `duo` | iPhone Duo simulator, open | 2007 x 2853 | App Store, iPhone Duo inner |
-| `fold` | Pixel Fold emulator profile, closed and open (841 x 701 dp) | 9:16, 1080 px or more | Play, the large screen slots (Play has no foldable slot) |
+| `duo-outer` | iPhone Duo simulator, closed | 1398 x 2034 | `appstore/<locale>/NN-name-duo-outer.png`, App Store slot iPhone Duo outer |
+| `duo-inner` | iPhone Duo simulator, open | 2007 x 2853 | `appstore/<locale>/NN-name-duo-inner.png`, App Store slot iPhone Duo inner |
+| `fold-open` | Pixel Fold size, open: 2208 x 1840 at 420 (841 x 701 dp) | padded to 3271 x 1840 (16:9) | `play/<locale>/images/foldScreenshots/NN-name-fold-open.png` |
+| `fold-closed` | Pixel Fold size, closed: 1080 x 2092 at 420 | padded to 1177 x 2092 (9:16) | `play/<locale>/images/foldScreenshots/NN-name-fold-closed.png` |
 
-The iPhone Duo set is optional today and **required from April 2027 for every app built with
-the iOS 27.1 SDK or later**.
+- **The iPhone Duo set is optional today and required from April 2027** for every app built
+  with the iOS 27.1 SDK or later, which StoryArc is. `pnpm store:verify` with no buckets
+  checks it: a missing frame is a warning before 2027-03-01 and a failure from that day.
+  `pnpm store:publish --platform appstore` applies the same date.
+- **Only Xcode's Device Hub opens the simulated iPhone Duo.** `simctl` has no hinge
+  command. Capture `duo-outer` with the device closed. For `duo-inner`, open the device in
+  Device Hub (Xcode, Window, Devices), then run `pnpm store:capture --buckets duo-inner
+  --duo-open`. Without `--duo-open` the lane stops and says so. A frame taken from the wrong
+  display has the other display's size, and `pnpm store:verify` refuses it.
+- **Play has no foldable slot**, and its large screen slots take 9:16 or 16:9 only and eight
+  images each. So the fold frames are padded with black to that ratio and go to
+  `foldScreenshots`, a folder `supply` does not read. Pick up to eight for the large screen
+  slot and move them to `tenInchScreenshots` by hand.
+- `fold-open` sets the window with `wm size` on the store emulator, as the other Play buckets
+  do. It shows the wide layout of the open display. The half-open postures need the Pixel
+  Fold emulator profile: `pnpm capture:matrix --devices fold`.
 
 ## How a run works
 

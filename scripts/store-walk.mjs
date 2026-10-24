@@ -43,10 +43,19 @@ export const ANDROID_BUCKETS = {
   phone: { size: [1080, 1920], density: 420, folder: 'phoneScreenshots', min: 320, max: 3840 },
   tablet7: { size: [1080, 1920], density: 280, folder: 'sevenInchScreenshots', min: 320, max: 3840 },
   tablet10: { size: [1440, 2560], density: 240, folder: 'tenInchScreenshots', min: 1080, max: 7680, split: true },
+  // A Pixel Fold, open (841 x 701 dp) and closed. Play has no foldable slot and takes 9:16 or
+  // 16:9 only, so each frame is padded to that ratio with black (`pad`), and the frames go to a
+  // folder Play does not read: the owner picks the ones for the large screen slot, which holds
+  // eight (`foldables-and-iphone-duo`, D7). `onRequest`: only `--buckets fold` takes them.
+  'fold-open': { size: [2208, 1840], density: 420, folder: 'foldScreenshots', suffix: '-fold-open', pad: [3271, 1840], min: 1080, max: 7680, split: true, onRequest: true },
+  'fold-closed': { size: [1080, 2092], density: 420, folder: 'foldScreenshots', suffix: '-fold-closed', pad: [1177, 2092], min: 320, max: 3840, onRequest: true },
 }
 
+/** From this day the App Store refuses an app built with the iOS 27.1 SDK without a Duo set. */
+export const DUO_REQUIRED_FROM = '2027-03-01'
+
 /**
- * App Store Connect's two slots. Each size is a simulator's native resolution.
+ * App Store Connect's slots. Each size is a simulator's native resolution.
  *
  * `menuRow` is where the EPUB reader's menu sheet draws *Reading themes*, as a fraction of
  * the screen. The walk taps it by position because agent-device 0.21.22 does not see that
@@ -56,7 +65,18 @@ export const ANDROID_BUCKETS = {
 export const IOS_BUCKETS = {
   'iphone-6.9': { device: 'iPhone 17 Pro Max', size: [1320, 2868], scale: 3, menuRow: [0.33, 0.949] },
   'ipad-13': { device: 'iPad Pro 13-inch', size: [2064, 2752], scale: 2, menuRow: [0.35, 0.779], split: true },
+  // iPhone Duo, closed and open. App Store Connect takes these from the iOS 27.1 SDK on, and
+  // requires them from April 2027 (`requiredFrom`). Xcode's Device Hub is the only thing that
+  // opens the simulated device, so the inner display is a step for the owner (`opened`).
+  'duo-outer': { device: 'iPhone Duo', size: [1398, 2034], scale: 3, menuRow: [0.33, 0.93], requiredFrom: DUO_REQUIRED_FROM, onRequest: true },
+  'duo-inner': { device: 'iPhone Duo', size: [2007, 2853], scale: 3, menuRow: [0.35, 0.779], split: true, opened: true, requiredFrom: DUO_REQUIRED_FROM, onRequest: true },
 }
+
+/** A name that stands for several buckets on the command line. */
+export const BUCKET_GROUPS = { duo: ['duo-outer', 'duo-inner'], fold: ['fold-open', 'fold-closed'] }
+
+/** The buckets a run takes when it names none: every bucket a store reads today. */
+export const DEFAULT_BUCKETS = Object.entries({ ...ANDROID_BUCKETS, ...IOS_BUCKETS }).filter(([, b]) => !b.onRequest).map(([name]) => name)
 
 /** The corpus files that make a tidy shelf. The refusal fixtures stay out of a listing. */
 const CORPUS_FILES = [
@@ -331,7 +351,7 @@ export function shotPath(platform, bucketName, locale, frameId) {
   const frame = FRAMES.find((f) => f.id === frameId)
   const store = LOCALES[locale]
   return platform === 'android'
-    ? join(OUT, 'play', store, 'images', ANDROID_BUCKETS[bucketName].folder, `${frame.id}-${frame.name}.png`)
+    ? join(OUT, 'play', store, 'images', ANDROID_BUCKETS[bucketName].folder, `${frame.id}-${frame.name}${ANDROID_BUCKETS[bucketName].suffix ?? ''}.png`)
     : join(OUT, 'appstore', store, `${frame.id}-${frame.name}-${bucketName}.png`)
 }
 
@@ -399,19 +419,23 @@ export function textProblems(markdown, limits) {
 }
 
 /** Every asset a selection should have produced, checked against its store. */
-export function verify({ locales, frames, androidBuckets, iosBuckets }) {
+export function verify({ locales, frames, androidBuckets, iosBuckets, today = new Date().toISOString().slice(0, 10) }) {
   const failures = []
+  const warnings = []
   let counted = 0
-  const check = (file, problemsOf) => {
+  const check = (file, problemsOf, requiredFrom) => {
     const name = file.slice(OUT.length + 1)
-    if (!existsSync(file)) return failures.push(`${name} is missing`)
+    if (!existsSync(file)) {
+      if (requiredFrom && today < requiredFrom) return warnings.push(`${name} is missing, and is required from ${requiredFrom}`)
+      return failures.push(`${name} is missing`)
+    }
     counted += 1
     for (const problem of problemsOf(pngFileSize(file), statSync(file).size)) failures.push(`${name}: ${problem}`)
   }
   for (const locale of locales) {
     for (const frame of frames) {
       for (const name of androidBuckets) check(shotPath('android', name, locale, frame), (size, bytes) => playProblems(size, bytes, ANDROID_BUCKETS[name]))
-      for (const name of iosBuckets) check(shotPath('ios', name, locale, frame), (size) => appStoreProblems(size, IOS_BUCKETS[name]))
+      for (const name of iosBuckets) check(shotPath('ios', name, locale, frame), (size) => appStoreProblems(size, IOS_BUCKETS[name]), IOS_BUCKETS[name].requiredFrom)
     }
     if (androidBuckets.length > 0) {
       check(graphicPath(locale, 'featureGraphic.png'), ([w, h], bytes) => (w === 1024 && h === 500 && bytes <= 15 << 20 ? [] : [`${w}x${h}, ${bytes} bytes: Play wants 1024x500, 15 MB at most`]))
@@ -430,7 +454,7 @@ export function verify({ locales, frames, androidBuckets, iosBuckets }) {
     if (!existsSync(icon)) failures.push('the App Store icon AppIcon-1024.png is missing: run pnpm brand:build')
     else if (pngFileSize(icon).join('x') !== '1024x1024') failures.push('the App Store icon is not 1024x1024')
   }
-  return { counted, failures }
+  return { counted, failures, warnings }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -450,11 +474,19 @@ function selfTest() {
   })
   const throws = (fn) => { try { fn(); return false } catch { return true } }
   const checks = [
-    ['every Play bucket passes Play', () => Object.values(ANDROID_BUCKETS).every((b) => playProblems(b.size, 1, b).length === 0)],
+    ['every Play bucket passes Play', () => Object.values(ANDROID_BUCKETS).every((b) => playProblems(b.pad ?? b.size, 1, b).length === 0)],
     ['Play refuses 1080x2400', () => playProblems([1080, 2400], 1, ANDROID_BUCKETS.phone).length > 0],
     ['Play refuses a 9 MB file', () => playProblems([1080, 1920], 9 << 20, ANDROID_BUCKETS.phone).length > 0],
     ['each iOS slot is whole points at its scale', () => Object.values(IOS_BUCKETS).every((b) => b.size.every((side) => side % b.scale === 0))],
     ['the App Store refuses a frame of the wrong size', () => appStoreProblems([1290, 2796], IOS_BUCKETS['iphone-6.9']).length > 0],
+    ['the Duo slots are the App Store sizes', () => IOS_BUCKETS['duo-outer'].size.join('x') === '1398x2034' && IOS_BUCKETS['duo-inner'].size.join('x') === '2007x2853'],
+    ['the App Store refuses an outer frame in the inner slot', () => appStoreProblems([1398, 2034], IOS_BUCKETS['duo-inner']).length > 0],
+    ['a missing Duo set warns before the deadline', () => { const v = verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: '2027-02-28' }); return v.warnings.length === 1 && !v.failures.some((f) => f.includes('duo')) }],
+    ['a missing Duo set fails from the deadline', () => verify({ locales: ['en'], frames: ['01'], androidBuckets: [], iosBuckets: ['duo-outer'], today: DUO_REQUIRED_FROM }).failures.some((f) => f.includes('duo-outer'))],
+    ['a padded fold frame passes Play', () => ['fold-open', 'fold-closed'].every((b) => playProblems(ANDROID_BUCKETS[b].pad, 1, ANDROID_BUCKETS[b]).length === 0)],
+    ['an unpadded open fold frame fails Play', () => playProblems(ANDROID_BUCKETS['fold-open'].size, 1, ANDROID_BUCKETS['fold-open']).length > 0],
+    ['fold frames do not overwrite each other', () => shotPath('android', 'fold-open', 'en', '01') !== shotPath('android', 'fold-closed', 'en', '01')],
+    ['a run that names no bucket takes no foldable', () => DEFAULT_BUCKETS.join() === 'phone,tablet7,tablet10,iphone-6.9,ipad-13'],
     ['every label resolves in every language', () => Object.keys(LOCALES).every((l) => ['ios', 'android'].every((p) => Object.values(labels(p, l)).every((w) => w.length > 0)))],
     ['a missing iOS key fails by name', () => throws(() => iosWords('App:no.such.key', 'en'))],
     ['a missing Android key fails by name', () => throws(() => namedIn('no_such_key', 'en'))],

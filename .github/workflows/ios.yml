@@ -20,16 +20,23 @@ concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true
 
+# Xcode 27.1, the iOS 27.1 SDK: built with it, the app runs edge to edge on iPhone Duo, and the
+# App Store asks for Duo screenshots from April 2027 (`foldables-and-iphone-duo`, D8). The
+# `xcode-27` image carries it beside its default 27.0. `pnpm release:check` fails from
+# 2027-03-01 when this pin is older than 27.1.
+env:
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+
 jobs:
   package:
     name: StoryArcKit — build and test
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
 
       - name: Report toolchain
-        # The runner image's default Xcode is the contract. Printing it means a
-        # toolchain drift shows up here rather than as a mysterious compile error.
+        # `DEVELOPER_DIR` above is the contract. Printing it means a toolchain drift
+        # shows up here rather than as a mysterious compile error.
         run: xcodebuild -version && swift --version
 
       # The pure-Swift targets build on the host, so the fast gate needs no
@@ -57,7 +64,7 @@ jobs:
 
   epub:
     name: StoryArcEpub — build and test
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
 
@@ -104,7 +111,7 @@ jobs:
 
   lint:
     name: SwiftLint
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
       - run: brew install swiftlint
@@ -120,13 +127,13 @@ jobs:
 
   app:
     name: App — build for simulator
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v5
 
       - name: Report toolchain
-        # The runner image's default Xcode is the contract. Printing it means a
-        # toolchain drift shows up here rather than as a mysterious compile error.
+        # `DEVELOPER_DIR` above is the contract. Printing it means a toolchain drift
+        # shows up here rather than as a mysterious compile error.
         run: xcodebuild -version && swift --version
 
       - run: brew install xcodegen

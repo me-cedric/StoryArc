@@ -32,6 +32,8 @@ import {
 import { basename, dirname, join, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+import { DUO_REQUIRED_FROM } from './store-walk.mjs'
+
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const STORE = join(ROOT, '.build/store')
 const LISTING = join(ROOT, 'docs/designs/store')
@@ -71,6 +73,9 @@ export const PLAY_SINGLES = {
 export const APPLE_DISPLAYS = [
   { name: 'iPhone 6.9-inch', size: [1320, 2868] },
   { name: 'iPad 13-inch', size: [2064, 2752] },
+  // Optional until App Store Connect requires them for an app built with the iOS 27.1 SDK.
+  { name: 'iPhone Duo outer', size: [1398, 2034], requiredFrom: DUO_REQUIRED_FROM },
+  { name: 'iPhone Duo inner', size: [2007, 2853], requiredFrom: DUO_REQUIRED_FROM },
 ]
 const APPLE_SCREENSHOTS = { min: 1, max: 10 }
 
@@ -215,7 +220,7 @@ export function strayProblems(names, locales) {
 }
 
 /** `tree` maps each locale to the images of its folder. */
-export function appleImageProblems(tree) {
+export function appleImageProblems(tree, today = new Date().toISOString().slice(0, 10)) {
   return Object.entries(tree).flatMap(([locale, images]) => {
     const counts = APPLE_DISPLAYS.map(() => 0)
     const problems = images.flatMap((image) => {
@@ -228,7 +233,8 @@ export function appleImageProblems(tree) {
       counts[at] += 1
       return []
     })
-    APPLE_DISPLAYS.forEach(({ name }, at) => {
+    APPLE_DISPLAYS.forEach(({ name, requiredFrom }, at) => {
+      if (counts[at] === 0 && requiredFrom && today < requiredFrom) return
       if (counts[at] < APPLE_SCREENSHOTS.min || counts[at] > APPLE_SCREENSHOTS.max) {
         problems.push(`${locale} ${name}: ${counts[at]} screenshot(s), App Store takes ${APPLE_SCREENSHOTS.min}-${APPLE_SCREENSHOTS.max}`)
       }
@@ -450,6 +456,10 @@ function selfTest() {
   assert(refused(apple([phone('01.png')]), 'es-ES', 'iPad 13-inch', '0 screenshot(s)'), 'a missing iPad set is refused')
   assert(refused(apple([phone('01.png'), pad('a.png'), shot(1290, 2796, 'old.png')]), 'old.png', '1290x2796'), 'an iPhone 6.7-inch size is refused')
   assert(refused(apple([...Array.from({ length: 11 }, (_, i) => phone(`${i}.png`)), pad('a.png')]), 'iPhone 6.9-inch', '11 screenshot(s)'), 'eleven screenshots are refused')
+  const set = [phone('01.png'), pad('01-ipad.png')]
+  assert(appleImageProblems({ 'es-ES': set }, '2027-02-28').length === 0, 'no Duo set passes before the deadline')
+  assert(refused(appleImageProblems({ 'es-ES': set }, DUO_REQUIRED_FROM), 'iPhone Duo inner', '0 screenshot(s)'), 'no Duo set is refused from the deadline')
+  assert(apple([...set, shot(1398, 2034, 'o.png'), shot(2007, 2853, 'i.png')]).length === 0, 'the two Duo sizes are App Store sizes')
 
   assert(parseArgs([]).platform === 'play' && parseArgs(['--dry']).dry, 'play is the default platform')
   assert(parseArgs(['--platform', 'appstore', '--upload']).upload, 'the App Store takes --upload')

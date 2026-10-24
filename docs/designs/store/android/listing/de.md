@@ -74,7 +74,7 @@ Keine Bezahlstufe, keine Werbung, kein Nachfassen. Die App ist Open Source, und 
 
 FÜR ANDROID GEMACHT
 
-Material 3 Expressive durchgehend, mit dynamischen Farben aus Ihrem Hintergrundbild. Hell und dunkel folgen dem System. Jeder Bildschirm funktioniert bei der größten Bedienungshilfen-Textgröße und mit TalkBack. Englisch, Französisch, Deutsch und Spanisch, und die Sprache der App lässt sich unabhängig von der des Systems setzen.
+Material 3 Expressive durchgehend, mit dynamischen Farben aus Ihrem Hintergrundbild. Auf einem faltbaren Gerät bleibt die Seite vom Falz fern, und halb geöffnet zeigt es eine Doppelseite. Hell und dunkel folgen dem System. Jeder Bildschirm funktioniert bei der größten Bedienungshilfen-Textgröße und mit TalkBack. Englisch, Französisch, Deutsch und Spanisch, und die Sprache der App lässt sich unabhängig von der des Systems setzen.
 
 Erfordert Android 12 oder neuer.
 ```

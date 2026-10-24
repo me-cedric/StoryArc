@@ -91,7 +91,7 @@ No paid tier, no in-app purchases, no advertising. The app is open source, and t
 
 MADE FOR IPHONE AND IPAD
 
-SwiftUI throughout. On iPad the library and a publication share the window as two columns, and the sidebar carries your shelves. Light and dark follow the system. Every screen works at the largest Dynamic Type size and with VoiceOver. English, French, German and Spanish, and the app's language can be set on its own without changing the system's.
+SwiftUI throughout. On iPhone Duo, the page stays off the fold, and the half-open device shows a spread. On iPad the library and a publication share the window as two columns, and the sidebar carries your shelves. Light and dark follow the system. Every screen works at the largest Dynamic Type size and with VoiceOver. English, French, German and Spanish, and the app's language can be set on its own without changing the system's.
 
 Requires iOS or iPadOS 26.1.
 ```

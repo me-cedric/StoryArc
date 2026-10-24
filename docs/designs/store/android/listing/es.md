@@ -74,7 +74,7 @@ Sin nivel de pago, sin publicidad, sin insistencias. La aplicación es de códig
 
 HECHO PARA ANDROID
 
-Material 3 Expressive en todas partes, con color dinámico de tu fondo de pantalla. El tema claro y el oscuro siguen al sistema. Cada pantalla funciona con el tamaño de texto de accesibilidad más grande y con TalkBack. Inglés, francés, alemán y español, y el idioma de la aplicación se ajusta por separado del del sistema.
+Material 3 Expressive en todas partes, con color dinámico de tu fondo de pantalla. En un plegable, la página no toca el pliegue, y medio abierto muestra una doble página. El tema claro y el oscuro siguen al sistema. Cada pantalla funciona con el tamaño de texto de accesibilidad más grande y con TalkBack. Inglés, francés, alemán y español, y el idioma de la aplicación se ajusta por separado del del sistema.
 
 Requiere Android 12 o posterior.
 ```
