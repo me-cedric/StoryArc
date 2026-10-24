@@ -305,4 +305,19 @@ struct OpdsCredentialStorageTests {
         #expect(OpdsCredential(stored: "") == nil)
         #expect(OpdsCredential(stored: "digest\na\nb") == nil)
     }
+
+    @Test func secretQueryItemsAndASignInShareOneValue() throws {
+        let credential = OpdsCredential.basic(user: "ada", password: "love:lace\nx")
+        let stored = try #require(OpdsCredential.stored(credential, query: "apikey=k1&token=t2"))
+        #expect(OpdsCredential(stored: stored) == credential)
+        #expect(OpdsCredential.query(stored: stored) == "apikey=k1&token=t2")
+    }
+
+    @Test func secretQueryItemsAloneAreNoSignIn() throws {
+        let stored = try #require(OpdsCredential.stored(nil, query: "apikey=k1"))
+        #expect(OpdsCredential(stored: stored) == nil)
+        #expect(OpdsCredential.query(stored: stored) == "apikey=k1")
+        #expect(OpdsCredential.stored(nil, query: nil) == nil)
+        #expect(OpdsCredential.query(stored: OpdsCredential.bearer(token: "abc").stored) == nil)
+    }
 }

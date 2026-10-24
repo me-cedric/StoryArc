@@ -4,6 +4,8 @@ import Testing
 @testable import LibraryFeature
 import Catalogue
 import Kavita
+import Persistence
+import StoryArcCore
 
 /// What "Add catalogue" does with what was pasted into it.
 ///
@@ -74,5 +76,42 @@ struct CatalogueTargetTests {
     func anOrdinaryLocatorIsUntouched() throws {
         let url = try #require(URL(string: "https://books.example/opds?shelf=comics"))
         #expect(CatalogueTarget.storableLocator(for: url) == "https://books.example/opds?shelf=comics")
+    }
+
+    @Test("A locator never carries a key the reader typed into the query")
+    func aLocatorNeverCarriesAKeyTypedIntoTheQuery() throws {
+        let url = try #require(URL(string: "https://reader:hunter2@books.example/opds?shelf=comics&ApiKey=k1&token=t2"))
+
+        #expect(CatalogueTarget.storableLocator(for: url) == "https://books.example/opds?shelf=comics")
+        #expect(CatalogueTarget.secretQuery(of: url) == "ApiKey=k1&token=t2")
+        let plain = try #require(URL(string: "https://books.example/opds?shelf=comics"))
+        #expect(CatalogueTarget.secretQuery(of: plain) == nil)
+        #expect(CatalogueTarget.secretQuery(of: try #require(URL(string: "https://books.example/opds"))) == nil)
+    }
+
+    @Test("The key comes back from the secure store for the request")
+    func theKeyComesBackFromTheSecureStoreForTheRequest() throws {
+        let url = try #require(URL(string: "https://books.example/opds?apikey=k1"))
+        let credentials = CredentialStore(service: "app.storyarc.tests.\(UUID().uuidString)")
+        let source = Source(
+            displayName: "Books",
+            kind: .opdsCatalog,
+            credentialReference: "catalogue-key",
+            locator: CatalogueTarget.storableLocator(for: url)
+        )
+        let query = CatalogueTarget.secretQuery(of: url)
+        let secret = try #require(OpdsCredential.stored(.bearer(token: "t"), query: query))
+        #expect(credentials.save(secret, for: "catalogue-key"))
+        defer { _ = credentials.remove("catalogue-key") }
+
+        #expect(source.locator == "https://books.example/opds")
+        let page = try #require(CataloguePage(source: source, credentials: credentials))
+        #expect(page.url == url)
+        #expect(page.credential == .bearer(token: "t"))
+        #expect(
+            CatalogueTarget.withQuery("https://books.example/opds?shelf=comics#top", query: "apikey=k1")
+                == "https://books.example/opds?shelf=comics&apikey=k1#top"
+        )
+        #expect(CatalogueTarget.withQuery("https://books.example/opds", query: nil) == "https://books.example/opds")
     }
 }

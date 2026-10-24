@@ -2,6 +2,7 @@ internal import Foundation
 
 internal import Catalogue
 internal import Kavita
+internal import StoryArcCore
 
 /// What the reader pasted into "Add catalogue", once it has been recognised.
 ///
@@ -44,13 +45,33 @@ enum CatalogueTarget: Equatable {
     /// the clear. `https://user:password@host/feed` is a working credential written as an
     /// address, and `URLSession` will authenticate from it — so the caller moves it into the
     /// secure store and saves what this returns, which is the same address with the secret
-    /// taken out of it.
+    /// taken out of it. `?apikey=…` is the same case in the query: ``secretQuery(of:)`` goes
+    /// to the secure store, and ``ExportableAddress`` removes it here.
     static func storableLocator(for url: URL) -> String {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               components.user != nil || components.password != nil
-        else { return url.absoluteString }
+        else { return ExportableAddress.withoutSecret(url.absoluteString) }
         components.user = nil
         components.password = nil
-        return components.url?.absoluteString ?? url.absoluteString
+        return ExportableAddress.withoutSecret(components.url?.absoluteString ?? url.absoluteString)
+    }
+
+    /// The query items of `url` that name a secret, as typed, or nil when there is none.
+    static func secretQuery(of url: URL) -> String? {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.percentEncodedQuery?
+            .split(separator: "&") ?? []
+        let secret = items.filter { item in
+            let name = item.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false).first ?? ""
+            return ExportableAddress.secretNames.contains(name.lowercased())
+        }
+        return secret.isEmpty ? nil : secret.joined(separator: "&")
+    }
+
+    /// The stored `locator` with the ``secretQuery(of:)`` put back, for the request only.
+    static func withQuery(_ locator: String, query: String?) -> String {
+        guard let query else { return locator }
+        let hash = locator.firstIndex(of: "#") ?? locator.endIndex
+        let head = String(locator[..<hash])
+        return head + (head.contains("?") ? "&" : "?") + query + String(locator[hash...])
     }
 }

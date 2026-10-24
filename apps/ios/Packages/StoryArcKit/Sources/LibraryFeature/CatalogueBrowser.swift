@@ -269,17 +269,16 @@ public struct CataloguePage: Sendable {
     /// Nil when the source is not a catalogue or has no address, which is what stops a
     /// folder from being opened as one.
     public init?(source: Source, credentials: CredentialStore?) {
-        guard source.kind == .opdsCatalog,
-              let locator = source.locator,
-              let url = URL(string: locator)
-        else { return nil }
+        guard source.kind == .opdsCatalog, let locator = source.locator else { return nil }
+        // The secret query items come back from the secure store for the request only.
+        let stored = source.credentialReference.flatMap { credentials?.secret(for: $0) }
+        let query = stored.flatMap(OpdsCredential.query(stored:))
+        guard let url = URL(string: CatalogueTarget.withQuery(locator, query: query)) else { return nil }
 
         title = source.displayName
         self.url = url
         origin = OpdsOrigin(url: url)
         sourceID = source.id
-        credential = source.credentialReference
-            .flatMap { credentials?.secret(for: $0) }
-            .flatMap(OpdsCredential.init(stored:))
+        credential = stored.flatMap(OpdsCredential.init(stored:))
     }
 }

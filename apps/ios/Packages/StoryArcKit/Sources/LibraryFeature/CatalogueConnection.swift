@@ -201,14 +201,17 @@ public final class CatalogueConnection {
             credential = .basic(user: user, password: url.password ?? "")
         }
 
+        // `?apikey=…` is the same case in the query, and goes to the same place.
+        let secret = OpdsCredential.stored(credential, query: CatalogueTarget.secretQuery(of: url))
+
         let id = replacing?.id ?? UUID()
         var reference: String?
-        if let credential {
+        if let secret {
             // Nil when the secret cannot be stored, and the step says so. A catalogue
             // whose sign-in was accepted and then dropped is a row that fails on the next
             // launch with nothing to explain why.
             let stored = replacing?.credentialReference ?? CredentialStore.reference(for: id)
-            guard let credentials, credentials.save(credential.stored, for: stored) else {
+            guard let credentials, credentials.save(secret, for: stored) else {
                 step = .failed(
                     String(localized: "catalogue.error.secretNotStored",
                            bundle: .module.inChosenLanguage, locale: .storyArc)

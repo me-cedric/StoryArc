@@ -35,9 +35,33 @@ public enum OpdsCredential: Sendable, Equatable {
             self = .basic(user: String(pair[0]), password: String(pair[1]))
         case "bearer":
             self = .bearer(token: String(head[1]))
+        case "query":
+            // Secret query items first, then the sign-in, if any. See ``stored(_:query:)``.
+            guard let newline = head[1].firstIndex(of: "\n"),
+                  let inner = OpdsCredential(stored: String(head[1][head[1].index(after: newline)...]))
+            else { return nil }
+            self = inner
         default:
             return nil
         }
+    }
+
+    /// One secure-store value for a sign-in and the secret query items of a feed address,
+    /// or nil when there is neither.
+    ///
+    /// `?apikey=…` is a credential written into an address. It goes in front of the sign-in,
+    /// so ``init(stored:)`` still reads the sign-in from the same value. Android's
+    /// `OpdsCredential.stored` writes the same shape.
+    public static func stored(_ credential: OpdsCredential?, query: String?) -> String? {
+        guard let query, !query.isEmpty else { return credential?.stored }
+        return "query\n\(query)\n\(credential?.stored ?? "")"
+    }
+
+    /// The secret query items that ``stored(_:query:)`` wrote, or nil.
+    public static func query(stored: String) -> String? {
+        let parts = stored.split(separator: "\n", maxSplits: 2, omittingEmptySubsequences: false)
+        guard parts.count == 3, parts[0] == "query", !parts[1].isEmpty else { return nil }
+        return String(parts[1])
     }
 
     /// The `Authorization` header value.
