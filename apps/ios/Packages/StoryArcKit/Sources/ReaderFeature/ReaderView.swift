@@ -358,9 +358,9 @@ public struct ReaderView: View {
         // the page, and this is what the second one opens.
         .sheet(isPresented: $isShowingMenu) { readerMenu }
         // D18, top rather than the foot below: see ``voiceStoppedOverlay``.
-        .overlay(alignment: .top) { voiceStoppedOverlay }
+        .overlay(alignment: .top) { voiceStoppedOverlay.modifier(OffTheFold(split: foldSplit)) }
         // Armed by a jump, not by the centre tap — see ``returnOffer``.
-        .overlay(alignment: .bottom) { returnOffer }
+        .overlay(alignment: .bottom) { returnOffer.modifier(OffTheFold(split: foldSplit)) }
         // Over the page rather than in place of it: `network-share` requires pages already
         // read to stay readable while the network is away.
         .overlay(alignment: .bottom) {
@@ -370,6 +370,7 @@ public struct ReaderView: View {
                 onDownload: onDownloadForOffline,
                 onLeave: { dismiss() }
             )
+            .modifier(OffTheFold(split: foldSplit))
         }
         // volume buttons are behind a setting the app does not have yet.
         .focusable()

@@ -27,7 +27,7 @@ The counts on this day, from the task lists (done, partial, open):
 | `library-sync` | 28 | 0 | 2 | 2.5 and 4.5 (owner: a cloud folder and a locked phone on two devices) |
 | `library-portability` | 31 | 0 | 1 | 3.1c (an Android frame and one real export between two devices) |
 | `desktop-clients` | 110 | 0 | 74 | a Linux desktop session, a Windows desktop, Flathub's answer, signing and notarisation, two parent edits under `apps/ios` (the dated note at the head of its task list names each) |
-| `foldables-and-iphone-duo` | 21 | 2 | 3 | built 2026-10-24; 2.3 and 3.1 need Xcode's Device Hub to open the simulated iPhone Duo, 0.6 the owner's answers, 4.3 the verify after them; 1.4 is the last code item |
+| `foldables-and-iphone-duo` | 22 | 2 | 2 | built 2026-10-24; 2.3 and 3.1 need Xcode's Device Hub to open the simulated iPhone Duo, 0.6 the owner's answers, 4.3 the verify after them |
 
 **What this audit closed** (wave 1, commit `02f4255a4`): `close-the-audited-gaps` 28.1, 28.4,
 28.5, 28.6, 28.8, 28.9, 28.10 and the iOS half of 20.1; `library-sync` 5.9 and 5.10; `library-portability`

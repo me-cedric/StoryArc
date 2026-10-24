@@ -21,7 +21,8 @@ internal import StoryArcCore
 // states that iOS 27.1 lays those out clear of the fold and the camera itself ("Prepare your app
 // for iPhone Duo"). A sheet of the reader's own drawing would need ``DeviceFold/controlArea(in:)``
 // too. The three notices over the page (`NetworkNotice`, the voice-stopped banner, the return
-// offer) are overlays, not sheets, and are centred: a vertical fold can still run through them.
+// offer) are overlays of the reader's own, so ``OffTheFold`` moves each one to the wider side of
+// a vertical fold, as a lone page moves.
 //
 // Plain layout rather than `ArrangementView`: the page and the controls are already two layers
 // of one `ZStack`, and two frames move them without a second container that only iOS 27.1 has.
@@ -66,5 +67,24 @@ struct ReaderFoldTracking: ViewModifier {
                 AccessibilityNotification.Announcement(sentence).post()
             }
             .sensingFold(into: $sensed)
+    }
+}
+
+/// A notice over the page, moved to the wider side of a vertical fold at that side's width.
+///
+/// `native-experience`, *The camera and the fold are not content*: the notices hold words and
+/// buttons, so a fold may not run through them. With no fold both frames change nothing, and the
+/// notice draws as on a flat display.
+struct OffTheFold: ViewModifier {
+    let split: HingeSpreadSplit?
+
+    func body(content: Content) -> some View {
+        let inset = split.flatMap(hingeInset)
+        content
+            .frame(width: inset?.width)
+            .frame(
+                maxWidth: inset == nil ? nil : .infinity,
+                alignment: inset?.atStart == false ? .trailing : .leading
+            )
     }
 }
