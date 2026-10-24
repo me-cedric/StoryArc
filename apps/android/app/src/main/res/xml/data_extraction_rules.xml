@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The source registry is in both, because it holds no secret. See backup_rules.xml. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="file" path="downloads/" />
         <exclude domain="file" path="cache/" />
-        <exclude domain="sharedpref" path="app.storyarc.sources.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="cache/" />
-        <exclude domain="sharedpref" path="app.storyarc.sources.xml" />
     </device-transfer>
 </data-extraction-rules>

@@ -29,6 +29,7 @@ import app.storyarc.feature.library.SmbLocator
 import app.storyarc.feature.library.SmbPage
 import app.storyarc.feature.library.SourceRangeTransport
 import app.storyarc.feature.library.migratingOpdsStrays
+import app.storyarc.feature.library.movingCatalogueKeys
 
 /**
  * Every store the app opens, opened once.
@@ -220,6 +221,9 @@ internal class AppDependencies private constructor(private val context: Context)
             val application = context.applicationContext
             opened?.takeIf { it.context === application }
                 ?: AppDependencies(application).apply {
+                    // Before anything reads the registry, so no row keeps a feed key in the
+                    // preferences that a backup carries.
+                    sources.movingCatalogueKeys(credentials)
                     registerShareAccess()
                     // dl-core 1.3: the queue used to come to life only when a reader opened a
                     // catalogue page (`AppScreens.kt`'s `remember`), so nothing restarted a

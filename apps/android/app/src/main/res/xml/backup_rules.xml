@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- `offline-downloads`: downloaded publications are re-downloadable and would
      otherwise dominate a backup. Reading progress is small and worth restoring.
-     `sources`: the source registry stays on the device, because a locator saved by an
-     older version can still hold a secret. -->
+     `sources`: the source registry is restored, so a new device gets the source list back.
+     It holds no secret: a feed key goes to the secure store, and the first launch of this
+     version moves one that an older version saved. The secure store's key stays on the
+     device, so a restored source asks for its sign-in again. -->
 <full-backup-content>
     <exclude domain="file" path="downloads/" />
     <exclude domain="file" path="cache/" />
-    <exclude domain="sharedpref" path="app.storyarc.sources.xml" />
 </full-backup-content>
