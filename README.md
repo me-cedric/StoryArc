@@ -594,7 +594,7 @@ capability exists, scenario by scenario, and its "Completion audit, 2026-10-23" 
 is the current list of what is done and what is not. Every mobile capability is built on
 both platforms; what stays open is owner device steps, frames, and the desktop walks that
 need a Linux or a Windows desktop. Twelve changes are in flight (`foldables-and-iphone-duo`, built on
-2026-10-24, waits on owner steps) and twenty-five are archived
+2026-10-24, waits on owner steps) and twenty-seven are archived
 under `docs/openspec/changes/`.
 
 The rule that shapes everything else: **every behaviour is specified before it
