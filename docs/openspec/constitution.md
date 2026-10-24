@@ -1,15 +1,15 @@
 # StoryArc Constitution
 
-Version: 1.0.0
-Last amended: 2026-09-07
+Version: 1.0.1
+Last amended: 2026-10-24
 
 ## Purpose
 
 This file records the principles that a change must not break. A change that breaks one is
 wrong even when it compiles and every test passes.
 
-**[`AGENTS.md`](../AGENTS.md) is the authority.** This page states the same rules in the
-shape `agent-compass doctor` looks for. Where the two disagree, `AGENTS.md` wins, and the
+**[`AGENTS.md`](../../AGENTS.md) is the authority.** This page states the same rules as one
+list, beside the OpenSpec root that every change goes through. Where the two disagree, `AGENTS.md` wins, and the
 disagreement is a defect in this page. The template that `agent-compass` seeded here held
 placeholder principles and the date `YYYY-MM-DD`. A constitution that states nothing true is
 worse than none, because it is quoted.
@@ -21,7 +21,7 @@ worse than none, because it is quoted.
 Every pixel is SwiftUI or Compose. StoryArc adds no web view, no shared interface
 abstraction, and no cross-platform toolkit. Reflowable EPUB content is the single exception,
 because that content is HTML by definition. See
-[ADR-0001](../docs/decisions/0001-independent-native-cores.md).
+[ADR-0001](../decisions/0001-independent-native-cores.md).
 
 ### 2. No backend, no account, no analytics, no crash reporting
 
@@ -68,5 +68,6 @@ No commit, pull request, review, or issue carries an AI signature or a co-author
 
 | Version | Date | Change |
 | ------- | ---- | ------ |
+| 1.0.1 | 2026-10-24 | Moved from the root `specs/` folder to `docs/openspec/`, beside the specs it governs. |
 | 1.0.0 | 2026-09-07 | Replaced the `agent-compass` placeholder with StoryArc's own principles, taken from `AGENTS.md` section 2. |
 | 0.1.0 | 2026-09-07 | Seeded by `agent-compass` sync, with placeholder principles and no date. |

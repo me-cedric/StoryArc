@@ -606,7 +606,7 @@ Run `cd docs` first, or use the `pnpm spec:*` scripts, which do it for you.
 
 ```bash
 pnpm openspec:workflows   # if your agent tooling is not set up yet
-# then, in Claude Code / Codex / Gemini:
+# then, in Claude Code or Codex:
 /opsx:propose "add support for <thing>"
 ```
 

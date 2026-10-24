@@ -14,7 +14,7 @@ If what you want to add is already specified, implement it. If it is not, propos
 it first:
 
 ```bash
-# in Claude Code or Gemini CLI
+# in Claude Code
 /opsx:propose "add support for <thing>"
 # in Codex
 $openspec-propose "add support for <thing>"

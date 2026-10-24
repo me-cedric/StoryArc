@@ -83,9 +83,4 @@ and update it whenever a server's allowlist changes.
 - **Codex** enforces the allowlist with `enabled_tools` and approval with
   `default_tools_approval_mode` in `config.toml`. See `codex.example.toml`.
 - **Copilot cloud / code review** allowlists tools in repo MCP settings; prefer
-  read-only tools because configured tools may run autonomously. See
-  `copilot-cloud.example.json`.
-- **Gemini** config (`.gemini/settings.json`) does **not** express a per-tool
-  allowlist. Its contract is enforced by this document plus the client's
-  approval prompts — keep `write`/`secret` servers disabled there unless
-  approval is on.
+  read-only tools because configured tools may run autonomously.
