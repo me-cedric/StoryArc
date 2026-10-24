@@ -285,7 +285,7 @@
       "licence": "MIT OR Apache-2.0",
       "source": "https://github.com/srijs/rust-crc32fast"
     },
-    "crypto-bigint@0.7.5": {
+    "crypto-bigint@0.7.6": {
       "licence": "Apache-2.0 OR MIT",
       "source": "https://github.com/RustCrypto/crypto-bigint"
     },
@@ -313,7 +313,7 @@
       "licence": "MIT OR Apache-2.0",
       "source": "https://github.com/RustCrypto/block-modes"
     },
-    "ctutils@0.4.3": {
+    "ctutils@0.4.5": {
       "licence": "Apache-2.0 OR MIT",
       "source": "https://github.com/RustCrypto/utils"
     },
@@ -1457,7 +1457,7 @@
       "licence": "MIT OR Apache-2.0",
       "source": "https://github.com/rustls/rustls-platform-verifier"
     },
-    "rustls-webpki@0.103.15": {
+    "rustls-webpki@0.103.16": {
       "licence": "ISC",
       "source": "https://github.com/rustls/webpki"
     },
@@ -1905,7 +1905,7 @@
       "licence": "MIT",
       "source": "https://gitlab.gnome.org/World/Rust/webkit6-rs"
     },
-    "webpki-root-certs@1.0.9": {
+    "webpki-root-certs@1.0.11": {
       "licence": "CDLA-Permissive-2.0",
       "source": "https://github.com/rustls/webpki-roots"
     },

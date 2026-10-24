@@ -132,6 +132,9 @@ dependencies {
     implementation(libs.readium.shared)
     implementation(libs.readium.streamer)
     implementation(libs.readium.navigator)
+    constraints {
+        implementation(libs.jsoup) { because("Readium 3.3.0 pulls jsoup 1.22.2, which has two advisories") }
+    }
 
     testImplementation(libs.junit)
     testImplementation(project(":core:snapshots"))

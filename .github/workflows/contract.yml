@@ -7,6 +7,10 @@ on:
     branches: [main]
   pull_request:
 
+# Read-only token: these jobs build and test, and write nothing back to the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: contract-${{ github.ref }}
   cancel-in-progress: true

@@ -26,7 +26,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: apps/desktop-windows/global.json
@@ -43,7 +45,9 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: apps/desktop-windows/global.json
@@ -61,7 +65,9 @@ jobs:
     runs-on: windows-2025-vs2026
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          toolchain: stable
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: apps/desktop-windows/global.json
@@ -94,8 +100,9 @@ jobs:
     runs-on: windows-2025-vs2026
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           targets: aarch64-pc-windows-msvc
       - uses: actions/setup-dotnet@v4
         with:

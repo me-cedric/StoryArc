@@ -1,2 +1,9 @@
 packages:
   - 'packages/*'
+
+# Build tooling only (commitlint, the openspec CLI); none of it ships. Floors past the
+# advisories that osv-scanner reported on 2026-10-24.
+overrides:
+  fast-uri: ^3.1.9
+  js-yaml: ^4.3.2
+  zod: ^4.6.6

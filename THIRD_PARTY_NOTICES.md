@@ -135,14 +135,14 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust cpufeatures 0.2.17](https://github.com/RustCrypto/utils) | `MIT OR Apache-2.0` |
 | [Rust cpufeatures 0.3.1](https://github.com/RustCrypto/utils) | `MIT OR Apache-2.0` |
 | [Rust crc32fast 1.5.2](https://github.com/srijs/rust-crc32fast) | `MIT OR Apache-2.0` |
-| [Rust crypto-bigint 0.7.5](https://github.com/RustCrypto/crypto-bigint) | `Apache-2.0 OR MIT` |
+| [Rust crypto-bigint 0.7.6](https://github.com/RustCrypto/crypto-bigint) | `Apache-2.0 OR MIT` |
 | [Rust crypto-common 0.1.7](https://github.com/RustCrypto/traits) | `MIT OR Apache-2.0` |
 | [Rust crypto-common 0.2.2](https://github.com/RustCrypto/traits) | `MIT OR Apache-2.0` |
 | [Rust crypto-mac 0.11.0](https://github.com/RustCrypto/traits) | `MIT OR Apache-2.0` |
 | [Rust crypto-primes 0.7.2](https://github.com/entropyxyz/crypto-primes) | `Apache-2.0 OR MIT` |
 | [Rust csbindgen 1.9.8](https://github.com/Cysharp/csbindgen/) | `MIT` |
 | [Rust ctr 0.10.1](https://github.com/RustCrypto/block-modes) | `MIT OR Apache-2.0` |
-| [Rust ctutils 0.4.3](https://github.com/RustCrypto/utils) | `Apache-2.0 OR MIT` |
+| [Rust ctutils 0.4.5](https://github.com/RustCrypto/utils) | `Apache-2.0 OR MIT` |
 | [Rust curve25519-dalek-derive 0.1.1](https://github.com/dalek-cryptography/curve25519-dalek) | `MIT/Apache-2.0` |
 | [Rust curve25519-dalek 5.0.0-rc.1](https://github.com/dalek-cryptography/curve25519-dalek/tree/main/curve25519-dalek) | `BSD-3-Clause` |
 | [Rust data-encoding 2.11.1](https://github.com/ia0/data-encoding) | `MIT` |
@@ -428,7 +428,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust rustls-pki-types 1.15.1](https://github.com/rustls/pki-types) | `MIT OR Apache-2.0` |
 | [Rust rustls-platform-verifier-android 0.2.0](https://github.com/rustls/rustls-platform-verifier) | `MIT OR Apache-2.0` |
 | [Rust rustls-platform-verifier 0.7.1](https://github.com/rustls/rustls-platform-verifier) | `MIT OR Apache-2.0` |
-| [Rust rustls-webpki 0.103.15](https://github.com/rustls/webpki) | `ISC` |
+| [Rust rustls-webpki 0.103.16](https://github.com/rustls/webpki) | `ISC` |
 | [Rust rustls 0.23.46](https://github.com/rustls/rustls) | `Apache-2.0 OR ISC OR MIT` |
 | [Rust rustversion 1.0.23](https://github.com/dtolnay/rustversion) | `MIT OR Apache-2.0` |
 | [Rust ryu 1.0.23](https://github.com/dtolnay/ryu) | `Apache-2.0 OR BSL-1.0` |
@@ -540,7 +540,7 @@ published package; a crate that offers `MIT OR Apache-2.0` is used under either.
 | [Rust web-time 1.1.0](https://github.com/daxpedda/web-time) | `MIT OR Apache-2.0` |
 | [Rust webkit6-sys 0.6.0](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
 | [Rust webkit6 0.6.1](https://gitlab.gnome.org/World/Rust/webkit6-rs) | `MIT` |
-| [Rust webpki-root-certs 1.0.9](https://github.com/rustls/webpki-roots) | `CDLA-Permissive-2.0` |
+| [Rust webpki-root-certs 1.0.11](https://github.com/rustls/webpki-roots) | `CDLA-Permissive-2.0` |
 | [Rust weezl 0.1.12](https://github.com/image-rs/weezl) | `MIT OR Apache-2.0` |
 | [Rust widestring 1.2.1](https://github.com/VoidStarKat/widestring-rs) | `MIT OR Apache-2.0` |
 | [Rust winapi-i686-pc-windows-gnu 0.4.0](https://github.com/retep998/winapi-rs) | `MIT/Apache-2.0` |

@@ -16,6 +16,10 @@ on:
   # flaky UI test is proved fixed, by several runs of one commit side by side.
   workflow_dispatch:
 
+# Read-only token: these jobs build and test, and write nothing back to the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: ios-${{ github.ref }}
   cancel-in-progress: true

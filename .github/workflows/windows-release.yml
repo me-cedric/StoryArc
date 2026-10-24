@@ -51,8 +51,9 @@ jobs:
           "PUBLISH=$env:RUNNER_TEMP\publish" >> $env:GITHUB_ENV
           "OUT=$env:RUNNER_TEMP\release" >> $env:GITHUB_ENV
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
+          toolchain: stable
           targets: ${{ matrix.rust }}
       - uses: actions/setup-dotnet@v4
         with:

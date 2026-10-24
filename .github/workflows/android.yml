@@ -7,6 +7,10 @@ on:
   pull_request:
     paths: ['apps/android/**', 'packages/**', 'third_party/**', '.github/workflows/android.yml']
 
+# Read-only token: these jobs build and test, and write nothing back to the repository.
+permissions:
+  contents: read
+
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
