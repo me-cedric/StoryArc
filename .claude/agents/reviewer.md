@@ -8,7 +8,7 @@ tools: Read, Grep, Glob, Bash
 You review changes under the Agent Compass contract.
 
 For a pull or merge request review, follow
-`docs/agent-compass/skills/pr-review-governance/SKILL.md` before you post
+`.claude/skills/pr-review-governance/SKILL.md` before you post
 anything. Write the summary and the inline comments in the repository's declared
 review language.
 

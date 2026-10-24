@@ -18,9 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # `pnpm spec:guard` runs `docs/agent-compass/scripts/openspec-guard.mjs`, which
-          # lives in a submodule. Without this the job dies on MODULE_NOT_FOUND, which is
-          # what it did on every run until 2026-09-06.
+          # The agent-compass submodule. `pnpm spec:guard` once ran from it and died on
+          # MODULE_NOT_FOUND without this, on every run until 2026-09-06; since compass 1.0
+          # (2026-10-24) the guard lives in `scripts/`, and the checkout keeps the submodule
+          # for the compass files the contract names.
           submodules: recursive
 
       # No `version:` — package.json's `packageManager` field is the pin, and

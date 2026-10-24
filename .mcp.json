@@ -13,6 +13,20 @@
         "agent-device@0.21.22",
         "mcp"
       ]
+    },
+    "codebase-memory": {
+      "command": "codebase-memory-mcp",
+      "args": [
+        "--tool-profile=analysis"
+      ]
+    },
+    "xcodebuildmcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "xcodebuildmcp@2.7.0",
+        "mcp"
+      ]
     }
   }
 }

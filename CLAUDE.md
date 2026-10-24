@@ -1,9 +1,9 @@
 # StoryArc — Claude Agent Guide
 
 Read [`AGENTS.md`](AGENTS.md) first. It carries the project-specific contract and
-takes precedence over the agent-compass baseline vendored at
-[`docs/agent-compass/`](docs/agent-compass/AGENTS.md). §3b of that file holds the
-OpenSpec rules; this page is the command list.
+takes precedence over the agent-compass block at its end, which `ac sync` keeps in step
+with [`docs/agent-compass/`](docs/agent-compass/README.md). §3b of `AGENTS.md` holds the OpenSpec
+rules; this page is the command list.
 
 ## Slash commands available here
 
@@ -55,3 +55,13 @@ out and promotes the Play build, or asks you to run `android-promote.yml`. A pus
 the release machinery runs a rehearsal that publishes nothing. Read §10 of [`AGENTS.md`](AGENTS.md)
 before you run it — in particular: never hand-edit a version, never build a release locally,
 and never cut one unless you were asked to.
+
+<!-- compass:begin -->
+@AGENTS.md
+
+### Claude Code
+
+- The `compass` output style is on. Hooks block `.env` reads and check the completion gate when you stop.
+- Pass `model` in every Agent call: `scout` (haiku), `worker` (sonnet), `reviewer` (sonnet). Explore uses the main model.
+- For multi-file work, run the `deliver` workflow: plan, split, workers, review, fix.
+<!-- compass:end -->

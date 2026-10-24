@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "packs": [],
+  "exclude": [
+    ".claude/agents/reviewer.md",
+    ".codex/config.toml#mcp_servers.agent-device",
+    ".codex/config.toml#mcp_servers.codebase-memory",
+    ".codex/config.toml#mcp_servers.xcodebuildmcp",
+    ".codex/config.toml#model_reasoning_summary",
+    ".codex/config.toml#model_verbosity",
+    ".codex/hooks.json#hooks.PostToolUse",
+    ".codex/hooks.json#hooks.PreToolUse",
+    ".codex/hooks.json#hooks.SessionStart",
+    ".codex/hooks.json#hooks.Stop",
+    "architecture-advisor",
+    "delivery-digest",
+    "impact-analysis",
+    "native-mobile-skills",
+    "project-memory",
+    "working-style-skills",
+    ".mcp.json#mcpServers.agent-device"
+  ]
+}

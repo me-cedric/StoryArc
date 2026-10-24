@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "type": "command",
+        "matcher": "Read|Grep|Glob|Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "bash": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" guard --copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "bash": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" gate --copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ],
+    "SessionStart": [
+      {
+        "type": "command",
+        "bash": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" start --copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "type": "command",
+        "bash": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" hint --copilot",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

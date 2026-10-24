@@ -4,7 +4,7 @@
  *
  * **`openspec-guard` cannot see a `[~]`, and that is the hole this closes.** Its
  * `taskProgress` counts `- [ ]` and `- [x]` and nothing else — read
- * `docs/agent-compass/scripts/lib/openspec.mjs`. So a partial is in neither the numerator nor
+ * `scripts/lib/openspec.mjs`. So a partial is in neither the numerator nor
  * the denominator, with two consequences:
  *
  * 1. **The reported ratio is wrong**, and wrong in the flattering direction.
@@ -25,8 +25,8 @@
  * honest three-way count for every active change either way. It does not try to be the guard;
  * it is the one number the guard drops.
  *
- * The vendored guard is not edited: `docs/agent-compass/` is a submodule, and a local edit to
- * a managed file is lost on the next sync. Reported upstream-worthy, fixed here.
+ * The vendored guard is not edited: it is kept as compass 0.9.6 shipped it, so this check
+ * sits beside it rather than inside it.
  *
  * Usage:
  *   node scripts/partial-tasks-check.mjs              check, and print the counts

@@ -1,0 +1,468 @@
+{
+  "lockVersion": 2,
+  "version": "1.0.2",
+  "tag": "v1.0.2",
+  "skills": [
+    "adr",
+    "ci-triage",
+    "compass",
+    "debug",
+    "env",
+    "grill",
+    "harness-improve",
+    "harness-loop",
+    "pr-flow",
+    "remaining-work",
+    "review",
+    "spec-flow",
+    "stack-gtk",
+    "stack-swift",
+    "task-flow",
+    "ui-conformance",
+    "vuln-triage"
+  ],
+  "files": {
+    ".agents/hooks/compass.mjs": {
+      "owner": "compass",
+      "sha": "f06af77f44d0d210"
+    },
+    ".agents/skills/adr/SKILL.md": {
+      "owner": "compass",
+      "sha": "0bba13a7bfc5059c"
+    },
+    ".agents/skills/ci-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "5799aab650ff9999"
+    },
+    ".agents/skills/compass/SKILL.md": {
+      "owner": "compass",
+      "sha": "a3ea9eb7e02265e7"
+    },
+    ".agents/skills/debug/SKILL.md": {
+      "owner": "compass",
+      "sha": "c57688d05012172f"
+    },
+    ".agents/skills/env/SKILL.md": {
+      "owner": "compass",
+      "sha": "14a595ee31114b1f"
+    },
+    ".agents/skills/env/assets/zod-catalog.mjs": {
+      "owner": "compass",
+      "sha": "9b834e181da7b8f4"
+    },
+    ".agents/skills/grill/SKILL.md": {
+      "owner": "compass",
+      "sha": "679020ff02a9aacb"
+    },
+    ".agents/skills/grill/references/decider-view.md": {
+      "owner": "compass",
+      "sha": "391e00958395fa59"
+    },
+    ".agents/skills/harness-improve/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cddc5fbc9b636b5"
+    },
+    ".agents/skills/harness-loop/SKILL.md": {
+      "owner": "compass",
+      "sha": "5db08e561fa89509"
+    },
+    ".agents/skills/pr-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "100ed9b3006115a1"
+    },
+    ".agents/skills/pr-flow/references/body.md": {
+      "owner": "compass",
+      "sha": "fdcbba95792f6dfc"
+    },
+    ".agents/skills/remaining-work/SKILL.md": {
+      "owner": "compass",
+      "sha": "3f551eca6d3c1546"
+    },
+    ".agents/skills/review/SKILL.md": {
+      "owner": "compass",
+      "sha": "1f149724cd5a4e49"
+    },
+    ".agents/skills/review/references/report.md": {
+      "owner": "compass",
+      "sha": "62d8d46ed80adf43"
+    },
+    ".agents/skills/review/scripts/post-review.mjs": {
+      "owner": "compass",
+      "sha": "99f7d321f2cab502"
+    },
+    ".agents/skills/spec-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "db235fbd90007fc3"
+    },
+    ".agents/skills/spec-flow/references/convert-documents.md": {
+      "owner": "compass",
+      "sha": "4ae3be6d9a2e93b6"
+    },
+    ".agents/skills/spec-flow/references/delta-section.md": {
+      "owner": "compass",
+      "sha": "3404cf0f1e49fff5"
+    },
+    ".agents/skills/spec-flow/references/drift-triage.md": {
+      "owner": "compass",
+      "sha": "2af7d036e9c626d9"
+    },
+    ".agents/skills/spec-flow/references/openspec.md": {
+      "owner": "compass",
+      "sha": "ce700bb9ab28c883"
+    },
+    ".agents/skills/stack-gtk/SKILL.md": {
+      "owner": "compass",
+      "sha": "c3231da7f01ae264"
+    },
+    ".agents/skills/stack-swift/SKILL.md": {
+      "owner": "compass",
+      "sha": "a36bb410592250ba"
+    },
+    ".agents/skills/task-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "1002ff89060e6079"
+    },
+    ".agents/skills/ui-conformance/SKILL.md": {
+      "owner": "compass",
+      "sha": "bc5afb5aafb60a00"
+    },
+    ".agents/skills/ui-conformance/assets/eslint-boundaries.mjs": {
+      "owner": "compass",
+      "sha": "0809f69591e03249"
+    },
+    ".agents/skills/ui-conformance/references/playwright.md": {
+      "owner": "compass",
+      "sha": "ae4d0c22564987ea"
+    },
+    ".agents/skills/ui-conformance/scripts/probe-design-values.js": {
+      "owner": "compass",
+      "sha": "62d0721297665b5f"
+    },
+    ".agents/skills/vuln-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "b92092cb1e19d4a1"
+    },
+    ".agents/skills/vuln-triage/scripts/sarif-merge.mjs": {
+      "owner": "compass",
+      "sha": "9b74cba0d629865a"
+    },
+    ".claude/agents/scout.md": {
+      "owner": "compass",
+      "sha": "b187db6482e2f345"
+    },
+    ".claude/agents/worker.md": {
+      "owner": "compass",
+      "sha": "823ce16b518080fa"
+    },
+    ".claude/output-styles/compass.md": {
+      "owner": "compass",
+      "sha": "609cb34642ffad2c"
+    },
+    ".claude/rules/stack-gtk.md": {
+      "owner": "compass",
+      "sha": "a8c09ee22e9a2991"
+    },
+    ".claude/rules/stack-swift.md": {
+      "owner": "compass",
+      "sha": "0cd7fff5b5fe6f28"
+    },
+    ".claude/skills/adr/SKILL.md": {
+      "owner": "compass",
+      "sha": "0bba13a7bfc5059c"
+    },
+    ".claude/skills/ci-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "5799aab650ff9999"
+    },
+    ".claude/skills/compass/SKILL.md": {
+      "owner": "compass",
+      "sha": "a3ea9eb7e02265e7"
+    },
+    ".claude/skills/debug/SKILL.md": {
+      "owner": "compass",
+      "sha": "c57688d05012172f"
+    },
+    ".claude/skills/env/SKILL.md": {
+      "owner": "compass",
+      "sha": "14a595ee31114b1f"
+    },
+    ".claude/skills/env/assets/zod-catalog.mjs": {
+      "owner": "compass",
+      "sha": "9b834e181da7b8f4"
+    },
+    ".claude/skills/grill/SKILL.md": {
+      "owner": "compass",
+      "sha": "679020ff02a9aacb"
+    },
+    ".claude/skills/grill/references/decider-view.md": {
+      "owner": "compass",
+      "sha": "391e00958395fa59"
+    },
+    ".claude/skills/harness-improve/SKILL.md": {
+      "owner": "compass",
+      "sha": "8cddc5fbc9b636b5"
+    },
+    ".claude/skills/harness-loop/SKILL.md": {
+      "owner": "compass",
+      "sha": "5db08e561fa89509"
+    },
+    ".claude/skills/pr-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "100ed9b3006115a1"
+    },
+    ".claude/skills/pr-flow/references/body.md": {
+      "owner": "compass",
+      "sha": "fdcbba95792f6dfc"
+    },
+    ".claude/skills/remaining-work/SKILL.md": {
+      "owner": "compass",
+      "sha": "3f551eca6d3c1546"
+    },
+    ".claude/skills/review/SKILL.md": {
+      "owner": "compass",
+      "sha": "1f149724cd5a4e49"
+    },
+    ".claude/skills/review/references/report.md": {
+      "owner": "compass",
+      "sha": "62d8d46ed80adf43"
+    },
+    ".claude/skills/review/scripts/post-review.mjs": {
+      "owner": "compass",
+      "sha": "99f7d321f2cab502"
+    },
+    ".claude/skills/spec-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "db235fbd90007fc3"
+    },
+    ".claude/skills/spec-flow/references/convert-documents.md": {
+      "owner": "compass",
+      "sha": "4ae3be6d9a2e93b6"
+    },
+    ".claude/skills/spec-flow/references/delta-section.md": {
+      "owner": "compass",
+      "sha": "3404cf0f1e49fff5"
+    },
+    ".claude/skills/spec-flow/references/drift-triage.md": {
+      "owner": "compass",
+      "sha": "2af7d036e9c626d9"
+    },
+    ".claude/skills/spec-flow/references/openspec.md": {
+      "owner": "compass",
+      "sha": "ce700bb9ab28c883"
+    },
+    ".claude/skills/task-flow/SKILL.md": {
+      "owner": "compass",
+      "sha": "1002ff89060e6079"
+    },
+    ".claude/skills/ui-conformance/SKILL.md": {
+      "owner": "compass",
+      "sha": "bc5afb5aafb60a00"
+    },
+    ".claude/skills/ui-conformance/assets/eslint-boundaries.mjs": {
+      "owner": "compass",
+      "sha": "0809f69591e03249"
+    },
+    ".claude/skills/ui-conformance/references/playwright.md": {
+      "owner": "compass",
+      "sha": "ae4d0c22564987ea"
+    },
+    ".claude/skills/ui-conformance/scripts/probe-design-values.js": {
+      "owner": "compass",
+      "sha": "62d0721297665b5f"
+    },
+    ".claude/skills/vuln-triage/SKILL.md": {
+      "owner": "compass",
+      "sha": "b92092cb1e19d4a1"
+    },
+    ".claude/skills/vuln-triage/scripts/sarif-merge.mjs": {
+      "owner": "compass",
+      "sha": "9b74cba0d629865a"
+    },
+    ".claude/workflows/deliver.js": {
+      "owner": "compass",
+      "sha": "2c52bb1220dd3f2a"
+    },
+    ".codex/agents/reviewer.toml": {
+      "owner": "compass",
+      "sha": "d37254a1ea65dddc"
+    },
+    ".codex/agents/scout.toml": {
+      "owner": "compass",
+      "sha": "5c1e03de72d6b21a"
+    },
+    ".codex/agents/worker.toml": {
+      "owner": "compass",
+      "sha": "db11d6fa605a9cb4"
+    },
+    ".github/agents/reviewer.agent.md": {
+      "owner": "compass",
+      "sha": "1279ae49448b0693"
+    },
+    ".github/agents/scout.agent.md": {
+      "owner": "compass",
+      "sha": "b4cc54371537b252"
+    },
+    ".github/agents/worker.agent.md": {
+      "owner": "compass",
+      "sha": "1d56ceb111f89a80"
+    },
+    ".github/hooks/compass.json": {
+      "owner": "compass",
+      "sha": "2dcfc81b8fa07258"
+    },
+    ".osv-scanner.toml": {
+      "owner": "project",
+      "sha": "e30058cb853d1f33"
+    },
+    "docs/designs/screens.json": {
+      "owner": "project",
+      "sha": "825982b5f7278589"
+    }
+  },
+  "keys": {
+    ".claude/settings.json": {
+      "attribution": "43c29209e9992eb7",
+      "enabledPlugins.rust-analyzer-lsp@claude-plugins-official": "b5bea41b6c623f7c",
+      "enabledPlugins.swift-lsp@claude-plugins-official": "b5bea41b6c623f7c",
+      "hooks.PostToolUseFailure": {
+        "entries": [
+          "d2969008d6010dc6"
+        ]
+      },
+      "hooks.PreToolUse": {
+        "entries": [
+          "91a0745159ec68fc"
+        ]
+      },
+      "hooks.SessionStart": {
+        "entries": [
+          "0f7777fbff8bad3a"
+        ]
+      },
+      "hooks.Stop": {
+        "entries": [
+          "c9f004c1519ef722"
+        ]
+      },
+      "outputStyle": "51db4f8a21e2c7fa",
+      "permissions.ask": {
+        "entries": [
+          "b96a73616290656e",
+          "65157598d6277171",
+          "0304a64e21a8f388",
+          "bf332bd1b2403aba",
+          "99267f9c16ae6e1f",
+          "201020dc5d3826d8",
+          "f89f888ce9a985d3",
+          "5af93677189f6014",
+          "0cd9b513e7c3cb42",
+          "1f4e186141800fd9",
+          "2afcee0ec1917293",
+          "ac9ad21e0e1a1391",
+          "b523df186fc6c75d",
+          "5df11047ed578d5e",
+          "f0d159117af0f665",
+          "24a6af72469fd014",
+          "d6fffec771afec96",
+          "89885250150c7eb4",
+          "3567d1853769ce06",
+          "4e2141c3896b267a",
+          "2a81d3391be5eb1b",
+          "885b9c1ad3b2dad8",
+          "19d0a37418201bbc",
+          "5776dc1f8f167be7",
+          "750e0f298b91a911",
+          "4cb60f341ac54cbe",
+          "360779d389f6f718",
+          "811ca74c4c36db8b",
+          "7b8213b2442b9dfa",
+          "e2c86b3a9f0aefb1",
+          "b1f4bacb643c8993",
+          "1fe5e7966bcfc34c",
+          "d1a1e1192ceec0ac",
+          "0b4105ce34fe9dd3",
+          "f3057c9a6eae4dd6",
+          "cc98d0bbb173cd75",
+          "3190656e7da89b48",
+          "e37508e8628ae2f6",
+          "18d8a26ea77bf328",
+          "fb6b7298716e7e81",
+          "a6226f4f620321b6",
+          "1690cfc3d6cffb40",
+          "6302ffdd000c3524",
+          "d9f32cb945867029",
+          "dd586b44e71d283e",
+          "7cd9352a2cd0b444",
+          "bfe1223d89cabdc3",
+          "38b57b644fdd24d6",
+          "6b2ee5d0ecc175e1",
+          "601cc6583fa5849e",
+          "623ac1419e723e34",
+          "746040f1f5cf88e1",
+          "6bdf2da09d44da06",
+          "6d2d52bbd868c79a",
+          "8b940d8e614a88fc",
+          "7ab6b0cf7d64d121",
+          "1d909ea0e729097c",
+          "16cc6e2d7f839385",
+          "307f7bef75244add",
+          "b0d463caf2f75424",
+          "4ad4e2db28c94d46",
+          "5ced956a48efc240",
+          "eedaf4ba240b36d3",
+          "ff39416f15734532",
+          "cfabbd4e64d7e32d",
+          "95ef9869f5232d3a",
+          "762e94898af64884",
+          "5c02d65a5dc990ff",
+          "0a821d441fdea6c3",
+          "901bb129e0cf0c84",
+          "370c23792fdfc8f0",
+          "346741d85893a974",
+          "2a0f1f02b9ca9ca9",
+          "f1d7857ee2ad4efb",
+          "69802ea9ad3f4bba",
+          "350d5f527a917b0a",
+          "7455bc218d3e29d9",
+          "9b4f273d0358eff9",
+          "0adf9cc245562758",
+          "4d6b7cc5dad58e8b",
+          "f5b3e074532687c2",
+          "7a0518e87ddcf05d",
+          "1e604fe1dd4f677f",
+          "13acd4a2e61305e9",
+          "83df23e017d297c3"
+        ]
+      },
+      "permissions.deny": {
+        "entries": [
+          "3eee9287bc8bd1bf",
+          "336fee59ad183c65",
+          "67e991a99a1f389a",
+          "a1156a22738b7147",
+          "81e371a7113d5e99",
+          "37459146b7058add",
+          "6ea1d6d7ca7e7b8b",
+          "ee5963a264b2477a",
+          "0770d21501de0958",
+          "cbd6e06c7a4e6815",
+          "d1dd25f612997b9d",
+          "aeac5d4e5ac30cb1"
+        ]
+      }
+    },
+    ".mcp.json": {
+      "mcpServers.codebase-memory": "3421b082920660b3",
+      "mcpServers.xcodebuildmcp": "1ca23d4bea5e689c"
+    },
+    ".vscode/mcp.json": {
+      "servers.agent-device": "40fb8b4f0da7c336",
+      "servers.codebase-memory": "329f287c11f97138",
+      "servers.xcodebuildmcp": "41c4e012f20e5e78"
+    }
+  },
+  "blocks": {
+    "AGENTS.md": "daf332a82449977f",
+    "CLAUDE.md": "42a0de2714a77b1c"
+  }
+}

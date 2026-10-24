@@ -8,12 +8,109 @@
       "Read(**/.env.development)",
       "Read(**/.env.production)",
       "Read(./secrets/**)",
-      "Read(./**/*.pem)"
+      "Read(./**/*.pem)",
+      "Read(**/.envrc)",
+      "mcp__mcp-atlassian__*worklog*",
+      "mcp__mcp-atlassian__*delete*",
+      "mcp__github__*delete*",
+      "mcp__plugin_github_github__*delete*",
+      "Bash(gh issue delete *)",
+      "Bash(gh repo delete *)",
+      "Bash(glab issue delete *)",
+      "Bash(glab repo delete *)",
+      "Bash(jira issue delete *)",
+      "Bash(jira issue worklog *)",
+      "Bash(acli *worklog*)"
     ],
     "ask": [
       "Bash(git push:*)",
       "Bash(rm:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "mcp__mcp-atlassian__*create*",
+      "mcp__mcp-atlassian__*update*",
+      "mcp__mcp-atlassian__*_add_*",
+      "mcp__mcp-atlassian__*_remove_*",
+      "mcp__mcp-atlassian__*_edit_*",
+      "mcp__mcp-atlassian__*_comment",
+      "mcp__mcp-atlassian__*_transition_*",
+      "mcp__mcp-atlassian__*_assign_*",
+      "mcp__mcp-atlassian__*_move_*",
+      "mcp__mcp-atlassian__*_link_to_*",
+      "mcp__mcp-atlassian__*upload*",
+      "mcp__github__create_*",
+      "mcp__github__add_*",
+      "mcp__github__update_*",
+      "mcp__github__*_write",
+      "mcp__github__merge_*",
+      "mcp__github__push_*",
+      "mcp__github__run_*",
+      "mcp__github__rerun_*",
+      "mcp__github__assign_*",
+      "mcp__github__request_*",
+      "mcp__github__submit_*",
+      "mcp__plugin_github_github__create_*",
+      "mcp__plugin_github_github__add_*",
+      "mcp__plugin_github_github__update_*",
+      "mcp__plugin_github_github__*_write",
+      "mcp__plugin_github_github__merge_*",
+      "mcp__plugin_github_github__push_*",
+      "mcp__plugin_github_github__run_*",
+      "mcp__plugin_github_github__rerun_*",
+      "mcp__plugin_github_github__assign_*",
+      "mcp__plugin_github_github__request_*",
+      "mcp__plugin_github_github__submit_*",
+      "Bash(gh issue create *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh issue close *)",
+      "Bash(gh issue edit *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr comment *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr review *)",
+      "Bash(gh pr close *)",
+      "Bash(gh pr edit *)",
+      "Bash(gh release create *)",
+      "Bash(gh api *-X *)",
+      "Bash(gh api *--method *)",
+      "Bash(gh api *-f *)",
+      "Bash(gh api *-F *)",
+      "Bash(gh api *--field *)",
+      "Bash(gh api *--raw-field *)",
+      "Bash(gh api *--input *)",
+      "Bash(glab issue create *)",
+      "Bash(glab issue note *)",
+      "Bash(glab issue close *)",
+      "Bash(glab issue update *)",
+      "Bash(glab mr create *)",
+      "Bash(glab mr note *)",
+      "Bash(glab mr merge *)",
+      "Bash(glab mr approve *)",
+      "Bash(glab mr update *)",
+      "Bash(glab mr close *)",
+      "Bash(jira issue create *)",
+      "Bash(jira issue edit *)",
+      "Bash(jira issue assign *)",
+      "Bash(jira issue move *)",
+      "Bash(jira issue link *)",
+      "Bash(jira issue unlink *)",
+      "Bash(jira issue clone *)",
+      "Bash(jira issue comment *)",
+      "Bash(jira issue watch *)",
+      "Bash(jira sprint add *)",
+      "Bash(jira epic create *)",
+      "Bash(jira epic add *)",
+      "Bash(jira epic remove *)",
+      "Bash(acli *)",
+      "Bash(git push *--force*)",
+      "Bash(git push *-f)",
+      "Bash(git push *-f *)",
+      "Bash(git push * +*)",
+      "Bash(git reset *--hard*)",
+      "Bash(git clean *)",
+      "Bash(git branch *-D *)",
+      "Bash(rm -*r*)",
+      "Bash(rm -*R*)",
+      "Bash(rm *--recursive*)"
     ],
     "allow": [
       "Bash(npm run lint:*)",
@@ -31,6 +128,16 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && test -f .agent/hooks/check-agent-compass-updates.sh && sh .agent/hooks/check-agent-compass-updates.sh || true"
           }
         ]
+      },
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" start",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -40,6 +147,17 @@
           {
             "type": "command",
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && .claude/hooks/protect-agent-files.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep|Glob|Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" guard",
+            "timeout": 10,
+            "onFailure": "block"
           }
         ]
       }
@@ -53,7 +171,37 @@
             "command": "cd \"$CLAUDE_PROJECT_DIR\" && .claude/hooks/remind-completion-gate.sh"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" gate",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/.agents/hooks/compass.mjs\" hint",
+            "timeout": 10
+          }
+        ]
       }
     ]
+  },
+  "outputStyle": "compass",
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "enabledPlugins": {
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true
   }
 }
