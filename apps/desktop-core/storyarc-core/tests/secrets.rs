@@ -231,7 +231,13 @@ fn with_no_store_running_the_secret_lives_for_the_session_and_the_app_says_so_on
         panic!("a missing store is not an error: {first:?}");
     };
     let notice = notice.expect("the first save says so");
-    assert!(notice.remedy.contains("Secret Service"));
+    // Each OS names its own store.
+    let store_name = if cfg!(windows) {
+        "Credential Manager"
+    } else {
+        "Secret Service"
+    };
+    assert!(notice.remedy.contains(store_name));
     assert_eq!(
         vault.save(&key, Secret::new(SECRET)).unwrap(),
         SaveOutcome::SessionOnly { notice: None },

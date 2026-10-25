@@ -177,7 +177,9 @@ fn a_file_has_the_identity_the_store_files_a_comic_under() {
     let digest = identity["contentDigest"].as_str().expect("a digest");
     assert_eq!(digest.len(), 64);
     assert!(digest.bytes().all(|b| b.is_ascii_hexdigit()));
-    assert_eq!(identity["normalizedPath"].as_str(), path.to_str());
+    // Rejoined from its components: Windows normalises the fixture's `/` to `\`.
+    let expected = path.components().collect::<PathBuf>();
+    assert_eq!(identity["normalizedPath"].as_str(), expected.to_str());
     assert!(identity.get("serverIdentifier").is_none());
 
     // The same digest the library's own record carries for a comic.
