@@ -35,7 +35,7 @@ pub enum DecodeError {
     },
     /// libarchive's own message, kept verbatim so a bug report can carry it.
     Libarchive(String),
-    /// This build carries no decoder: Windows until task 1.7 lands.
+    /// This build carries no decoder. Every supported target compiles one since task 1.7.
     Unavailable,
 }
 

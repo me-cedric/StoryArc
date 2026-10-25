@@ -99,6 +99,11 @@ Lanes C, E, M, L, W and P run in parallel, up to four at one time. Nothing here 
   **Not attempted 2026-10-16:** no Windows host here. `build.rs` skips libarchive on `target_os = "windows"` with a
   build warning and `RarDecoder` answers `Unavailable` there, so `cargo build -p storyarc-ffi` still links for the
   Windows CI job; the MSVC header, the BCrypt paths and the removal of that skip are this task's remaining work.
+  **Written 2026-10-25, x64 only, on a Windows 11 host (MSVC 14.29, Rust 1.94):** `libarchive/config-windows.h` and
+  `libarchive/windows-shim.c` beside the Linux header, `build.rs` links `bcrypt`, and the skip is removed. The shim
+  defines the seven `__la_*` symbols the link named, with narrow paths read as UTF-8. `cargo test -p storyarc-core
+  -p storyarc-ffi` passes 511 of 511, the RAR corpus included; `git diff -- third_party` is empty. Open: ARM64, and
+  the `windows-2025-vs2026` run, whose job does not run the core tests yet.
 - [x] 1.8 **The seam, test first. [W]** `apps/desktop-windows/tests/StoryArc.Interop.Tests` calls `storyarc_core_version()`,
   one buffer round trip, one error code and one cancel. Lane W writes the test project and links the generated file of 1.8a
   into `StoryArc.Interop`. Verify: the tests fail to link until 1.8a lands.

@@ -158,8 +158,7 @@ mod corpus_pages {
     }
 
     /// Every page of every CBZ and CBT in the corpus, decoded and digested. RAR is left out:
-    /// on Windows the core reads no compressed RAR page until task 1.7, and a digest table
-    /// that differs by system would hide the thing it exists to catch.
+    /// it was unreadable on Windows before task 1.7, and its digests are not pinned yet.
     #[test]
     fn the_corpus_decodes_to_the_same_digests_on_every_desktop() {
         let pinned: &[(&str, &str)] = &CORPUS_DIGESTS;

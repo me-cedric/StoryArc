@@ -16,7 +16,7 @@
  * desktop binary is built by the `cc` crate with no configure step to probe for them.
  *
  * macOS hosts use the vendored header as is: it is the iOS configuration and the host is
- * the same platform. MSVC gets its own header beside this one in task 1.7.
+ * the same platform. MSVC has its own header beside this one, `config-windows.h`.
  */
 
 #ifndef STORYARC_LIBARCHIVE_CONFIG_LINUX_H

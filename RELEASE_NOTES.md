@@ -20,6 +20,10 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Foldables and iPhone Duo: pages avoid the fold, with a spread held like a book and controls below it on a table.
 - Android: a network share signed in with an account now requires message signing.
 
+#### Desktop
+
+- Windows: compressed CBR comics open.
+
 ### de-DE
 
 #### Phones and tablets
@@ -29,6 +33,10 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Der Hörbuch-Player passt auf kurze Telefone, und ein Hörbuch-Ordner mit einer Datei behält die Kapitel.
 - Faltbare Geräte und iPhone Duo: Seiten meiden den Falz, mit Doppelseite wie ein Buch und Bedienung auf dem Tisch darunter.
 - Android: Netzwerkfreigaben mit Konto verlangen jetzt Signaturen.
+
+#### Desktop
+
+- Windows: komprimierte CBR-Comics lassen sich öffnen.
 
 ### es-ES
 
@@ -40,6 +48,10 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Plegables e iPhone Duo: las páginas evitan el pliegue, con doble página como un libro y controles debajo sobre una mesa.
 - Android: una carpeta de red con cuenta ahora exige mensajes firmados.
 
+#### Desktop
+
+- Windows: los cómics CBR comprimidos se abren.
+
 ### fr-FR
 
 #### Phones and tablets
@@ -49,6 +61,10 @@ only. Play shows the first two groups; the GitHub release shows all three.
 - Le lecteur audio tient sur un téléphone court, et un dossier d'un seul fichier garde ses chapitres.
 - Pliables et iPhone Duo : les pages évitent le pli, en double page comme un livre et commandes dessous sur une table.
 - Android : un partage réseau avec compte exige désormais des messages signés.
+
+#### Desktop
+
+- Windows : les bandes dessinées CBR compressées s'ouvrent.
 
 ## 0.2.2
 

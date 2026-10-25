@@ -16,12 +16,6 @@ fn main() {
     println!("cargo::rustc-check-cfg=cfg(storyarc_libarchive)");
 
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
-    if target_os == "windows" {
-        // Task 1.7: MSVC needs its own config header and the BCrypt code paths. Until it
-        // lands, the Windows build carries no decoder and `RarDecoder` reports it.
-        println!("cargo::warning=libarchive is not compiled for Windows yet (task 1.7)");
-        return;
-    }
 
     let crate_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR"));
     let vendored = crate_dir.join("../../../third_party/libarchive/Sources/CLibarchive");
@@ -76,6 +70,19 @@ fn configure(build: &mut cc::Build, target_os: &str, crate_dir: &Path) {
             println!("cargo::rerun-if-changed={}", header.display());
             let quoted = format!("\"{}\"", header.display());
             build.define("PLATFORM_CONFIG_H", quoted.as_str());
+        }
+        "windows" => {
+            let header = crate_dir.join("libarchive/config-windows.h");
+            let shim = crate_dir.join("libarchive/windows-shim.c");
+            println!("cargo::rerun-if-changed={}", header.display());
+            println!("cargo::rerun-if-changed={}", shim.display());
+            // Forward slashes: a backslash before the closing quote breaks the cl command line.
+            let quoted = format!("\"{}\"", header.display().to_string().replace('\\', "/"));
+            build
+                .define("PLATFORM_CONFIG_H", quoted.as_str())
+                .file(shim);
+            // archive_random.c's Windows branch calls BCryptGenRandom.
+            println!("cargo::rustc-link-lib=bcrypt");
         }
         other => panic!("no libarchive configuration for target OS {other}"),
     }
