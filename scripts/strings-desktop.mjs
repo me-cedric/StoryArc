@@ -75,12 +75,14 @@ const findCatalogues = (root) => {
     }
   }
   walk(root)
-  return found.sort()
+  // By the `/` spelling, so Windows' `\` separators sort the catalogues in the same order.
+  const slashed = (path) => path.replaceAll('\\', '/')
+  return found.sort((a, b) => (slashed(a) < slashed(b) ? -1 : slashed(a) > slashed(b) ? 1 : 0))
 }
 
 /** The module a catalogue belongs to: the directory above `Resources`, or `App`. */
 const moduleOf = (path) => {
-  const parts = path.split('/')
+  const parts = path.split(/[\\/]/)
   const resources = parts.lastIndexOf('Resources')
   const owner = resources > 0 ? parts[resources - 1] : parts[parts.length - 2]
   return owner === 'App' || owner === 'ios' ? 'App' : owner

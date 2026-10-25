@@ -22,7 +22,7 @@
 // does — runs that declare a series, standalones that do not, and enough initials that the
 // headings under a title sort are not all one letter.
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, copyFileSync, readdirSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { tmpdir } from 'node:os'
@@ -483,6 +483,12 @@ const count = countFlag === -1 ? BASE_COUNT : Number(process.argv[countFlag + 1]
 if (!Number.isInteger(count) || count < BASE_COUNT) {
   console.error(`--count must be a whole number of at least ${BASE_COUNT}`)
   process.exit(2)
+}
+
+if (target === '--self-test' && spawnSync('zip', ['-v']).error?.code === 'ENOENT') {
+  // Info-ZIP is on macOS and the Linux runners, not on Windows. CI runs this check there.
+  console.log('corpus self-test: skipped. It needs the Info-ZIP `zip` command, which this machine does not have.')
+  process.exit(0)
 }
 
 if (target === '--self-test') {

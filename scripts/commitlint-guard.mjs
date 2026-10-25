@@ -9,9 +9,13 @@
 // `package.json` key or any other search place fails this check the same way.
 
 import { spawnSync } from 'node:child_process'
+import { createRequire } from 'node:module'
 
+// The CLI through this Node, not `npx`: Windows cannot spawn `npx.cmd` without a shell, and a
+// spawn that fails reads as "refused", which the first check would accept.
+const cli = createRequire(import.meta.url).resolve('@commitlint/cli/cli.js')
 const ask = (message) =>
-  spawnSync('npx', ['--no', '--', 'commitlint'], { input: message, encoding: 'utf8' })
+  spawnSync(process.execPath, [cli], { input: message, encoding: 'utf8' })
 
 const checks = [
   ['a scope outside the list is refused', 'feat(bogus): a scope this repository does not allow', false],
@@ -25,7 +29,8 @@ for (const [what, message, shouldPass] of checks) {
   if (passed !== shouldPass) {
     failed += 1
     console.error(`commitlint-guard: ${what} — expected ${shouldPass ? 'accepted' : 'refused'}, got ${passed ? 'accepted' : 'refused'}`)
-    if (got.stdout.trim()) console.error(got.stdout.trim())
+    if (got.error) console.error(got.error.message)
+    else if (got.stdout.trim()) console.error(got.stdout.trim())
   }
 }
 

@@ -28,6 +28,7 @@
 
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { join, relative } from 'node:path'
 import { parseCliArgs, resolveRoot } from './lib/args.mjs'
 import {
@@ -74,9 +75,16 @@ const WORKFLOW_GLOBS = [
 // The CLI resolves the *nearest* root from its working directory, so it must run
 // from the root's parent. Returns null when the CLI is absent — the guard then
 // falls back to reading files, because a missing optional tool never blocks.
+// StoryArc edit: the CLI through this Node, not `npx`. Windows cannot spawn `npx.cmd` without a
+// shell, and the failed spawn sent the guard to the file fallback with the wrong schema.
+const openspecCli = (() => {
+  // The package exports only its index, at dist/, so the bin is found beside it.
+  try { return join(createRequire(import.meta.url).resolve('@fission-ai/openspec'), '..', '..', 'bin', 'openspec.js') } catch { return null }
+})()
 const cliStatus = (root, openspecDir, change) => {
+  if (!openspecCli) return null
   const cwd = join(root, openspecDir, '..')
-  const result = spawnSync('npx', ['--no-install', 'openspec', 'status', '--change', change, '--json'], {
+  const result = spawnSync(process.execPath, [openspecCli, 'status', '--change', change, '--json'], {
     cwd, encoding: 'utf8', timeout: 60_000,
   })
   if (result.status !== 0 || !result.stdout) return null
