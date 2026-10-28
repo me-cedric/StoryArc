@@ -121,6 +121,7 @@
   "contract_version": "",
   "konvoy_mcp_url": "/Applications/Konvoy.app/Contents/MacOS/konvoy",
   "specs_from": "",
+  "specs_branch": "main",
   "policy": "",
   "plugin_assets": {},
   "surfaces": [
@@ -166,5 +167,5 @@
     "fallback": "",
     "hidden": {}
   },
-  "updated_at": "2026-08-29"
+  "updated_at": "2026-10-13"
 }
