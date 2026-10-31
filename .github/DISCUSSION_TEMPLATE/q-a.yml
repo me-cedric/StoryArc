@@ -1,0 +1,22 @@
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Ask one clear question.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What did you try?
+      description: Say what you did already.
+    validations:
+      required: false
+  - type: input
+    id: environment
+    attributes:
+      label: Version and platform
+      description: Write it like this, 0.1.0 on iOS.
+    validations:
+      required: false

@@ -1,0 +1,39 @@
+name: Format support request
+description: Report a file format that fails to open or read.
+labels: ["format"]
+body:
+  - type: input
+    id: format
+    attributes:
+      label: File format
+      description: Name the format and its extension.
+      placeholder: CB7
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sample source
+      description: Describe where the file comes from. Do not upload copyrighted files.
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Pick your operating system.
+      options:
+        - iOS
+        - Android
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: textarea
+    id: fails
+    attributes:
+      label: What fails?
+      description: Say what you did and what you saw. Quote any message.
+    validations:
+      required: true

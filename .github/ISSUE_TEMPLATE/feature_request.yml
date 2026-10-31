@@ -1,0 +1,39 @@
+name: Feature request
+description: Suggest a new feature for StoryArc.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Say what is hard or missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Say what you want StoryArc to do.
+    validations:
+      required: true
+  - type: dropdown
+    id: platforms
+    attributes:
+      label: Platforms
+      description: Pick every platform that needs this.
+      multiple: true
+      options:
+        - iOS
+        - Android
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Say what you tried or considered.
+    validations:
+      required: false

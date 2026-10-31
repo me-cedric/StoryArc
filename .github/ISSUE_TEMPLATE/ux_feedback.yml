@@ -1,0 +1,32 @@
+name: UX feedback
+description: Share a confusing, slow or hard-to-use workflow.
+labels: ["ux"]
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow
+      description: Say which task you tried to do.
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What was confusing or slow?
+      description: Say where you stopped, guessed or waited.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggestion
+      description: Say what would help.
+    validations:
+      required: false
+  - type: textarea
+    id: accessibility
+    attributes:
+      label: Accessibility notes
+      description: Mention screen reader, keyboard, contrast, text size or motion issues.
+    validations:
+      required: false

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help
+    url: https://github.com/me-cedric/StoryArc/discussions/categories/q-a
+    about: Ask a question in Discussions.
+  - name: Idea to discuss first
+    url: https://github.com/me-cedric/StoryArc/discussions/categories/ideas
+    about: Talk about an idea before you open a request.
+  - name: Security vulnerability
+    url: https://github.com/me-cedric/StoryArc/security/advisories/new
+    about: Do not post vulnerability details in a public issue.

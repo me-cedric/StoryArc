@@ -1,0 +1,83 @@
+name: Bug report
+description: Report a problem in StoryArc.
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Say which version you use.
+      placeholder: 0.2.2
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Pick your operating system.
+      options:
+        - iOS
+        - Android
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Pick the part where the problem happens.
+      options:
+        - Comic reader (CBZ, CBR, CBT, image folder)
+        - EPUB reader
+        - PDF reader
+        - Audiobook player and read aloud
+        - Sources (folder, SMB, OPDS, Kavita)
+        - Library and covers
+        - Downloads and offline
+        - Progress and sync
+        - Settings, themes and language
+        - Install and update
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Say what you did and what you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Say what should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: List each step. Start from a fresh launch.
+      placeholder: |
+        1. Open ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste text or drop a file. Remove secrets, hosts and personal data first.
+    validations:
+      required: false
+  - type: checkboxes
+    id: redaction
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed secrets and personal data.
+          required: true

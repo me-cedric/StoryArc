@@ -1,0 +1,22 @@
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Say what is hard or missing today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: Say what you want StoryArc to do.
+    validations:
+      required: true
+  - type: textarea
+    id: who
+    attributes:
+      label: Who it helps
+      description: Say who gains from this.
+    validations:
+      required: false
